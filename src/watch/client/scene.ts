@@ -27,8 +27,6 @@ interface Mover {
   label: Phaser.GameObjects.Text;
   zz: Phaser.GameObjects.Image;
   look: number;
-  /** Place in a crowd on one tile, so names stack instead of overlapping. */
-  stack: number;
   facing: number;
   pts: Pt[];
   start: number;
@@ -207,14 +205,14 @@ export class TownScene extends Phaser.Scene {
 
     // Residents standing on the same tile shuffle apart a little.
     const crowd = new Map<string, number>();
-    const spread = new Map<string, Pt & { k: number }>();
+    const spread = new Map<string, Pt>();
     for (const r of f.residents) {
       if (r.activity === 'walking') continue;
       const key = `${r.x},${r.y}`;
       const k = crowd.get(key) ?? 0;
       crowd.set(key, k + 1);
       const offs = [[0, 0], [-6, 1], [6, 1], [-3, -3], [3, -3], [0, 3]][k % 6]!;
-      spread.set(r.id, { x: offs[0]!, y: offs[1]!, k });
+      spread.set(r.id, { x: offs[0]!, y: offs[1]! });
     }
 
     for (const r of f.residents) {
@@ -224,8 +222,7 @@ export class TownScene extends Phaser.Scene {
         this.movers.set(r.id, m);
       }
       m.view = r;
-      const off = spread.get(r.id) ?? { x: 0, y: 0, k: 0 };
-      m.stack = off.k;
+      const off = spread.get(r.id) ?? { x: 0, y: 0 };
       const end = tileCentre(r);
       end.x += off.x;
       end.y += off.y;
@@ -281,7 +278,7 @@ export class TownScene extends Phaser.Scene {
       fontFamily: 'ui-monospace, Consolas, monospace', fontSize: '7px', color: '#fdf6e3', stroke: '#1d1d1d', strokeThickness: 2, resolution: 4,
     }).setOrigin(0.5, 1).setDepth(OVERLAY_DEPTH + 5);
     const zz = this.add.image(p.x + 6, p.y - 18, 'k', 'zz').setDepth(OVERLAY_DEPTH + 4).setVisible(false);
-    return { view: r, sprite, label, zz, look, stack: 0, facing: DOWN, pts: [p], start: 0, dur: 1 };
+    return { view: r, sprite, label, zz, look, facing: DOWN, pts: [p], start: 0, dur: 1 };
   }
 
   select(id: string | null): void {
@@ -303,7 +300,7 @@ export class TownScene extends Phaser.Scene {
       const inside = asleep && this.isInside(r, r.homeId);
       m.sprite.setPosition(pos.x, pos.y).setFrame(row * PEOPLE_COLS + m.look * 4 + m.facing);
       m.sprite.setVisible(!inside).setAngle(asleep && !inside ? 90 : 0).setDepth(pos.y);
-      m.label.setPosition(pos.x, pos.y - 16 - m.stack * 7).setVisible(!inside || r.id === this.selected);
+      m.label.setPosition(pos.x, pos.y - 16).setVisible(!inside || r.id === this.selected);
       const bob = Math.sin(time / 500 + m.look) * 1.5;
       if (inside) {
         const home = this.homes.get(r.homeId)!;
@@ -315,6 +312,24 @@ export class TownScene extends Phaser.Scene {
       }
     }
     if (!this.selected || !this.movers.has(this.selected)) this.ring.setVisible(false);
+    this.unstackLabels();
+  }
+
+  /** Nudges name labels up until none overlap, nearest the bottom of the map first. */
+  private unstackLabels(): void {
+    const labels = [...this.movers.values()].map((m) => m.label).filter((l) => l.visible).sort((a, b) => b.y - a.y);
+    const placed: { x0: number; x1: number; y0: number; y1: number }[] = [];
+    for (const l of labels) {
+      const half = l.width / 2;
+      let y = l.y;
+      for (let tries = 0; tries < 10; tries++) {
+        const hit = placed.find((p) => l.x - half < p.x1 && l.x + half > p.x0 && y - l.height < p.y1 && y > p.y0);
+        if (!hit) break;
+        y = hit.y0;
+      }
+      l.setY(y);
+      placed.push({ x0: l.x - half, x1: l.x + half, y0: y - l.height, y1: y });
+    }
   }
 }
 

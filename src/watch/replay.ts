@@ -226,7 +226,7 @@ export class ReplayReader {
     if (!this.fallback) {
       const w = new World(createWorld(42, this.info().start));
       const f = new FrameBuilder().build(w);
-      for (const r of f.residents) r.doing = 'not recorded in this trial';
+      for (const r of f.residents) r.doing = 'not recorded in this trial (shown as the town started)';
       this.fallback = f;
     }
     const w = new World(createWorld(42, t));
