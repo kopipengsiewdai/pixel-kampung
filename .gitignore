@@ -1,0 +1,39 @@
+# --- Private runtime data: NEVER in this repo ---
+# Live world state, saves, economy DB, agent memories/logs, keys and player data
+# live outside the repo (default: ~/.kampung/). These patterns are a backstop.
+.env
+.env.*
+!.env.example
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*.log
+logs/
+saves/
+world-state/
+memories/
+.kampung/
+
+# Scratch space (never the repo root or Desktop)
+.scratch/
+
+# Tooling
+node_modules/
+dist/
+build/
+coverage/
+.cache/
+__pycache__/
+*.pyc
+.venv/
+
+# OS / editors
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/*
+!.vscode/extensions.json
+.idea/

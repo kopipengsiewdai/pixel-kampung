@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and chat
+    url: https://github.com/kopipengsiewdai/pixel-kampung/discussions
+    about: Ask questions and share ideas in Discussions.
+  - name: Security issue
+    url: https://github.com/kopipengsiewdai/pixel-kampung/security/advisories/new
+    about: Report vulnerabilities privately.

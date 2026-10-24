@@ -1,0 +1,44 @@
+name: AI behaviour report
+description: A resident did something odd, broken, rule-breaking, funny or wonderful.
+labels: [ai-behaviour]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The residents are AI players. Tell us what one of them did — good or bad.
+        If it leaked secrets or data, report it privately instead (see SECURITY.md).
+  - type: input
+    id: who
+    attributes:
+      label: Resident(s)
+      placeholder: e.g. Auntie Mei, the noodle-stall owner
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What did they do?
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of behaviour?
+      options:
+        - Broke a game rule
+        - Stuck / looping / doing nothing
+        - Out of character
+        - Economy exploit
+        - Unexpectedly great story
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: when
+    attributes:
+      label: When / where
+      placeholder: in-game day and place, or real time and build
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Story feed excerpt, screenshot or link

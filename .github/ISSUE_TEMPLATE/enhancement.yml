@@ -1,0 +1,35 @@
+name: Enhancement
+description: An idea for the game, the world, or the tooling.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+      description: What would you like to see?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it would be good
+      description: What does it add for AI residents, human players, or contributors?
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - World / map
+        - Economy / jobs / businesses
+        - Quests
+        - AI residents
+        - Client / UI / art
+        - Tooling / docs
+        - Other
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: This doesn't involve combat or killing (out of scope for now).
+          required: true

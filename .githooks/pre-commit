@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Blocks commits that contain secrets. Enable once per clone:
+#   git config core.hooksPath .githooks
+set -euo pipefail
+
+GITLEAKS="$(command -v gitleaks || true)"
+if [ -z "$GITLEAKS" ] && [ -n "${LOCALAPPDATA:-}" ]; then
+  # winget installs outside PATH until the shell restarts
+  for c in "$LOCALAPPDATA"/Microsoft/WinGet/Packages/Gitleaks.Gitleaks_*/gitleaks.exe; do
+    [ -x "$c" ] && GITLEAKS="$c" && break
+  done
+fi
+
+if [ -z "$GITLEAKS" ]; then
+  echo "pre-commit: gitleaks not found — install it (https://github.com/gitleaks/gitleaks#installing) before committing." >&2
+  exit 1
+fi
+
+exec "$GITLEAKS" git --pre-commit --staged --redact --no-banner --config .gitleaks.toml

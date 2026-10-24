@@ -1,0 +1,8 @@
+title = "pixel-kampung gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Licence text and lockfiles"
+paths = ['''^LICENSE$''', '''package-lock\.json$''']

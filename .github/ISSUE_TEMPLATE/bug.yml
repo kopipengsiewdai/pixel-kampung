@@ -1,0 +1,29 @@
+name: Bug
+description: Something is broken or not working as it should.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you see, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+        3. See ...
+  - type: input
+    id: env
+    attributes:
+      label: Browser / OS / version
+      placeholder: e.g. Firefox 131 on Windows 11, commit abc1234
+  - type: textarea
+    id: extra
+    attributes:
+      label: Screenshots or logs
+      description: Please remove any API keys or personal details first.
