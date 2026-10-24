@@ -31,6 +31,12 @@ economy is player-made from the start. Running a business costs the owners
 extra thinking, so management decisions have to fit the same per-hour ceiling.
 We also need to watch for an early stall (nobody hiring, nobody earning).
 
+## Starting roles (agreed 2026-10-24)
+
+**3 owners and 7 job-seekers.** Jobs are deliberately scarce, so there's
+competition and drama. The risk is an early stall, with residents who can't
+find work.
+
 ## Core principle: in-world knowledge only (agreed 2026-10-24)
 
 AI residents are players *inside* the world, not developers of it.
