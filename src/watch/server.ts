@@ -1,0 +1,298 @@
+/**
+ * The watch page's server: plain Node http, bound to 127.0.0.1 so nothing
+ * off this PC can reach it. Read-only towards the town. Requests addressed to
+ * any other host name are refused (no DNS rebinding), and the page's content
+ * policy lets it load and fetch only from this server.
+ */
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { extname, join, resolve, sep } from 'node:path';
+import { ReplayReader } from './replay.ts';
+import { ReplaySource, type ReplayCommand, type WatchSource } from './source.ts';
+import type { Update } from './types.ts';
+
+export const HOST = '127.0.0.1';
+export const DEFAULT_PORT = 8160;
+
+export interface ClientFiles { html: string; js: string; css: string }
+
+export interface TrialEntry { name: string; bytes: number; modified: string }
+
+/** The trials a replay can switch to, by file name only. */
+export interface Catalog {
+  list(): TrialEntry[];
+  /** The trial's path, or null if there's no such trial. */
+  find(name: string): string | null;
+}
+
+/** The `.db` files directly inside a trials folder. */
+export function trialCatalog(dir: string): Catalog {
+  const list = (): TrialEntry[] => {
+    if (!existsSync(dir)) return [];
+    return readdirSync(dir, { withFileTypes: true })
+      .filter((e) => e.isFile() && e.name.endsWith('.db'))
+      .map((e) => {
+        const st = statSync(join(dir, e.name));
+        return { name: e.name, bytes: st.size, modified: st.mtime.toISOString() };
+      })
+      .sort((a, b) => b.modified.localeCompare(a.modified));
+  };
+  return { list, find: (name) => (list().some((t) => t.name === name) ? join(dir, name) : null) };
+}
+
+export interface WatchServerOptions {
+  source: WatchSource;
+  client: ClientFiles;
+  assetsDir: string;
+  port: number;
+  /** Replay mode: the trials the page may switch between. */
+  catalog?: Catalog;
+  /** Speed for replays opened from the page. */
+  replaySpeed?: number;
+}
+
+export interface WatchServer {
+  host: string;
+  port: number;
+  url: string;
+  source(): WatchSource;
+  close(): Promise<void>;
+}
+
+const CSP = [
+  "default-src 'self'", "img-src 'self' data: blob:", "style-src 'self'", "script-src 'self'",
+  "connect-src 'self'", "font-src 'self'", "base-uri 'none'", "form-action 'none'", "frame-ancestors 'none'", "object-src 'none'",
+].join('; ');
+const ASSET_TYPES: Record<string, string> = { '.png': 'image/png', '.json': 'application/json' };
+const MAX_BODY = 4096;
+
+function send(res: ServerResponse, status: number, type: string, body: string | Buffer, extra: Record<string, string> = {}): void {
+  res.writeHead(status, { 'content-type': type, 'x-content-type-options': 'nosniff', 'cache-control': 'no-store', ...extra });
+  res.end(body);
+}
+
+function json(res: ServerResponse, status: number, value: unknown): void {
+  send(res, status, 'application/json; charset=utf-8', JSON.stringify(value));
+}
+
+function readJson(req: IncomingMessage): Promise<unknown> {
+  return new Promise((ok, fail) => {
+    let size = 0;
+    const chunks: Buffer[] = [];
+    req.on('data', (c: Buffer) => {
+      size += c.length;
+      if (size > MAX_BODY) {
+        fail(new Error('too big'));
+        req.destroy();
+      } else chunks.push(c);
+    });
+    req.on('end', () => {
+      try {
+        ok(JSON.parse(Buffer.concat(chunks).toString('utf8')));
+      } catch (err) {
+        fail(err);
+      }
+    });
+    req.on('error', fail);
+  });
+}
+
+function replayCommand(body: unknown): ReplayCommand | null {
+  if (!body || typeof body !== 'object') return null;
+  const b = body as Record<string, unknown>;
+  const cmd: ReplayCommand = {};
+  if (b.speed !== undefined) {
+    if (typeof b.speed !== 'number') return null;
+    cmd.speed = b.speed;
+  }
+  if (b.t !== undefined) {
+    if (typeof b.t !== 'number' || !Number.isFinite(b.t)) return null;
+    cmd.t = b.t;
+  }
+  if (b.paused !== undefined) {
+    if (typeof b.paused !== 'boolean') return null;
+    cmd.paused = b.paused;
+  }
+  return cmd;
+}
+
+export async function startWatchServer(opts: WatchServerOptions): Promise<WatchServer> {
+  let source = opts.source;
+  const assetsRoot = resolve(opts.assetsDir);
+  const streams = new Set<ServerResponse>();
+  let unsubscribe = () => {};
+
+  const sendEvent = (res: ServerResponse, event: string, data: unknown) => {
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+  const follow = () => {
+    unsubscribe();
+    unsubscribe = source.subscribe((u: Update) => {
+      for (const res of streams) sendEvent(res, 'update', u);
+    });
+  };
+  follow();
+
+  const ticker = setInterval(() => source.tick?.(), 100);
+  const keepAlive = setInterval(() => {
+    for (const res of streams) res.write(': still here\n\n');
+  }, 15_000);
+
+  const swap = (next: WatchSource) => {
+    const old = source;
+    source = next;
+    follow();
+    old.close();
+    // Pages start over with the new replay.
+    for (const res of streams) {
+      sendEvent(res, 'reset', {});
+      res.end();
+    }
+    streams.clear();
+  };
+
+  let port = opts.port;
+  const allowedHosts = () => new Set([`${HOST}:${port}`, `localhost:${port}`]);
+
+  const handle = async (req: IncomingMessage, res: ServerResponse) => {
+    if (!allowedHosts().has(req.headers.host ?? '')) {
+      send(res, 403, 'text/plain; charset=utf-8', 'This page is only for this computer.');
+      return;
+    }
+    const url = new URL(req.url ?? '/', `http://${HOST}:${port}`);
+    const path = url.pathname;
+    const method = req.method ?? 'GET';
+
+    if (method === 'POST') {
+      if (!(req.headers['content-type'] ?? '').startsWith('application/json')) {
+        send(res, 415, 'text/plain; charset=utf-8', 'JSON only.');
+        return;
+      }
+      if (!source.control || (path !== '/api/replay' && path !== '/api/replay/open')) {
+        send(res, 404, 'text/plain; charset=utf-8', 'Not here.');
+        return;
+      }
+      let body: unknown;
+      try {
+        body = await readJson(req);
+      } catch {
+        send(res, 400, 'text/plain; charset=utf-8', 'Bad request.');
+        return;
+      }
+      if (path === '/api/replay') {
+        const cmd = replayCommand(body);
+        if (!cmd) {
+          send(res, 400, 'text/plain; charset=utf-8', 'Bad request.');
+          return;
+        }
+        try {
+          json(res, 200, source.control(cmd));
+        } catch {
+          send(res, 400, 'text/plain; charset=utf-8', 'Bad request.');
+        }
+        return;
+      }
+      const name = body && typeof body === 'object' ? (body as { name?: unknown }).name : undefined;
+      const file = typeof name === 'string' ? opts.catalog?.find(name) : null;
+      if (!file) {
+        send(res, 404, 'text/plain; charset=utf-8', 'No such trial.');
+        return;
+      }
+      try {
+        swap(new ReplaySource(new ReplayReader(file), { speed: opts.replaySpeed ?? 60 }));
+      } catch {
+        send(res, 400, 'text/plain; charset=utf-8', "That trial can't be played.");
+        return;
+      }
+      json(res, 200, source.state!());
+      return;
+    }
+    if (method !== 'GET' && method !== 'HEAD') {
+      send(res, 405, 'text/plain; charset=utf-8', 'Read only.');
+      return;
+    }
+
+    if (path === '/' || path === '/index.html') {
+      send(res, 200, 'text/html; charset=utf-8', opts.client.html, { 'content-security-policy': CSP });
+      return;
+    }
+    if (path === '/app.js') {
+      send(res, 200, 'text/javascript; charset=utf-8', opts.client.js);
+      return;
+    }
+    if (path === '/style.css') {
+      send(res, 200, 'text/css; charset=utf-8', opts.client.css);
+      return;
+    }
+    if (path.startsWith('/assets/')) {
+      const rel = decodeURIComponent(path.slice('/assets/'.length));
+      const file = resolve(assetsRoot, rel);
+      const type = ASSET_TYPES[extname(file).toLowerCase()];
+      if (!type || !file.startsWith(assetsRoot + sep) || !existsSync(file) || !statSync(file).isFile()) {
+        send(res, 404, 'text/plain; charset=utf-8', 'Not here.');
+        return;
+      }
+      send(res, 200, type, readFileSync(file), { 'cache-control': 'max-age=3600' });
+      return;
+    }
+    if (path === '/api/layout') {
+      json(res, 200, source.hello().layout);
+      return;
+    }
+    if (path === '/api/health') {
+      const m = process.memoryUsage();
+      json(res, 200, { ok: true, mode: source.mode, t: source.hello().frame.t, rss: m.rss, heapUsed: m.heapUsed });
+      return;
+    }
+    if (path.startsWith('/api/resident/')) {
+      const card = source.card(decodeURIComponent(path.slice('/api/resident/'.length)));
+      if (card) json(res, 200, card);
+      else send(res, 404, 'text/plain; charset=utf-8', 'Nobody by that name.');
+      return;
+    }
+    if (path === '/api/replay' && source.state) {
+      json(res, 200, { state: source.state(), trials: opts.catalog?.list() ?? [] });
+      return;
+    }
+    if (path === '/api/stream') {
+      res.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-store', connection: 'keep-alive', 'x-content-type-options': 'nosniff' });
+      sendEvent(res, 'hello', source.hello());
+      streams.add(res);
+      req.on('close', () => { streams.delete(res); });
+      return;
+    }
+    send(res, 404, 'text/plain; charset=utf-8', 'Not here.');
+  };
+
+  const server = createServer((req, res) => {
+    handle(req, res).catch(() => {
+      if (!res.headersSent) send(res, 500, 'text/plain; charset=utf-8', 'Something went wrong.');
+      else res.end();
+    });
+  });
+  await new Promise<void>((ok, fail) => {
+    server.once('error', fail);
+    server.listen(opts.port, HOST, () => {
+      server.off('error', fail);
+      ok();
+    });
+  });
+  port = (server.address() as AddressInfo).port;
+
+  return {
+    host: HOST,
+    port,
+    url: `http://${HOST}:${port}/`,
+    source: () => source,
+    close: () => new Promise<void>((ok) => {
+      clearInterval(ticker);
+      clearInterval(keepAlive);
+      unsubscribe();
+      for (const res of streams) res.end();
+      streams.clear();
+      server.closeAllConnections();
+      server.close(() => ok());
+    }),
+  };
+}
