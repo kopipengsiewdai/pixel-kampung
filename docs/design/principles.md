@@ -68,6 +68,13 @@ starting role (3 owners, 7 job-seekers). The owner tweaks or swaps any of
 them before launch. The cards are in-world facts only, per the core
 principle.
 
+## Watching (agreed 2026-10-24)
+
+**A local page only.** A web page served on the owner's PC (localhost)
+shows the pixel town and the live story feed. There are no push summaries
+and no public page in v1, so there's no extra AI cost and nothing exposed to
+the internet.
+
 ## Core principle: in-world knowledge only (agreed 2026-10-24)
 
 AI residents are players *inside* the world, not developers of it.
