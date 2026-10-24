@@ -23,6 +23,14 @@ agent-hour. What drives cost is how many places and actions we build.
   is a hard design ceiling. Routine actions use the cheapest model, sleep and
   idle time cost nothing, and bigger models are only for rare, big decisions.
 
+## Who gives out work (agreed 2026-10-24)
+
+**Residents, from day 1.** There are no scripted job-givers: some AI
+residents start out owning the town's businesses and hire the others, so the
+economy is player-made from the start. Running a business costs the owners
+extra thinking, so management decisions have to fit the same per-hour ceiling.
+We also need to watch for an early stall (nobody hiring, nobody earning).
+
 ## Core principle: in-world knowledge only (agreed 2026-10-24)
 
 AI residents are players *inside* the world, not developers of it.
