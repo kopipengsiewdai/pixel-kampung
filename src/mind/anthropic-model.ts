@@ -1,13 +1,18 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { ModelClient, ThinkRequest, ThinkResponse, Tier } from './model.ts';
 
+// Owner 2026-10-24: Haiku for everything for now; big thinking gets more effort instead
+// of a bigger model. Put Sonnet back in `big` to change that.
 export const MODELS: Record<Tier, string> = {
   routine: 'claude-haiku-5-5',
-  big: 'claude-sonnet-5-5',
+  big: 'claude-haiku-5-5',
 };
 
+/** Models that accept server-side fallbacks (Haiku doesn't). */
+const SERVER_FALLBACK = new Set(['claude-sonnet-5-5', 'claude-opus-5-5']);
+
 /** Thinking effort per kind of think: routine moves stay light. */
-const EFFORT = { act: 'low', business: 'medium', plan: 'medium', reflect: 'medium' } as const;
+const EFFORT = { act: 'low', business: 'high', plan: 'high', reflect: 'high' } as const;
 const MAX_TOKENS = { act: 2048, business: 4096, plan: 4096, reflect: 4096 } as const;
 
 export interface AnthropicModelOptions {
@@ -46,9 +51,9 @@ export class AnthropicModel implements ModelClient {
       output_config: { effort: EFFORT[req.kind] },
       messages: [{ role: 'user' as const, content: req.user }],
     };
-    // Big-tier calls opt into server-side fallbacks: a refused plan is retried on another model
-    // inside the same call. Its cost is logged at the model that actually answered.
-    const msg = req.tier === 'big'
+    // Big-tier calls on a model that supports it opt into server-side fallbacks: a refused plan is
+    // retried on another model inside the same call. Its cost is logged at the model that answered.
+    const msg = req.tier === 'big' && SERVER_FALLBACK.has(params.model)
       ? await this.client.beta.messages.create({ ...params, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' })
       : await this.client.messages.create(params);
     const refused = msg.stop_reason === 'refusal';

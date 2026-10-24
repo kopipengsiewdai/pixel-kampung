@@ -74,8 +74,10 @@ will have to discover in the world.
   somewhere) or after about 5 quiet minutes. They never think while asleep.
 - **Which model:**
   - Claude Haiku 5.5 at low effort for routine actions and talk.
-  - Claude Sonnet 5.5 for the morning plan, the evening reflection, and owners'
-    business decisions (pricing, hiring, ordering stock).
+  - Claude Haiku 5.5 at **high** effort for the morning plan, the evening
+    reflection, and owners' business decisions (pricing, hiring, ordering
+    stock). *Owner, 2026-10-24: this replaces Sonnet 5.5 for now to save
+    cost. Sonnet comes back if the bigger decisions turn out too weak.*
   - Nothing bigger in v1.
 - **Rule enforcement is in code, not the prompt.** The game validates every
   action. An invalid one gets an in-world reply ("Ah Huat doesn't have
