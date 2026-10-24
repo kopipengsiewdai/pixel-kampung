@@ -60,6 +60,14 @@ light (mostly waiting on API calls), keep all state under `~/.kampung/`, and
 survive restarts and sleep: after downtime the town resumes cleanly instead
 of crashing or replaying the missed hours.
 
+## The cast (agreed 2026-10-24)
+
+**Claude drafts and the owner edits.** Claude writes 10 short resident cards
+suited to a 1960s kampung: name, age, personality, a want, a worry, and a
+starting role (3 owners, 7 job-seekers). The owner tweaks or swaps any of
+them before launch. The cards are in-world facts only, per the core
+principle.
+
 ## Core principle: in-world knowledge only (agreed 2026-10-24)
 
 AI residents are players *inside* the world, not developers of it.
