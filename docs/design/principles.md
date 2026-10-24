@@ -15,6 +15,14 @@ A **1960s Singapore kampung**: a kopitiam, a wet market, a provision shop, a
 fishing jetty and a vegetable farm. The theme doesn't change the cost per
 agent-hour. What drives cost is how many places and actions we build.
 
+## Run time and budget (agreed 2026-10-24)
+
+- **Always on, 24/7.** The town keeps living while nobody watches.
+- **AI budget: US$100/month for now.** With 10 residents running 720 h/month,
+  that's $10 per resident per month, about **$0.014 per resident-hour**. This
+  is a hard design ceiling. Routine actions use the cheapest model, sleep and
+  idle time cost nothing, and bigger models are only for rare, big decisions.
+
 ## Core principle: in-world knowledge only (agreed 2026-10-24)
 
 AI residents are players *inside* the world, not developers of it.
