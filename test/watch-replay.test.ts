@@ -131,3 +131,21 @@ describe("residents' thoughts in a replay", () => {
     r.close();
   });
 });
+
+describe('a reader opened early', () => {
+  it('notices frames that land after it opened', async () => {
+    const path = join(tmp(), 'trial-early.db');
+    const mem = new MemoryStore(path);
+    mem.add('siti', START + 1, 'thought', 'Early.');
+    const r = new ReplayReader(path);
+    expect(r.info().hasFrames).toBe(false);
+    const recorder = new ReplayRecorder(path, { seed: 42, label: 'late' });
+    const town = Town.create(42, START, recordTown(recorder));
+    await town.runUntil(START + 10);
+    expect(r.info()).toMatchObject({ hasFrames: true, start: START, end: START + 10 });
+    expect(r.frameAt(START + 5).t).toBe(START + 5);
+    r.close();
+    recorder.close();
+    mem.close();
+  });
+});

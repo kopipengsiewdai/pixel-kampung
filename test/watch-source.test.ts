@@ -140,3 +140,37 @@ describe('the replay source', () => {
     src.close();
   });
 });
+
+describe('the watch page never trips the town', () => {
+  it('swallows a fault in its own hooks', async () => {
+    const live = new LiveSource({ label: 'x', msPerMinute: 1000, everyMs: 0 });
+    const town = Town.create(42, START, live.hooks());
+    live.subscribe(() => { throw new Error('page fault'); });
+    const errors: unknown[] = [];
+    const orig = console.error;
+    console.error = (...a: unknown[]) => { errors.push(a); };
+    try {
+      await town.runUntil(START + 5);
+    } finally {
+      console.error = orig;
+    }
+    expect(town.t).toBe(START + 5);
+    expect(errors).toHaveLength(1);
+  });
+});
+
+describe('replay controls', () => {
+  it('keep everyone where they stand on pause or a speed change', async () => {
+    const src = new ReplaySource(new ReplayReader(await trialFile(60)), { speed: 60, now: () => 0, everyMs: 0 });
+    const got: Update[] = [];
+    src.subscribe((u) => got.push(u));
+    src.control({ t: START + 30 });
+    src.control({ paused: true });
+    src.control({ speed: 300 });
+    for (const u of got.slice(1)) {
+      expect(u.snap).toBeFalsy();
+      for (const r of u.frame.residents) expect(r.route).toEqual([{ x: r.x, y: r.y }]);
+    }
+    src.close();
+  });
+});

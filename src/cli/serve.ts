@@ -82,7 +82,8 @@ live.attach(town.world);
 console.log(`Pixel Kampung is running. Saving to ${dbPath(home)}`);
 
 const port = numArg(args, 'port', DEFAULT_PORT);
-const page = await buildClient()
+// Not awaited: the town's first minute never waits on the page.
+const page = buildClient()
   .then((client) => startWatchServer({ source: live, client, assetsDir: ASSETS_DIR, port }))
   .then((server) => {
     console.log(`Watch the kampung at ${server.url}  (this PC only)`);
@@ -115,7 +116,7 @@ const timer = setInterval(() => { void tick(); }, 1000);
 
 function stop(): void {
   clearInterval(timer);
-  void page?.close();
+  void page.then((server) => server?.close());
   live.close();
   store.close();
   process.exit(0);

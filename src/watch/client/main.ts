@@ -129,13 +129,21 @@ function renderCard(c: Card): void {
   card.hidden = false;
 }
 
+let cardAsked = 0;
+
 async function refreshCard(): Promise<void> {
   if (!selected) return;
   const id = selected;
+  const ask = ++cardAsked;
   lastCardFetch = Date.now();
-  const res = await fetch(`/api/resident/${encodeURIComponent(id)}`);
-  if (!res.ok || selected !== id) return;
-  renderCard(await res.json() as Card);
+  try {
+    const res = await fetch(`/api/resident/${encodeURIComponent(id)}`);
+    const card = res.ok ? await res.json() as Card : null;
+    // Only the newest answer counts, and only while that resident is still picked.
+    if (card && ask === cardAsked && selected === id) renderCard(card);
+  } catch {
+    // The stream's own error notice covers a lost server; the next update asks again.
+  }
 }
 
 /** Card refreshes at most once a second while the town moves. */

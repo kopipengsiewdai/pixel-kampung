@@ -148,6 +148,11 @@ export class ReplayReader {
   }
 
   info(): ReplayInfo {
+    // Opened before the trial's first frame landed? Look again.
+    if (!this.frames && hasTable(this.db, 'replay_frames')) {
+      this.frames = this.db.prepare('SELECT 1 FROM replay_frames LIMIT 1').get() !== undefined;
+      if (this.frames) this.fallback = null;
+    }
     let start = 0;
     let end = 0;
     if (this.frames) {

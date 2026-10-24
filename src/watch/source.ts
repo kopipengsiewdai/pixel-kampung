@@ -130,11 +130,23 @@ export class LiveSource implements WatchSource {
     this.hub = new Hub(opts.everyMs ?? 150);
   }
 
+  /** Town hooks. They never throw: a fault in the page must not stop the town. */
   hooks(): Required<Pick<TownOptions, 'onEvent' | 'onTick'>> {
     return {
-      onEvent: (e) => this.onEvent(e),
-      onTick: (w) => this.onTick(w),
+      onEvent: (e) => this.guard(() => this.onEvent(e)),
+      onTick: (w) => this.guard(() => this.onTick(w)),
     };
+  }
+
+  private warned = false;
+
+  private guard(fn: () => void): void {
+    try {
+      fn();
+    } catch (err) {
+      if (!this.warned) console.error(`The watch page hit a problem and may lag (${err instanceof Error ? err.message : String(err)}). The town keeps running.`);
+      this.warned = true;
+    }
   }
 
   /** Sees a world for the first time (a resumed town, which hasn't ticked yet). */
@@ -214,7 +226,7 @@ export class ReplaySource implements WatchSource {
   private readonly player: ReplayPlayer;
   private readonly hub: Hub;
   private readonly layout: Layout;
-  private readonly hasFrames: boolean;
+  private hasFrames: boolean;
   private readonly now: () => number;
   private readonly growEveryMs: number;
   private lastGrowCheck: number;
@@ -244,7 +256,9 @@ export class ReplaySource implements WatchSource {
   tick(): void {
     if (this.now() - this.lastGrowCheck >= this.growEveryMs) {
       this.lastGrowCheck = this.now();
-      this.player.extend(this.reader.info().end);
+      const info = this.reader.info();
+      this.hasFrames = info.hasFrames;
+      this.player.extend(info.end);
     }
     const step = this.player.tick();
     if (!step) return;
@@ -275,10 +289,19 @@ export class ReplaySource implements WatchSource {
     if (cmd.speed !== undefined) this.player.setSpeed(cmd.speed);
     if (cmd.t !== undefined) this.player.seek(cmd.t);
     if (cmd.paused === true) this.player.pause();
-    if (cmd.paused === false) this.player.play();
+    if (cmd.paused === false) {
+      // A trial still being written may have grown since we caught up with it: follow it on.
+      this.player.extend(this.reader.info().end);
+      this.player.play();
+    }
     const state = this.state();
     if (cmd.t !== undefined || cmd.paused === false) this.hub.publish(this.jump(state.t));
-    else this.hub.publish({ frame: this.reader.frameAt(state.t), feed: [], replay: state, msPerMinute: this.msPerMinute() });
+    else {
+      // Same minute, new clock: everyone stays put (their last steps are already walked).
+      const f = this.reader.frameAt(state.t);
+      const frame = { ...f, residents: f.residents.map((r) => ({ ...r, route: [{ x: r.x, y: r.y }] })) };
+      this.hub.publish({ frame, feed: [], replay: state, msPerMinute: this.msPerMinute() });
+    }
     return state;
   }
 

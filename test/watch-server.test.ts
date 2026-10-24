@@ -185,3 +185,12 @@ describe('the watch server in replay mode', () => {
     expect(after.state.file).toBe('trial-b.db');
   });
 });
+
+describe('odd requests', () => {
+  it('answers a broken escape with 400 and a HEAD of the stream without hanging', async () => {
+    const { server } = await liveServer();
+    expect((await rawGet(server.port, '/api/resident/%E0%A4%A', `127.0.0.1:${server.port}`)).status).toBe(400);
+    const head = await fetch(new URL('/api/stream', server.url), { method: 'HEAD' });
+    expect(head.status).toBe(404);
+  });
+});

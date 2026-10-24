@@ -134,7 +134,15 @@ export async function startWatchServer(opts: WatchServerOptions): Promise<WatchS
   };
   follow();
 
-  const ticker = setInterval(() => source.tick?.(), 100);
+  let tickFailed = false;
+  const ticker = setInterval(() => {
+    try {
+      source.tick?.();
+    } catch (err) {
+      if (!tickFailed) console.error(`The replay couldn't read on (${err instanceof Error ? err.message : String(err)}).`);
+      tickFailed = true;
+    }
+  }, 100);
   const keepAlive = setInterval(() => {
     for (const res of streams) res.write(': still here\n\n');
   }, 15_000);
@@ -161,7 +169,13 @@ export async function startWatchServer(opts: WatchServerOptions): Promise<WatchS
       return;
     }
     const url = new URL(req.url ?? '/', `http://${HOST}:${port}`);
-    const path = url.pathname;
+    let path: string;
+    try {
+      path = decodeURIComponent(url.pathname);
+    } catch {
+      send(res, 400, 'text/plain; charset=utf-8', 'Bad request.');
+      return;
+    }
     const method = req.method ?? 'GET';
 
     if (method === 'POST') {
@@ -199,9 +213,12 @@ export async function startWatchServer(opts: WatchServerOptions): Promise<WatchS
         send(res, 404, 'text/plain; charset=utf-8', 'No such trial.');
         return;
       }
+      let reader: ReplayReader | null = null;
       try {
-        swap(new ReplaySource(new ReplayReader(file), { speed: opts.replaySpeed ?? 60 }));
+        reader = new ReplayReader(file);
+        swap(new ReplaySource(reader, { speed: opts.replaySpeed ?? 60 }));
       } catch {
+        reader?.close();
         send(res, 400, 'text/plain; charset=utf-8', "That trial can't be played.");
         return;
       }
@@ -226,7 +243,7 @@ export async function startWatchServer(opts: WatchServerOptions): Promise<WatchS
       return;
     }
     if (path.startsWith('/assets/')) {
-      const rel = decodeURIComponent(path.slice('/assets/'.length));
+      const rel = path.slice('/assets/'.length);
       const file = resolve(assetsRoot, rel);
       const type = ASSET_TYPES[extname(file).toLowerCase()];
       if (!type || !file.startsWith(assetsRoot + sep) || !existsSync(file) || !statSync(file).isFile()) {
@@ -246,7 +263,7 @@ export async function startWatchServer(opts: WatchServerOptions): Promise<WatchS
       return;
     }
     if (path.startsWith('/api/resident/')) {
-      const card = source.card(decodeURIComponent(path.slice('/api/resident/'.length)));
+      const card = source.card(path.slice('/api/resident/'.length));
       if (card) json(res, 200, card);
       else send(res, 404, 'text/plain; charset=utf-8', 'Nobody by that name.');
       return;
@@ -255,7 +272,7 @@ export async function startWatchServer(opts: WatchServerOptions): Promise<WatchS
       json(res, 200, { state: source.state(), trials: opts.catalog?.list() ?? [] });
       return;
     }
-    if (path === '/api/stream') {
+    if (path === '/api/stream' && method === 'GET') {
       res.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-store', connection: 'keep-alive', 'x-content-type-options': 'nosniff' });
       sendEvent(res, 'hello', source.hello());
       streams.add(res);
