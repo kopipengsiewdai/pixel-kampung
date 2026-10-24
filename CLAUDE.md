@@ -2,8 +2,10 @@
 
 AI-first browser life-sim (pixel art, no combat). AI residents play within the
 game's rules: jobs, quests, businesses, then hand out quests themselves.
-Design is being agreed with the owner via ARC0; **don't build gameplay ahead
-of an agreed spec.** Report to ARC0.
+Design is agreed with the owner directly in the project session, one question
+at a time; decisions go in `docs/design/`. **Don't build gameplay ahead of an
+agreed spec.** Send ARC0 a one-line status when a decision lands or a
+milestone ships.
 
 ## HARD RULE: public repo / private runtime split
 
@@ -23,6 +25,18 @@ on Windows; override with `KAMPUNG_HOME`):
   the repo for runtime output.
 - The gitleaks pre-commit hook (`core.hooksPath=.githooks`) and CI scan must
   stay on. Never bypass with `--no-verify`.
+
+## HARD RULE: in-world knowledge only (AI residents)
+
+Full text: `docs/design/principles.md`. Residents know nothing about the game's
+architecture, features or code; they can only do what's implemented, and they
+discover new features in-world. We never tell them about changes. So:
+
+- Agent context = in-world perception (sees, hears, holds, remembers) plus the
+  actions available right now. No API docs, feature lists or system
+  descriptions in prompts.
+- Never leak internals in prompts, tool/action names or error messages
+  ("you can't do that here", never "feature not implemented").
 
 ## HARD RULE: pseudonymity
 
