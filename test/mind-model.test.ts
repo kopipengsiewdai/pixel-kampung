@@ -91,6 +91,25 @@ describe('the Anthropic client', () => {
     expect(res.usage.cache_read_input_tokens).toBe(900);
     expect(res.model).toBe('claude-haiku-5-5');
   });
+  it('big thinking runs on Haiku at high effort, with no server-side fallback (Haiku has none)', async () => {
+    const sent: any[] = [];
+    const stub = (async (_url: string | URL | Request, init?: RequestInit) => {
+      sent.push(JSON.parse(String(init!.body)));
+      return new Response(JSON.stringify({
+        id: 'msg_4', type: 'message', role: 'assistant', model: 'claude-haiku-5-5', stop_reason: 'end_turn', stop_sequence: null,
+        content: [{ type: 'text', text: 'Plan.' }], usage: { input_tokens: 10, output_tokens: 5 },
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }) as typeof fetch;
+    const model = new AnthropicModel({ apiKey: 'k', fetch: stub, maxRetries: 0 });
+    for (const kind of ['plan', 'reflect', 'business'] as const) {
+      await model.think({ tier: 'big', kind, residentId: 'siti', t: 0, system: 's', user: 'u', tools: [] });
+    }
+    for (const body of sent) {
+      expect(body.model).toBe('claude-haiku-5-5');
+      expect(body.output_config).toEqual({ effort: 'high' });
+      expect(body).not.toHaveProperty('fallbacks');
+    }
+  });
   it('prices every attempt of a fallback call at its own model', async () => {
     const stub = (async () => new Response(JSON.stringify({
       id: 'msg_3', type: 'message', role: 'assistant', model: 'claude-sonnet-5', stop_reason: 'end_turn', stop_sequence: null,
@@ -177,8 +196,8 @@ describe('the real path end to end, against a stubbed network', () => {
       const town = Town.create(1, SIM_START, { brains: mindBrains(mind, fakeBrains, ['siti']), observer: mind.observe, onEvent: (e) => events.push(e) });
       await town.runUntil(SIM_START + 60);
       expect(bodies.length).toBeGreaterThan(3);
-      expect(bodies[0].model).toBe('claude-sonnet-5-5'); // the morning plan
-      expect(bodies.slice(1).every((b) => b.model === 'claude-haiku-5-5')).toBe(true);
+      expect(bodies[0].output_config).toEqual({ effort: 'high' }); // the morning plan
+      expect(bodies.every((b) => b.model === 'claude-haiku-5-5')).toBe(true);
       expect(events.some((e) => e.type === 'walked' && e.who === 'siti')).toBe(true);
       const logged = readFileSync(join(dir, `${mind.costs.dayKey(SIM_START + 1)}.jsonl`), 'utf8').trim().split('\n');
       expect(logged).toHaveLength(bodies.length);
