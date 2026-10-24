@@ -1,8 +1,8 @@
 # Pixel Kampung v1 spec
 
-Status: **draft for owner approval** (2026-10-24). Every owner decision this
-builds on is in [principles.md](principles.md). Where this spec makes a call
-the owner didn't, it says so.
+Status: **approved by the owner** (2026-10-24). Every owner decision this
+builds on is in [principles.md](principles.md). Calls Claude made are marked
+as such, and the owner confirmed all of them.
 
 ## 1. What v1 is
 
@@ -171,9 +171,9 @@ Combat; human players; starting a new business; houses or upgrades for sale;
 public or remote viewing; push summaries; a narrator AI; more than one map.
 Each can come later, and residents will have to discover it.
 
-## 10. Owner to confirm
+## 10. Confirmed by the owner (2026-10-24)
 
 1. The **morning lorry** as the town's scripted import/export link (§2).
 2. **No new businesses in v1**: residents can save up, but opening a stall
    arrives later as a discovery (§3).
-3. **Starting money** ranges (§2), or leave them to Claude.
+3. **Starting money:** $5–$20 for job-seekers and $60–$100 for owners (§2).
