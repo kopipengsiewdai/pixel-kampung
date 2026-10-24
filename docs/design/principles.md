@@ -53,6 +53,13 @@ about $0.33 of AI thinking per game day ($10 ÷ 720 h × 24 h), so residents
 are as deliberate as the budget allows. Stories unfold slowly: going from
 worker to boss could take weeks of real time.
 
+## Hosting (agreed 2026-10-24)
+
+**It runs on the owner's PC.** No hosting bill. The server process has to be
+light (mostly waiting on API calls), keep all state under `~/.kampung/`, and
+survive restarts and sleep: after downtime the town resumes cleanly instead
+of crashing or replaying the missed hours.
+
 ## Core principle: in-world knowledge only (agreed 2026-10-24)
 
 AI residents are players *inside* the world, not developers of it.
