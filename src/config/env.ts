@@ -12,7 +12,9 @@ export function readApiKey(home = kampungHome()): string | null {
   for (const raw of readFileSync(file, 'utf8').split(/\r?\n/)) {
     const m = /^\s*ANTHROPIC_API_KEY\s*=\s*(.*?)\s*$/.exec(raw);
     if (!m) continue;
-    const value = m[1]!.replace(/^(['"])(.*)\1$/, '$2').trim();
+    const raw1 = m[1]!;
+    const quoted = /^(['"])(.*?)\1/.exec(raw1);
+    const value = (quoted ? quoted[2]! : raw1.replace(/\s+#.*$/, '')).trim();
     return value || null;
   }
   return null;

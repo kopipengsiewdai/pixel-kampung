@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { appendFileSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { costUsd, PRICES } from '../src/mind/pricing.ts';
-import { CostLog } from '../src/mind/cost-log.ts';
+import { CostLog, UNREADABLE_LINE_USD } from '../src/mind/cost-log.ts';
 import { AnthropicModel, MODELS } from '../src/mind/anthropic-model.ts';
 import { DO_TOOL, toIntent } from '../src/mind/tools.ts';
 import { readApiKey } from '../src/config/env.ts';
@@ -36,6 +36,8 @@ describe('cost log', () => {
       expect(lines[0]).toMatchObject({ resident: 'siti', model: 'claude-haiku-5-5', input: 2000, output: 100 });
       expect(log.spentOn(day)).toBeCloseTo(lines[0].usd + lines[1].usd, 12);
       expect(new CostLog(dir).spentOn(day)).toBeCloseTo(log.spentOn(day), 12); // survives a restart
+      appendFileSync(join(dir, `${day}.jsonl`), '{"t":1,"usd":0.0');  // cut off by a power cut
+      expect(new CostLog(dir).spentOn(day)).toBeCloseTo(log.spentOn(day) + UNREADABLE_LINE_USD, 12);
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
@@ -46,15 +48,18 @@ describe('the do tool', () => {
   it('maps a tool call to an action, with plain field names', () => {
     expect(toIntent({ action: 'walk to', where: 'the jetty' })).toEqual({ verb: 'walk to', where: 'the jetty' });
     expect(toIntent({ action: 'offer a job', person: 'Siti', wage: '$2.00', start: 9, hours: 4 })).toEqual(
-      { verb: 'offer job', to: 'Siti', from: 'Siti', who: 'Siti', wage: '$2.00', startHour: 9, hours: 4 });
-    expect(toIntent({ action: 'set price', item: 'fish', price: 20, buying: true, wanted: 5 })).toEqual(
+      { verb: 'offer job', to: 'Siti', from: 'Siti', who: 'Siti', where: 'Siti', wage: '$2.00', startHour: 9, hours: 4 });
+    expect(toIntent({ action: 'offer a job', person: 'Siti', details: { wage: '$2.00', start: 9, hours: 4 } })).toMatchObject({ wage: '$2.00', startHour: 9, hours: 4 });
+    expect(toIntent({ action: 'walk to', person: 'Siti' })).toMatchObject({ where: 'Siti' });
+    expect(toIntent({ action: 'set price', item: 'fish', details: { price: 20, buying: true, wanted: 5 } })).toEqual(
       { verb: 'set price', item: 'fish', price: 20, side: 'buy', limit: 5 });
     expect(toIntent({ action: 'potter about' })).toBeNull();
     expect(toIntent('nonsense')).toBeNull();
   });
-  it('has in-world wording only', () => {
+  it('has in-world wording only, and gives away nothing a newcomer would not know', () => {
     const text = JSON.stringify(DO_TOOL);
     expect(text).not.toMatch(/\b(api|state|system|intent|verb|feature|game|simulat|agent|json)\b/i);
+    expect(text).not.toMatch(/shift|cook|batch|wage|price|trade|lorry|stock|fish|kopi|job|\b\d+ to \d+\b/i);
   });
 });
 
@@ -86,6 +91,30 @@ describe('the Anthropic client', () => {
     expect(res.usage.cache_read_input_tokens).toBe(900);
     expect(res.model).toBe('claude-haiku-5-5');
   });
+  it('prices every attempt of a fallback call at its own model', async () => {
+    const stub = (async () => new Response(JSON.stringify({
+      id: 'msg_3', type: 'message', role: 'assistant', model: 'claude-sonnet-5', stop_reason: 'end_turn', stop_sequence: null,
+      content: [{ type: 'text', text: 'Plan.' }],
+      usage: {
+        input_tokens: 1000, output_tokens: 500,
+        iterations: [
+          { type: 'message', model: 'claude-sonnet-5-5', input_tokens: 3000, output_tokens: 3500, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
+          { type: 'fallback_message', model: 'claude-sonnet-5', input_tokens: 1000, output_tokens: 500, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
+        ],
+      },
+    }), { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch;
+    const res = await new AnthropicModel({ apiKey: 'k', fetch: stub }).think({ tier: 'big', kind: 'plan', residentId: 'siti', t: 0, system: 's', user: 'u', tools: [] });
+    expect(res.attempts.map((a) => a.model)).toEqual(['claude-sonnet-5-5', 'claude-sonnet-5']);
+    const total = res.attempts.reduce((s, a) => s + costUsd(a.model, a.usage), 0);
+    expect(total).toBeCloseTo(0.041 + 0.007, 6);
+  });
+  it('never retries on its own: one failed request is one request', async () => {
+    let calls = 0;
+    const down = (async () => { calls++; throw new TypeError('fetch failed'); }) as typeof fetch;
+    await expect(new AnthropicModel({ apiKey: 'k', fetch: down })
+      .think({ tier: 'routine', kind: 'act', residentId: 'siti', t: 0, system: 's', user: 'u', tools: [] })).rejects.toThrow();
+    expect(calls).toBe(1);
+  });
   it('a refusal or an API failure means no action, not a crash', async () => {
     const refusal = (async () => new Response(JSON.stringify({
       id: 'msg_2', type: 'message', role: 'assistant', model: 'claude-sonnet-5-5', stop_reason: 'refusal', stop_sequence: null,
@@ -111,6 +140,8 @@ describe('the API key', () => {
       expect(readApiKey(dir)).toBe('abc123');
       writeFileSync(join(dir, '.env'), 'ANTHROPIC_API_KEY=\n');
       expect(readApiKey(dir)).toBeNull();
+      writeFileSync(join(dir, '.env'), 'ANTHROPIC_API_KEY=abc123   # my kampung key\n');
+      expect(readApiKey(dir)).toBe('abc123');
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

@@ -10,6 +10,26 @@ export interface CostEntry {
   kind: ThinkKind;
   model: string;
   usage: TokenUsage;
+  /** Set for a call that failed without a bill to read: its estimated cost, counted to be safe. */
+  estimatedUsd?: number;
+}
+
+/** A cost-log line that can't be read (cut off by a power cut) is counted as this many dollars. */
+export const UNREADABLE_LINE_USD = 0.04;
+
+/** Dollars recorded in one cost-log file. Unreadable lines count conservatively. */
+export function sumCostFile(file: string): number {
+  let sum = 0;
+  for (const line of readFileSync(file, 'utf8').split('\n')) {
+    if (!line.trim()) continue;
+    try {
+      const usd = (JSON.parse(line) as { usd?: unknown }).usd;
+      sum += typeof usd === 'number' && Number.isFinite(usd) ? usd : UNREADABLE_LINE_USD;
+    } catch {
+      sum += UNREADABLE_LINE_USD;
+    }
+  }
+  return sum;
 }
 
 /**
@@ -32,7 +52,7 @@ export class CostLog {
   }
 
   add(e: CostEntry): number {
-    const usd = costUsd(e.model, e.usage);
+    const usd = e.estimatedUsd ?? costUsd(e.model, e.usage);
     const day = this.dayKey(e.t);
     this.totals.set(day, this.spentOn(day) + usd);
     if (this.dir) {
@@ -41,6 +61,7 @@ export class CostLog {
         t: e.t, at: new Date(msFromGameMinute(e.t)).toISOString(), resident: e.resident, kind: e.kind, model: e.model,
         input: e.usage.input_tokens, output: e.usage.output_tokens,
         cacheRead: e.usage.cache_read_input_tokens ?? 0, cacheWrite: e.usage.cache_creation_input_tokens ?? 0, usd,
+        ...(e.estimatedUsd !== undefined ? { estimated: true } : {}),
       }) + '\n');
     }
     return usd;
@@ -49,13 +70,8 @@ export class CostLog {
   spentOn(day: string): number {
     const known = this.totals.get(day);
     if (known !== undefined) return known;
-    let sum = 0;
     const file = this.dir ? join(this.dir, `${day}.jsonl`) : null;
-    if (file && existsSync(file)) {
-      for (const line of readFileSync(file, 'utf8').split('\n')) {
-        if (line.trim()) sum += (JSON.parse(line) as { usd: number }).usd;
-      }
-    }
+    const sum = file && existsSync(file) ? sumCostFile(file) : 0;
     this.totals.set(day, sum);
     return sum;
   }

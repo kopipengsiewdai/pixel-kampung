@@ -22,6 +22,8 @@ export interface MindOptions {
   cards: readonly Card[];
   /** Town daily cap in dollars (spec §5: $3.33). */
   townCap?: number;
+  /** Told about every failed call (never given the key). */
+  onError?: (err: unknown) => void;
 }
 
 /** Everything the residents' minds share: the model, memories, the cost log and the town's cap. */
@@ -31,6 +33,7 @@ export class Mind {
   readonly costs: CostLog;
   readonly cards: readonly Card[];
   readonly townCap: number;
+  readonly onError: (err: unknown) => void;
   private quietDay: string | null = null;
   private fadedDay: number | null = null;
   /** Each call's prompts, for tests and audits (never persisted). */
@@ -43,6 +46,7 @@ export class Mind {
     this.costs = opts.costs;
     this.cards = opts.cards;
     this.townCap = opts.townCap ?? TOWN_DAILY_CAP;
+    this.onError = opts.onError ?? (() => {});
   }
 
   brainFor(residentId: string, name: string, role: 'owner' | 'seeker', shop: string | null, t: number): MindBrain {
@@ -109,6 +113,8 @@ export class MindBrain implements Brain {
   }
 
   load(saved: unknown): void {
+    // A save from a fake-brain town carries no mind state: start fresh.
+    if (!saved || typeof saved !== 'object' || !('budget' in saved)) return;
     const s = saved as MindState;
     this.s = { ...s };
     this.budget = Budget.load(s.budget);
@@ -180,11 +186,19 @@ export class MindBrain implements Brain {
         tools: [DO_TOOL],
         hint: p,
       });
-    } catch {
-      return null; // unreachable or overloaded: rest and try again later
+    } catch (err) {
+      // Unreachable, overloaded or timed out: rest and try again later. A timed-out
+      // request may still be billed, so its estimate is charged and logged to be safe.
+      this.mind.onError(err);
+      const usd = this.mind.costs.add({
+        t: ctx.t, resident: this.id, kind, model: 'failed', usage: { input_tokens: 0, output_tokens: 0 }, estimatedUsd: ESTIMATE[tier],
+      });
+      this.budget.spend(usd);
+      return null;
     }
-    const usd = this.mind.costs.add({ t: ctx.t, resident: this.id, kind, model: res.model, usage: res.usage });
-    this.budget.spend(usd);
+    for (const a of res.attempts) {
+      this.budget.spend(this.mind.costs.add({ t: ctx.t, resident: this.id, kind, model: a.model, usage: a.usage }));
+    }
     return res.refused ? null : res;
   }
 }

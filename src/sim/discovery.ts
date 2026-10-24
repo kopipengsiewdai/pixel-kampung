@@ -33,9 +33,9 @@ export function learnFromWords(w: World, r: Resident, text: string): void {
   }
   for (const o of w.state.residents) {
     if (o.id === r.id) continue;
-    const name = o.name.toLowerCase();
-    if (!s.includes(name)) continue;
+    const name = o.name.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (!new RegExp(`\\b${name}\\b`).test(s)) continue;
     w.learnPerson(r, o.id);
-    if (new RegExp(`${name}['’]s (house|home|place)`).test(s)) w.learnPlace(r, o.homeId);
+    if (new RegExp(`\\b${name}['’]s (house|home|place)\\b`).test(s)) w.learnPlace(r, o.homeId);
   }
 }

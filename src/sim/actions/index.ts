@@ -31,7 +31,7 @@ export const ACTIONS: Record<string, ActionDef> = {
     run: everyone.sell, ownersOnly: false, says: 'sell something here (item, amount)',
     here: (w, r) => atShop(w, r) || (w.isAt(r, 'lorry-stop') && w.state.lorryHere),
   },
-  offer_trade: { run: everyone.offerTrade, ownersOnly: false, says: 'offer someone a trade (person, give, want)', here: withPeople },
+  offer_trade: { run: everyone.offerTrade, ownersOnly: false, says: 'offer someone a trade (person; details: give and want, each with items and money)', here: withPeople },
   accept_trade: {
     run: everyone.acceptTrade, ownersOnly: false, says: 'accept a trade someone offered you (person)',
     here: (w, r) => w.state.trades.some((t) => t.toId === r.id),
@@ -56,10 +56,10 @@ export const ACTIONS: Record<string, ActionDef> = {
   read_notice_board: { run: everyone.readNoticeBoard, ownersOnly: false, says: 'read the notice board', here: at('notice-board') },
   pin_note: { run: everyone.pinNote, ownersOnly: false, says: 'pin a note on the board (words)', here: at('notice-board') },
   set_price: {
-    run: owners.setPrice, ownersOnly: true, says: 'set a price at your shop (item, price; buying and wanted for what you will buy)',
+    run: owners.setPrice, ownersOnly: true, says: 'set a price at your shop (item; details: price, and for a price you pay rather than charge, buying true and wanted: the most you will take)',
     here: (w, r) => { const s = w.shopOf(r.id); return !!s && w.isAt(r, s.id); },
   },
-  offer_job: { run: owners.offerJob, ownersOnly: true, says: 'offer someone a job (person, wage per shift, start, hours)', here: withPeople },
+  offer_job: { run: owners.offerJob, ownersOnly: true, says: 'offer someone a job (person; details: wage for a shift, start: the hour it begins, hours)', here: withPeople },
   let_go: {
     run: owners.letGo, ownersOnly: true, says: 'let a worker go (person)',
     here: (w, r) => w.state.jobs.some((j) => j.employerId === r.id),
@@ -73,7 +73,7 @@ export const ACTIONS: Record<string, ActionDef> = {
     here: (w, r) => w.isAt(r, 'lorry-stop') && w.state.lorryHere,
   },
   cook: {
-    run: owners.cook, ownersOnly: false, says: 'cook in the kitchen (item: the dish, batches)',
+    run: owners.cook, ownersOnly: false, says: 'cook in the kitchen (item: the dish; details: batches)',
     here: (w, r) => (w.shopOf(r.id)?.id === 'kopitiam' && w.isAt(r, 'kopitiam'))
       || (r.activity?.kind === 'working' && w.jobOf(r.id)?.placeId === 'kopitiam'),
   },

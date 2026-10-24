@@ -10,13 +10,14 @@
  * together may spend at most US$10 (M2 decision 4); each stops at its budget.
  * Trial data (memories, cost log) goes under $KAMPUNG_HOME/trials/.
  */
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import Anthropic from '@anthropic-ai/sdk';
+import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { readApiKey } from '../config/env.ts';
 import { kampungHome } from '../config/paths.ts';
 import { feedLine, formatFeedLine } from '../feed/feed.ts';
 import { AnthropicModel } from '../mind/anthropic-model.ts';
-import { CostLog } from '../mind/cost-log.ts';
+import { CostLog, sumCostFile } from '../mind/cost-log.ts';
 import { FakeModel } from '../mind/fake-model.ts';
 import { MemoryStore } from '../mind/memory.ts';
 import { Mind } from '../mind/mind.ts';
@@ -40,13 +41,18 @@ const hours = Math.max(1, numArg(args, 'hours', fake ? 24 : 4));
 const seed = numArg(args, 'seed', 42);
 const home = kampungHome();
 const trialsDir = join(home, 'trials');
-const costDir = join(trialsDir, fake ? 'costs-fake' : 'costs');
+const costRoot = join(trialsDir, fake ? 'costs-fake' : 'costs');
+const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+/** Each trial keeps its own cost log, so one trial's spend never throttles the next. */
+const costDir = join(costRoot, stamp);
 
+/** Everything all trials have spent, across every trial's log. */
 function spentOnTrials(dir: string): number {
   if (!existsSync(dir)) return 0;
   let sum = 0;
-  for (const f of readdirSync(dir)) {
-    for (const line of readFileSync(join(dir, f), 'utf8').split('\n')) if (line.trim()) sum += (JSON.parse(line) as { usd: number }).usd;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    sum += entry.isDirectory() ? spentOnTrials(path) : entry.name.endsWith('.jsonl') ? sumCostFile(path) : 0;
   }
   return sum;
 }
@@ -62,7 +68,7 @@ if (fake) {
     console.error(`No API key found. Put ANTHROPIC_API_KEY=... in ${join(home, '.env')} (never in the repo).`);
     process.exit(1);
   }
-  const left = TRIAL_ALLOWANCE - spentOnTrials(costDir);
+  const left = TRIAL_ALLOWANCE - spentOnTrials(costRoot);
   if (left <= 0.01) {
     console.error(`Trials have used the full US$${TRIAL_ALLOWANCE} allowance. Nothing was run.`);
     process.exit(1);
@@ -82,16 +88,25 @@ const counting: ModelClient = {
     stats.output += res.usage.output_tokens;
     stats.cacheRead += res.usage.cache_read_input_tokens ?? 0;
     stats.cacheWrite += res.usage.cache_creation_input_tokens ?? 0;
-    stats.usd += costUsd(res.model, res.usage);
+    for (const a of res.attempts) stats.usd += costUsd(a.model, a.usage);
     return res;
   },
   saveFor: client.saveFor?.bind(client),
   loadFor: client.loadFor?.bind(client),
 };
 
-const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+/** A request the API rejects outright (bad key, bad request) won't fix itself: stop the trial. */
+let fatal: string | null = null;
+let failures = 0;
+function onError(err: unknown): void {
+  failures++;
+  const status = err instanceof Anthropic.APIError ? err.status : undefined;
+  const what = `${err instanceof Error ? err.constructor.name : 'Error'}${status ? ` (HTTP ${status})` : ''}`;
+  console.error(`A call failed: ${what}`);
+  if (status !== undefined && status >= 400 && status < 500 && status !== 429) fatal = what;
+}
 const memory = new MemoryStore(join(trialsDir, `trial-${stamp}.db`));
-const mind = new Mind({ client: counting, memory, costs: new CostLog(costDir), cards: TEST_CARDS, townCap: budget });
+const mind = new Mind({ client: counting, memory, costs: new CostLog(costDir), cards: TEST_CARDS, townCap: budget, onError });
 // One owner among the minds, so business calls are measured too.
 const order = ['ah-huat', 'siti', 'raju', 'mei-ling', 'ah-kow', 'muthu', 'ah-seng', 'fatimah', 'mdm-tan', 'rahim'];
 const chosen = order.slice(0, minds);
@@ -104,15 +119,17 @@ town = Town.create(seed, SIM_START, { brains: mindBrains(mind, fakeBrains, chose
 console.log(`${fake ? 'Dry run (fake model, $0)' : `Trial, up to US$${budget.toFixed(2)}`}: ${minds} on the model for ${hours} game hours.`);
 
 const end = SIM_START + Math.round(hours * 60);
-while (town.t < end && stats.usd < budget) await town.step();
+while (town.t < end && stats.usd < budget && !fatal) await town.step();
 memory.close();
+if (fatal) console.error(`Stopped early: the API refused a request (${fatal}). Check the key in ${join(home, '.env')}.`);
 
 const residentHours = minds * ((town.t - SIM_START) / 60);
 const perHour = stats.usd / residentHours;
 const inputAll = stats.input + stats.cacheRead + stats.cacheWrite;
 console.log('\n--- what thinking cost ---');
+if (failures) console.log(`failed calls: ${failures} (each charged at its estimate)`);
 console.log(`calls: ${stats.calls} (${Object.entries(stats.byKind).map(([k, n]) => `${k} ${n}`).join(', ')})`);
 console.log(`tokens: ${inputAll} in (${Math.round((100 * stats.cacheRead) / Math.max(1, inputAll))}% from cache), ${stats.output} out`);
 console.log(`spent: US$${stats.usd.toFixed(4)}${fake ? ' (estimated from fake token counts)' : ''}`);
 console.log(`per resident-hour: US$${perHour.toFixed(5)} against a ceiling of US$${HOURLY_ALLOWANCE} (${Math.round((100 * perHour) / HOURLY_ALLOWANCE)}%)`);
-if (!fake) console.log(`all trials so far: US$${spentOnTrials(costDir).toFixed(4)} of US$${TRIAL_ALLOWANCE}`);
+if (!fake) console.log(`all trials so far: US$${spentOnTrials(costRoot).toFixed(4)} of US$${TRIAL_ALLOWANCE}`);

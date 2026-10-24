@@ -101,6 +101,43 @@ describe('talk is line by line, with a soft limit', () => {
     expect(raju.recent.at(-1)?.text).toMatch(/Line 9/);
     expect(perceive(w, raju).longTalks).toEqual(['Siti']);
   });
+  it('talk not addressed to anyone counts too', () => {
+    const w = newWorld();
+    const siti = put(w, 'Siti', 'well');
+    const raju = put(w, 'Raju', 'well');
+    let woken = 0;
+    for (let i = 0; i < 20; i++) {
+      raju.thinkAt = w.t + 99;
+      accepted(act(w, siti.id, { verb: 'say', text: `Line ${i}` }));
+      if (raju.thinkAt === w.t + 1) woken++;
+    }
+    expect(woken).toBe(8);
+  });
+});
+
+describe('failures and odd saves', () => {
+  it('a failed call is charged at its estimate and logged, so spending can never hide', async () => {
+    const dir = tempDir();
+    const failing = { think: async () => { throw new Error('timed out'); } };
+    const errors: unknown[] = [];
+    const mind = new Mind({ client: failing, memory: new MemoryStore(':memory:'), costs: new CostLog(dir), cards: TEST_CARDS, onError: (e) => errors.push(e) });
+    const town = Town.create(1, START, { brains: mindBrains(mind, fakeBrains, ['siti']), observer: mind.observe });
+    await town.runUntil(START + 2);
+    expect(errors.length).toBeGreaterThan(0);
+    const day = mind.costs.dayKey(START + 1);
+    expect(mind.costs.spentOn(day)).toBeGreaterThan(0);
+    const b = town.brains.get('siti')!.save() as { budget: { level: number } };
+    expect(b.budget.level).toBeLessThan(0.06);
+  });
+  it('a fake-brain save picked up by a town of minds starts the minds fresh', async () => {
+    const plain = Town.create(2, START);
+    await plain.runUntil(START + 30);
+    const snap = plain.snapshot();
+    const mind = new Mind({ client: new FakeModel(2), memory: new MemoryStore(':memory:'), costs: new CostLog(null), cards: TEST_CARDS });
+    const town = Town.fromSnapshot(snap.world, snap.brains, { brains: mindBrains(mind, fakeBrains), observer: mind.observe });
+    await town.runUntil(START + 60);
+    expect(town.t).toBe(START + 60);
+  });
 });
 
 describe('the do tool round trip', () => {

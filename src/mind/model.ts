@@ -33,6 +33,12 @@ export interface ThinkResponse {
   text: string;
   toolCall: { name: string; input: unknown } | null;
   usage: TokenUsage;
+  /**
+   * Every billed attempt inside the call, each at its own model. With a
+   * server-side fallback this includes a declined first attempt; otherwise
+   * it is just the one answer.
+   */
+  attempts: { model: string; usage: TokenUsage }[];
   refused: boolean;
 }
 

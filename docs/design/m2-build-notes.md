@@ -13,13 +13,19 @@ under the agreed [M2 decisions](m2-decisions.md) and [v1 spec](v1-spec.md)
   history is sent.
 - **Only actions possible right now are listed**, and only in the changing
   part. A resident who has never met the lorry never reads about ordering
-  stock.
+  stock. The `do` tool itself stays generic (action, where, person, words,
+  item, amount, money, details). Anything action-specific is named only in
+  the hint for an action that is possible now.
 - **Models and effort.** Routine moments and talk go to Claude Haiku 5.5 at
   low effort. The morning plan, the bedtime reflection and owners' business
   moments go to Claude Sonnet 5.5 at medium effort. Sonnet calls opt into
   server-side fallbacks, so a refused plan is retried on another model, and
-  the cost is logged at whichever model answered. Refusals and API failures
-  mean the resident rests.
+  every attempt is logged at its own model's price (a declined one too).
+  Refusals and API failures mean the resident rests.
+- **No automatic retries.** A timed-out request may still be billed. So a
+  failed call is charged at its estimate and logged, and the resident tries
+  again at their next moment. A trial stops early if the API rejects a
+  request (4xx other than 429).
 - **Owners' business moments** are opening the shop for the day and meeting
   the lorry, at most 3 a day.
 - **Reflection** happens once an evening, as the resident lies down after
@@ -32,6 +38,8 @@ under the agreed [M2 decisions](m2-decisions.md) and [v1 spec](v1-spec.md)
   routine, $0.04 big).
 - The town's $3.33 daily cap is counted from the day's cost log, so it holds
   across restarts. A bucket restarts from its saved level.
+- A cost-log line that can't be read (cut off by a power cut) counts as $0.04,
+  so a damaged log can only make the town more careful.
 - **Possible gap:** Haiku 5.5 only caches prefixes of 512+ tokens. Ours is
   close to that, so the paid trials should check `cacheRead`. At Haiku prices
   the difference is small either way.
@@ -62,12 +70,14 @@ under the agreed [M2 decisions](m2-decisions.md) and [v1 spec](v1-spec.md)
 ## Talk
 
 - After 8 lines between two people within 30 minutes, the listener still
-  hears what's said but isn't woken to answer at once.
+  hears what's said but isn't woken to answer at once. That applies to
+  everything said to the listener, whether or not they were named.
 
 ## Trials
 
 - `npm run trial` runs on the owner's PC.
 - Trial data goes under `$KAMPUNG_HOME/trials/`.
 - All trials together stop at US$10.
+- Each trial keeps its own cost log, so one trial never throttles the next.
 - One owner is always among the model-driven residents, so business calls get
   measured.

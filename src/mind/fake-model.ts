@@ -69,17 +69,12 @@ export class FakeModel implements ModelClient {
       // Now and then a passing thought, as a real model would write before acting.
       if (req.kind === 'business' || req.t % 7 === 0) text = intent ? `Better ${intent.verb.replace(/_/g, ' ')}.` : 'Nothing to do just now.';
     }
-    return {
-      model: MODELS[req.tier],
-      text,
-      toolCall,
-      refused: false,
-      usage: {
-        input_tokens: roughTokens(req.user),
-        output_tokens: OUTPUT_TOKENS[req.kind],
-        cache_read_input_tokens: warm ? prefix : 0,
-        cache_creation_input_tokens: warm ? 0 : prefix,
-      },
+    const usage = {
+      input_tokens: roughTokens(req.user),
+      output_tokens: OUTPUT_TOKENS[req.kind],
+      cache_read_input_tokens: warm ? prefix : 0,
+      cache_creation_input_tokens: warm ? 0 : prefix,
     };
+    return { model: MODELS[req.tier], text, toolCall, refused: false, usage, attempts: [{ model: MODELS[req.tier], usage }] };
   }
 }

@@ -130,22 +130,23 @@ export function say(w: World, r: Resident, i: Intent): ActionResult {
     to = o;
   }
   w.emit({ type: 'said', who: r.id, to: to?.id ?? null, text });
-  let longTalk = false;
-  if (to) {
-    const key = talkKey(r.id, to.id);
+  /** Counts a line between speaker and listener; true once their chat has run long. */
+  const runsLong = (o: Resident): boolean => {
+    const key = talkKey(r.id, o.id);
     const prev = w.state.talk[key];
     const lines = prev && w.t - prev.lastT <= TALK_GAP_MINUTES ? prev.lines + 1 : 1;
     w.state.talk[key] = { lines, lastT: w.t };
-    longTalk = lines > TALK_SOFT_LIMIT;
-  }
+    return lines > TALK_SOFT_LIMIT;
+  };
   for (const o of w.nearby(r)) {
     if (w.isAsleep(o)) continue;
     const line = to && to.id === o.id ? `${r.name} says to you: "${text}"` : to ? `${r.name} says to ${to.name}: "${text}"` : `${r.name} says: "${text}"`;
     w.learnPerson(o, r.id);
     learnFromWords(w, o, text);
-    // Overheard talk, and a chat that has run long, is heard but doesn't demand an answer right away.
-    if (to?.id === o.id && !longTalk) w.notify(o.id, line);
-    else if (!to) w.notify(o.id, line);
+    // Talk meant for you wakes you to answer, until the chat has run long;
+    // talk meant for someone else is only overheard.
+    const forYou = !to || to.id === o.id;
+    if (forYou && !runsLong(o)) w.notify(o.id, line);
     else w.remember(o.id, line);
   }
   return ok();

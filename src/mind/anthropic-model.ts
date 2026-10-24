@@ -28,8 +28,10 @@ export class AnthropicModel implements ModelClient {
   constructor(opts: AnthropicModelOptions) {
     this.client = new Anthropic({
       apiKey: opts.apiKey,
-      maxRetries: opts.maxRetries ?? 2,
-      timeout: 60_000,
+      // No automatic retries: a timed-out request may still be billed, and the
+      // resident simply tries again at their next moment.
+      maxRetries: opts.maxRetries ?? 0,
+      timeout: 300_000,
       ...(opts.fetch ? { fetch: opts.fetch } : {}),
     });
   }
@@ -58,17 +60,23 @@ export class AnthropicModel implements ModelClient {
         else if (block.type === 'tool_use' && !toolCall) toolCall = { name: block.name, input: block.input };
       }
     }
-    return {
-      model: msg.model,
-      text: text.trim(),
-      toolCall,
-      refused,
-      usage: {
-        input_tokens: msg.usage.input_tokens,
-        output_tokens: msg.usage.output_tokens,
-        cache_read_input_tokens: msg.usage.cache_read_input_tokens ?? 0,
-        cache_creation_input_tokens: msg.usage.cache_creation_input_tokens ?? 0,
-      },
+    const usage = {
+      input_tokens: msg.usage.input_tokens,
+      output_tokens: msg.usage.output_tokens,
+      cache_read_input_tokens: msg.usage.cache_read_input_tokens ?? 0,
+      cache_creation_input_tokens: msg.usage.cache_creation_input_tokens ?? 0,
     };
+    // A fallback call bills every attempt (a declined one too); top-level usage covers only the last.
+    const iterations = 'iterations' in msg.usage ? msg.usage.iterations : null;
+    const attempts = Array.isArray(iterations) && iterations.length
+      ? iterations.map((it) => ({
+        model: ('model' in it && it.model) || msg.model,
+        usage: {
+          input_tokens: it.input_tokens, output_tokens: it.output_tokens,
+          cache_read_input_tokens: it.cache_read_input_tokens ?? 0, cache_creation_input_tokens: it.cache_creation_input_tokens ?? 0,
+        },
+      }))
+      : [{ model: msg.model, usage }];
+    return { model: msg.model, text: text.trim(), toolCall, refused, usage, attempts };
   }
 }

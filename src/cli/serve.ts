@@ -50,6 +50,7 @@ if (args.minds === true) {
     memory: new MemoryStore(dbPath(home)),
     costs: new CostLog(join(home, 'costs')),
     cards: TEST_CARDS,
+    onError: (err) => console.error(`A thinking call failed: ${err instanceof Error ? err.constructor.name : 'Error'}${err && typeof err === 'object' && 'status' in err ? ` (HTTP ${String(err.status)})` : ''}`),
   });
   mindOpts = { brains: mindBrains(mind, fakeBrains), observer: mind.observe };
 }
