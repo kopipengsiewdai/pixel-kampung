@@ -16,11 +16,12 @@ under the agreed [M2 decisions](m2-decisions.md) and [v1 spec](v1-spec.md)
   stock. The `do` tool itself stays generic (action, where, person, words,
   item, amount, money, details). Anything action-specific is named only in
   the hint for an action that is possible now.
-- **Models and effort.** Routine moments and talk go to Claude Haiku 5.5 at
-  low effort. The morning plan, the bedtime reflection and owners' business
-  moments go to Claude Sonnet 5.5 at medium effort. Sonnet calls opt into
-  server-side fallbacks, so a refused plan is retried on another model, and
-  every attempt is logged at its own model's price (a declined one too).
+- **Models and effort.** Every call goes to Claude Haiku 5.5 for now (owner,
+  2026-10-24, after trial 1). Routine moments and talk run at low effort. The
+  morning plan, the bedtime reflection and owners' business moments run at
+  high effort instead of on a bigger model. If they're ever put back on
+  Sonnet, those calls opt into server-side fallbacks again (Haiku has none),
+  and every attempt is logged at its own model's price (a declined one too).
   Refusals and API failures mean the resident rests.
 - **No automatic retries.** A timed-out request may still be billed. So a
   failed call is charged at its estimate and logged, and the resident tries
