@@ -33,6 +33,15 @@ npm run typecheck
 npm start                          # the live town, in real time (Singapore time)
 ```
 
+Real thinking (milestone 2) needs an Anthropic API key in
+`~/.kampung/.env` as `ANTHROPIC_API_KEY=...`. Never put it in the repo.
+
+```bash
+npm run trial -- --fake                         # a free dry run of the residents' minds
+npm run trial -- --minds 3 --hours 4 --budget 1  # a paid trial, capped (US$10 for all trials)
+npm start -- --minds                            # the live town, thinking for real, within budget
+```
+
 `npm run sim` writes nothing unless you pass `--save`. `npm start` keeps the
 live town in `~/.kampung/kampung.db` (set `KAMPUNG_HOME` to move it) and
 resumes from there after a restart. Runtime data never goes in this repo.

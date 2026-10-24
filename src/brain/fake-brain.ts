@@ -104,9 +104,9 @@ export class FakeBrain implements Brain {
           .sort((a, b) => fill(b.item) / b.price - fill(a.item) / a.price);
         if (options.length) return { verb: 'buy', item: options[0]!.item };
       }
-      if (p.money >= 35 && p.place !== 'the kopitiam') return { verb: 'walk_to', where: 'the kopitiam' };
-      if (p.money >= 30 && p.place !== 'the wet-market stall') return { verb: 'walk_to', where: 'the wet-market stall' };
-      if (p.money >= 20 && p.place !== 'the provision shop') return { verb: 'walk_to', where: 'the provision shop' };
+      if (p.money >= 35 && p.place !== 'the kopitiam') return this.go(p, 'the kopitiam');
+      if (p.money >= 30 && p.place !== 'the wet-market stall') return this.go(p, 'the wet-market stall');
+      if (p.money >= 20 && p.place !== 'the provision shop') return this.go(p, 'the provision shop');
       if (!p.business) return this.goFish(p);
     }
     if (p.energy === 'exhausted' || (p.energy === 'tired' && p.hour >= 20)) {
@@ -127,9 +127,9 @@ export class FakeBrain implements Brain {
     const j = p.job;
     if (!j || j.doneToday) return null;
     if (p.hour >= j.startHour && p.hour < j.startHour + j.hours) {
-      return j.atWork ? { verb: 'work_shift' } : { verb: 'walk_to', where: j.place };
+      return j.atWork ? { verb: 'work_shift' } : this.go(p, j.place);
     }
-    if (p.hour === j.startHour - 1 && p.minute >= 30 && !j.atWork) return { verb: 'walk_to', where: j.place };
+    if (p.hour === j.startHour - 1 && p.minute >= 30 && !j.atWork) return this.go(p, j.place);
     return null;
   }
 
@@ -172,7 +172,7 @@ export class FakeBrain implements Brain {
     const b = p.business!;
     const lorryTime = (p.hour === 6 && p.minute >= 30) || (p.hour === 7 && p.minute < 25);
     if (lorryTime && this.mem.lorryDay !== day(p)) {
-      if (p.place !== 'the lorry stop') return { verb: 'walk_to', where: 'the lorry stop' };
+      if (p.place !== 'the lorry stop') return this.go(p, 'the lorry stop');
       if (!p.lorry?.here) return null;
       const want = RESTOCK[b.place] ?? {};
       for (const [item, target] of Object.entries(want) as [ItemId, number][]) {
@@ -183,7 +183,7 @@ export class FakeBrain implements Brain {
       }
       this.mem.lorryDay = day(p);
     }
-    if (!b.atShop) return { verb: 'walk_to', where: b.place };
+    if (!b.atShop) return this.go(p, b.place);
     const priced = this.pricing(p);
     if (priced) return priced;
 
@@ -221,18 +221,18 @@ export class FakeBrain implements Brain {
       const qty = sellItem === 'fish' ? fish - 1 : veg - 1;
       if (p.lorry?.here) return { verb: 'sell', item: sellItem, qty };
       if ((p.hour === 6 && p.minute >= 45) || (p.hour === 7 && p.minute < 15)) {
-        if (p.place !== 'the lorry stop') return { verb: 'walk_to', where: 'the lorry stop' };
+        if (p.place !== 'the lorry stop') return this.go(p, 'the lorry stop');
         return null;
       }
       if (p.shop?.staffed && p.shop.buys.some((b) => b.item === sellItem)) return { verb: 'sell', item: sellItem, qty };
       if (p.place !== 'the wet-market stall' && p.place !== 'the kopitiam') {
-        return { verb: 'walk_to', where: this.rng.chance(0.6) ? 'the wet-market stall' : 'the kopitiam' };
+        return this.go(p, this.rng.chance(0.6) ? 'the wet-market stall' : 'the kopitiam');
       }
     }
     const ready = p.beds.some((b) => b.ready);
     const dry = p.beds.some((b) => !b.wateredToday);
     if (ready || dry) {
-      if (p.place !== 'the farm plot') return { verb: 'walk_to', where: 'the farm plot' };
+      if (p.place !== 'the farm plot') return this.go(p, 'the farm plot');
       return { verb: ready ? 'harvest' : 'water' };
     }
     if (p.place === 'the farm plot' && p.beds.length < 2 && (p.freeBeds ?? 0) > 0) return { verb: 'plant' };
@@ -248,19 +248,25 @@ export class FakeBrain implements Brain {
     return this.wander(p);
   }
 
+  /** Walk to a place they know; if they've not found it yet, set off exploring. */
+  private go(p: Perception, where: string): Intent {
+    if (p.placesYouKnow.includes(where)) return { verb: 'walk_to', where };
+    return { verb: 'walk_to', where: this.rng.pick(['north', 'south', 'east', 'west', 'south', 'south']) };
+  }
+
   private goFish(p: Perception): Intent {
-    return p.place === 'the jetty' ? { verb: 'fish' } : { verb: 'walk_to', where: 'the jetty' };
+    return p.place === 'the jetty' ? { verb: 'fish' } : this.go(p, 'the jetty');
   }
 
   private wander(p: Perception): Intent | null {
     const roll = this.rng.next();
-    if (p.business) return p.business.atShop ? null : { verb: 'walk_to', where: p.business.place };
+    if (p.business) return p.business.atShop ? null : this.go(p, p.business.place);
     if (roll < 0.45) return this.goFish(p);
-    if (roll < 0.6) return p.place === 'the farm plot' ? null : { verb: 'walk_to', where: 'the farm plot' };
-    if (roll < 0.7) return p.place === 'the notice board' ? { verb: 'read_notice_board' } : { verb: 'walk_to', where: 'the notice board' };
+    if (roll < 0.6) return p.place === 'the farm plot' ? null : this.go(p, 'the farm plot');
+    if (roll < 0.7) return p.place === 'the notice board' ? { verb: 'read_notice_board' } : this.go(p, 'the notice board');
     if (roll < 0.85) {
       const shop = this.rng.pick(['the kopitiam', 'the provision shop', 'the wet-market stall']);
-      return p.place === shop ? null : { verb: 'walk_to', where: shop };
+      return p.place === shop ? null : this.go(p, shop);
     }
     const chat = p.people.filter((x) => x.doing !== 'asleep');
     if (chat.length) return { verb: 'say', text: this.rng.pick(CHATTER), to: this.rng.pick(chat).name };

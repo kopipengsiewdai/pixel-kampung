@@ -4,7 +4,9 @@
  * $KAMPUNG_HOME/kampung.db, writes a heartbeat file, and prints the feed.
  * After downtime it resumes cleanly without replaying the missed hours.
  *
- *   npm start [-- --seed 42]
+ *   npm start [-- --seed 42]     fake brains, $0
+ *   npm start -- --minds         real thinking (needs ANTHROPIC_API_KEY in $KAMPUNG_HOME/.env),
+ *                                within the per-resident budget and the town's daily cap
  */
 import { writeFileSync } from 'node:fs';
 import { dbPath, heartbeatPath, kampungHome } from '../config/paths.ts';
@@ -15,6 +17,15 @@ import { gameMinuteFromMs } from '../sim/time.ts';
 import { SqliteStore } from '../store/sqlite-store.ts';
 import { Town } from '../town.ts';
 import { numArg, parseArgs } from './args.ts';
+import { join } from 'node:path';
+import { readApiKey } from '../config/env.ts';
+import { AnthropicModel } from '../mind/anthropic-model.ts';
+import { CostLog } from '../mind/cost-log.ts';
+import { MemoryStore } from '../mind/memory.ts';
+import { Mind } from '../mind/mind.ts';
+import { mindBrains } from '../mind/setup.ts';
+import { TEST_CARDS } from '../seed/test-cards.ts';
+import { fakeBrains, type TownOptions } from '../town.ts';
 
 const args = parseArgs(process.argv.slice(2));
 const home = kampungHome();
@@ -27,9 +38,26 @@ const print = (e: GameEvent) => {
   if (line) console.log(formatFeedLine(line));
 };
 
+let mindOpts: Partial<TownOptions> = {};
+if (args.minds === true) {
+  const apiKey = readApiKey(home);
+  if (!apiKey) {
+    console.error(`No API key found. Put ANTHROPIC_API_KEY=... in ${join(home, '.env')} (never in the repo).`);
+    process.exit(1);
+  }
+  const mind = new Mind({
+    client: new AnthropicModel({ apiKey }),
+    memory: new MemoryStore(dbPath(home)),
+    costs: new CostLog(join(home, 'costs')),
+    cards: TEST_CARDS,
+    onError: (err) => console.error(`A thinking call failed: ${err instanceof Error ? err.constructor.name : 'Error'}${err && typeof err === 'object' && 'status' in err ? ` (HTTP ${String(err.status)})` : ''}`),
+  });
+  mindOpts = { brains: mindBrains(mind, fakeBrains), observer: mind.observe };
+}
+
 const now = () => gameMinuteFromMs(clock.nowMs());
-town = Town.resume({ store, onEvent: print })
-  ?? Town.create(numArg(args, 'seed', Date.now() % 2_147_483_647), now() - 1, { store, onEvent: print });
+town = Town.resume({ store, onEvent: print, ...mindOpts })
+  ?? Town.create(numArg(args, 'seed', Date.now() % 2_147_483_647), now() - 1, { store, onEvent: print, ...mindOpts });
 console.log(`Pixel Kampung is running. Saving to ${dbPath(home)}`);
 
 let busy = false;

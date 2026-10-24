@@ -3,7 +3,7 @@ import { availableActions } from './actions/index.ts';
 import { LORRY_BUYS, LORRY_SELLS, quantityLabel, type ItemId } from './items.ts';
 import { PLACES, PLACE_BY_ID } from './map.ts';
 import { formatMoney, type Cents } from './money.ts';
-import type { Goods, Resident, World } from './state.ts';
+import { TALK_GAP_MINUTES, TALK_SOFT_LIMIT, type Goods, type Resident, type World } from './state.ts';
 import { dayIndex, sgtHour, sgtMinute, timeLabel } from './time.ts';
 
 export type HungerWord = 'full' | 'not hungry' | 'hungry' | 'very hungry' | 'starving';
@@ -50,6 +50,8 @@ export interface Perception {
   jobOffers: { from: string; wage: Cents; startHour: number; hours: number }[];
   trades: { from: string; give: string; want: string }[];
   recent: string[];
+  /** People they've been talking with for a while. */
+  longTalks: string[];
   /** What happened when they last tried something. */
   reply?: string;
   refused?: boolean;
@@ -151,9 +153,16 @@ export function perceive(w: World, r: Resident): Perception {
       want: describeBundle(t.want),
     })),
     recent: r.recent.map((o) => o.text),
+    longTalks: Object.entries(w.state.talk)
+      .filter(([k, v]) => v.lines >= TALK_SOFT_LIMIT && w.t - v.lastT <= TALK_GAP_MINUTES && k.split('|').includes(r.id))
+      .map(([k]) => w.resident(k.split('|').find((id) => id !== r.id)!).name),
     actions: availableActions(w, r),
-    placesYouKnow: PLACES.filter((pl) => pl.kind !== 'house' || pl.id === r.homeId)
-      .map((pl) => (pl.id === r.homeId ? 'home' : pl.name)),
+    placesYouKnow: PLACES.filter((pl) => w.knowsPlace(r, pl.id)).flatMap((pl) => {
+      if (pl.id === r.homeId) return ['home'];
+      if (pl.kind !== 'house') return [pl.name];
+      const owner = w.state.residents.find((x) => x.homeId === pl.id);
+      return owner && w.knowsPerson(r, owner.id) ? [w.placeName(pl)] : [];
+    }),
   };
   if (r.reply) {
     p.reply = r.reply.text;
@@ -187,6 +196,9 @@ export function describe(p: Perception): string {
   }
   if (p.business) {
     lines.push(`You run ${p.business.place}. In stock: ${p.business.stock.map((s) => quantityLabel(s.item, s.qty)).join(', ') || 'nothing'}.`);
+    lines.push(`Your prices: ${p.business.sells.map(priceLine).join(', ') || 'none set'}.`);
+    if (p.business.buys.length) lines.push(`You're buying: ${p.business.buys.map(priceLine).join(', ')}.`);
+    if (p.business.workers.length) lines.push(`Working for you: ${p.business.workers.join(', ')}.`);
     if (p.business.owed.length) lines.push(`You owe wages: ${p.business.owed.map((o) => `${o.name} ${formatMoney(o.cents)}`).join(', ')}.`);
   }
   if (p.shop) {
@@ -205,6 +217,7 @@ export function describe(p: Perception): string {
   for (const o of p.jobOffers) lines.push(`${o.from} has offered you work ${shiftLabel(o.startHour, o.hours)} for ${formatMoney(o.wage)} a shift.`);
   for (const t of p.trades) lines.push(`${t.from} offers you ${t.give} for ${t.want}.`);
   if (p.recent.length) lines.push(`Lately: ${p.recent.slice(-5).join(' ')}`);
+  for (const n of p.longTalks) lines.push(`You've been talking with ${n} for a while.`);
   if (p.reply) lines.push(p.reply);
   return lines.join('\n');
 }

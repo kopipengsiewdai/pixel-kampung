@@ -36,6 +36,10 @@ export interface Resident {
   recent: Observation[];
   /** What happened when they last tried something, shown when they next think. */
   reply: { ok: boolean; text: string } | null;
+  /** Place ids they know of: seen, or heard named. They start knowing only home. */
+  knownPlaces: string[];
+  /** Resident ids they've met. */
+  knownPeople: string[];
 }
 
 export interface Shop {
@@ -113,12 +117,22 @@ export interface WorldState {
   lorryHere: boolean;
   /** Keys of one-off notable things that already happened (e.g. a shop's first sale). */
   firsts: string[];
+  /** Lines spoken between each pair lately ("a|b" sorted), for the talk soft limit. */
+  talk: Record<string, { lines: number; lastT: number }>;
 }
 
 export const LORRY_ID = 'lorry';
 export const FARM_BEDS = 8;
 export const MAX_RECENT = 12;
 export const NEARBY_TILES = 3;
+/** M2 decision 1: after about this many lines between two people, the listener isn't woken to answer at once. */
+export const TALK_SOFT_LIMIT = 8;
+/** A conversation counts as over after this many quiet minutes. */
+export const TALK_GAP_MINUTES = 30;
+
+export function talkKey(a: string, b: string): string {
+  return a < b ? `${a}|${b}` : `${b}|${a}`;
+}
 
 /** The live world: state plus the RNG and buffers of new events and money movements. */
 export class World {
@@ -126,6 +140,8 @@ export class World {
   rng: Rng;
   private events: GameEvent[] = [];
   private ledger: LedgerEntry[] = [];
+  /** Hears every observation a resident takes in (a mind keeps them as memories). */
+  observer: ((residentId: string, t: number, text: string) => void) | null = null;
 
   constructor(state: WorldState) {
     this.state = state;
@@ -238,17 +254,42 @@ export class World {
 
   /** Something happened to this resident: they remember it and think again soon. */
   notify(id: string, text: string): void {
+    this.observer?.(id, this.state.t, text);
     const r = this.resident(id);
     r.recent.push({ t: this.state.t, text });
     if (r.recent.length > MAX_RECENT) r.recent.splice(0, r.recent.length - MAX_RECENT);
     r.thinkAt = Math.min(r.thinkAt, this.state.t + 1);
   }
 
+  knowsPlace(r: Resident, placeId: string): boolean {
+    return r.knownPlaces.includes(placeId);
+  }
+
+  knowsPerson(r: Resident, otherId: string): boolean {
+    return r.id === otherId || r.knownPeople.includes(otherId);
+  }
+
+  learnPlace(r: Resident, placeId: string): void {
+    if (r.knownPlaces.includes(placeId)) return;
+    r.knownPlaces.push(placeId);
+    emitDiscovery(this, r, placeId);
+  }
+
+  learnPerson(r: Resident, otherId: string): void {
+    if (otherId !== r.id && !r.knownPeople.includes(otherId)) r.knownPeople.push(otherId);
+  }
+
   remember(id: string, text: string): void {
+    this.observer?.(id, this.state.t, text);
     const r = this.resident(id);
     r.recent.push({ t: this.state.t, text });
     if (r.recent.length > MAX_RECENT) r.recent.splice(0, r.recent.length - MAX_RECENT);
   }
+}
+
+function emitDiscovery(w: World, r: Resident, placeId: string): void {
+  const place = PLACE_BY_ID.get(placeId);
+  if (place && place.kind !== 'house') w.emit({ type: 'found_place', who: r.id, place: placeId });
 }
 
 export function addGoods(g: Goods, item: ItemId, n: number): void {

@@ -42,7 +42,9 @@ export type EventBody =
   | { type: 'cooked'; who: string; item: ItemId; qty: number }
   | { type: 'night_fell' }
   | { type: 'morning' }
-  | { type: 'quiet_spell'; minutes: number };
+  | { type: 'quiet_spell'; minutes: number }
+  | { type: 'found_place'; who: string; place: string }
+  | { type: 'kampung_quiet' };
 
 export type EventType = EventBody['type'];
 export type GameEvent = EventBody & { seq: number; t: number };

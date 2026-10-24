@@ -23,21 +23,21 @@ const withPeople = (w: World, r: Resident) => w.nearby(r).some((o) => !w.isAslee
 
 /** The whole v1 action space (spec §3). Nothing else can be done. */
 export const ACTIONS: Record<string, ActionDef> = {
-  walk_to: { run: everyone.walkTo, ownersOnly: false, says: 'walk to a place or a person (where)' },
+  walk_to: { run: everyone.walkTo, ownersOnly: false, says: 'walk to a place or a person you know, or north, south, east or west (where)' },
   look_around: { run: everyone.lookAround, ownersOnly: false, says: 'look around' },
-  say: { run: everyone.say, ownersOnly: false, says: 'say something (text, optionally to someone nearby)' },
-  buy: { run: everyone.buy, ownersOnly: false, says: 'buy something here (item, how many)', here: atShop },
+  say: { run: everyone.say, ownersOnly: false, says: 'say something (words, and person if it is meant for someone)' },
+  buy: { run: everyone.buy, ownersOnly: false, says: 'buy something here (item, amount)', here: atShop },
   sell: {
-    run: everyone.sell, ownersOnly: false, says: 'sell something here (item, how many)',
+    run: everyone.sell, ownersOnly: false, says: 'sell something here (item, amount)',
     here: (w, r) => atShop(w, r) || (w.isAt(r, 'lorry-stop') && w.state.lorryHere),
   },
-  offer_trade: { run: everyone.offerTrade, ownersOnly: false, says: 'offer someone a trade (to, what you give, what you want)', here: withPeople },
+  offer_trade: { run: everyone.offerTrade, ownersOnly: false, says: 'offer someone a trade (person; details: give and want, each with items and money)', here: withPeople },
   accept_trade: {
-    run: everyone.acceptTrade, ownersOnly: false, says: 'accept a trade someone offered you (from)',
+    run: everyone.acceptTrade, ownersOnly: false, says: 'accept a trade someone offered you (person)',
     here: (w, r) => w.state.trades.some((t) => t.toId === r.id),
   },
   decline_trade: {
-    run: everyone.declineTrade, ownersOnly: false, says: 'turn down a trade (from)',
+    run: everyone.declineTrade, ownersOnly: false, says: 'turn down a trade (person)',
     here: (w, r) => w.state.trades.some((t) => t.toId === r.id),
   },
   fish: { run: everyone.fish, ownersOnly: false, says: 'fish', here: at('jetty') },
@@ -47,33 +47,33 @@ export const ACTIONS: Record<string, ActionDef> = {
   eat: { run: everyone.eat, ownersOnly: false, says: 'eat or drink something you carry (item)', here: (_w, r) => Object.keys(r.items).length > 0 },
   sleep: { run: everyone.sleep, ownersOnly: false, says: 'sleep', here: (w, r) => w.isAt(r, r.homeId) },
   accept_job: {
-    run: everyone.acceptJob, ownersOnly: false, says: 'accept a job someone offered you (from)',
+    run: everyone.acceptJob, ownersOnly: false, says: 'accept a job someone offered you (person)',
     here: (w, r) => w.state.jobOffers.some((o) => o.workerId === r.id),
   },
   quit_job: { run: everyone.quitJob, ownersOnly: false, says: 'quit your job', here: (w, r) => w.jobOf(r.id) !== null },
   work_shift: { run: everyone.workShift, ownersOnly: false, says: 'work your shift', here: (w, r) => w.jobOf(r.id) !== null },
-  give: { run: everyone.give, ownersOnly: false, says: 'give someone money or something you carry (to, item and how many, or money)', here: withPeople },
+  give: { run: everyone.give, ownersOnly: false, says: 'give someone money or something you carry (person, and item and amount, or money)', here: withPeople },
   read_notice_board: { run: everyone.readNoticeBoard, ownersOnly: false, says: 'read the notice board', here: at('notice-board') },
-  pin_note: { run: everyone.pinNote, ownersOnly: false, says: 'pin a note on the board (text)', here: at('notice-board') },
+  pin_note: { run: everyone.pinNote, ownersOnly: false, says: 'pin a note on the board (words)', here: at('notice-board') },
   set_price: {
-    run: owners.setPrice, ownersOnly: true, says: 'set a price at your shop (item, price, sell or buy, and for buying how many you want)',
+    run: owners.setPrice, ownersOnly: true, says: 'set a price at your shop (item; details: price, and for a price you pay rather than charge, buying true and wanted: the most you will take)',
     here: (w, r) => { const s = w.shopOf(r.id); return !!s && w.isAt(r, s.id); },
   },
-  offer_job: { run: owners.offerJob, ownersOnly: true, says: 'offer someone a job (to, wage per shift, start hour, hours)', here: withPeople },
+  offer_job: { run: owners.offerJob, ownersOnly: true, says: 'offer someone a job (person; details: wage for a shift, start: the hour it begins, hours)', here: withPeople },
   let_go: {
-    run: owners.letGo, ownersOnly: true, says: 'let a worker go (who)',
+    run: owners.letGo, ownersOnly: true, says: 'let a worker go (person)',
     here: (w, r) => w.state.jobs.some((j) => j.employerId === r.id),
   },
   pay_wages: {
-    run: owners.payWages, ownersOnly: true, says: 'pay a worker wages you owe (to, optionally part of it)',
+    run: owners.payWages, ownersOnly: true, says: 'pay a worker wages you owe (person, and money to pay only part)',
     here: (w, r) => w.state.owed.some((o) => o.employerId === r.id),
   },
   order_stock: {
-    run: owners.orderStock, ownersOnly: true, says: 'order stock from the lorry (item, how many)',
+    run: owners.orderStock, ownersOnly: true, says: 'order stock from the lorry (item, amount)',
     here: (w, r) => w.isAt(r, 'lorry-stop') && w.state.lorryHere,
   },
   cook: {
-    run: owners.cook, ownersOnly: false, says: 'cook in the kitchen (dish, how many batches)',
+    run: owners.cook, ownersOnly: false, says: 'cook in the kitchen (item: the dish; details: batches)',
     here: (w, r) => (w.shopOf(r.id)?.id === 'kopitiam' && w.isAt(r, 'kopitiam'))
       || (r.activity?.kind === 'working' && w.jobOf(r.id)?.placeId === 'kopitiam'),
   },
