@@ -46,3 +46,17 @@ jobs:
         run: npm run typecheck
       - name: Tests
         run: npm test
+
+  watch-page:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Headless Chromium for Playwright
+        run: npx playwright install --with-deps --only-shell chromium
+      - name: Watch page loads and draws in a browser
+        run: npm run test:page

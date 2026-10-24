@@ -15,14 +15,15 @@ runs the same way twice.
 
 ## Status
 
-Very early. Milestone 1, the simulation core, runs end to end with free fake
-brains: no AI calls and no watch page yet. The approved design is in
+Very early. The simulation core (milestone 1) and the residents' minds
+(milestone 2, tested on a free fake model) are in, and there's a local watch
+page (milestone 3). The approved design is in
 [docs/design/](docs/design/). Watch the repo or join
 [Discussions](../../discussions) to follow along.
 
 ## Running the sim core
 
-Needs Node.js 22.18 or newer. There are no runtime dependencies.
+Needs Node.js 22.18 or newer.
 
 ```bash
 npm ci
@@ -48,6 +49,39 @@ resumes from there after a restart. Runtime data never goes in this repo.
 
 **Out of scope for now:** combat, killing, PvP. The world is about work, trade,
 community and stories.
+
+## Watching the town
+
+A read-only page shows the pixel kampung, the story feed and a card for
+whichever resident you click (money, job, needs, what they carry, what they're
+doing, and their latest plan and thoughts). It's served on **this PC only**
+(`127.0.0.1`) and makes no outside calls. Open the URL each command prints,
+by default **http://127.0.0.1:8160/**, in any browser on the same PC.
+
+```bash
+npm start                                   # the live town in real time, with its page
+npm start -- --minds                        # the same, thinking for real (within budget)
+npm run watch -- --fake --speed 60          # a fresh fake town, 60× fast (a game hour a minute), $0
+npm run trial -- --fake                     # make a free fake trial to replay
+npm run watch -- --replay                   # play back the newest trial in ~/.kampung/trials/
+npm run watch -- --replay trial-2026-10-24T09-00-00-000Z.db --speed 300   # a chosen trial, 300×
+```
+
+Add `--port 8161` to any of them if 8160 is busy. In a replay, the page has
+play/pause, speed (1× to 1440×), a seek bar and, when there's more than one, a
+trial picker. `--speed` is game minutes per real minute. Trials recorded
+before the watch page existed keep only memories: they replay as thoughts
+only, with everyone shown at home. The `--fake` town and its cards use the
+free fake model, so nothing costs money. What the page shows is for you:
+none of it ever reaches a resident.
+
+To check the page in a headless browser: `npx playwright install chromium`
+once, then `npm run test:page`.
+
+Art: our own kampung pieces (houses, shops, stall, lorry, palms, sea, farm)
+in [assets/art/kampung](assets/art/kampung/CREDITS), plus characters, grass
+and props from Pixel-boy's CC0 *Ninja Adventure* pack in
+[assets/art/ninja-adventure](assets/art/ninja-adventure/CREDITS).
 
 ## Ideas we're learning from
 

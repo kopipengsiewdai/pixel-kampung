@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pixel Kampung</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">Pixel Kampung</div>
+    <div class="clock" id="clock">Connecting…</div>
+    <div class="mode" id="mode"></div>
+    <div class="replay" id="replay" hidden>
+      <button type="button" id="play" aria-label="Play or pause">❚❚</button>
+      <label class="speed">Speed
+        <select id="speed">
+          <option value="1">1×</option>
+          <option value="10">10×</option>
+          <option value="60">60×</option>
+          <option value="300">300×</option>
+          <option value="1440">1440×</option>
+        </select>
+      </label>
+      <input type="range" id="seek" min="0" max="1" value="0" step="1" aria-label="Seek">
+      <select id="trial" aria-label="Trial to replay"></select>
+    </div>
+  </header>
+  <div class="notice" id="notice" hidden></div>
+  <main class="layout">
+    <section class="map-col">
+      <div class="map" id="map"></div>
+      <aside class="card" id="card" hidden aria-live="polite"></aside>
+    </section>
+    <section class="side">
+      <nav class="roster" id="roster" aria-label="Residents"></nav>
+      <h2>Story feed</h2>
+      <ol class="feed" id="feed" reversed></ol>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

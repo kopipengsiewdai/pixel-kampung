@@ -1,0 +1,15 @@
+Pixel Kampung's own art
+
+Author:   Pixel Kampung contributors
+          https://github.com/kopipengsiewdai/pixel-kampung
+Licence:  CC BY-NC-SA 4.0 (see LICENSE-ART.md at the repo root)
+          https://creativecommons.org/licenses/by-nc-sa/4.0/
+
+kampung.png is drawn in code by scripts/art/build_art.py: the attap stilt
+houses, the kopitiam, the provision shop, the wet-market stall, the well, the
+notice board, the lorry and its stop sign, coconut palms, a banana plant, the
+sampan, sea, shore and sand tiles, the jetty, the lorry stop's laterite, farm
+beds, kangkong at three stages, a window glow and a sleeper's "z".
+
+The colours are picked to sit beside the CC0 Ninja Adventure pieces in
+../ninja-adventure/ (see its CREDITS).
