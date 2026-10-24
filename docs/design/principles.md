@@ -37,6 +37,15 @@ We also need to watch for an early stall (nobody hiring, nobody earning).
 competition and drama. The risk is an early stall, with residents who can't
 find work.
 
+## Places and fallback income (agreed 2026-10-24)
+
+- The **3 owners run the kopitiam, the provision shop and the wet-market
+  stall.**
+- The **fishing jetty and a farm plot are open to everyone.** Anyone can
+  fish or grow food and sell it to the owners, so a jobless resident always
+  has a slow, honest way to earn and the town can't stall. A boss's wage
+  should still beat it, so a job is worth having.
+
 ## Core principle: in-world knowledge only (agreed 2026-10-24)
 
 AI residents are players *inside* the world, not developers of it.
