@@ -28,6 +28,7 @@ import { costUsd } from '../mind/pricing.ts';
 import { TEST_CARDS } from '../seed/test-cards.ts';
 import type { GameEvent } from '../sim/events.ts';
 import { Town, fakeBrains } from '../town.ts';
+import { ReplayRecorder, recordTown } from '../watch/replay.ts';
 import { numArg, parseArgs } from './args.ts';
 import { SIM_START } from './start.ts';
 
@@ -105,22 +106,28 @@ function onError(err: unknown): void {
   console.error(`A call failed: ${what}`);
   if (status !== undefined && status >= 400 && status < 500 && status !== 429) fatal = what;
 }
-const memory = new MemoryStore(join(trialsDir, `trial-${stamp}.db`));
+const trialDb = join(trialsDir, `trial-${stamp}.db`);
+const memory = new MemoryStore(trialDb);
+// Frames and events go in the same file, so the watch page can play the trial back.
+const recorder = new ReplayRecorder(trialDb, { seed, label: `${fake ? 'dry run' : 'trial'} ${stamp.slice(0, 16)}, ${minds} on the model` });
+const record = recordTown(recorder);
 const mind = new Mind({ client: counting, memory, costs: new CostLog(costDir), cards: TEST_CARDS, townCap: budget, onError });
 // One owner among the minds, so business calls are measured too.
 const order = ['ah-huat', 'siti', 'raju', 'mei-ling', 'ah-kow', 'muthu', 'ah-seng', 'fatimah', 'mdm-tan', 'rahim'];
 const chosen = order.slice(0, minds);
 let town: Town;
 const print = (e: GameEvent) => {
+  record.onEvent!(e);
   const line = feedLine(e, (id) => town.world.resident(id).name);
   if (line && (args.feed === true || line.notable || e.type === 'kampung_quiet')) console.log(formatFeedLine(line));
 };
-town = Town.create(seed, SIM_START, { brains: mindBrains(mind, fakeBrains, chosen), observer: mind.observe, onEvent: print });
+town = Town.create(seed, SIM_START, { brains: mindBrains(mind, fakeBrains, chosen), observer: mind.observe, onEvent: print, onTick: record.onTick });
 console.log(`${fake ? 'Dry run (fake model, $0)' : `Trial, up to US$${budget.toFixed(2)}`}: ${minds} on the model for ${hours} game hours.`);
 
 const end = SIM_START + Math.round(hours * 60);
 while (town.t < end && stats.usd < budget && !fatal) await town.step();
 memory.close();
+recorder.close();
 if (fatal) console.error(`Stopped early: the API refused a request (${fatal}). Check the key in ${join(home, '.env')}.`);
 
 const residentHours = minds * ((town.t - SIM_START) / 60);
@@ -133,3 +140,4 @@ console.log(`tokens: ${inputAll} in (${Math.round((100 * stats.cacheRead) / Math
 console.log(`spent: US$${stats.usd.toFixed(4)}${fake ? ' (estimated from fake token counts)' : ''}`);
 console.log(`per resident-hour: US$${perHour.toFixed(5)} against a ceiling of US$${HOURLY_ALLOWANCE} (${Math.round((100 * perHour) / HOURLY_ALLOWANCE)}%)`);
 if (!fake) console.log(`all trials so far: US$${spentOnTrials(costRoot).toFixed(4)} of US$${TRIAL_ALLOWANCE}`);
+console.log(`\nWatch it back: npm run watch -- --replay trial-${stamp}.db`);

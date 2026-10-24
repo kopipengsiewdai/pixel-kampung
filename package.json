@@ -12,15 +12,20 @@
     "sim": "node --disable-warning=ExperimentalWarning src/cli/sim.ts",
     "start": "node --disable-warning=ExperimentalWarning src/cli/serve.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
-    "trial": "node --disable-warning=ExperimentalWarning src/cli/trial.ts"
+    "test:page": "vitest run --config vitest.page.config.ts",
+    "trial": "node --disable-warning=ExperimentalWarning src/cli/trial.ts",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.client.json",
+    "watch": "node --disable-warning=ExperimentalWarning src/cli/watch.ts"
   },
   "devDependencies": {
     "@types/node": "22.20.5",
+    "playwright": "1.63.0",
     "typescript": "5.9.3",
     "vitest": "4.1.12"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "1.2.0"
+    "@anthropic-ai/sdk": "1.2.0",
+    "esbuild": "0.28.2",
+    "phaser": "3.90.0"
   }
 }

@@ -74,6 +74,13 @@ export class MemoryStore {
       .all(resident) as unknown as Memory[];
   }
 
+  /** The newest n memories of these kinds at or before minute upTo, newest first (for the watch page). */
+  latest(resident: string, kinds: readonly string[], upTo: number, n: number): Memory[] {
+    return this.db
+      .prepare(`SELECT id, resident, t, kind, text, importance FROM memories WHERE resident = ? AND t <= ? AND kind IN (${kinds.map(() => '?').join(',')}) ORDER BY t DESC, id DESC LIMIT ?`)
+      .all(resident, upTo, ...kinds, n) as unknown as Memory[];
+  }
+
   since(resident: string, t: number): Memory[] {
     return this.all(resident).filter((m) => m.t >= t);
   }

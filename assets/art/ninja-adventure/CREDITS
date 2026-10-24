@@ -1,0 +1,19 @@
+Ninja Adventure asset pack (Superpowers asset packs)
+
+Source:   https://github.com/sparklinlabs/superpowers-asset-packs/tree/master/ninja-adventure
+          (also https://sparklinlabs.itch.io/superpowers)
+Author:   Pixel-boy, Sparklin Labs
+Licence:  CC0 1.0 Universal (public domain dedication)
+          https://creativecommons.org/publicdomain/zero/1.0/
+          https://github.com/sparklinlabs/superpowers-asset-packs/blob/master/LICENSE.txt
+
+Used here (cropped and packed by scripts/art/build_art.py):
+  people.png  walk cycles of characters 10, 4, 3, 17, 22, 12, 25, 6, 5 and 16
+              from ninja-adventure/characters/; the hair of 6 and 17 is
+              recoloured darker.
+  tiles.png   grass, dry field, footpath and floor paving, trees, a bush,
+              ferns, flowers, a grass tuft, a rock, a crate, a barrel, a pot,
+              a sack, a table and a stool from
+              ninja-adventure/background-elements/tileset.png.
+
+Attribution isn't required by CC0; we give it anyway, with thanks.

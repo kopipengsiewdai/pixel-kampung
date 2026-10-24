@@ -33,6 +33,8 @@ export interface TownOptions {
   onEvent?: (e: GameEvent) => void;
   /** Hears every observation residents take in (a mind keeps them as memories). */
   observer?: (residentId: string, t: number, text: string) => void;
+  /** Called after each saved minute, once its events are out (the watch page takes a frame here). */
+  onTick?: (world: World) => void;
 }
 
 /** The running kampung: world + brains + optional store, advanced a minute at a time. */
@@ -41,12 +43,14 @@ export class Town {
   readonly brains: Map<string, Brain>;
   private store?: SqliteStore;
   private onEvent?: (e: GameEvent) => void;
+  private onTick?: (world: World) => void;
 
   private constructor(state: WorldState, opts: TownOptions, savedBrains?: Record<string, unknown>) {
     this.world = new World(state);
     this.world.observer = opts.observer ?? null;
     this.store = opts.store;
     this.onEvent = opts.onEvent;
+    this.onTick = opts.onTick;
     const make = opts.brains ?? fakeBrains;
     this.brains = new Map(state.residents.map((r, i) => [r.id, make(r, i, state.seed, state)]));
     if (savedBrains) for (const [id, b] of this.brains) if (savedBrains[id] !== undefined) b.load(savedBrains[id]);
@@ -137,5 +141,6 @@ export class Town {
     const ledger: LedgerEntry[] = this.world.takeLedger();
     if (this.store) this.store.save(this.snapshot(), events, ledger);
     if (this.onEvent) for (const e of events) this.onEvent(e);
+    this.onTick?.(this.world);
   }
 }

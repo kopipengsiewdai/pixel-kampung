@@ -1,0 +1,412 @@
+{
+ "frames": {
+  "barrel": {
+   "frame": {
+    "h": 16,
+    "w": 16,
+    "x": 66,
+    "y": 0
+   },
+   "rotated": false,
+   "sourceSize": {
+    "h": 16,
+    "w": 16
+   },
+   "spriteSourceSize": {
+    "h": 16,
+    "w": 16,
+    "x": 0,
+    "y": 0
+   },
+   "trimmed": false
+  },
+  "big-tree": {
+   "frame": {
+    "h": 32,
+    "w": 32,
+    "x": 0,
+    "y": 0
+   },
+   "rotated": false,
+   "sourceSize": {
+    "h": 32,
+    "w": 32
+   },
+   "spriteSourceSize": {
+    "h": 32,
+    "w": 32,
+    "x": 0,
+    "y": 0
+   },
+   "trimmed": false
+  },
+  "bush": {
+   "frame": {
+    "h": 16,
+    "w": 32,
+    "x": 83,
+    "y": 0
+   },
+   "rotated": false,
+   "sourceSize": {
+    "h": 16,
+    "w": 32
+   },
+   "spriteSourceSize": {
+    "h": 16,
+    "w": 32,
+    "x": 0,
+    "y": 0
+   },
+   "trimmed": false
+  },
+  "crate": {
+   "frame": {
+    "h": 16,
+    "w": 16,
+    "x": 116,
+    "y": 0
+   },
+   "rotated": false,
+   "sourceSize": {
+    "h": 16,
+    "w": 16
+   },
+   "spriteSourceSize": {
+    "h": 16,
+    "w": 16,
+    "x": 0,
+    "y": 0
+   },
+   "trimmed": false
+  },
+  "fern-0": {
+   "frame": {
+    "h": 16,
+    "w": 16,
+    "x": 133,
+    "y": 0
+   },
+   "rotated": false,
+   "sourceSize": {
+    "h": 16,
+    "w": 16
+   },
+   "spriteSourceSize": {
+    "h": 16,
+    "w": 16,
+    "x": 0,
+    "y": 0
+   },
+   "trimmed": false
+  },
+  "fern-1": {
+   "frame": {
+    "h": 16,
+    "w": 16,
+    "x": 150,
+    "y": 0
+   },
+   "rotated": false,
+   "sourceSize": {
+    "h": 16,
+    "w": 16
+   },
+   "spriteSourceSize": {
+    "h": 16,
+    "w": 16,
+    "x": 0,
+    "y": 0
+   },
+   "trimmed": false
+  },
+  "field": {
+   "frame": {
+    "h": 16,
+    "w": 16,
+    "x": 167,
+    "y": 0
+   },
+   "rotated": false,
+   "sourceSize": {
+    "h": 16,
+    "w": 16
+   },
+   "spriteSourceSize": {
+    "h": 16,
+    "w": 16,
+    "x": 0,
+    "y": 0
+   },
+   "trimmed": false
+  },
+  "flower": {
+   "frame": {
+    "h": 16,
+    "w": 16,
+    "x": 184,
+    "y": 0
+   },
+   "rotated": false,
+   "sourceSize": {
+    "h": 16,
+    "w": 16
+   },
+   "spriteSourceSize": {
+    "h": 16,
+    "w": 16,
+    "x": 0,
+    "y": 0
+   },
+   "trimmed": false
+  },
+  "flowers": {
+   "frame": {
+    "h": 16,
+    "w": 16,
+    "x": 201,
+    "y": 0
+   },
+   "rotated": false,
+   "sourceSize": {
+    "h": 16,
+    "w": 16
+   },
+   "spriteSourceSize": {
+    "h": 16,
+    "w": 16,
+    "x": 0,
+    "y": 0
+   },
+   "trimmed": false
+  },
+  "grass-0": {
+   "frame": {
+    "h": 16,
+    "w": 16,
+    "x": 218,
+    "y": 0
+   },
+   "rotated": false,
+   "sourceSize": {
+    "h": 16,
+    "w": 16
+   },
+   "spriteSourceSize": {
+    "h": 16,
+    "w": 16,
+    "x": 0,
+    "y": 0
+   },
+   "trimmed": false
+  },
+  "grass-1": {
+   "frame": {
+    "h": 16,
+    "w": 16,
+    "x": 235,
+    "y": 0
+   },
+   "rotated": false,
+   "sourceSize": {
+    "h": 16,
+    "w": 16
+   },
+   "spriteSourceSize": {
+    "h": 16,
+    "w": 16,
+    "x": 0,
+    "y": 0
+   },
+   "trimmed": false
+  },
+  "path": {
+   "frame": {
+    "h": 16,
+    "w": 16,
+    "x": 0,
+    "y": 33
+   },
+   "rotated": false,
+   "sourceSize": {
+    "h": 16,
+    "w": 16
+   },
+   "spriteSourceSize": {
+    "h": 16,
+    "w": 16,
+    "x": 0,
+    "y": 0
+   },
+   "trimmed": false
+  },
+  "paving": {
+   "frame": {
+    "h": 16,
+    "w": 16,
+    "x": 17,
+    "y": 33
+   },
+   "rotated": false,
+   "sourceSize": {
+    "h": 16,
+    "w": 16
+   },
+   "spriteSourceSize": {
+    "h": 16,
+    "w": 16,
+    "x": 0,
+    "y": 0
+   },
+   "trimmed": false
+  },
+  "pot": {
+   "frame": {
+    "h": 16,
+    "w": 16,
+    "x": 34,
+    "y": 33
+   },
+   "rotated": false,
+   "sourceSize": {
+    "h": 16,
+    "w": 16
+   },
+   "spriteSourceSize": {
+    "h": 16,
+    "w": 16,
+    "x": 0,
+    "y": 0
+   },
+   "trimmed": false
+  },
+  "rock": {
+   "frame": {
+    "h": 16,
+    "w": 16,
+    "x": 51,
+    "y": 33
+   },
+   "rotated": false,
+   "sourceSize": {
+    "h": 16,
+    "w": 16
+   },
+   "spriteSourceSize": {
+    "h": 16,
+    "w": 16,
+    "x": 0,
+    "y": 0
+   },
+   "trimmed": false
+  },
+  "sack": {
+   "frame": {
+    "h": 16,
+    "w": 16,
+    "x": 68,
+    "y": 33
+   },
+   "rotated": false,
+   "sourceSize": {
+    "h": 16,
+    "w": 16
+   },
+   "spriteSourceSize": {
+    "h": 16,
+    "w": 16,
+    "x": 0,
+    "y": 0
+   },
+   "trimmed": false
+  },
+  "stool": {
+   "frame": {
+    "h": 16,
+    "w": 16,
+    "x": 85,
+    "y": 33
+   },
+   "rotated": false,
+   "sourceSize": {
+    "h": 16,
+    "w": 16
+   },
+   "spriteSourceSize": {
+    "h": 16,
+    "w": 16,
+    "x": 0,
+    "y": 0
+   },
+   "trimmed": false
+  },
+  "table": {
+   "frame": {
+    "h": 16,
+    "w": 16,
+    "x": 102,
+    "y": 33
+   },
+   "rotated": false,
+   "sourceSize": {
+    "h": 16,
+    "w": 16
+   },
+   "spriteSourceSize": {
+    "h": 16,
+    "w": 16,
+    "x": 0,
+    "y": 0
+   },
+   "trimmed": false
+  },
+  "tree": {
+   "frame": {
+    "h": 32,
+    "w": 32,
+    "x": 33,
+    "y": 0
+   },
+   "rotated": false,
+   "sourceSize": {
+    "h": 32,
+    "w": 32
+   },
+   "spriteSourceSize": {
+    "h": 32,
+    "w": 32,
+    "x": 0,
+    "y": 0
+   },
+   "trimmed": false
+  },
+  "tuft": {
+   "frame": {
+    "h": 16,
+    "w": 16,
+    "x": 119,
+    "y": 33
+   },
+   "rotated": false,
+   "sourceSize": {
+    "h": 16,
+    "w": 16
+   },
+   "spriteSourceSize": {
+    "h": 16,
+    "w": 16,
+    "x": 0,
+    "y": 0
+   },
+   "trimmed": false
+  }
+ },
+ "meta": {
+  "image": "tiles.png",
+  "scale": "1",
+  "size": {
+   "h": 49,
+   "w": 256
+  }
+ }
+}
