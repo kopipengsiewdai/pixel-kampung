@@ -101,10 +101,25 @@ Town average: **$0.273 per resident per day, or $0.0114 per resident-hour**,
 against the $0.0139 ceiling. That's about **$82/month for the town**, leaving
 roughly 18% headroom under $100.
 
-**Budget guard (hard):** a spend meter in `~/.kampung/` tracks every call's
-real token usage. At 100% of the daily allowance ($3.33/day for the town),
-residents fall back to "resting" (no AI calls) until midnight, and the feed
-says so in-world ("the kampung is quiet this afternoon"). It can't overspend.
+**Spending limits, in three layers:**
+
+1. **A separate API key with a hard cap.** Kampung uses its own Anthropic API
+   key in its own Console workspace, which has a **US$100/month spend limit**.
+   The $200/month credit is shared with ARC-1, so a runaway loop here can never
+   eat into ARC's share. The key lives only in `~/.kampung/.env`, never in the
+   repo or in chat.
+2. **Per-resident throttle.** Each resident gets a budget of $0.0139 of AI per
+   hour, which builds up while they sleep or stay idle and has a cap. A
+   resident who has spent it waits (in-world, they "potter about") until it
+   refills. Owners' business decisions draw from the same budget.
+3. **Town daily cap.** If the whole town reaches its daily allowance
+   ($3.33/day), every resident falls back to resting (no AI calls) until
+   midnight, and the feed says so in-world ("the kampung is quiet this
+   afternoon").
+
+**Cost log:** a daily file in `~/.kampung/costs/` records each call's model,
+tokens and real cost per resident, with day totals against the caps. It is
+private and never committed.
 
 ## 6. Story feed and watch page
 
@@ -134,9 +149,12 @@ says so in-world ("the kampung is quiet this afternoon"). It can't overspend.
 
 1. **Sim core:** map, clock, needs, money, places, every action with fake
    brains, and save/resume. $0 AI.
-2. **Real brains:** the harness, memory, model tiers, the budget guard, and a
-   measured cost per resident-hour (the token assumptions in §5 get replaced
-   with real numbers).
+2. **Real brains:** the harness, memory, model tiers, the throttle, the daily
+   cap and the cost log, and a measured cost per resident-hour (the token
+   assumptions in §5 get replaced with real numbers). **One owner step first:**
+   in the Anthropic Console, create a workspace "pixel-kampung", set its
+   monthly spend limit to US$100, create an API key in it, and paste the key
+   into `~/.kampung/.env` as `ANTHROPIC_API_KEY=` yourself.
 3. **Watch page:** Phaser view with the asset packs, the feed, and resident
    cards.
 4. **Cast and launch:** Claude drafts 10 resident cards → the owner edits them →
