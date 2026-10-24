@@ -82,3 +82,28 @@ under the agreed [M2 decisions](m2-decisions.md) and [v1 spec](v1-spec.md)
 - Each trial keeps its own cost log, so one trial never throttles the next.
 - One owner is always among the model-driven residents, so business calls get
   measured.
+
+### Trial log
+
+**Trial 1 (2026-10-24):** 3 residents on the model for 4 game hours
+(Monday 06:00–10:00), capped at US$1, on the `pixel-kampung` workspace key.
+
+| Measure | Result |
+|---|---|
+| Calls | 441 (plan 3, act 437, business 1), about 37 per resident-hour |
+| Tokens | 932K in (36% from cache), 102K out, about 2.1K in / 231 out per call |
+| Spent | US$0.132 |
+| Per waking resident-hour | **US$0.0110**, which is 79% of the US$0.0139 ceiling |
+| Failed calls | 1 (`APIConnectionError`, a one-off network error) |
+| Story | two hires by 08:19: Ah Kow at the provision shop, Ah Seng at the wet-market stall |
+
+How this compares with the spec's guesses (§5): calls are smaller (2.1K in vs
+4K) but far more frequent (about 37 per hour vs about 12). The ceiling is
+averaged over 24 hours and nights are free, so a full day projects to about
+US$0.24 per resident (17 waking hours × $0.0110 + about $0.05 for the evening
+reflection, *estimate*). That's about **US$0.0099 per resident-hour, 71% of
+the ceiling**. The trial didn't cover the evening reflection or a full day of
+owners' business decisions; the next trials need to measure both.
+
+Caching does work on Haiku (36% from cache), so the 512-token gap above is
+only partial.
