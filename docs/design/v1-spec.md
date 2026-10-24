@@ -140,6 +140,11 @@ private and never committed.
 - **A deterministic simulation core.** The "brains" sit behind one
   interface, with a free fake brain for tests and dry runs, so most of the
   game is built and tested with **$0 of AI spend**.
+- **Runs light on a shared PC.** The server stays within **500 MB of RAM**
+  and uses no GPU and no local models (all thinking goes through the API).
+  It runs as a windowless Windows Task Scheduler job with a restart-on-failure
+  policy, and writes a heartbeat file to `~/.kampung/` every minute so an
+  outside watchdog can check that it's alive.
 - **Crash-safe.** State is saved every tick; on restart or wake from sleep the
   town resumes from the saved state. Missed real time passes as "everyone was
   asleep or working quietly" instead of being replayed.
