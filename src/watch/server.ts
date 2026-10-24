@@ -117,6 +117,26 @@ function replayCommand(body: unknown): ReplayCommand | null {
   return cmd;
 }
 
+/** Unsent bytes a page may fall behind by before it is dropped (it reconnects by itself). */
+const STREAM_BACKLOG_LIMIT = 1_000_000;
+
+/**
+ * Writes to an event stream unless the reader has stopped reading (a frozen or
+ * sleeping tab). Then it drops the stream instead of buffering without end.
+ */
+export function streamWrite(
+  res: Pick<ServerResponse, 'writableLength' | 'write' | 'destroy'>,
+  chunk: string,
+  limit = STREAM_BACKLOG_LIMIT,
+): boolean {
+  if (res.writableLength > limit) {
+    res.destroy();
+    return false;
+  }
+  res.write(chunk);
+  return true;
+}
+
 export async function startWatchServer(opts: WatchServerOptions): Promise<WatchServer> {
   let source = opts.source;
   const assetsRoot = resolve(opts.assetsDir);
@@ -124,7 +144,7 @@ export async function startWatchServer(opts: WatchServerOptions): Promise<WatchS
   let unsubscribe = () => {};
 
   const sendEvent = (res: ServerResponse, event: string, data: unknown) => {
-    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    if (!streamWrite(res, `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)) streams.delete(res);
   };
   const follow = () => {
     unsubscribe();
@@ -144,7 +164,7 @@ export async function startWatchServer(opts: WatchServerOptions): Promise<WatchS
     }
   }, 100);
   const keepAlive = setInterval(() => {
-    for (const res of streams) res.write(': still here\n\n');
+    for (const res of streams) if (!streamWrite(res, ': still here\n\n')) streams.delete(res);
   }, 15_000);
 
   const swap = (next: WatchSource) => {

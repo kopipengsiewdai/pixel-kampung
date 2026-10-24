@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { Town } from '../src/town.ts';
 import { ReplayReader, ReplayRecorder, recordTown } from '../src/watch/replay.ts';
-import { startWatchServer, trialCatalog, type WatchServer } from '../src/watch/server.ts';
+import { startWatchServer, streamWrite, trialCatalog, type WatchServer } from '../src/watch/server.ts';
 import { LiveSource, ReplaySource } from '../src/watch/source.ts';
 import { sgt } from './helpers.ts';
 
@@ -152,6 +152,7 @@ describe('the watch server in replay mode', () => {
     const src = new ReplaySource(new ReplayReader(await trial(dir, 'trial-a.db', 60)), { everyMs: 0 });
     const server = await startWatchServer({ source: src, client: CLIENT, assetsDir: tmp(), port: 0, catalog: trialCatalog(dir) });
     cleanups.push(() => server.close());
+    cleanups.push(() => server.source().close()); // runs first: Windows can't delete an open trial file
     const post = (body: unknown) => fetch(new URL('/api/replay', server.url), {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
     });
@@ -172,6 +173,7 @@ describe('the watch server in replay mode', () => {
     const src = new ReplaySource(new ReplayReader(join(dir, 'trial-a.db')), { everyMs: 0 });
     const server = await startWatchServer({ source: src, client: CLIENT, assetsDir: tmp(), port: 0, catalog: trialCatalog(dir) });
     cleanups.push(() => server.close());
+    cleanups.push(() => server.source().close()); // runs first: Windows can't delete an open trial file
     const list = await (await fetch(new URL('/api/replay', server.url))).json() as { trials: { name: string }[]; state: { file: string } };
     expect(list.trials.map((t) => t.name).sort()).toEqual(['trial-a.db', 'trial-b.db']);
     expect(list.state.file).toBe('trial-a.db');
@@ -192,5 +194,22 @@ describe('odd requests', () => {
     expect((await rawGet(server.port, '/api/resident/%E0%A4%A', `127.0.0.1:${server.port}`)).status).toBe(400);
     const head = await fetch(new URL('/api/stream', server.url), { method: 'HEAD' });
     expect(head.status).toBe(404);
+  });
+});
+
+describe('a tab that stops reading', () => {
+  it('is dropped once its unsent backlog passes the limit, instead of growing without end', () => {
+    const fake = (backlog: number) => {
+      const r = { writableLength: backlog, written: [] as string[], destroyed: false,
+        write(c: string) { this.written.push(c); return true; }, destroy() { this.destroyed = true; } };
+      return r;
+    };
+    const ok = fake(10);
+    expect(streamWrite(ok as never, 'x', 100)).toBe(true);
+    expect(ok.written).toEqual(['x']);
+    const stuck = fake(101);
+    expect(streamWrite(stuck as never, 'x', 100)).toBe(false);
+    expect(stuck.written).toEqual([]);
+    expect(stuck.destroyed).toBe(true);
   });
 });
