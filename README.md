@@ -58,6 +58,8 @@ doing, and their latest plan and thoughts). It's served on **this PC only**
 (`127.0.0.1`) and makes no outside calls. Open the URL each command prints,
 by default **http://127.0.0.1:8160/**, in any browser on the same PC.
 
+![The watch page: the kampung map, a resident's card and the story feed](docs/images/watch-page.png)
+
 ```bash
 npm start                                   # the live town in real time, with its page
 npm start -- --minds                        # the same, thinking for real (within budget)
