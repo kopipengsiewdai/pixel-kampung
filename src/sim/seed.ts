@@ -53,5 +53,6 @@ export function createWorld(seed: number, t: number, cast: readonly CastMember[]
     notes: [],
     lorryHere: false,
     firsts: [],
+    talk: {},
   };
 }

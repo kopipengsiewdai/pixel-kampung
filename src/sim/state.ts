@@ -117,12 +117,22 @@ export interface WorldState {
   lorryHere: boolean;
   /** Keys of one-off notable things that already happened (e.g. a shop's first sale). */
   firsts: string[];
+  /** Lines spoken between each pair lately ("a|b" sorted), for the talk soft limit. */
+  talk: Record<string, { lines: number; lastT: number }>;
 }
 
 export const LORRY_ID = 'lorry';
 export const FARM_BEDS = 8;
 export const MAX_RECENT = 12;
 export const NEARBY_TILES = 3;
+/** M2 decision 1: after about this many lines between two people, the listener isn't woken to answer at once. */
+export const TALK_SOFT_LIMIT = 8;
+/** A conversation counts as over after this many quiet minutes. */
+export const TALK_GAP_MINUTES = 30;
+
+export function talkKey(a: string, b: string): string {
+  return a < b ? `${a}|${b}` : `${b}|${a}`;
+}
 
 /** The live world: state plus the RNG and buffers of new events and money movements. */
 export class World {
@@ -130,6 +140,8 @@ export class World {
   rng: Rng;
   private events: GameEvent[] = [];
   private ledger: LedgerEntry[] = [];
+  /** Hears every observation a resident takes in (a mind keeps them as memories). */
+  observer: ((residentId: string, t: number, text: string) => void) | null = null;
 
   constructor(state: WorldState) {
     this.state = state;
@@ -242,6 +254,7 @@ export class World {
 
   /** Something happened to this resident: they remember it and think again soon. */
   notify(id: string, text: string): void {
+    this.observer?.(id, this.state.t, text);
     const r = this.resident(id);
     r.recent.push({ t: this.state.t, text });
     if (r.recent.length > MAX_RECENT) r.recent.splice(0, r.recent.length - MAX_RECENT);
@@ -267,6 +280,7 @@ export class World {
   }
 
   remember(id: string, text: string): void {
+    this.observer?.(id, this.state.t, text);
     const r = this.resident(id);
     r.recent.push({ t: this.state.t, text });
     if (r.recent.length > MAX_RECENT) r.recent.splice(0, r.recent.length - MAX_RECENT);

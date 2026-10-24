@@ -43,7 +43,8 @@ export type EventBody =
   | { type: 'night_fell' }
   | { type: 'morning' }
   | { type: 'quiet_spell'; minutes: number }
-  | { type: 'found_place'; who: string; place: string };
+  | { type: 'found_place'; who: string; place: string }
+  | { type: 'kampung_quiet' };
 
 export type EventType = EventBody['type'];
 export type GameEvent = EventBody & { seq: number; t: number };

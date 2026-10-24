@@ -6,7 +6,7 @@ import { formatMoney } from '../money.ts';
 import { describe, perceive } from '../perception.ts';
 import { PLACE_WORDS } from '../places.ts';
 import {
-  addGoods, countGoods, type Resident, type Shop, type World, LORRY_ID,
+  addGoods, countGoods, type Resident, type Shop, type World, LORRY_ID, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey,
 } from '../state.ts';
 import { atTimeOfDay, dayIndex, sgtHour } from '../time.ts';
 import {
@@ -130,12 +130,23 @@ export function say(w: World, r: Resident, i: Intent): ActionResult {
     to = o;
   }
   w.emit({ type: 'said', who: r.id, to: to?.id ?? null, text });
+  let longTalk = false;
+  if (to) {
+    const key = talkKey(r.id, to.id);
+    const prev = w.state.talk[key];
+    const lines = prev && w.t - prev.lastT <= TALK_GAP_MINUTES ? prev.lines + 1 : 1;
+    w.state.talk[key] = { lines, lastT: w.t };
+    longTalk = lines > TALK_SOFT_LIMIT;
+  }
   for (const o of w.nearby(r)) {
     if (w.isAsleep(o)) continue;
     const line = to && to.id === o.id ? `${r.name} says to you: "${text}"` : to ? `${r.name} says to ${to.name}: "${text}"` : `${r.name} says: "${text}"`;
     w.learnPerson(o, r.id);
     learnFromWords(w, o, text);
-    w.notify(o.id, line);
+    // Overheard talk, and a chat that has run long, is heard but doesn't demand an answer right away.
+    if (to?.id === o.id && !longTalk) w.notify(o.id, line);
+    else if (!to) w.notify(o.id, line);
+    else w.remember(o.id, line);
   }
   return ok();
 }

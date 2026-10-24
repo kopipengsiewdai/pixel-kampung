@@ -1,13 +1,13 @@
 import type { Brain } from './brain/brain.ts';
 import { FakeBrain } from './brain/fake-brain.ts';
 import { act } from './sim/actions/index.ts';
-import type { GameEvent, LedgerEntry } from './sim/events.ts';
+import type { EventBody, GameEvent, LedgerEntry } from './sim/events.ts';
 import { perceive } from './sim/perception.ts';
 import { createWorld } from './sim/seed.ts';
 import { MAX_REPLAY_MINUTES, skipQuietly } from './sim/skip.ts';
-import { World, type WorldState } from './sim/state.ts';
+import { World, type Resident, type WorldState } from './sim/state.ts';
 import { advance } from './sim/tick.ts';
-import { isNight } from './sim/time.ts';
+import { isNight, minuteOfDay } from './sim/time.ts';
 import type { SqliteStore } from './store/sqlite-store.ts';
 
 /** A refused resident may try something else this many times in the same minute. */
@@ -15,15 +15,24 @@ export const TRIES_PER_THOUGHT = 3;
 /** With nothing happening, a resident thinks again after this many minutes. */
 export const QUIET_THINK_MINUTES = 5;
 
-export type BrainFactory = (residentId: string, index: number, seed: number) => Brain;
+export type BrainFactory = (resident: Resident, index: number, seed: number, state: WorldState) => Brain;
 
-export const fakeBrains: BrainFactory = (_id, index, seed) => new FakeBrain((seed * 7919 + index * 104729 + 1) >>> 0);
+export const fakeBrains: BrainFactory = (_r, index, seed) => new FakeBrain((seed * 7919 + index * 104729 + 1) >>> 0);
+
+/**
+ * Residents look back on the day once each evening: as they lie down after
+ * 20:00, or at 22:30 if still up (everyone heads home at 23:00).
+ */
+export const EVENING_FROM = 20 * 60;
+export const REFLECT_AT = 22 * 60 + 30;
 
 export interface TownOptions {
   brains?: BrainFactory;
   store?: SqliteStore;
   /** Called with every new event, in order. */
   onEvent?: (e: GameEvent) => void;
+  /** Hears every observation residents take in (a mind keeps them as memories). */
+  observer?: (residentId: string, t: number, text: string) => void;
 }
 
 /** The running kampung: world + brains + optional store, advanced a minute at a time. */
@@ -35,10 +44,11 @@ export class Town {
 
   private constructor(state: WorldState, opts: TownOptions, savedBrains?: Record<string, unknown>) {
     this.world = new World(state);
+    this.world.observer = opts.observer ?? null;
     this.store = opts.store;
     this.onEvent = opts.onEvent;
     const make = opts.brains ?? fakeBrains;
-    this.brains = new Map(state.residents.map((r, i) => [r.id, make(r.id, i, state.seed)]));
+    this.brains = new Map(state.residents.map((r, i) => [r.id, make(r, i, state.seed, state)]));
     if (savedBrains) for (const [id, b] of this.brains) if (savedBrains[id] !== undefined) b.load(savedBrains[id]);
   }
 
@@ -75,13 +85,23 @@ export class Town {
   async step(): Promise<void> {
     const w = this.world;
     advance(w);
+    const emit = (e: EventBody) => { w.emit(e); };
+    const mod = minuteOfDay(w.t);
+    if (mod >= EVENING_FROM) {
+      for (const r of w.state.residents) {
+        const brain = this.brains.get(r.id)!;
+        if (brain.reflect && (r.activity?.kind === 'sleeping' || mod >= REFLECT_AT)) {
+          await brain.reflect(perceive(w, r), { t: w.t, residentId: r.id, emit });
+        }
+      }
+    }
     if (!isNight(w.t)) {
       for (const r of w.state.residents) {
         if ((r.activity && r.activity.kind !== 'working') || w.t < r.thinkAt) continue;
         const brain = this.brains.get(r.id)!;
         r.thinkAt = w.t + QUIET_THINK_MINUTES;
         for (let i = 0; i < TRIES_PER_THOUGHT; i++) {
-          const intent = await brain.decide(perceive(w, r));
+          const intent = await brain.decide(perceive(w, r), { t: w.t, residentId: r.id, emit });
           r.reply = null;
           if (!intent) break;
           const res = act(w, r.id, intent);
