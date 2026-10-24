@@ -15,8 +15,27 @@ runs the same way twice.
 
 ## Status
 
-Very early. The design is still being settled and there is no playable build
-yet. Watch the repo or join [Discussions](../../discussions) to follow along.
+Very early. Milestone 1, the simulation core, runs end to end with free fake
+brains: no AI calls and no watch page yet. The approved design is in
+[docs/design/](docs/design/). Watch the repo or join
+[Discussions](../../discussions) to follow along.
+
+## Running the sim core
+
+Needs Node.js 22.18 or newer. There are no runtime dependencies.
+
+```bash
+npm ci
+npm run sim -- --days 3            # 3 game days on seed 42, printing the story feed
+npm run sim -- --days 3 --notable  # only the highlights
+npm test                           # Vitest
+npm run typecheck
+npm start                          # the live town, in real time (Singapore time)
+```
+
+`npm run sim` writes nothing unless you pass `--save`. `npm start` keeps the
+live town in `~/.kampung/kampung.db` (set `KAMPUNG_HOME` to move it) and
+resumes from there after a restart. Runtime data never goes in this repo.
 
 **Out of scope for now:** combat, killing, PvP. The world is about work, trade,
 community and stories.
