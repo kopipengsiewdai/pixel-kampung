@@ -47,6 +47,15 @@ check `git config user.email` before committing in any new clone/worktree).
 Never put the owner's real name, email, location, family, tenant or work
 details in code, commits, issues, PRs or docs.
 
+## Merge authority
+
+Owner, 2026-10-24, in the project session: "Yes, you can merge your own PRs
+once CI is green." Claude merges its own PRs once all required checks pass,
+after a fresh-context review of anything that matters. `main` still needs a
+PR and green CI (never push to it directly). The owner can revoke this at any
+time. Paid API spend beyond an agreed cap, and anything public beyond this
+repo, still needs his yes.
+
 ## Working rules
 
 - No scratch files or logs in the repo root or Desktop: use the session
