@@ -116,3 +116,43 @@ describe('the API key', () => {
     }
   });
 });
+
+describe('the real path end to end, against a stubbed network', () => {
+  it('a town with one mind on the Anthropic client acts on its do calls and logs every call', async () => {
+    const { Town, fakeBrains } = await import('../src/town.ts');
+    const { Mind } = await import('../src/mind/mind.ts');
+    const { MemoryStore } = await import('../src/mind/memory.ts');
+    const { mindBrains } = await import('../src/mind/setup.ts');
+    const { TEST_CARDS } = await import('../src/seed/test-cards.ts');
+    const { SIM_START } = await import('../src/cli/start.ts');
+    const bodies: any[] = [];
+    let n = 0;
+    const stub = (async (_url: string | URL | Request, init?: RequestInit) => {
+      const body = JSON.parse(String(init!.body));
+      bodies.push(body);
+      n++;
+      const content = body.messages[0].content.includes('What do you do now?')
+        ? [{ type: 'tool_use', id: `tu_${n}`, name: 'do', input: n % 2 ? { action: 'walk to', where: 'south' } : { action: 'say', words: 'Selamat pagi!' } }]
+        : [{ type: 'text', text: 'Find work. Eat something.' }];
+      return new Response(JSON.stringify({
+        id: `msg_${n}`, type: 'message', role: 'assistant', model: body.model, stop_reason: 'end_turn', stop_sequence: null, content,
+        usage: { input_tokens: 400, output_tokens: 50, cache_read_input_tokens: 500, cache_creation_input_tokens: 0 },
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }) as typeof fetch;
+    const dir = mkdtempSync(join(tmpdir(), 'kampung-e2e-'));
+    try {
+      const mind = new Mind({ client: new AnthropicModel({ apiKey: 'k', fetch: stub, maxRetries: 0 }), memory: new MemoryStore(':memory:'), costs: new CostLog(dir), cards: TEST_CARDS });
+      const events: { type: string; who?: string }[] = [];
+      const town = Town.create(1, SIM_START, { brains: mindBrains(mind, fakeBrains, ['siti']), observer: mind.observe, onEvent: (e) => events.push(e) });
+      await town.runUntil(SIM_START + 60);
+      expect(bodies.length).toBeGreaterThan(3);
+      expect(bodies[0].model).toBe('claude-sonnet-5-5'); // the morning plan
+      expect(bodies.slice(1).every((b) => b.model === 'claude-haiku-5-5')).toBe(true);
+      expect(events.some((e) => e.type === 'walked' && e.who === 'siti')).toBe(true);
+      const logged = readFileSync(join(dir, `${mind.costs.dayKey(SIM_START + 1)}.jsonl`), 'utf8').trim().split('\n');
+      expect(logged).toHaveLength(bodies.length);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});
