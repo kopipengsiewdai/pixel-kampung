@@ -10,8 +10,26 @@ export function sgt(hour: number, minute = 0, dayOffset = 0): number {
   return gameMinuteFromMs(Date.parse('2026-11-01T16:00:00Z')) + dayOffset * 1440 + hour * 60 + minute;
 }
 
-export function newWorld(hour = 9, minute = 0, seed = 1): World {
-  return new World(createWorld(seed, sgt(hour, minute)));
+/**
+ * The seed world has no prices (owners set their own in play). Unit tests use
+ * this fixed price list so expectations are easy to read.
+ */
+export const TEST_PRICES = {
+  kopitiam: { sell: { kopi: 10, 'fish porridge': 35, 'vegetable rice': 30 }, buy: { fish: 25, vegetables: 15 } },
+  'provision-shop': { sell: { rice: 30, coffee: 70, bread: 20 }, buy: {} },
+  'market-stall': { sell: { fish: 30, vegetables: 20 }, buy: { fish: 20, vegetables: 12 } },
+} as const;
+
+export function newWorld(hour = 9, minute = 0, seed = 1, priced = true): World {
+  const state = createWorld(seed, sgt(hour, minute));
+  if (priced) {
+    for (const shop of state.shops) {
+      const p = TEST_PRICES[shop.id as keyof typeof TEST_PRICES];
+      shop.sellPrices = { ...p.sell };
+      shop.buyPrices = { ...p.buy };
+    }
+  }
+  return new World(state);
 }
 
 export function who(w: World, name: string): Resident {

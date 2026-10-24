@@ -1,5 +1,4 @@
 import type { Goods } from '../sim/state.ts';
-import type { ItemId } from '../sim/items.ts';
 import type { Cents } from '../sim/money.ts';
 
 /**
@@ -26,29 +25,14 @@ export const CAST: readonly CastMember[] = [
   { name: 'Raju', role: 'seeker' },
 ];
 
-export interface ShopSeed {
-  stock: Goods;
-  sellPrices: Partial<Record<ItemId, Cents>>;
-  buyPrices: Partial<Record<ItemId, Cents>>;
-}
-
-/** Owners start with stock and their opening prices. */
-export const SHOP_SEEDS: Record<'kopitiam' | 'provision-shop' | 'market-stall', ShopSeed> = {
-  kopitiam: {
-    stock: { coffee: 3, rice: 4, fish: 2, vegetables: 2, kopi: 10, 'fish porridge': 4, 'vegetable rice': 4 },
-    sellPrices: { kopi: 10, 'fish porridge': 35, 'vegetable rice': 30 },
-    buyPrices: { fish: 25, vegetables: 15 },
-  },
-  'provision-shop': {
-    stock: { rice: 20, coffee: 6, bread: 10 },
-    sellPrices: { rice: 30, coffee: 70, bread: 20 },
-    buyPrices: {},
-  },
-  'market-stall': {
-    stock: { fish: 6, vegetables: 6 },
-    sellPrices: { fish: 30, vegetables: 20 },
-    buyPrices: { fish: 20, vegetables: 12 },
-  },
+/**
+ * Owners start with stock but no prices: every selling and buying price is
+ * the owner's own decision, made in play (owner decision, 2026-10-24).
+ */
+export const SHOP_STOCK: Record<'kopitiam' | 'provision-shop' | 'market-stall', Goods> = {
+  kopitiam: { coffee: 3, rice: 4, fish: 2, vegetables: 2, kopi: 10, 'fish porridge': 4, 'vegetable rice': 4 },
+  'provision-shop': { rice: 20, coffee: 6, bread: 10 },
+  'market-stall': { fish: 6, vegetables: 6 },
 };
 
 /** Starting purses (spec §2): $5–$20 for job-seekers, $60–$100 for owners. */

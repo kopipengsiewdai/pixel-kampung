@@ -1,4 +1,4 @@
-import { CAST, SHOP_SEEDS, START_MONEY, type CastMember } from '../seed/cast.ts';
+import { CAST, SHOP_STOCK, START_MONEY, type CastMember } from '../seed/cast.ts';
 import { PLACE_BY_ID } from './map.ts';
 import { Rng } from './rng.ts';
 import { FARM_BEDS, HOUSE_IDS, type WorldState } from './state.ts';
@@ -31,8 +31,7 @@ export function createWorld(seed: number, t: number, cast: readonly CastMember[]
   });
   const shops = cast.flatMap((c, i) => {
     if (c.role !== 'owner' || !c.business) return [];
-    const s = SHOP_SEEDS[c.business];
-    return [{ id: c.business, ownerId: residents[i]!.id, stock: { ...s.stock }, sellPrices: { ...s.sellPrices }, buyPrices: { ...s.buyPrices } }];
+    return [{ id: c.business, ownerId: residents[i]!.id, stock: { ...SHOP_STOCK[c.business] }, sellPrices: {}, buyPrices: {}, buyLimits: {} }];
   });
   return {
     version: 1,

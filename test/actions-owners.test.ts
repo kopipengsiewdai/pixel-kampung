@@ -2,6 +2,42 @@ import { describe, expect, it } from 'vitest';
 import { ACTIONS } from '../src/sim/actions/index.ts';
 import { advanceTo } from '../src/sim/tick.ts';
 import { act, accepted, newWorld, put, refused, who, sgt } from './helpers.ts';
+import { createWorld } from '../src/sim/seed.ts';
+import { perceive } from '../src/sim/perception.ts';
+
+describe('owners price everything themselves', () => {
+  it('the kampung starts with stock on the shelves but no prices', () => {
+    const state = createWorld(1, sgt(9));
+    for (const shop of state.shops) {
+      expect(Object.keys(shop.stock).length).toBeGreaterThan(0);
+      expect(shop.sellPrices).toEqual({});
+      expect(shop.buyPrices).toEqual({});
+    }
+  });
+});
+
+describe('set_price with a buying limit', () => {
+  it('an owner buys only as many as they said', () => {
+    const w = newWorld();
+    const rahim = put(w, 'Rahim', 'market-stall');
+    accepted(act(w, rahim.id, { verb: 'set_price', item: 'fish', price: 20, side: 'buy', limit: 3 }));
+    const siti = put(w, 'Siti', 'market-stall');
+    siti.items.fish = 6;
+    accepted(act(w, siti.id, { verb: 'sell', item: 'fish', qty: 2 }));
+    refused(act(w, siti.id, { verb: 'sell', item: 'fish', qty: 2 }), /only wants a fish more/);
+    expect(perceive(w, siti).shop?.buys).toContainEqual({ item: 'fish', price: 20, wants: 1 });
+    accepted(act(w, siti.id, { verb: 'sell', item: 'fish' }));
+    refused(act(w, siti.id, { verb: 'sell', item: 'fish' }), /isn't buying any more fish/);
+    accepted(act(w, rahim.id, { verb: 'set_price', item: 'fish', price: 18, side: 'buy', limit: 5 }));
+    accepted(act(w, siti.id, { verb: 'sell', item: 'fish', qty: 3 }));
+  });
+  it('no limit on selling prices, and the limit must make sense', () => {
+    const w = newWorld();
+    const rahim = put(w, 'Rahim', 'market-stall');
+    refused(act(w, rahim.id, { verb: 'set_price', item: 'fish', price: 30, limit: 3 }), /limit on how much you buy/);
+    refused(act(w, rahim.id, { verb: 'set_price', item: 'fish', price: 20, side: 'buy', limit: -2 }), /sensible amount/);
+  });
+});
 
 describe('set_price', () => {
   it('sets selling and buying prices at your own shop', () => {
@@ -91,6 +127,26 @@ describe('pay_wages', () => {
     expect(huat.money).toBe(hm - 200);
     expect(w.state.owed).toHaveLength(0);
   });
+  it('an owner short of cash can pay part of what is owed', () => {
+    const { w, huat, siti } = withWorker();
+    accepted(act(w, siti.id, { verb: 'work_shift' }));
+    advanceTo(w, sgt(11, 0));
+    const sm = siti.money;
+    expect(accepted(act(w, huat.id, { verb: 'pay_wages', to: 'Siti', money: 80 })).reply).toMatch(/still owe \$1\.20/);
+    expect(siti.money).toBe(sm + 80);
+    expect(w.state.owed[0]?.cents).toBe(120);
+    expect(siti.recent.at(-1)?.text).toMatch(/still owes you \$1\.20/);
+    accepted(act(w, huat.id, { verb: 'pay_wages', to: 'Siti' }));
+    expect(w.state.owed).toHaveLength(0);
+  });
+  it("refuses paying more than owed, or more than you have", () => {
+    const { w, huat, siti } = withWorker();
+    accepted(act(w, siti.id, { verb: 'work_shift' }));
+    advanceTo(w, sgt(11, 0));
+    refused(act(w, huat.id, { verb: 'pay_wages', to: 'Siti', money: 500 }), /only owe Siti \$2\.00/);
+    huat.money = 30;
+    refused(act(w, huat.id, { verb: 'pay_wages', to: 'Siti', money: 100 }), /only have 30¢/);
+  });
   it("refuses when nothing is owed or the money isn't there", () => {
     const { w, huat, siti } = withWorker();
     refused(act(w, huat.id, { verb: 'pay_wages', to: 'Siti' }), /don't owe Siti anything/);
@@ -123,6 +179,30 @@ describe('order_stock', () => {
     refused(act(w, tan.id, { verb: 'order_stock', item: 'rice', qty: 10 }), /would cost \$2\.00/);
     put(w, 'Mdm Tan', 'provision-shop');
     refused(act(w, tan.id, { verb: 'order_stock', item: 'rice', qty: 1 }), /meet the lorry/);
+  });
+});
+
+describe('cook, as a kopitiam worker on shift', () => {
+  it('a worker on shift can cook from the kitchen stock without leaving the shift', () => {
+    const { w, siti } = withWorker();
+    accepted(act(w, siti.id, { verb: 'work_shift' }));
+    const p = perceive(w, siti);
+    expect(p.actions.map((a) => a.verb).sort()).toEqual(['cook', 'look around', 'say']);
+    expect(p.job?.stock).toContainEqual({ item: 'fish', qty: 2 });
+    accepted(act(w, siti.id, { verb: 'cook', item: 'fish porridge' }));
+    expect(w.shop('kopitiam')!.stock['fish porridge']).toBe(6);
+    expect(siti.activity?.kind).toBe('working');
+    refused(act(w, siti.id, { verb: 'walk_to', where: 'home' }), /middle of your shift/);
+  });
+  it('only during the shift, and only in a kitchen', () => {
+    const { w, siti } = withWorker();
+    refused(act(w, siti.id, { verb: 'cook', item: 'kopi' }), /only use the kitchen during your shift/);
+    const tan = put(w, 'Mdm Tan', 'provision-shop');
+    const raju = put(w, 'Raju', 'provision-shop');
+    accepted(act(w, tan.id, { verb: 'offer_job', to: 'Raju', wage: 100, startHour: 9, hours: 2 }));
+    accepted(act(w, raju.id, { verb: 'accept_job', from: 'Mdm Tan' }));
+    accepted(act(w, raju.id, { verb: 'work_shift' }));
+    refused(act(w, raju.id, { verb: 'cook', item: 'kopi' }), /don't have a kitchen/);
   });
 });
 

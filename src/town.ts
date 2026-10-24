@@ -77,7 +77,7 @@ export class Town {
     advance(w);
     if (!isNight(w.t)) {
       for (const r of w.state.residents) {
-        if (r.activity || w.t < r.thinkAt) continue;
+        if ((r.activity && r.activity.kind !== 'working') || w.t < r.thinkAt) continue;
         const brain = this.brains.get(r.id)!;
         r.thinkAt = w.t + QUIET_THINK_MINUTES;
         for (let i = 0; i < TRIES_PER_THOUGHT; i++) {

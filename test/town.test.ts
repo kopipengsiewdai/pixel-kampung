@@ -32,7 +32,10 @@ describe('the fake-brain town', () => {
     expect(count('lorry_arrived')).toBe(3);
     expect(count('ate')).toBeGreaterThan(30);
     expect(count('caught_fish')).toBeGreaterThan(10);
-    expect(count('bought')).toBeGreaterThan(10);
+    expect(count('bought')).toBeGreaterThan(0);
+    expect(count('sold')).toBeGreaterThan(0);
+    expect(count('bought') + count('sold')).toBeGreaterThan(30);
+    expect(count('price_set')).toBeGreaterThan(0); // owners set every price themselves
     expect(count('lorry_order')).toBeGreaterThan(0);
     expect(count('said')).toBeGreaterThan(0);
     // Nobody acts at night.

@@ -53,7 +53,7 @@ export function feedText(e: GameEvent, n: Names): { text: string; notable: boole
     case 'let_go': return line(`${n(e.who)} let ${n(e.worker)} go.`, true);
     case 'shift_started': return line(`${n(e.who)} starts a shift at ${place(e.shop)}.`);
     case 'shift_ended': return line(`${n(e.who)} finished a shift at ${place(e.shop)}, earning ${formatMoney(e.earned)}.`);
-    case 'wages_paid': return line(`${n(e.who)} paid ${n(e.to)} ${formatMoney(e.cents)} in wages.`);
+    case 'wages_paid': return line(`${n(e.who)} paid ${n(e.to)} ${formatMoney(e.cents)} in wages${e.stillOwed > 0 ? `, still owing ${formatMoney(e.stillOwed)}` : ''}.`);
     case 'gave':
       return line(e.item
         ? `${n(e.who)} gave ${n(e.to)} ${quantityLabel(e.item, e.qty)}.`
@@ -64,7 +64,7 @@ export function feedText(e: GameEvent, n: Names): { text: string; notable: boole
     case 'note_pinned': return line(`${n(e.who)} pinned a note on the board: "${e.text}"`);
     case 'price_set':
       if (e.cents === 0) return line(`${n(e.who)} stopped ${e.side === 'sell' ? 'selling' : 'buying'} ${e.item} at ${place(e.shop)}.`);
-      return line(`${n(e.who)} now ${e.side === 'sell' ? 'sells' : 'buys'} ${e.item} at ${formatMoney(e.cents)} at ${place(e.shop)}.`);
+      return line(`${n(e.who)} now ${e.side === 'sell' ? 'sells' : 'buys'} ${e.item} at ${formatMoney(e.cents)}${e.limit !== null ? `, up to ${e.limit}` : ''} at ${place(e.shop)}.`);
     case 'cooked': return line(`${n(e.who)} cooked up ${quantityLabel(e.item, e.qty)}.`);
     case 'night_fell': return line('Night falls over the kampung. Everyone heads home to sleep.');
     case 'morning': return line('Dawn. The kampung stirs.');

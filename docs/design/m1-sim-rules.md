@@ -1,9 +1,31 @@
 # M1 sim rules: the numbers
 
-Status: **Claude's calls, for the owner to confirm.** The spec ([v1-spec.md](v1-spec.md))
-fixes the shape of the game. Building milestone 1 needed concrete numbers and
-a few small rules it doesn't state. They are collected here so they can be
-reviewed and tuned in one place. None of this goes into any resident's prompt.
+The spec ([v1-spec.md](v1-spec.md)) fixes the shape of the game. Building
+milestone 1 needed concrete numbers and a few small rules it doesn't state.
+They are collected here so they can be reviewed and tuned in one place. None
+of this goes into any resident's prompt.
+
+## Owner decisions (agreed 2026-10-24)
+
+1. **Workers mind the shop, and kopitiam workers also cook.** A shop sells
+   only while its owner or a worker on shift is there. A kopitiam worker on
+   shift can cook from the kitchen's stock, like the owner.
+2. **Owners post buying prices, with a limit if they like** ("fish at 20¢, up
+   to 10"). Anyone can sell to them at that price until the limit or the
+   owner's cash runs out. Haggling with a trade offer works too.
+3. **Wages are a cash debt, paid in person.** There's no bank and no auto-pay:
+   an owner with no cash can't pay. When pay happens is between owner and
+   worker, agreed in talk and not enforced by the game. Owners can pay part
+   of what they owe.
+4. **Economy balance waits for M2**, when real brains set prices and wages.
+5. **Owners set every price themselves.** Shops start with stock but no
+   prices. Owners who price badly can go broke; that's part of the story
+   (social mobility). The numbers below that are rules of the world, such as
+   food values, hunger, fishing, crops and the lorry's fixed price list, are
+   starting values, to be tuned after watching real brains play.
+6. **No shop changes hands in v1.** A broke owner keeps an empty shop and can
+   recover by fishing or farming. Selling or taking over a shop is a later
+   feature that residents discover in the world.
 
 ## Time and needs
 
@@ -50,19 +72,20 @@ Ordered stock is dropped off at the owner's shop.
 ## Shops
 
 - A shop serves only while someone is minding it: the owner standing in it,
-  or a worker on shift there. This is what a worker's shift is worth to the
-  owner.
-- Owners set selling prices and, as part of "set prices", buying prices: a
-  shop with a buying price for fish will buy fish from anyone at that price,
-  so fishers always have a buyer besides the lorry.
+  or a worker on shift there.
+- Owners set selling prices and buying prices. A buying price can carry a
+  limit ("up to 10"), which counts down with each purchase; the owner sets a
+  new one when they want more.
 - An owner can take from or add to their own stock for free (the money stays
   in one purse).
-- Opening prices: kopitiam kopi 10¢, fish porridge 35¢, vegetable rice 30¢,
-  buys fish 25¢ and vegetables 15¢. Provision shop rice 30¢, coffee 70¢,
-  bread 20¢. Wet-market stall fish 30¢, vegetables 20¢, buys fish 20¢ and
-  vegetables 12¢.
-- Kopitiam cooking (one batch): 1 coffee → 5 kopi; 1 fish + 1 rice → 2 fish
-  porridge; 1 vegetables + 1 rice → 2 vegetable rice.
+- No opening prices. Shops start stocked (kopitiam: coffee, rice, a little
+  fish and vegetables, and some kopi and dishes ready; provision shop: rice,
+  coffee, bread; stall: fish, vegetables) and owners price them in play.
+- Kopitiam cooking (one batch), by the owner or a worker on shift: 1 coffee →
+  5 kopi; 1 fish + 1 rice → 2 fish porridge; 1 vegetables + 1 rice → 2
+  vegetable rice.
+- On shift, a worker can still look around, talk and (at the kopitiam) cook,
+  without leaving the shift.
 
 ## Fishing and farming
 
@@ -76,7 +99,7 @@ Ordered stock is dropped off at the owner's shop.
   hours, ending by 23:00. The offer lapses after 2 hours. Accepting is in
   person too, and you can hold one job at a time.
 - Working a shift pays pro rata for the minutes worked. The wage is owed until
-  the owner pays it in person.
+  the owner pays it in person, in full or in part.
 
 ## Talk, trades and the notice board
 

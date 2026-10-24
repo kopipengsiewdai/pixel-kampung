@@ -29,12 +29,21 @@ export function setPrice(w: World, r: Resident, i: Intent): ActionResult {
   if (cents === null || cents > MAX_PRICE) return no("That doesn't sound like a price.");
   const side = i.side === 'buy' ? 'buy' : i.side === undefined || i.side === 'sell' ? 'sell' : null;
   if (!side) return no("You're not sure whether you meant buying or selling.");
+  const hasLimit = i.limit !== undefined && i.limit !== null && i.limit !== '';
+  const limit = hasLimit ? qtyOf(i.limit) : null;
+  if (hasLimit && side === 'sell') return no('You can only put a limit on how much you buy.');
+  if (hasLimit && limit === null) return no(SAY_NOTHING_SENSIBLE);
   const prices = side === 'sell' ? shop.sellPrices : shop.buyPrices;
   if (cents === 0) delete prices[item];
   else prices[item] = cents;
-  w.emit({ type: 'price_set', who: r.id, shop: shop.id, item, side, cents });
+  if (side === 'buy') {
+    if (limit !== null && cents > 0) shop.buyLimits[item] = limit;
+    else delete shop.buyLimits[item];
+  }
+  w.emit({ type: 'price_set', who: r.id, shop: shop.id, item, side, cents, limit });
   if (cents === 0) return ok(side === 'sell' ? `You stop selling ${item}.` : `You stop buying ${item}.`);
-  return ok(side === 'sell' ? `You'll sell ${item} at ${formatMoney(cents)} each.` : `You'll buy ${item} at ${formatMoney(cents)} each.`);
+  if (side === 'sell') return ok(`You'll sell ${item} at ${formatMoney(cents)} each.`);
+  return ok(`You'll buy ${item} at ${formatMoney(cents)} each${limit !== null ? `, up to ${quantityLabel(item, limit)}` : ''}.`);
 }
 
 export function offerJob(w: World, r: Resident, i: Intent): ActionResult {
@@ -80,13 +89,20 @@ export function payWages(w: World, r: Resident, i: Intent): ActionResult {
   if (!owed || owed.cents === 0) return no(`You don't owe ${o.name} anything.`);
   const near = personNearby(w, r, o.name, { awake: false });
   if (typeof near === 'string') return no(near);
-  if (r.money < owed.cents) return no(`You don't have enough to pay ${o.name} the ${formatMoney(owed.cents)} you owe.`);
-  const cents = owed.cents;
+  const part = i.money !== undefined && i.money !== null && i.money !== '';
+  const cents = part ? moneyOf(i.money) : owed.cents;
+  if (cents === null || cents === 0) return no("That doesn't sound like money.");
+  if (cents > owed.cents) return no(`You only owe ${o.name} ${formatMoney(owed.cents)}.`);
+  if (r.money < cents) {
+    return no(part ? `You only have ${formatMoney(r.money)}.` : `You don't have enough to pay ${o.name} the ${formatMoney(owed.cents)} you owe.`);
+  }
   w.transfer(r.id, o.id, cents, 'wages');
-  w.state.owed = w.state.owed.filter((x) => x !== owed);
-  w.emit({ type: 'wages_paid', who: r.id, to: o.id, cents });
-  w.notify(o.id, `${r.name} paid you ${formatMoney(cents)} in wages.`);
-  return ok(`You pay ${o.name} ${formatMoney(cents)}.`);
+  owed.cents -= cents;
+  if (owed.cents === 0) w.state.owed = w.state.owed.filter((x) => x !== owed);
+  const still = owed.cents > 0 ? ` You still owe ${formatMoney(owed.cents)}.` : '';
+  w.emit({ type: 'wages_paid', who: r.id, to: o.id, cents, stillOwed: owed.cents });
+  w.notify(o.id, `${r.name} paid you ${formatMoney(cents)} in wages.${owed.cents > 0 ? ` ${r.name} still owes you ${formatMoney(owed.cents)}.` : ''}`);
+  return ok(`You pay ${o.name} ${formatMoney(cents)}.${still}`);
 }
 
 export function orderStock(w: World, r: Resident, i: Intent): ActionResult {
@@ -107,10 +123,20 @@ export function orderStock(w: World, r: Resident, i: Intent): ActionResult {
   return ok(`You pay the lorry man ${formatMoney(cost)} for ${quantityLabel(item, qty)}. It'll be dropped off at your shop.`);
 }
 
+/** Whose kitchen this resident may cook in: their own, or the one they're on shift in. */
+function kitchenFor(w: World, r: Resident): Shop | string {
+  const own = w.shopOf(r.id);
+  if (own?.id === 'kopitiam') return w.isAt(r, own.id) ? own : "You'd have to be in your kitchen to cook.";
+  const job = w.jobOf(r.id);
+  if (job?.placeId === 'kopitiam') {
+    return r.activity?.kind === 'working' ? w.shop(job.placeId)! : 'You can only use the kitchen during your shift.';
+  }
+  return "You don't have a kitchen to cook in.";
+}
+
 export function cook(w: World, r: Resident, i: Intent): ActionResult {
-  const shop = w.shopOf(r.id);
-  if (!shop || shop.id !== 'kopitiam') return no("You don't have a kitchen to cook in.");
-  if (!w.isAt(r, 'kopitiam')) return no("You'd have to be in your kitchen to cook.");
+  const shop = kitchenFor(w, r);
+  if (typeof shop === 'string') return no(shop);
   const item = itemOf(i.item);
   const recipe = item ? RECIPES[item] : undefined;
   if (!item || !recipe) return no(`You don't know how to make ${quoted(i.item)}.`);

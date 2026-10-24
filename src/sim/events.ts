@@ -30,7 +30,7 @@ export type EventBody =
   | { type: 'let_go'; who: string; worker: string }
   | { type: 'shift_started'; who: string; shop: string }
   | { type: 'shift_ended'; who: string; shop: string; earned: Cents }
-  | { type: 'wages_paid'; who: string; to: string; cents: Cents }
+  | { type: 'wages_paid'; who: string; to: string; cents: Cents; stillOwed: Cents }
   | { type: 'gave'; who: string; to: string; item: ItemId | null; qty: number; cents: Cents }
   | { type: 'trade_offered'; who: string; to: string; give: Bundle; want: Bundle }
   | { type: 'traded'; who: string; with: string; give: Bundle; want: Bundle }
@@ -38,7 +38,7 @@ export type EventBody =
   | { type: 'note_pinned'; who: string; text: string }
   | { type: 'read_notices'; who: string }
   | { type: 'looked_around'; who: string }
-  | { type: 'price_set'; who: string; shop: string; item: ItemId; side: 'sell' | 'buy'; cents: Cents }
+  | { type: 'price_set'; who: string; shop: string; item: ItemId; side: 'sell' | 'buy'; cents: Cents; limit: number | null }
   | { type: 'cooked'; who: string; item: ItemId; qty: number }
   | { type: 'night_fell' }
   | { type: 'morning' }

@@ -56,7 +56,7 @@ export const ACTIONS: Record<string, ActionDef> = {
   read_notice_board: { run: everyone.readNoticeBoard, ownersOnly: false, says: 'read the notice board', here: at('notice-board') },
   pin_note: { run: everyone.pinNote, ownersOnly: false, says: 'pin a note on the board (text)', here: at('notice-board') },
   set_price: {
-    run: owners.setPrice, ownersOnly: true, says: 'set a price at your shop (item, price, sell or buy)',
+    run: owners.setPrice, ownersOnly: true, says: 'set a price at your shop (item, price, sell or buy, and for buying how many you want)',
     here: (w, r) => { const s = w.shopOf(r.id); return !!s && w.isAt(r, s.id); },
   },
   offer_job: { run: owners.offerJob, ownersOnly: true, says: 'offer someone a job (to, wage per shift, start hour, hours)', here: withPeople },
@@ -65,7 +65,7 @@ export const ACTIONS: Record<string, ActionDef> = {
     here: (w, r) => w.state.jobs.some((j) => j.employerId === r.id),
   },
   pay_wages: {
-    run: owners.payWages, ownersOnly: true, says: 'pay a worker the wages you owe (to)',
+    run: owners.payWages, ownersOnly: true, says: 'pay a worker wages you owe (to, optionally part of it)',
     here: (w, r) => w.state.owed.some((o) => o.employerId === r.id),
   },
   order_stock: {
@@ -73,8 +73,9 @@ export const ACTIONS: Record<string, ActionDef> = {
     here: (w, r) => w.isAt(r, 'lorry-stop') && w.state.lorryHere,
   },
   cook: {
-    run: owners.cook, ownersOnly: true, says: 'cook in your kitchen (dish, how many batches)',
-    here: (w, r) => w.shopOf(r.id)?.id === 'kopitiam' && w.isAt(r, 'kopitiam'),
+    run: owners.cook, ownersOnly: false, says: 'cook in the kitchen (dish, how many batches)',
+    here: (w, r) => (w.shopOf(r.id)?.id === 'kopitiam' && w.isAt(r, 'kopitiam'))
+      || (r.activity?.kind === 'working' && w.jobOf(r.id)?.placeId === 'kopitiam'),
   },
 };
 
@@ -85,13 +86,16 @@ const BUSY: Record<string, string> = {
   sleeping: "You're asleep.",
 };
 
+/** What can still be done in the middle of a shift, without leaving it. */
+export const ON_SHIFT = new Set(['look_around', 'say', 'cook']);
+
 /** Validates and performs one action. Every refusal is in-world text. */
 export function act(w: World, residentId: string, intent: unknown): ActionResult {
   const r = w.resident(residentId);
-  if (r.activity) return no(BUSY[r.activity.kind]!);
-  if (isNight(w.t)) return no("It's the middle of the night. You should be asleep.");
   const verb = intent && typeof intent === 'object' && typeof (intent as Intent).verb === 'string'
     ? (intent as Intent).verb.trim().toLowerCase().replace(/\s+/g, '_') : '';
+  if (r.activity && !(r.activity.kind === 'working' && ON_SHIFT.has(verb))) return no(BUSY[r.activity.kind]!);
+  if (isNight(w.t)) return no("It's the middle of the night. You should be asleep.");
   const def = Object.hasOwn(ACTIONS, verb) ? ACTIONS[verb] : undefined;
   if (!def) return no("You're not sure how to do that.");
   if (def.ownersOnly && r.role !== 'owner') return no("That's for shopkeepers. You don't have a shop.");
@@ -100,7 +104,8 @@ export function act(w: World, residentId: string, intent: unknown): ActionResult
 
 /** What this resident could sensibly try right now, in their own words ("walk to", "pay wages"). */
 export function availableActions(w: World, r: Resident): { verb: string; says: string }[] {
+  const working = r.activity?.kind === 'working';
   return Object.entries(ACTIONS)
-    .filter(([, d]) => (!d.ownersOnly || r.role === 'owner') && (!d.here || d.here(w, r)))
+    .filter(([verb, d]) => (!d.ownersOnly || r.role === 'owner') && (!d.here || d.here(w, r)) && (!working || ON_SHIFT.has(verb)))
     .map(([verb, d]) => ({ verb: verb.replace(/_/g, ' '), says: d.says }));
 }

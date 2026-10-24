@@ -45,6 +45,8 @@ export interface Shop {
   stock: Goods;
   sellPrices: Partial<Record<ItemId, Cents>>;
   buyPrices: Partial<Record<ItemId, Cents>>;
+  /** How many more the owner will buy at the posted price; no entry means no limit. */
+  buyLimits: Partial<Record<ItemId, number>>;
 }
 
 export interface Job {

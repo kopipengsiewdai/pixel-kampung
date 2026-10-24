@@ -23,10 +23,28 @@ const RESTOCK: Record<string, Partial<Record<ItemId, number>>> = {
   'the wet-market stall': { fish: 3, vegetables: 3 },
 };
 
+/**
+ * The fake owners' own pricing habits: a range each picks from. This is the
+ * fake brain's policy, not a rule of the world; real owners price as they like.
+ */
+const HABITS: Record<string, { sell: Partial<Record<ItemId, [number, number]>>; buy: Partial<Record<ItemId, [number, number]>> }> = {
+  'the kopitiam': {
+    sell: { kopi: [8, 12], 'fish porridge': [30, 40], 'vegetable rice': [26, 34] },
+    buy: { fish: [18, 26], vegetables: [10, 16] },
+  },
+  'the provision shop': { sell: { rice: [25, 35], coffee: [60, 80], bread: [16, 24] }, buy: {} },
+  'the wet-market stall': {
+    sell: { fish: [25, 35], vegetables: [16, 24] },
+    buy: { fish: [15, 22], vegetables: [8, 14] },
+  },
+};
+
 interface Memory {
   rng: number;
   /** Day label ("Monday") on which the lorry run was done. */
   lorryDay: string | null;
+  /** Item → day label on which the buying limit was last topped up. */
+  buyDays: Record<string, string>;
 }
 
 function day(p: Perception): string {
@@ -48,7 +66,7 @@ export class FakeBrain implements Brain {
 
   constructor(seed: number) {
     this.rng = new Rng(seed);
-    this.mem = { rng: this.rng.state, lorryDay: null };
+    this.mem = { rng: this.rng.state, lorryDay: null, buyDays: {} };
   }
 
   save(): unknown {
@@ -57,11 +75,12 @@ export class FakeBrain implements Brain {
 
   load(saved: unknown): void {
     const m = saved as Memory;
-    this.mem = { ...m };
+    this.mem = { ...m, buyDays: { ...m.buyDays } };
     this.rng.state = m.rng;
   }
 
   decide(p: Perception): Intent | null {
+    if (p.job?.onShift) return p.refused ? null : this.onShift(p);
     if (p.refused) return this.rng.chance(0.5) ? null : this.wander(p);
     return this.needs(p) ?? this.offers(p) ?? this.shift(p)
       ?? (p.business ? this.owner(p) : this.seeker(p));
@@ -114,6 +133,41 @@ export class FakeBrain implements Brain {
     return null;
   }
 
+  /** Mid-shift: kopitiam hands keep the dishes coming; elsewhere just mind the shop. */
+  private onShift(p: Perception): Intent | null {
+    if (p.job!.place !== 'the kopitiam') return null;
+    return this.kitchen(p.job!.stock);
+  }
+
+  private kitchen(stock: { item: ItemId; qty: number }[]): Intent | null {
+    const n = (i: ItemId) => stock.find((s) => s.item === i)?.qty ?? 0;
+    if (n('kopi') < 5 && n('coffee') > 0) return { verb: 'cook', item: 'kopi' };
+    if (n('fish porridge') + n('vegetable rice') < 4) {
+      if (n('fish') > 0 && n('rice') > 0) return { verb: 'cook', item: 'fish porridge' };
+      if (n('vegetables') > 0 && n('rice') > 0) return { verb: 'cook', item: 'vegetable rice' };
+    }
+    return null;
+  }
+
+  /** Prices the owner hasn't set yet, and buying limits that ran out on an earlier day. */
+  private pricing(p: Perception): Intent | null {
+    const b = p.business!;
+    const habit = HABITS[b.place];
+    if (!habit) return null;
+    for (const [item, [lo, hi]] of Object.entries(habit.sell) as [ItemId, [number, number]][]) {
+      if (!b.sells.some((s) => s.item === item)) return { verb: 'set_price', item, price: this.rng.int(lo, hi) };
+    }
+    for (const [item, [lo, hi]] of Object.entries(habit.buy) as [ItemId, [number, number]][]) {
+      const tag = b.buys.find((s) => s.item === item);
+      const spent = tag?.wants === 0 && this.mem.buyDays[item] !== day(p);
+      if ((!tag || spent) && p.money >= 1500) {
+        this.mem.buyDays[item] = day(p);
+        return { verb: 'set_price', item, price: this.rng.int(lo, hi), side: 'buy', limit: this.rng.int(6, 12) };
+      }
+    }
+    return null;
+  }
+
   private owner(p: Perception): Intent | null {
     const b = p.business!;
     const lorryTime = (p.hour === 6 && p.minute >= 30) || (p.hour === 7 && p.minute < 25);
@@ -130,17 +184,17 @@ export class FakeBrain implements Brain {
       this.mem.lorryDay = day(p);
     }
     if (!b.atShop) return { verb: 'walk_to', where: b.place };
+    const priced = this.pricing(p);
+    if (priced) return priced;
 
     for (const o of b.owed) {
-      if (p.people.some((x) => x.name === o.name) && o.cents <= p.money) return { verb: 'pay_wages', to: o.name };
+      if (!p.people.some((x) => x.name === o.name)) continue;
+      if (o.cents <= p.money) return { verb: 'pay_wages', to: o.name };
+      if (p.money >= 2) return { verb: 'pay_wages', to: o.name, money: Math.floor(p.money / 2) };
     }
     if (b.place === 'the kopitiam') {
-      const stock = (i: ItemId) => b.stock.find((s) => s.item === i)?.qty ?? 0;
-      if (stock('kopi') < 5 && stock('coffee') > 0) return { verb: 'cook', item: 'kopi' };
-      if (stock('fish porridge') + stock('vegetable rice') < 4) {
-        if (stock('fish') > 0 && stock('rice') > 0) return { verb: 'cook', item: 'fish porridge' };
-        if (stock('vegetables') > 0 && stock('rice') > 0) return { verb: 'cook', item: 'vegetable rice' };
-      }
+      const cooking = this.kitchen(b.stock);
+      if (cooking) return cooking;
     }
     const asked = p.recent.slice(-4).map((t) => /^(.+) says to you: "Any work going/.exec(t)?.[1]).find(Boolean);
     const here = p.people.filter((x) => x.doing !== 'asleep').map((x) => x.name);

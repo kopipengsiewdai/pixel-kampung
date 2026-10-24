@@ -201,11 +201,16 @@ export function sell(w: World, r: Resident, i: Intent): ActionResult {
   if (!isStaffed(w, shop)) return no(`Nobody's minding ${shopName(shop)} right now.`);
   const price = shop.buyPrices[item];
   if (!price) return no(`${name} isn't buying ${item}.`);
-  const cents = price * qty;
   const owner = w.resident(shop.ownerId);
+  const wants = shop.buyLimits[item];
+  if (wants !== undefined && wants < qty) {
+    return no(wants === 0 ? `${owner.name} isn't buying any more ${item}.` : `${owner.name} only wants ${quantityLabel(item, wants)} more.`);
+  }
+  const cents = price * qty;
   if (owner.money < cents) return no(`${owner.name} can't afford to buy that much right now.`);
   addGoods(r.items, item, -qty);
   addGoods(shop.stock, item, qty);
+  if (wants !== undefined) shop.buyLimits[item] = wants - qty;
   w.transfer(owner.id, r.id, cents, `bought ${item} for the shop`);
   w.emit({ type: 'sold', who: r.id, to: owner.id, shop: shop.id, item, qty, cents });
   w.remember(owner.id, `${r.name} sold you ${quantityLabel(item, qty)} for ${formatMoney(cents)}.`);

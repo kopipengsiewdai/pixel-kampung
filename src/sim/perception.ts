@@ -9,7 +9,7 @@ import { dayIndex, sgtHour, sgtMinute, timeLabel } from './time.ts';
 export type HungerWord = 'full' | 'not hungry' | 'hungry' | 'very hungry' | 'starving';
 export type EnergyWord = 'rested' | 'fine' | 'tired' | 'exhausted';
 
-export interface PriceTag { item: ItemId; price: Cents; stock?: number }
+export interface PriceTag { item: ItemId; price: Cents; stock?: number; wants?: number }
 
 /**
  * Everything a resident perceives at one moment: what their character sees,
@@ -28,7 +28,12 @@ export interface Perception {
   carrying: { item: ItemId; qty: number }[];
   hunger: HungerWord;
   energy: EnergyWord;
-  job: { place: string; boss: string; shift: string; startHour: number; hours: number; doneToday: boolean; atWork: boolean } | null;
+  job: {
+    place: string; boss: string; shift: string; startHour: number; hours: number;
+    doneToday: boolean; atWork: boolean; onShift: boolean;
+    /** What's in the shop, seen while on shift there. */
+    stock: { item: ItemId; qty: number }[];
+  } | null;
   business: {
     place: string;
     atShop: boolean;
@@ -79,6 +84,13 @@ function tags(prices: Partial<Record<ItemId, Cents>>, stock?: Goods): PriceTag[]
     (stock ? { item, price, stock: stock[item] ?? 0 } : { item, price }));
 }
 
+function buyTags(shop: { buyPrices: Partial<Record<ItemId, Cents>>; buyLimits: Partial<Record<ItemId, number>> }): PriceTag[] {
+  return tags(shop.buyPrices).map((t) => {
+    const wants = shop.buyLimits[t.item];
+    return wants === undefined ? t : { ...t, wants };
+  });
+}
+
 export function perceive(w: World, r: Resident): Perception {
   const here = w.placeOf(r);
   const today = dayIndex(w.t);
@@ -105,13 +117,15 @@ export function perceive(w: World, r: Resident): Perception {
       hours: jobRow.hours,
       doneToday: jobRow.lastWorkedDay === today,
       atWork: w.isAt(r, jobRow.placeId),
+      onShift: r.activity?.kind === 'working',
+      stock: r.activity?.kind === 'working' ? goodsList(w.shop(jobRow.placeId)?.stock ?? {}) : [],
     } : null,
     business: own ? {
       place: PLACE_BY_ID.get(own.id)!.name,
       atShop: w.isAt(r, own.id),
       stock: goodsList(own.stock),
       sells: tags(own.sellPrices, own.stock),
-      buys: tags(own.buyPrices),
+      buys: buyTags(own),
       workers: w.state.jobs.filter((j) => j.employerId === r.id).map((j) => w.resident(j.workerId).name),
       owed: w.state.owed.filter((o) => o.employerId === r.id).map((o) => ({ name: w.resident(o.workerId).name, cents: o.cents })),
     } : null,
@@ -119,7 +133,7 @@ export function perceive(w: World, r: Resident): Perception {
       name: PLACE_BY_ID.get(shop.id)!.name,
       staffed: isStaffed(w, shop),
       sells: tags(shop.sellPrices, shop.stock),
-      buys: tags(shop.buyPrices),
+      buys: buyTags(shop),
     } : null,
     lorry: w.isAt(r, 'lorry-stop') ? {
       here: w.state.lorryHere,
@@ -156,7 +170,8 @@ function describeBundle(b: { items: Goods; cents: Cents }): string {
 
 function priceLine(t: PriceTag): string {
   const stock = t.stock === undefined ? '' : t.stock === 0 ? ' (sold out)' : ` (${t.stock} left)`;
-  return `${t.item} ${formatMoney(t.price)}${stock}`;
+  const wants = t.wants === undefined ? '' : t.wants === 0 ? ' (no more wanted)' : ` (wants ${t.wants} more)`;
+  return `${t.item} ${formatMoney(t.price)}${stock}${wants}`;
 }
 
 /** The perception as plain words, as the character would take it in. */
@@ -166,7 +181,10 @@ export function describe(p: Perception): string {
     ? `Nearby: ${p.people.map((x) => `${x.name} (${x.doing})`).join(', ')}.`
     : "There's nobody else around.");
   lines.push(`You feel ${p.hunger} and ${p.energy}. You have ${formatMoney(p.money)}${p.carrying.length ? ` and you're carrying ${p.carrying.map((c) => quantityLabel(c.item, c.qty)).join(', ')}` : ''}.`);
-  if (p.job) lines.push(`You work for ${p.job.boss} at ${p.job.place}, ${p.job.shift}.`);
+  if (p.job) {
+    lines.push(`You work for ${p.job.boss} at ${p.job.place}, ${p.job.shift}.${p.job.onShift ? " You're on shift now." : ''}`);
+    if (p.job.onShift) lines.push(`In the shop: ${p.job.stock.map((s) => quantityLabel(s.item, s.qty)).join(', ') || 'nothing'}.`);
+  }
   if (p.business) {
     lines.push(`You run ${p.business.place}. In stock: ${p.business.stock.map((s) => quantityLabel(s.item, s.qty)).join(', ') || 'nothing'}.`);
     if (p.business.owed.length) lines.push(`You owe wages: ${p.business.owed.map((o) => `${o.name} ${formatMoney(o.cents)}`).join(', ')}.`);
