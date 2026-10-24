@@ -36,6 +36,10 @@ export interface Resident {
   recent: Observation[];
   /** What happened when they last tried something, shown when they next think. */
   reply: { ok: boolean; text: string } | null;
+  /** Place ids they know of: seen, or heard named. They start knowing only home. */
+  knownPlaces: string[];
+  /** Resident ids they've met. */
+  knownPeople: string[];
 }
 
 export interface Shop {
@@ -244,11 +248,34 @@ export class World {
     r.thinkAt = Math.min(r.thinkAt, this.state.t + 1);
   }
 
+  knowsPlace(r: Resident, placeId: string): boolean {
+    return r.knownPlaces.includes(placeId);
+  }
+
+  knowsPerson(r: Resident, otherId: string): boolean {
+    return r.id === otherId || r.knownPeople.includes(otherId);
+  }
+
+  learnPlace(r: Resident, placeId: string): void {
+    if (r.knownPlaces.includes(placeId)) return;
+    r.knownPlaces.push(placeId);
+    emitDiscovery(this, r, placeId);
+  }
+
+  learnPerson(r: Resident, otherId: string): void {
+    if (otherId !== r.id && !r.knownPeople.includes(otherId)) r.knownPeople.push(otherId);
+  }
+
   remember(id: string, text: string): void {
     const r = this.resident(id);
     r.recent.push({ t: this.state.t, text });
     if (r.recent.length > MAX_RECENT) r.recent.splice(0, r.recent.length - MAX_RECENT);
   }
+}
+
+function emitDiscovery(w: World, r: Resident, placeId: string): void {
+  const place = PLACE_BY_ID.get(placeId);
+  if (place && place.kind !== 'house') w.emit({ type: 'found_place', who: r.id, place: placeId });
 }
 
 export function addGoods(g: Goods, item: ItemId, n: number): void {

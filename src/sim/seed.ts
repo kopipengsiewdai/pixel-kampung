@@ -27,6 +27,8 @@ export function createWorld(seed: number, t: number, cast: readonly CastMember[]
       thinkAt: t,
       recent: [],
       reply: null,
+      knownPlaces: c.business ? [homeId, c.business] : [homeId],
+      knownPeople: [],
     };
   });
   const shops = cast.flatMap((c, i) => {

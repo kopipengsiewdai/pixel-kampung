@@ -18,5 +18,8 @@
     "@types/node": "22.20.5",
     "typescript": "5.9.3",
     "vitest": "4.1.12"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "1.2.0"
   }
 }

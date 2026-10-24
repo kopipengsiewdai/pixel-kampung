@@ -4,6 +4,7 @@ import {
 } from './activities.ts';
 import { PLACE_BY_ID } from './map.ts';
 import { NEED_MAX, type Resident, type World } from './state.ts';
+import { lookAbout } from './discovery.ts';
 import { isNight, minuteOfDay } from './time.ts';
 
 export const LORRY_ARRIVES = 7 * 60;
@@ -77,6 +78,7 @@ export function advance(w: World): void {
   for (const r of w.state.residents) {
     updateNeeds(w, r);
     progress(w, r);
+    if (r.activity?.kind !== 'sleeping') lookAbout(w, r);
     const a = r.activity;
     if (a?.kind !== 'sleeping' && r.energy <= 0) {
       interrupt(w, r);

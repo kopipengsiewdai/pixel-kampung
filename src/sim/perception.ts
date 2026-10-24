@@ -152,8 +152,12 @@ export function perceive(w: World, r: Resident): Perception {
     })),
     recent: r.recent.map((o) => o.text),
     actions: availableActions(w, r),
-    placesYouKnow: PLACES.filter((pl) => pl.kind !== 'house' || pl.id === r.homeId)
-      .map((pl) => (pl.id === r.homeId ? 'home' : pl.name)),
+    placesYouKnow: PLACES.filter((pl) => w.knowsPlace(r, pl.id)).flatMap((pl) => {
+      if (pl.id === r.homeId) return ['home'];
+      if (pl.kind !== 'house') return [pl.name];
+      const owner = w.state.residents.find((x) => x.homeId === pl.id);
+      return owner && w.knowsPerson(r, owner.id) ? [w.placeName(pl)] : [];
+    }),
   };
   if (r.reply) {
     p.reply = r.reply.text;

@@ -1,8 +1,10 @@
 import { FISHING_MINUTES, RESTED, startSleep } from '../activities.ts';
 import { ITEMS, LORRY_BUYS, quantityLabel, type ItemId } from '../items.ts';
-import { PLACES, PLACE_BY_ID, findPath, type Point } from '../map.ts';
+import { MAP_H, MAP_W, PLACES, PLACE_BY_ID, findPath, isWalkable, type Point } from '../map.ts';
+import { learnFromWords } from '../discovery.ts';
 import { formatMoney } from '../money.ts';
 import { describe, perceive } from '../perception.ts';
+import { PLACE_WORDS } from '../places.ts';
 import {
   addGoods, countGoods, type Resident, type Shop, type World, LORRY_ID,
 } from '../state.ts';
@@ -20,32 +22,59 @@ export const MAX_BEDS_EACH = 2;
 export const HARVEST_YIELD = 5;
 export const DAYS_TO_GROW = 2;
 
-const PLACE_WORDS: Record<string, string[]> = {
-  kopitiam: ['kopitiam', 'coffee shop'],
-  'provision-shop': ['provision shop', 'provisions shop', 'provision store', 'sundry shop'],
-  'market-stall': ['wet-market stall', 'wet market stall', 'market stall', 'wet market', 'market', 'stall'],
-  'lorry-stop': ['lorry stop', 'lorry', 'road'],
-  farm: ['farm plot', 'farm', 'plot', 'vegetable plot'],
-  jetty: ['jetty', 'pier'],
-  well: ['well'],
-  'notice-board': ['notice board', 'noticeboard', 'board'],
-};
+
 
 function normalise(s: string): string {
   return s.trim().toLowerCase().replace(/[.!?]+$/, '').replace(/^(the|to the|to)\s+/, '');
 }
 
 /** Where "walk to X" leads: a place, a house, home, or a person. */
-export function resolveDestination(w: World, r: Resident, where: unknown):
-  { point: Point; placeId: string | null; label: string } | string {
+export const EXPLORE_TILES = 8;
+const DIRECTIONS: Record<string, Point> = {
+  north: { x: 0, y: -1 }, south: { x: 0, y: 1 }, east: { x: 1, y: 0 }, west: { x: -1, y: 0 },
+};
+
+/** The nearest open ground to a point, searching outward. */
+function nearestWalkable(p: Point): Point | null {
+  for (let r = 0; r <= 4; r++) {
+    for (let dy = -r; dy <= r; dy++) {
+      for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const q = { x: p.x + dx, y: p.y + dy };
+        if (isWalkable(q.x, q.y)) return q;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Where "walk to X" leads: home, a place or house they know of, someone they
+ * know, or a direction to explore. Places they've never seen or heard of
+ * aren't anywhere, as far as they know.
+ */
+export interface Destination { point: Point; placeId: string | null; label: string; personId?: string }
+
+export function resolveDestination(w: World, r: Resident, where: unknown): Destination | string {
   if (typeof where !== 'string' || !where.trim()) return "You're not sure where you meant to go.";
   const s = normalise(where);
+  const unknown = `You don't know of anywhere called ${quoted(where)}.`;
   if (['home', 'my house', 'my home', 'house', 'my attap house'].includes(s)) {
     const h = w.home(r);
     return { point: h.spot, placeId: h.id, label: 'home' };
   }
+  const dir = DIRECTIONS[s.replace(/^(head |go )?(to the )?/, '').replace(/wards?$/, '')];
+  if (dir) {
+    const target = nearestWalkable({
+      x: Math.max(0, Math.min(MAP_W - 1, r.pos.x + dir.x * EXPLORE_TILES)),
+      y: Math.max(0, Math.min(MAP_H - 1, r.pos.y + dir.y * EXPLORE_TILES)),
+    });
+    if (!target || (target.x === r.pos.x && target.y === r.pos.y)) return "You can't go any further that way.";
+    return { point: target, placeId: null, label: s.replace(/^(head |go )?(to the )?/, '') };
+  }
   for (const [id, words] of Object.entries(PLACE_WORDS)) {
     if (words.includes(s)) {
+      if (!w.knowsPlace(r, id)) return unknown;
       const p = PLACE_BY_ID.get(id)!;
       return { point: p.spot, placeId: id, label: p.name };
     }
@@ -53,25 +82,29 @@ export function resolveDestination(w: World, r: Resident, where: unknown):
   const house = /^(.+?)['’]s\s+(house|home|place)$/.exec(s);
   if (house) {
     const o = w.residentByName(house[1]);
-    if (o) {
+    if (o && w.knowsPerson(r, o.id) && w.knowsPlace(r, o.homeId)) {
       const h = w.home(o);
       return { point: h.spot, placeId: h.id, label: w.placeName(h) };
     }
+    return unknown;
   }
   const person = w.residentByName(where);
-  if (person && person.id !== r.id) return { point: person.pos, placeId: null, label: person.name };
-  if (person) return "You're already where you are.";
+  if (person && person.id === r.id) return "That's you.";
+  if (person) {
+    if (!w.knowsPerson(r, person.id)) return `You don't know anyone called ${quoted(where)}.`;
+    return { point: person.pos, placeId: null, label: person.name, personId: person.id };
+  }
   const exact = PLACES.find((p) => p.kind !== 'house' && normalise(p.name) === s);
-  if (exact) return { point: exact.spot, placeId: exact.id, label: exact.name };
-  return `You don't know of anywhere called ${quoted(where)}.`;
+  if (exact && w.knowsPlace(r, exact.id)) return { point: exact.spot, placeId: exact.id, label: exact.name };
+  return unknown;
 }
 
 export function walkTo(w: World, r: Resident, i: Intent): ActionResult {
   const d = resolveDestination(w, r, i.where);
   if (typeof d === 'string') return no(d);
   if (d.placeId && w.isAt(r, d.placeId)) return no(d.label === 'home' ? "You're already home." : `You're already at ${d.label}.`);
-  if (!d.placeId) {
-    const o = w.residentByName(d.label)!;
+  if (d.personId) {
+    const o = w.resident(d.personId);
     if (w.isNear(r, o)) return no(`${o.name} is right here.`);
   }
   const path = findPath(r.pos, d.point);
@@ -100,6 +133,8 @@ export function say(w: World, r: Resident, i: Intent): ActionResult {
   for (const o of w.nearby(r)) {
     if (w.isAsleep(o)) continue;
     const line = to && to.id === o.id ? `${r.name} says to you: "${text}"` : to ? `${r.name} says to ${to.name}: "${text}"` : `${r.name} says: "${text}"`;
+    w.learnPerson(o, r.id);
+    learnFromWords(w, o, text);
     w.notify(o.id, line);
   }
   return ok();
@@ -441,6 +476,10 @@ export function readNoticeBoard(w: World, r: Resident): ActionResult {
   if (!w.isAt(r, 'notice-board')) return no("You can't read the notice board from here.");
   w.emit({ type: 'read_notices', who: r.id });
   if (w.state.notes.length === 0) return ok('The notice board is empty.');
+  for (const n of w.state.notes) {
+    learnFromWords(w, r, n.text);
+    w.learnPerson(r, n.authorId);
+  }
   const lines = w.state.notes.map((n) => `- "${n.text}" (${w.resident(n.authorId).name})`);
   return ok(`Notes on the board:\n${lines.join('\n')}`);
 }
