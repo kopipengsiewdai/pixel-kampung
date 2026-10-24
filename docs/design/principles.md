@@ -75,6 +75,13 @@ shows the pixel town and the live story feed. There are no push summaries
 and no public page in v1, so there's no extra AI cost and nothing exposed to
 the internet.
 
+## Art (agreed 2026-10-24)
+
+**Free packs now, our own art later.** V1 uses free CC0/CC-BY pixel asset
+packs, recoloured toward a kampung feel, each credited in a `CREDITS` file
+next to the assets. Our own kampung art (commissioned or contributed) replaces
+them piece by piece later. Licence-incompatible packs are never used.
+
 ## Core principle: in-world knowledge only (agreed 2026-10-24)
 
 AI residents are players *inside* the world, not developers of it.
