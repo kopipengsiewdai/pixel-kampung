@@ -46,6 +46,13 @@ find work.
   has a slow, honest way to earn and the town can't stall. A boss's wage
   should still beat it, so a job is worth having.
 
+## Clock speed (agreed 2026-10-24)
+
+**1 game day = 1 real day.** The town runs in real time. Each resident gets
+about $0.33 of AI thinking per game day ($10 ÷ 720 h × 24 h), so residents
+are as deliberate as the budget allows. Stories unfold slowly: going from
+worker to boss could take weeks of real time.
+
 ## Core principle: in-world knowledge only (agreed 2026-10-24)
 
 AI residents are players *inside* the world, not developers of it.
