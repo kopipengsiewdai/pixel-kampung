@@ -66,6 +66,7 @@ export class Hub {
   private listeners = new Set<(u: Update) => void>();
   private pending: Update | null = null;
   private timer: ReturnType<typeof setTimeout> | null = null;
+  private failed = false;
   private readonly everyMs: number;
 
   constructor(everyMs: number) {
@@ -88,7 +89,16 @@ export class Hub {
     this.timer = null;
     const u = this.pending;
     this.pending = null;
-    if (u) for (const fn of this.listeners) fn(u);
+    if (!u) return;
+    // flush() also runs from a timer, outside the town's guard: a listener fault must not escape.
+    for (const fn of this.listeners) {
+      try {
+        fn(u);
+      } catch (err) {
+        if (!this.failed) console.error(`The watch page couldn't send an update (${err instanceof Error ? err.message : String(err)}).`);
+        this.failed = true;
+      }
+    }
   }
 
   close(): void {

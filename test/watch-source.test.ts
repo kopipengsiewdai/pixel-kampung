@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CostLog } from '../src/mind/cost-log.ts';
 import { FakeModel } from '../src/mind/fake-model.ts';
 import { MemoryStore } from '../src/mind/memory.ts';
@@ -10,7 +10,7 @@ import { mindBrains } from '../src/mind/setup.ts';
 import { TEST_CARDS } from '../src/seed/test-cards.ts';
 import { Town, fakeBrains } from '../src/town.ts';
 import { ReplayReader, ReplayRecorder, extrasFrom, recordTown } from '../src/watch/replay.ts';
-import { LiveSource, ReplaySource, THOUGHTS_ONLY_NOTICE } from '../src/watch/source.ts';
+import { Hub, LiveSource, ReplaySource, THOUGHTS_ONLY_NOTICE } from '../src/watch/source.ts';
 import type { Update } from '../src/watch/types.ts';
 import { sgt } from './helpers.ts';
 
@@ -156,6 +156,27 @@ describe('the watch page never trips the town', () => {
     }
     expect(town.t).toBe(START + 5);
     expect(errors).toHaveLength(1);
+  });
+  it('a throwing listener is contained when updates are merged on a timer, as in npm start', () => {
+    vi.useFakeTimers();
+    const errors: unknown[] = [];
+    const orig = console.error;
+    console.error = (...a: unknown[]) => { errors.push(a); };
+    try {
+      const hub = new Hub(150);
+      const seen: Update[] = [];
+      hub.subscribe(() => { throw new Error('page fault'); });
+      hub.subscribe((u) => seen.push(u));
+      hub.publish({} as Update);
+      expect(() => vi.advanceTimersByTime(200)).not.toThrow();
+      hub.publish({} as Update);
+      vi.advanceTimersByTime(200);
+      expect(seen).toHaveLength(2);
+      expect(errors).toHaveLength(1);
+    } finally {
+      console.error = orig;
+      vi.useRealTimers();
+    }
   });
 });
 
