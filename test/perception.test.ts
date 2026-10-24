@@ -34,7 +34,11 @@ describe('perception', () => {
     const hp = perceive(w, huat);
     expect(hp.actions.map((a) => a.verb)).toContain('cook');
     expect(hp.business?.place).toBe('the kopitiam');
-    for (const a of hp.actions) expect(a.says).not.toMatch(/_/);
+    for (const a of hp.actions) {
+      expect(a.says).not.toMatch(/_/);
+      expect(a.verb).not.toMatch(/_/);
+    }
+    expect(hp.actions.map((a) => a.verb)).toContain('set price');
   });
   it('carries the last reply so a resident knows what happened', () => {
     const w = newWorld(9);

@@ -48,7 +48,7 @@ function progress(w: World, r: Resident): void {
       return;
     case 'working':
       a.worked += 1;
-      if (w.t >= a.until) endShift(w, r);
+      if (w.t >= a.until || r.hunger >= NEED_MAX) endShift(w, r);
       return;
     case 'sleeping':
       if (a.reason === 'night' && !isNight(w.t)) wake(w, r);

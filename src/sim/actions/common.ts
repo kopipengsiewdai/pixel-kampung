@@ -27,10 +27,11 @@ export function qtyOf(v: unknown, fallback = 1): number | null {
 }
 
 /** Cents as an integer, or money text like "$1.20" / "20¢". */
+export const MAX_MONEY: Cents = 1_000_000;
+
 export function moneyOf(v: unknown): Cents | null {
-  if (typeof v === 'number') return Number.isInteger(v) && v >= 0 && v <= 1_000_000 ? v : null;
-  if (typeof v === 'string') return parseMoney(v);
-  return null;
+  const c = typeof v === 'number' ? v : typeof v === 'string' ? parseMoney(v) : null;
+  return c !== null && Number.isSafeInteger(c) && c >= 0 && c <= MAX_MONEY ? c : null;
 }
 
 export function itemOf(v: unknown): ItemId | null {

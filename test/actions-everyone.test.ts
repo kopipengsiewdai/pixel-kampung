@@ -23,8 +23,10 @@ describe('walk_to', () => {
   it('refuses unknown places and where you already are', () => {
     const w = newWorld();
     refused(act(w, who(w, 'Siti').id, { verb: 'walk_to', where: 'Kuala Lumpur' }), /don't know of anywhere/);
+    refused(act(w, who(w, 'Siti').id, { verb: 'walk_to', where: 'attap house 1' }), /don't know of anywhere/);
     refused(act(w, who(w, 'Siti').id, { verb: 'walk_to', where: 'home' }), /already home/);
     refused(act(w, who(w, 'Siti').id, { verb: 'walk_to' }));
+    accepted(act(w, who(w, 'Siti').id, { verb: 'walk to', where: 'the well' }));
   });
 });
 
@@ -97,6 +99,10 @@ describe('buy', () => {
     refused(act(w, siti.id, { verb: 'buy', item: 'kopi' }), /can't afford/);
     put(w, 'Raju', 'well');
     refused(act(w, who(w, 'Raju').id, { verb: 'buy', item: 'kopi' }), /nothing for sale here/);
+    put(w, 'Raju', 'lorry-stop');
+    refused(act(w, who(w, 'Raju').id, { verb: 'buy', item: 'fish' }), /only takes orders from shopkeepers/);
+    put(w, 'Mdm Tan', 'lorry-stop');
+    refused(act(w, who(w, 'Mdm Tan').id, { verb: 'buy', item: 'fish' }), /takes orders for your shop/);
   });
 });
 
@@ -120,6 +126,15 @@ describe('sell', () => {
     accepted(act(w, siti.id, { verb: 'sell', item: 'vegetables', qty: 4 }));
     expect(siti.money).toBe(m + 40);
     expect(w.takeLedger().at(-1)).toMatchObject({ from: 'lorry', to: siti.id, cents: 40 });
+  });
+  it('an owner puts goods into their own stock for free', () => {
+    const w = newWorld();
+    const rahim = put(w, 'Rahim', 'market-stall');
+    rahim.items.fish = 2;
+    const m = rahim.money;
+    expect(accepted(act(w, rahim.id, { verb: 'sell', item: 'fish', qty: 2 })).reply).toMatch(/into your stock/);
+    expect(w.shop('market-stall')!.stock.fish).toBe(8);
+    expect(rahim.money).toBe(m);
   });
   it('refuses when there is no buyer, no lorry, or nothing to sell', () => {
     const w = newWorld();
@@ -179,6 +194,13 @@ describe('offer_trade / accept_trade / decline_trade', () => {
     refused(act(w, raju.id, { verb: 'decline_trade', from: 'Siti' }), /hasn't offered you a trade/);
     accepted(act(w, siti.id, { verb: 'offer_trade', to: 'Raju', give: { items: { fish: 1 } }, want: { money: 5000 } }));
     refused(act(w, raju.id, { verb: 'accept_trade', from: 'Siti' }), /You don't have \$50\.00/);
+  });
+  it('refuses money nobody could have', () => {
+    const { w, siti } = pair();
+    for (const money of ['9'.repeat(400), '9'.repeat(30), '$99999999', 1e12, 1.5]) {
+      refused(act(w, siti.id, { verb: 'offer_trade', to: 'Raju', give: { items: { fish: 1 } }, want: { money } }), /doesn't sound like money/);
+    }
+    expect(w.state.trades).toHaveLength(0);
   });
   it('offers lapse after a while', () => {
     const { w, siti, raju } = pair();
@@ -314,6 +336,16 @@ describe('accept_job / quit_job / work_shift', () => {
     const raju = put(w, 'Raju', 'kopitiam');
     accepted(act(w, raju.id, { verb: 'buy', item: 'kopi' }));
   });
+  it('starving partway through a shift ends it, paid for the time worked', () => {
+    const { w, huat, siti } = hired();
+    accepted(act(w, siti.id, { verb: 'accept_job', from: 'Ah Huat' }));
+    advanceTo(w, sgt(10, 0));
+    siti.hunger = 940;
+    accepted(act(w, siti.id, { verb: 'work_shift' }));
+    advanceTo(w, sgt(11, 0));
+    expect(siti.activity).toBeNull();
+    expect(w.state.owed).toEqual([{ employerId: huat.id, workerId: siti.id, cents: 50 }]);
+  });
   it('quitting ends the job', () => {
     const { w, huat, siti } = hired();
     accepted(act(w, siti.id, { verb: 'accept_job', from: 'Ah Huat' }));
@@ -391,7 +423,8 @@ describe('anything else', () => {
   it('unknown or malformed requests get an in-world shrug', () => {
     const w = newWorld();
     const id = who(w, 'Siti').id;
-    for (const bad of [null, 42, 'fly', {}, { verb: 'fly' }, { verb: 'start_business' }, { verb: 'buy', item: { x: 1 } }]) {
+    for (const bad of [null, 42, 'fly', {}, { verb: 'fly' }, { verb: 'start_business' }, { verb: 'buy', item: { x: 1 } },
+      { verb: 'constructor' }, { verb: '__proto__' }, { verb: 'toString' }, { verb: 'hasOwnProperty' }]) {
       const res = act(w, id, bad);
       expect(res.ok).toBe(false);
       expectInWorld(res.reply!);

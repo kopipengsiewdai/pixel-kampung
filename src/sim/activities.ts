@@ -29,7 +29,7 @@ export function endShift(w: World, r: Resident): void {
   const job = w.state.jobs.find((j) => j.id === a.jobId);
   if (!job) return;
   const earned = Math.floor((job.wage * a.worked) / (job.hours * 60));
-  job.lastWorkedDay = dayIndex(w.t);
+  job.lastWorkedDay = dayIndex(Math.min(w.t, a.until - 1));
   if (earned > 0) {
     const owed = w.state.owed.find((o) => o.employerId === job.employerId && o.workerId === r.id);
     if (owed) owed.cents += earned;

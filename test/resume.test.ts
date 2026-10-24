@@ -10,6 +10,8 @@ import { SIM_START } from '../src/cli/start.ts';
 import { sgt } from './helpers.ts';
 import { kampungHome, dbPath } from '../src/config/paths.ts';
 import { homedir } from 'node:os';
+import { skipQuietly } from '../src/sim/skip.ts';
+import { dayIndex } from '../src/sim/time.ts';
 
 const dirs: string[] = [];
 function tempHome(): string {
@@ -123,6 +125,32 @@ describe('downtime', () => {
     }
     await town.runUntil(sgt(9, 0, 1));
     expect(town.world.state.residents.some((r) => r.activity?.kind !== 'sleeping')).toBe(true);
+  });
+
+  it('a shift cut by a long gap is paid, and the next day\'s shift is still on', async () => {
+    const town = Town.create(3, START);
+    const w = town.world;
+    const huat = w.residentByName('Ah Huat')!;
+    const siti = w.residentByName('Siti')!;
+    await town.runUntil(sgt(10, 0));
+    w.state.jobs.push({ id: 999, employerId: huat.id, workerId: siti.id, placeId: 'kopitiam', wage: 200, startHour: 10, hours: 4, lastWorkedDay: null });
+    siti.activity = { kind: 'working', jobId: 999, until: sgt(14, 0), worked: 0 };
+    skipQuietly(w, sgt(11, 0, 1));
+    expect(w.state.owed.find((o) => o.workerId === siti.id)?.cents).toBe(200);
+    expect(w.state.jobs.find((j) => j.id === 999)?.lastWorkedDay).not.toBe(dayIndex(sgt(11, 0, 1)));
+  });
+
+  it('someone who dozed off keeps resting through a short gap', async () => {
+    const town = Town.create(3, START);
+    const w = town.world;
+    await town.runUntil(sgt(13, 0));
+    const siti = w.residentByName('Siti')!;
+    siti.energy = 0;
+    siti.activity = { kind: 'sleeping', reason: 'collapse', until: null };
+    skipQuietly(w, sgt(13, 30));
+    expect(siti.energy).toBeGreaterThanOrEqual(90);
+    await town.runUntil(sgt(16, 0));
+    expect(siti.energy).toBeGreaterThan(300);
   });
 
   it('a short gap is simply replayed', async () => {

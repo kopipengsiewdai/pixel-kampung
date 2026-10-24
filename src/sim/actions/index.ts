@@ -92,15 +92,15 @@ export function act(w: World, residentId: string, intent: unknown): ActionResult
   if (isNight(w.t)) return no("It's the middle of the night. You should be asleep.");
   const verb = intent && typeof intent === 'object' && typeof (intent as Intent).verb === 'string'
     ? (intent as Intent).verb.trim().toLowerCase().replace(/\s+/g, '_') : '';
-  const def = ACTIONS[verb];
+  const def = Object.hasOwn(ACTIONS, verb) ? ACTIONS[verb] : undefined;
   if (!def) return no("You're not sure how to do that.");
   if (def.ownersOnly && r.role !== 'owner') return no("That's for shopkeepers. You don't have a shop.");
   return def.run(w, r, intent as Intent);
 }
 
-/** What this resident could sensibly try right now, in their own words. */
+/** What this resident could sensibly try right now, in their own words ("walk to", "pay wages"). */
 export function availableActions(w: World, r: Resident): { verb: string; says: string }[] {
   return Object.entries(ACTIONS)
     .filter(([, d]) => (!d.ownersOnly || r.role === 'owner') && (!d.here || d.here(w, r)))
-    .map(([verb, d]) => ({ verb, says: d.says }));
+    .map(([verb, d]) => ({ verb: verb.replace(/_/g, ' '), says: d.says }));
 }

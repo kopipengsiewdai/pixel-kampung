@@ -12,7 +12,8 @@ export const QUIET_HUNGER_CAP = 800;
 /**
  * After downtime the town doesn't replay the missed hours. Time jumps to `to`
  * and the gap passes as "everyone rested or worked quietly": walkers arrive,
- * lines come in empty, shifts count as worked, people rest, and at night
+ * lines come in empty, shifts count as worked, sleepers keep resting (and wake
+ * on the next minute if rested), and at night
  * everyone is home asleep. No lorry, sales or talk happen in the gap.
  */
 export function skipQuietly(w: World, to: number): void {
@@ -32,8 +33,8 @@ export function skipQuietly(w: World, to: number): void {
     } else if (a?.kind === 'working') {
       a.worked += Math.max(0, Math.min(gap, a.until - from));
       if (to >= a.until) endShift(w, r);
-    } else if (a?.kind === 'sleeping' && a.reason !== 'night') {
-      r.activity = null;
+    } else if (a?.kind === 'sleeping') {
+      r.energy = Math.min(1000, r.energy + gap * 3);
     }
     if (r.hunger < QUIET_HUNGER_CAP) r.hunger = Math.min(QUIET_HUNGER_CAP, r.hunger + Math.floor(gap / 3));
     if (longRest) r.energy = Math.max(r.energy, RESTED);
@@ -41,8 +42,6 @@ export function skipQuietly(w: World, to: number): void {
       r.activity = null;
       r.pos = { ...w.home(r).spot };
       startSleep(w, r, 'night');
-    } else if (r.activity?.kind === 'sleeping') {
-      r.activity = null;
     }
     r.thinkAt = to + 1;
   }

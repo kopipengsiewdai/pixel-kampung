@@ -15,7 +15,8 @@ reviewed and tuned in one place. None of this goes into any resident's prompt.
 - At 23:00 anyone awake stops what they're doing, walks home and sleeps.
   Everyone wakes at 06:00. Brains are never asked to think at night.
 - Running out of energy means dozing off on the spot until partly rested.
-  Starving (hunger 1000) drains energy faster and stops you working a shift.
+  Starving (hunger 1000) drains energy faster, ends a shift in progress and
+  stops you starting one.
   Nobody dies.
 - Walking covers 3 tiles a minute along the shortest route, preferring
   footpaths.
@@ -86,7 +87,8 @@ Ordered stock is dropped off at the owner's shop.
 ## Downtime
 
 - A gap of up to 10 minutes is replayed. A longer gap is skipped in one jump:
-  walkers arrive, fishing lines come in empty, shifts count as worked, nobody
-  gets hungrier than 800 from the gap, anyone who rested through a night or 6+
-  hours wakes rested, and if it's night everyone is home asleep. No lorry,
+  walkers arrive, fishing lines come in empty, shifts count as worked, anyone
+  asleep keeps resting, nobody gets hungrier than 800 from the gap, anyone who
+  rested through a night or 6+ hours wakes rested, and if it's night everyone
+  is home asleep. No lorry,
   sales or talk happen in the gap; the feed notes a quiet spell.

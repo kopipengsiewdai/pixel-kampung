@@ -61,7 +61,7 @@ export function resolveDestination(w: World, r: Resident, where: unknown):
   const person = w.residentByName(where);
   if (person && person.id !== r.id) return { point: person.pos, placeId: null, label: person.name };
   if (person) return "You're already where you are.";
-  const exact = PLACES.find((p) => normalise(p.name) === s);
+  const exact = PLACES.find((p) => p.kind !== 'house' && normalise(p.name) === s);
   if (exact) return { point: exact.spot, placeId: exact.id, label: exact.name };
   return `You don't know of anywhere called ${quoted(where)}.`;
 }
@@ -138,7 +138,9 @@ function recordFirstSale(w: World, shop: Shop): void {
 }
 
 export function buy(w: World, r: Resident, i: Intent): ActionResult {
-  if (w.isAt(r, 'lorry-stop')) return no('The lorry man only takes orders from shopkeepers.');
+  if (w.isAt(r, 'lorry-stop')) {
+    return no(w.shopOf(r.id) ? 'The lorry man takes orders for your shop, not sales over the tailboard.' : 'The lorry man only takes orders from shopkeepers.');
+  }
   const shop = shopHere(w, r);
   if (!shop) return no("There's nothing for sale here.");
   const item = itemOf(i.item);
