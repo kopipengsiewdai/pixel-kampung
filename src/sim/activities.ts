@@ -2,6 +2,7 @@ import { findPath } from './map.ts';
 import { dayIndex, isNight } from './time.ts';
 import type { Resident, World } from './state.ts';
 import { addGoods } from './state.ts';
+import { canSleepHere, nearestRough } from './households.ts';
 
 export const WALK_TILES_PER_MINUTE = 3;
 export const FISHING_MINUTES = 30;
@@ -10,14 +11,18 @@ export const RESTED = 950;
 export const COLLAPSE_WAKE_ENERGY = 400;
 
 export function startSleep(w: World, r: Resident, reason: 'night' | 'nap' | 'collapse'): void {
-  r.activity = { kind: 'sleeping', reason, until: reason === 'nap' ? w.t + NAP_MAX_MINUTES : null };
-  w.emit({ type: 'fell_asleep', who: r.id, reason });
+  // With no home, a night or a nap is rough sleeping; dozing off where you stand is just that.
+  const rough = reason !== 'collapse' && !r.homeId;
+  r.activity = { kind: 'sleeping', reason, until: reason === 'nap' ? w.t + NAP_MAX_MINUTES : null, ...(rough ? { rough: true as const } : {}) };
+  w.emit(rough ? { type: 'fell_asleep', who: r.id, reason, rough: nearestRough(r.pos).name } : { type: 'fell_asleep', who: r.id, reason });
 }
 
 export function wake(w: World, r: Resident): void {
+  const rough = r.activity?.kind === 'sleeping' && r.activity.rough;
   r.activity = null;
   r.thinkAt = w.t;
   w.emit({ type: 'woke', who: r.id });
+  if (rough) w.remember(r.id, `You slept rough ${nearestRough(r.pos).name}, and you're stiff all over.`);
 }
 
 /** Ends a shift in progress; the worker is owed for the minutes worked. */
@@ -45,14 +50,16 @@ export function interrupt(w: World, r: Resident): void {
   else if (r.activity?.kind === 'fishing' || r.activity?.kind === 'walking') r.activity = null;
 }
 
+/** Home to bed, or with no home, to the nearest sheltered spot to sleep rough. */
 export function walkHomeToSleep(w: World, r: Resident): void {
-  const home = w.home(r);
-  if (w.isAt(r, home.id)) {
+  if (canSleepHere(w, r)) {
     startSleep(w, r, isNight(w.t) ? 'night' : 'nap');
     return;
   }
-  const path = findPath(r.pos, home.spot) ?? [];
-  r.activity = { kind: 'walking', path, dest: home.id, thenSleep: true };
+  const home = w.home(r);
+  const to = home ? home.spot : nearestRough(r.pos).at;
+  const path = findPath(r.pos, to) ?? [];
+  r.activity = { kind: 'walking', path, dest: home?.id ?? null, thenSleep: true };
 }
 
 export function catchFish(w: World, r: Resident): void {

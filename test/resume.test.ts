@@ -121,7 +121,7 @@ describe('downtime', () => {
     await town.catchUp(sgt(2, 0, 1));
     for (const r of town.world.state.residents) {
       expect(r.activity?.kind).toBe('sleeping');
-      expect(town.world.isAt(r, r.homeId)).toBe(true);
+      expect(town.world.isAt(r, r.homeId!)).toBe(true);
     }
     await town.runUntil(sgt(9, 0, 1));
     expect(town.world.state.residents.some((r) => r.activity?.kind !== 'sleeping')).toBe(true);

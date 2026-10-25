@@ -1,0 +1,523 @@
+src/sim/state.ts WorldState {
+  beds: {
+    lastWateredDay: null | number
+    n: number
+    plantedDay: number
+    planterId: null | string
+    wateredDays: number
+  }[]
+  bonds: {
+    [key: string]: {
+      a: false | true
+      b: false | true
+      day: number
+      days: number
+    }
+  }
+  calendar: {
+    firstDay: number
+  }
+  clock: {
+    anchorMs: number
+    anchorT: number
+  }
+  eventSeq: number
+  firsts: string[]
+  homeOffers: {
+    expires: number
+    fromId: string
+    houseId: string
+    id: number
+    toId: string
+  }[]
+  houses: {
+    holderId: null | string
+    id: string
+  }[]
+  jobOffers: {
+    employerId: string
+    expires: number
+    hours: number
+    id: number
+    startHour: number
+    wage: number
+    workerId: string
+  }[]
+  jobs: {
+    employerId: string
+    hours: number
+    id: number
+    lastWorkedDay: null | number
+    placeId: string
+    startHour: number
+    wage: number
+    workerId: string
+  }[]
+  ledgerSeq: number
+  lorryHere: false | true
+  news: {
+    event: {
+      at: string
+      type: "arrived"
+      who: string
+    } | {
+      bed: number
+      type: "planted"
+      who: string
+    } | {
+      beds: number
+      type: "watered"
+      who: string
+    } | {
+      by: string
+      shop: string
+      type: "hired"
+      wage: number
+      who: string
+    } | {
+      cents: number
+      from: string
+      item: "bread" | "coffee" | "fish porridge" | "fish" | "kopi" | "rice" | "vegetable rice" | "vegetables"
+      qty: number
+      shop: string
+      type: "bought"
+      who: string
+    } | {
+      cents: number
+      item: "bread" | "coffee" | "fish porridge" | "fish" | "kopi" | "rice" | "vegetable rice" | "vegetables"
+      limit: null | number
+      shop: string
+      side: "buy" | "sell"
+      type: "price_set"
+      who: string
+    } | {
+      cents: number
+      item: "bread" | "coffee" | "fish porridge" | "fish" | "kopi" | "rice" | "vegetable rice" | "vegetables"
+      qty: number
+      shop: string
+      to: string
+      type: "sold"
+      who: string
+    } | {
+      cents: number
+      item: "bread" | "coffee" | "fish porridge" | "fish" | "kopi" | "rice" | "vegetable rice" | "vegetables"
+      qty: number
+      shop: string
+      type: "lorry_order"
+      who: string
+    } | {
+      cents: number
+      item: "bread" | "coffee" | "fish porridge" | "fish" | "kopi" | "rice" | "vegetable rice" | "vegetables"
+      qty: number
+      type: "lorry_sale"
+      who: string
+    } | {
+      cents: number
+      item: "bread" | "coffee" | "fish porridge" | "fish" | "kopi" | "rice" | "vegetable rice" | "vegetables" | null
+      qty: number
+      to: string
+      type: "gave"
+      who: string
+    } | {
+      cents: number
+      stillOwed: number
+      to: string
+      type: "wages_paid"
+      who: string
+    } | {
+      earned: number
+      shop: string
+      type: "shift_ended"
+      who: string
+    } | {
+      from: string
+      type: "quit"
+      who: string
+    } | {
+      from: string
+      type: "trade_declined"
+      who: string
+    } | {
+      give: {
+        cents: number
+        items: {
+          bread?: number | undefined
+          coffee?: number | undefined
+          fish?: number | undefined
+          "fish porridge"?: number | undefined
+          kopi?: number | undefined
+          rice?: number | undefined
+          "vegetable rice"?: number | undefined
+          vegetables?: number | undefined
+        }
+      }
+      to: string
+      type: "trade_offered"
+      want: {
+        cents: number
+        items: {
+          bread?: number | undefined
+          coffee?: number | undefined
+          fish?: number | undefined
+          "fish porridge"?: number | undefined
+          kopi?: number | undefined
+          rice?: number | undefined
+          "vegetable rice"?: number | undefined
+          vegetables?: number | undefined
+        }
+      }
+      who: string
+    } | {
+      give: {
+        cents: number
+        items: {
+          bread?: number | undefined
+          coffee?: number | undefined
+          fish?: number | undefined
+          "fish porridge"?: number | undefined
+          kopi?: number | undefined
+          rice?: number | undefined
+          "vegetable rice"?: number | undefined
+          vegetables?: number | undefined
+        }
+      }
+      type: "traded"
+      want: {
+        cents: number
+        items: {
+          bread?: number | undefined
+          coffee?: number | undefined
+          fish?: number | undefined
+          "fish porridge"?: number | undefined
+          kopi?: number | undefined
+          rice?: number | undefined
+          "vegetable rice"?: number | undefined
+          vegetables?: number | undefined
+        }
+      }
+      who: string
+      with: string
+    } | {
+      homeless: false | true
+      to: string
+      type: "told_to_leave"
+      who: string
+    } | {
+      host: null | string
+      house: string
+      type: "moved_in"
+      who: string
+    } | {
+      hours: number
+      startHour: number
+      to: string
+      type: "job_offered"
+      wage: number
+      who: string
+    } | {
+      house: string
+      to: string
+      type: "home_offered"
+      who: string
+    } | {
+      item: "bread" | "coffee" | "fish porridge" | "fish" | "kopi" | "rice" | "vegetable rice" | "vegetables"
+      qty: number
+      shop: string
+      type: "stocked"
+      who: string
+    } | {
+      item: "bread" | "coffee" | "fish porridge" | "fish" | "kopi" | "rice" | "vegetable rice" | "vegetables"
+      qty: number
+      shop: string
+      type: "took_stock"
+      who: string
+    } | {
+      item: "bread" | "coffee" | "fish porridge" | "fish" | "kopi" | "rice" | "vegetable rice" | "vegetables"
+      qty: number
+      type: "cooked"
+      who: string
+    } | {
+      item: "bread" | "coffee" | "fish porridge" | "fish" | "kopi" | "rice" | "vegetable rice" | "vegetables"
+      type: "ate"
+      who: string
+    } | {
+      minutes: number
+      type: "quiet_spell"
+    } | {
+      place: string
+      type: "found_place"
+      who: string
+    } | {
+      qty: number
+      type: "caught_fish"
+      who: string
+    } | {
+      qty: number
+      type: "harvested"
+      who: string
+    } | {
+      reason: "collapse" | "nap" | "night"
+      rough?: string | undefined
+      type: "fell_asleep"
+      who: string
+    } | {
+      shop: string
+      type: "first_sale"
+      who: string
+    } | {
+      shop: string
+      type: "shift_started"
+      who: string
+    } | {
+      text: string
+      to: null | string
+      type: "said"
+      who: string
+    } | {
+      text: string
+      type: "note_pinned"
+      who: string
+    } | {
+      to: string
+      type: "married"
+      who: string
+    } | {
+      to: string
+      type: "proposed"
+      who: string
+    } | {
+      to: string
+      type: "turned_down"
+      who: string
+    } | {
+      to: string
+      type: "walked"
+      who: string
+    } | {
+      type: "kampung_quiet"
+    } | {
+      type: "let_go"
+      who: string
+      worker: string
+    } | {
+      type: "looked_around"
+      who: string
+    } | {
+      type: "lorry_arrived"
+    } | {
+      type: "lorry_left"
+    } | {
+      type: "morning"
+    } | {
+      type: "night_fell"
+    } | {
+      type: "read_notices"
+      who: string
+    } | {
+      type: "went_fishing"
+      who: string
+    } | {
+      type: "woke"
+      who: string
+    }
+    tell: {
+      id: string
+      text: string
+    }[]
+  }[]
+  nextId: number
+  notes: {
+    authorId: string
+    id: number
+    t: number
+    text: string
+  }[]
+  owed: {
+    cents: number
+    employerId: string
+    workerId: string
+  }[]
+  proposals: {
+    expires: number
+    fromId: string
+    id: number
+    toId: string
+  }[]
+  residents: {
+    activity: null | {
+      dest: null | string
+      kind: "walking"
+      path: {
+        x: number
+        y: number
+      }[]
+      thenSleep: false | true
+    } | {
+      jobId: number
+      kind: "working"
+      until: number
+      worked: number
+    } | {
+      kind: "fishing"
+      until: number
+    } | {
+      kind: "sleeping"
+      reason: "collapse" | "nap" | "night"
+      rough?: true | undefined
+      until: null | number
+    }
+    energy: number
+    homeId: null | string
+    hunger: number
+    id: string
+    items: {
+      bread?: number | undefined
+      coffee?: number | undefined
+      fish?: number | undefined
+      "fish porridge"?: number | undefined
+      kopi?: number | undefined
+      rice?: number | undefined
+      "vegetable rice"?: number | undefined
+      vegetables?: number | undefined
+    }
+    knownPeople: string[]
+    knownPlaces: string[]
+    lastDone: null | {
+      t: number
+      what: string
+    }
+    money: number
+    name: string
+    pos: {
+      x: number
+      y: number
+    }
+    recent: {
+      t: number
+      talk?: true | undefined
+      text: string
+    }[]
+    reply: null | {
+      ok: false | true
+      text: string
+    }
+    role: "owner" | "seeker"
+    spouseId: null | string
+    thinkAt: number
+  }[]
+  rng: number
+  seed: number
+  shops: {
+    buyLimits: {
+      bread?: number | undefined
+      coffee?: number | undefined
+      fish?: number | undefined
+      "fish porridge"?: number | undefined
+      kopi?: number | undefined
+      rice?: number | undefined
+      "vegetable rice"?: number | undefined
+      vegetables?: number | undefined
+    }
+    buyPrices: {
+      bread?: number | undefined
+      coffee?: number | undefined
+      fish?: number | undefined
+      "fish porridge"?: number | undefined
+      kopi?: number | undefined
+      rice?: number | undefined
+      "vegetable rice"?: number | undefined
+      vegetables?: number | undefined
+    }
+    id: string
+    ownerId: string
+    sellPrices: {
+      bread?: number | undefined
+      coffee?: number | undefined
+      fish?: number | undefined
+      "fish porridge"?: number | undefined
+      kopi?: number | undefined
+      rice?: number | undefined
+      "vegetable rice"?: number | undefined
+      vegetables?: number | undefined
+    }
+    stock: {
+      bread?: number | undefined
+      coffee?: number | undefined
+      fish?: number | undefined
+      "fish porridge"?: number | undefined
+      kopi?: number | undefined
+      rice?: number | undefined
+      "vegetable rice"?: number | undefined
+      vegetables?: number | undefined
+    }
+  }[]
+  t: number
+  talk: {
+    [key: string]: {
+      lastT: number
+      lines: number
+    }
+  }
+  trades: {
+    expires: number
+    fromId: string
+    give: {
+      cents: number
+      items: {
+        bread?: number | undefined
+        coffee?: number | undefined
+        fish?: number | undefined
+        "fish porridge"?: number | undefined
+        kopi?: number | undefined
+        rice?: number | undefined
+        "vegetable rice"?: number | undefined
+        vegetables?: number | undefined
+      }
+    }
+    id: number
+    toId: string
+    want: {
+      cents: number
+      items: {
+        bread?: number | undefined
+        coffee?: number | undefined
+        fish?: number | undefined
+        "fish porridge"?: number | undefined
+        kopi?: number | undefined
+        rice?: number | undefined
+        "vegetable rice"?: number | undefined
+        vegetables?: number | undefined
+      }
+    }
+  }[]
+  version: number
+}
+
+src/brain/fake-brain.ts Memory {
+  buyDays: {
+    [key: string]: string
+  }
+  lorryDay: null | string
+  rng: number
+}
+
+src/mind/mind.ts MindState {
+  budget: {
+    lastT: number
+    level: number
+  }
+  businessCalls: number
+  businessDay: null | number
+  model?: unknown
+  plan: null | string
+  planDay: null | number
+  reflectedDay: null | number
+}
+
+Tables of a fresh save:
+CREATE TABLE events (seq INTEGER PRIMARY KEY, t INTEGER NOT NULL, type TEXT NOT NULL, data TEXT NOT NULL);
+CREATE TABLE ledger (seq INTEGER PRIMARY KEY, t INTEGER NOT NULL, from_id TEXT NOT NULL, to_id TEXT NOT NULL, cents INTEGER NOT NULL, reason TEXT NOT NULL);
+CREATE TABLE memories (id INTEGER PRIMARY KEY AUTOINCREMENT, resident TEXT NOT NULL, t INTEGER NOT NULL, kind TEXT NOT NULL, text TEXT NOT NULL, importance INTEGER NOT NULL);
+CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE snapshot (id INTEGER PRIMARY KEY CHECK (id = 1), t INTEGER NOT NULL, world TEXT NOT NULL, brains TEXT NOT NULL);
+CREATE INDEX memories_by_resident ON memories (resident, t);

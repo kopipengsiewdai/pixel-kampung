@@ -32,7 +32,7 @@ export interface ResidentView {
   id: string;
   name: string;
   role: 'owner' | 'seeker';
-  homeId: string;
+  homeId: string | null;
   x: number;
   y: number;
   /** Tiles stepped through since the last frame, ending at (x, y). Just [(x, y)] when standing still. */

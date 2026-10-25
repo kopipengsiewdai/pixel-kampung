@@ -22,7 +22,7 @@ export type EventBody =
   | { type: 'watered'; who: string; beds: number }
   | { type: 'harvested'; who: string; qty: number }
   | { type: 'ate'; who: string; item: ItemId }
-  | { type: 'fell_asleep'; who: string; reason: 'night' | 'nap' | 'collapse' }
+  | { type: 'fell_asleep'; who: string; reason: 'night' | 'nap' | 'collapse'; rough?: string }
   | { type: 'woke'; who: string }
   | { type: 'job_offered'; who: string; to: string; wage: Cents; startHour: number; hours: number }
   | { type: 'hired'; who: string; by: string; shop: string; wage: Cents }
@@ -44,7 +44,13 @@ export type EventBody =
   | { type: 'morning' }
   | { type: 'quiet_spell'; minutes: number }
   | { type: 'found_place'; who: string; place: string }
-  | { type: 'kampung_quiet' };
+  | { type: 'kampung_quiet' }
+  | { type: 'home_offered'; who: string; to: string; house: string }
+  | { type: 'moved_in'; who: string; house: string; host: string | null }
+  | { type: 'told_to_leave'; who: string; to: string; homeless: boolean }
+  | { type: 'proposed'; who: string; to: string }
+  | { type: 'married'; who: string; to: string }
+  | { type: 'turned_down'; who: string; to: string };
 
 export type EventType = EventBody['type'];
 export type GameEvent = EventBody & { seq: number; t: number };

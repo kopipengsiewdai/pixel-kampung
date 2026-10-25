@@ -1,5 +1,6 @@
 import { endShift, startSleep } from './activities.ts';
 import { RESTED } from './activities.ts';
+import { nearestRough, ROUGH_REST, ROUGH_REST_CAP } from './households.ts';
 import type { World } from './state.ts';
 import { dayIndex, GAME_SPEED, isNight, minuteOfDay } from './time.ts';
 import { LORRY_ARRIVES, LORRY_LEAVES } from './tick.ts';
@@ -38,13 +39,14 @@ export function skipQuietly(w: World, to: number): void {
       a.worked += Math.max(0, Math.min(gap, a.until - from));
       if (to >= a.until) endShift(w, r);
     } else if (a?.kind === 'sleeping') {
-      r.energy = Math.min(1000, r.energy + gap * 3);
+      r.energy = a.rough ? Math.max(r.energy, Math.min(ROUGH_REST_CAP, r.energy + gap * ROUGH_REST)) : Math.min(1000, r.energy + gap * 3);
     }
     if (r.hunger < QUIET_HUNGER_CAP) r.hunger = Math.min(QUIET_HUNGER_CAP, r.hunger + Math.floor(gap / 3));
-    if (longRest) r.energy = Math.max(r.energy, RESTED);
+    // Someone with nowhere to sleep rests only as well as rough sleeping allows.
+    if (longRest) r.energy = Math.max(r.energy, r.homeId ? RESTED : ROUGH_REST_CAP);
     if (isNight(to)) {
       r.activity = null;
-      r.pos = { ...w.home(r).spot };
+      r.pos = { ...(w.home(r)?.spot ?? nearestRough(r.pos).at) };
       startSleep(w, r, 'night');
     }
     r.thinkAt = to + 1;

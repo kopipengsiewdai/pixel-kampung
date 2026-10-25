@@ -36,6 +36,6 @@ export function learnFromWords(w: World, r: Resident, text: string): void {
     const name = o.name.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     if (!new RegExp(`\\b${name}\\b`).test(s)) continue;
     w.learnPerson(r, o.id);
-    if (new RegExp(`\\b${name}['’]s (house|home|place)\\b`).test(s)) w.learnPlace(r, o.homeId);
+    if (o.homeId && new RegExp(`\\b${name}['’]s (house|home|place)\\b`).test(s)) w.learnPlace(r, o.homeId);
   }
 }

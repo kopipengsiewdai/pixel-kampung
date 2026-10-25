@@ -4,7 +4,7 @@ import { systemPrompt } from '../src/mind/prompt.ts';
 import { CARDS } from '../src/seed/cards.ts';
 import { CAST } from '../src/seed/cast.ts';
 import { PLACE_BY_ID } from '../src/sim/map.ts';
-import { act, accepted, expectInWorld, newWorld, refused, who } from './helpers.ts';
+import { act, accepted, expectInWorld, newWorld, put, refused, who } from './helpers.ts';
 
 /** The approved cast, as written in docs/design/cast.md. */
 function castDoc(): { name: string; age: number; business: string | null }[] {
@@ -44,7 +44,8 @@ describe('the cast', () => {
       const r = who(w, member.name);
       expect(r.knownPeople.map((id) => w.resident(id).name).sort()).toEqual([...member.knows].sort());
     }
-    // A son can go and find his father; a newcomer can't look for someone he's never met.
+    // A son can go and find his father (they share a house, so out on his errands first); a newcomer can't look for someone he's never met.
+    put(w, 'Ah Seng', 'jetty');
     accepted(act(w, who(w, 'Ah Seng').id, { verb: 'walk_to', where: 'Ah Huat' }));
     refused(act(w, who(w, 'Ah Kow').id, { verb: 'walk_to', where: 'Ah Huat' }));
   });

@@ -94,6 +94,36 @@ export const UPGRADES: readonly Upgrade[] = [
       brains,
     }),
   },
+  {
+    from: 4,
+    why: "Families live together: Ah Seng moves into his father Ah Huat's house and Mei Ling into her aunt Mdm Tan's; two houses stand empty. Residents can marry, offer each other a home, or tell someone to leave.",
+    save: ({ world, brains }) => {
+      if ('houses' in world) return { world, brains };
+      type R = { id: string; name: string; homeId: string | null; knownPlaces: string[] };
+      const residents = (world.residents as R[]).map((r) => ({ ...r, spouseId: null, knownPlaces: [...r.knownPlaces] }));
+      const byId = new Map(residents.map((r) => [r.id, r]));
+      // The houses as they stood at v4: each headed by whoever lived there.
+      const houses = Array.from({ length: 10 }, (_, i) => `house-${i + 1}`).map((id) => ({ id, holderId: residents.find((r) => r.homeId === id)?.id ?? null }));
+      const news: unknown[] = [];
+      // Frozen at v5: who moves in with whom, and how they're related.
+      const moves = [
+        { mover: 'ah-seng', host: 'ah-huat', moverTold: 'You move your things back into your father %H\'s house.', hostTold: 'Your son %M has moved back in with you.' },
+        { mover: 'mei-ling', host: 'mdm-tan', moverTold: 'You move your things into your aunt %H\'s house.', hostTold: 'Your niece %M has moved in with you.' },
+      ];
+      for (const m of moves) {
+        const mover = byId.get(m.mover);
+        const host = byId.get(m.host);
+        if (!mover || !host || !host.homeId || mover.homeId === host.homeId) continue;
+        const old = houses.find((h) => h.id === mover.homeId);
+        if (old) old.holderId = null;
+        mover.homeId = host.homeId;
+        if (!mover.knownPlaces.includes(host.homeId)) mover.knownPlaces.push(host.homeId);
+        const fill = (s: string) => s.replace('%H', host.name).replace('%M', mover.name);
+        news.push({ event: { type: 'moved_in', who: mover.id, house: host.homeId, host: host.id }, tell: [{ id: mover.id, text: fill(m.moverTold) }, { id: host.id, text: fill(m.hostTold) }] });
+      }
+      return { world: { ...world, residents, houses, homeOffers: [], proposals: [], bonds: {}, news }, brains };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

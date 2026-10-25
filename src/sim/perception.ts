@@ -5,6 +5,7 @@ import { PLACES, PLACE_BY_ID } from './map.ts';
 import { formatMoney, type Cents } from './money.ts';
 import { TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, type Goods, type Observation, type Resident, type World } from './state.ts';
 import { nowLabel } from './calendar.ts';
+import { householdLines, houseOf, isClose } from './households.ts';
 import { dayIndex, sgtHour, sgtMinute } from './time.ts';
 
 /** How many lines of their own ongoing conversation a resident has in mind. */
@@ -51,7 +52,9 @@ export interface Perception {
   minute: number;
   place: string;
   atHome: boolean;
-  people: { name: string; doing: string }[];
+  people: { name: string; doing: string; close?: true }[];
+  /** Their household, marriage and any offers to them, in plain words; only what applies. */
+  household: string[];
   money: Cents;
   carrying: { item: ItemId; qty: number }[];
   hunger: HungerWord;
@@ -137,8 +140,9 @@ export function perceive(w: World, r: Resident): Perception {
     hour: sgtHour(w.t),
     minute: sgtMinute(w.t),
     place: here ? (here.id === r.homeId ? 'your house' : w.placeName(here)) : 'out on the footpath',
-    atHome: w.isAt(r, r.homeId),
-    people: w.nearby(r).map((o) => ({ name: o.name, doing: doing(w, o) })),
+    atHome: w.atHome(r),
+    people: w.nearby(r).map((o) => (isClose(w, r, o) ? { name: o.name, doing: doing(w, o), close: true as const } : { name: o.name, doing: doing(w, o) })),
+    household: householdLines(w, r),
     money: r.money,
     carrying: goodsList(r.items),
     hunger: hungerWord(r.hunger),
@@ -194,8 +198,9 @@ export function perceive(w: World, r: Resident): Perception {
     placesYouKnow: PLACES.filter((pl) => w.knowsPlace(r, pl.id)).flatMap((pl) => {
       if (pl.id === r.homeId) return ['home'];
       if (pl.kind !== 'house') return [pl.name];
-      const owner = w.state.residents.find((x) => x.homeId === pl.id);
-      return owner && w.knowsPerson(r, owner.id) ? [w.placeName(pl)] : [];
+      const holder = houseOf(w, pl.id)?.holderId;
+      if (!holder) return [pl.name];
+      return w.knowsPerson(r, holder) ? [w.placeName(pl)] : [];
     }),
   };
   if (r.reply) {
@@ -227,9 +232,10 @@ export function latelyLines(p: Perception): string[] {
 export function describe(p: Perception): string {
   const lines: string[] = [`It's ${p.time}. You're at ${p.place}.`];
   lines.push(p.people.length
-    ? `Nearby: ${p.people.map((x) => `${x.name} (${x.doing})`).join(', ')}.`
+    ? `Nearby: ${p.people.map((x) => `${x.name}${x.close ? ', a close friend' : ''} (${x.doing})`).join(', ')}.`
     : "There's nobody else around.");
   lines.push(`You feel ${p.hunger} and ${p.energy}. You have ${formatMoney(p.money)}${p.carrying.length ? ` and you're carrying ${p.carrying.map((c) => quantityLabel(c.item, c.qty)).join(', ')}` : ''}.`);
+  lines.push(...p.household);
   if (p.job) {
     lines.push(`You work for ${p.job.boss} at ${p.job.place}, ${p.job.shift}.${p.job.onShift ? " You're on shift now." : ''}`);
     if (p.job.onShift) lines.push(`In the shop: ${p.job.stock.map((s) => quantityLabel(s.item, s.qty)).join(', ') || 'nothing'}.`);

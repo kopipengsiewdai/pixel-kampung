@@ -45,8 +45,15 @@ export function feedText(e: GameEvent, n: Names): { text: string; notable: boole
     case 'ate': return line(`${n(e.who)} had ${quantityLabel(e.item, 1)}.`);
     case 'fell_asleep':
       if (e.reason === 'collapse') return line(`${n(e.who)} is so worn out they doze off on the spot.`, true);
+      if (e.rough) return line(`${n(e.who)} beds down ${e.rough} for the ${e.reason === 'nap' ? 'afternoon' : 'night'}.`);
       if (e.reason === 'nap') return line(`${n(e.who)} lies down for a nap.`);
       return null;
+    case 'home_offered': return line(`${n(e.who)} tells ${n(e.to)} they can come and live in their house.`);
+    case 'moved_in': return line(e.host ? `${n(e.who)} moves in with ${n(e.host)}.` : `${n(e.who)} moves into ${place(e.house)}.`, true);
+    case 'told_to_leave': return line(`${n(e.who)} tells ${n(e.to)} to leave the house.${e.homeless ? ` ${n(e.to)} has nowhere to sleep tonight.` : ''}`, true);
+    case 'proposed': return line(`${n(e.who)} asks ${n(e.to)} to marry them!`, true);
+    case 'married': return line(`${n(e.who)} and ${n(e.to)} are married!`, true);
+    case 'turned_down': return line(`${n(e.who)} turns down ${n(e.to)}'s proposal.`, true);
     case 'job_offered': return line(`${n(e.who)} offered ${n(e.to)} work, ${hour(e.startHour)} to ${hour(e.startHour + e.hours)}, at ${formatMoney(e.wage)} a shift.`);
     case 'hired': return line(`${n(e.who)} is now working for ${n(e.by)} at ${place(e.shop)} (${formatMoney(e.wage)} a shift).`, true);
     case 'quit': return line(`${n(e.who)} quit working for ${n(e.from)}.`, true);

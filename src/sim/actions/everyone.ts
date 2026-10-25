@@ -1,3 +1,4 @@
+import { atRoughSpot, noteSpoken } from '../households.ts';
 import { FISHING_MINUTES, RESTED, startSleep } from '../activities.ts';
 import { ITEMS, LORRY_BUYS, quantityLabel, type ItemId } from '../items.ts';
 import { MAP_H, MAP_W, PLACES, PLACE_BY_ID, findPath, isWalkable, type Point } from '../map.ts';
@@ -61,6 +62,7 @@ export function resolveDestination(w: World, r: Resident, where: unknown): Desti
   const unknown = `You don't know of anywhere called ${quoted(where)}.`;
   if (['home', 'my house', 'my home', 'house', 'my attap house'].includes(s)) {
     const h = w.home(r);
+    if (!h) return "You've nowhere to call home just now.";
     return { point: h.spot, placeId: h.id, label: 'home' };
   }
   const dir = DIRECTIONS[s.replace(/^(head |go )?(to the )?/, '').replace(/wards?$/, '')];
@@ -82,8 +84,8 @@ export function resolveDestination(w: World, r: Resident, where: unknown): Desti
   const house = /^(.+?)['’]s\s+(house|home|place)$/.exec(s);
   if (house) {
     const o = w.residentByName(house[1]);
-    if (o && w.knowsPerson(r, o.id) && w.knowsPlace(r, o.homeId)) {
-      const h = w.home(o);
+    if (o && w.knowsPerson(r, o.id) && o.homeId && w.knowsPlace(r, o.homeId)) {
+      const h = w.home(o)!;
       return { point: h.spot, placeId: h.id, label: w.placeName(h) };
     }
     return unknown;
@@ -110,7 +112,7 @@ export function walkTo(w: World, r: Resident, i: Intent): ActionResult {
   const path = findPath(r.pos, d.point);
   if (!path) return no("You can't see a way to get there.");
   r.activity = { kind: 'walking', path, dest: d.placeId, thenSleep: false };
-  w.emit({ type: 'walked', who: r.id, to: d.label === 'home' ? w.placeName(w.home(r)) : d.label });
+  w.emit({ type: 'walked', who: r.id, to: d.label === 'home' ? w.placeName(w.home(r)!) : d.label });
   return ok(`You set off for ${d.label === 'home' ? 'home' : d.label}.`);
 }
 
@@ -146,6 +148,7 @@ export function say(w: World, r: Resident, i: Intent): ActionResult {
     // Talk meant for you wakes you to answer, until the chat has run long;
     // talk meant for someone else is only overheard.
     const forYou = !to || to.id === o.id;
+    if (forYou) noteSpoken(w, r, o);
     if (forYou && !runsLong(o)) w.notify(o.id, line, true);
     else w.remember(o.id, line, forYou);
   }
@@ -400,7 +403,8 @@ export function eat(w: World, r: Resident, i: Intent): ActionResult {
 }
 
 export function sleep(w: World, r: Resident): ActionResult {
-  if (!w.isAt(r, r.homeId)) return no("You'd rather sleep in your own bed at home.");
+  if (!r.homeId && !atRoughSpot(r)) return no("You'd want somewhere sheltered to lie down: the jetty, the kopitiam bench or under the eaves by the houses.");
+  if (r.homeId && !w.isAt(r, r.homeId)) return no("You'd rather sleep in your own bed at home.");
   if (r.energy >= RESTED - 50) return no("You're not tired enough to sleep.");
   startSleep(w, r, 'nap');
   return ok('You lie down for a rest.');
