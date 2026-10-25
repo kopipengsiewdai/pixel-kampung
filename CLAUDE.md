@@ -38,6 +38,13 @@ discover new features in-world. We never tell them about changes. So:
 - Never leak internals in prompts, tool/action names or error messages
   ("you can't do that here", never "feature not implemented").
 
+## HARD RULE: one world forever
+
+Owner, 2026-10-25: the living town is never reset without his yes. Every
+change to saved state (world, brains, memories, tables) ships with an upgrade
+step in `src/store/upgrades.ts` and a frozen fixture save; see
+`docs/design/upgrades.md`.
+
 ## HARD RULE: pseudonymity
 
 Commits and every public surface use **kopipengsiewdai** /

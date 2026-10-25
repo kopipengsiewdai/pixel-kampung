@@ -9,6 +9,7 @@ import { World, type Resident, type WorldState } from './sim/state.ts';
 import { advance } from './sim/tick.ts';
 import { isNight, minuteOfDay } from './sim/time.ts';
 import type { SqliteStore } from './store/sqlite-store.ts';
+import { SCHEMA_VERSION } from './store/upgrades.ts';
 
 /** A refused resident may try something else this many times in the same minute. */
 export const TRIES_PER_THOUGHT = 3;
@@ -63,10 +64,12 @@ export class Town {
     return town;
   }
 
-  /** Picks up from the store's last save, or null if there's nothing saved. */
+  /** Picks up from the store's last save (upgraded when the store opened), or null if there's nothing saved. */
   static resume(opts: TownOptions & { store: SqliteStore }): Town | null {
     const saved = opts.store.load();
-    return saved ? new Town(saved.world, opts, saved.brains) : null;
+    if (!saved) return null;
+    if (saved.world.version !== SCHEMA_VERSION) throw new Error(`The saved town is at version ${saved.world.version}, not ${SCHEMA_VERSION}; it must be upgraded first.`);
+    return new Town(saved.world, opts, saved.brains);
   }
 
   static fromSnapshot(state: WorldState, brains: Record<string, unknown>, opts: TownOptions = {}): Town {

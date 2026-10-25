@@ -2,7 +2,8 @@
  * The live kampung, in real time (1 game minute = 1 real minute, Singapore
  * time), with fake brains for now. Saves every minute to
  * $KAMPUNG_HOME/kampung.db, writes a heartbeat file, and prints the feed.
- * After downtime it resumes cleanly without replaying the missed hours.
+ * After downtime it resumes cleanly without replaying the missed hours. A save
+ * from an older release is upgraded in place first (docs/design/upgrades.md).
  *
  *   npm start [-- --seed 42]     fake brains, $0
  *   npm start -- --minds         real thinking (needs ANTHROPIC_API_KEY in $KAMPUNG_HOME/.env),
@@ -15,9 +16,9 @@ import { feedLine, formatFeedLine } from '../feed/feed.ts';
 import type { GameEvent } from '../sim/events.ts';
 import { SystemClock } from '../sim/clock.ts';
 import { gameMinuteFromMs } from '../sim/time.ts';
-import { SqliteStore } from '../store/sqlite-store.ts';
 import { Town } from '../town.ts';
 import { numArg, parseArgs } from './args.ts';
+import { openSave } from './open-save.ts';
 import { join } from 'node:path';
 import { readApiKey } from '../config/env.ts';
 import { AnthropicModel } from '../mind/anthropic-model.ts';
@@ -34,7 +35,8 @@ import { LiveSource } from '../watch/source.ts';
 
 const args = parseArgs(process.argv.slice(2));
 const home = kampungHome();
-const store = new SqliteStore(dbPath(home));
+// Upgrades an older save first (backed up beside it); refuses one from newer code.
+const store = openSave(dbPath(home));
 const clock = new SystemClock();
 
 let town: Town;

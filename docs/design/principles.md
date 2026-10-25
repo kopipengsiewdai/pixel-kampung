@@ -111,3 +111,10 @@ AI residents are players *inside* the world, not developers of it.
   implemented", "invalid action id").
 - **Action names are in-world verbs.** Tools are named the way the character
   would think of them (`talk`, `pick up`, `buy`), not after engine calls.
+
+## One world forever (agreed 2026-10-25)
+
+**The town that launches is never reset** unless the owner says so. Future
+features ship as upgrades that the living town picks up in place: residents
+keep their memories and discover new things in-world. Every change to saved
+state ships with an upgrade step. How it works: [upgrades.md](upgrades.md).
