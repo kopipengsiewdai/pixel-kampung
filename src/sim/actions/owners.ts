@@ -34,6 +34,12 @@ export function setPrice(w: World, r: Resident, i: Intent): ActionResult {
   if (hasLimit && side === 'sell') return no('You can only put a limit on how much you buy.');
   if (hasLimit && limit === null) return no(SAY_NOTHING_SENSIBLE);
   const prices = side === 'sell' ? shop.sellPrices : shop.buyPrices;
+  // Setting what's already set changes nothing; refusing it stops an owner looping on it.
+  const sameLimit = side === 'sell' || (limit ?? undefined) === shop.buyLimits[item];
+  if ((prices[item] ?? 0) === cents && sameLimit) {
+    if (cents === 0) return no(side === 'sell' ? `You're already not selling ${item}.` : `You're already not buying ${item}.`);
+    return no(`That's already your price for ${item}: ${formatMoney(cents)}.`);
+  }
   if (cents === 0) delete prices[item];
   else prices[item] = cents;
   if (side === 'buy') {
