@@ -47,6 +47,12 @@ npm start -- --minds                            # the live town, thinking for re
 live town in `~/.kampung/kampung.db` (set `KAMPUNG_HOME` to move it) and
 resumes from there after a restart. Runtime data never goes in this repo.
 
+There is one living town, upgraded in place by each release: a save from an
+older version is backed up beside it and upgraded on start, and a save from a
+newer version is refused rather than overwritten
+([docs/design/upgrades.md](docs/design/upgrades.md)). What changed in each
+release is in [CHANGELOG.md](CHANGELOG.md).
+
 **Out of scope for now:** combat, killing, PvP. The world is about work, trade,
 community and stories.
 

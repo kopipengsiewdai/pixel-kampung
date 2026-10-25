@@ -8,6 +8,7 @@
 *.db-journal
 *.db-wal
 *.db-shm
+*.db.bak-*
 *.sqlite
 *.sqlite3
 *.log
@@ -16,6 +17,8 @@ saves/
 world-state/
 memories/
 .kampung/
+# ...except the tiny, fake, frozen save fixtures the upgrade tests load (SQL text, never a .db)
+!test/fixtures/saves/
 
 # Scratch space (never the repo root or Desktop)
 .scratch/

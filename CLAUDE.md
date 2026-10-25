@@ -41,10 +41,11 @@ discover new features in-world. We never tell them about changes. So:
 ## HARD RULE: one world forever
 
 Owner, 2026-10-25: the live town is never reset without his yes. Every change
-to saved state ships with an upgrade step and a test fixture
-(`docs/design/upgrades.md`), so the living town upgrades in place and residents
-discover changes in-world. Releases get a version, a git tag and a
-`CHANGELOG.md` line saying how the living town picks the change up.
+to saved state (world, brains, memories, tables) ships with an upgrade step in
+`src/store/upgrades.ts` and a frozen fixture save (`docs/design/upgrades.md`),
+so the living town upgrades in place and residents discover changes in-world.
+Releases get a version, a git tag and a `CHANGELOG.md` line saying how the
+living town picks the change up.
 
 ## HARD RULE: pseudonymity
 

@@ -103,7 +103,8 @@ export interface Bed {
 export interface Note { id: number; authorId: string; text: string; t: number }
 
 export interface WorldState {
-  version: 1;
+  /** The save version (SCHEMA_VERSION); older saves are upgraded on load (docs/design/upgrades.md). */
+  version: number;
   seed: number;
   /** Last game minute simulated. */
   t: number;

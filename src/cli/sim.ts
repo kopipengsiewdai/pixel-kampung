@@ -10,9 +10,9 @@ import { join } from 'node:path';
 import { kampungHome } from '../config/paths.ts';
 import { feedLine, formatFeedLine } from '../feed/feed.ts';
 import { formatMoney } from '../sim/money.ts';
-import { SqliteStore } from '../store/sqlite-store.ts';
 import { Town } from '../town.ts';
 import { numArg, parseArgs } from './args.ts';
+import { openSave } from './open-save.ts';
 import { SIM_START } from './start.ts';
 import { energyWord, hungerWord } from '../sim/perception.ts';
 import type { GameEvent } from '../sim/events.ts';
@@ -25,7 +25,7 @@ const seed = numArg(args, 'seed', 42);
 const notableOnly = args.notable === true;
 
 let town: Town;
-const store = args.save ? new SqliteStore(join(typeof args.home === 'string' ? args.home : kampungHome(), 'sim.db')) : undefined;
+const store = args.save ? openSave(join(typeof args.home === 'string' ? args.home : kampungHome(), 'sim.db')) : undefined;
 const print = (e: GameEvent) => {
   const line = feedLine(e, (id) => town.world.resident(id).name);
   if (line && (!notableOnly || line.notable)) console.log(formatFeedLine(line));

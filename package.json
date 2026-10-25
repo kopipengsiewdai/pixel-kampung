@@ -1,6 +1,6 @@
 {
   "name": "pixel-kampung",
-  "version": "0.1.0",
+  "version": "0.9.0",
   "private": true,
   "description": "An AI-first pixel life-sim: a 1960s Singapore kampung run by AI residents.",
   "license": "AGPL-3.0-only",
@@ -10,6 +10,7 @@
   },
   "scripts": {
     "sim": "node --disable-warning=ExperimentalWarning src/cli/sim.ts",
+    "save-fixture": "node --disable-warning=ExperimentalWarning test/make-save-fixture.ts",
     "start": "node --disable-warning=ExperimentalWarning src/cli/serve.ts",
     "test": "vitest run",
     "test:page": "vitest run --config vitest.page.config.ts",
