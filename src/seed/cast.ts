@@ -2,27 +2,29 @@ import type { Goods } from '../sim/state.ts';
 import type { Cents } from '../sim/money.ts';
 
 /**
- * Placeholder residents for the demo world. The real cast cards (name, age,
- * personality, a want, a worry) are drafted in milestone 4 and edited by the
- * owner; these only fix the roles: 3 owners and 7 job-seekers.
+ * The ten residents (owner-approved, 2026-10-25; see docs/design/cast.md):
+ * 3 owners and 7 job-seekers. Their cards (cards.ts) say who they are; this
+ * fixes their roles, businesses and the people they already know on day one.
  */
 export interface CastMember {
   name: string;
   role: 'owner' | 'seeker';
   business?: 'kopitiam' | 'provision-shop' | 'market-stall';
+  /** People they already know when the town starts (family and old friends). */
+  knows: readonly string[];
 }
 
 export const CAST: readonly CastMember[] = [
-  { name: 'Ah Huat', role: 'owner', business: 'kopitiam' },
-  { name: 'Mdm Tan', role: 'owner', business: 'provision-shop' },
-  { name: 'Rahim', role: 'owner', business: 'market-stall' },
-  { name: 'Mei Ling', role: 'seeker' },
-  { name: 'Ah Kow', role: 'seeker' },
-  { name: 'Siti', role: 'seeker' },
-  { name: 'Muthu', role: 'seeker' },
-  { name: 'Ah Seng', role: 'seeker' },
-  { name: 'Fatimah', role: 'seeker' },
-  { name: 'Raju', role: 'seeker' },
+  { name: 'Ah Huat', role: 'owner', business: 'kopitiam', knows: ['Ah Seng', 'Rahim'] },
+  { name: 'Mdm Tan', role: 'owner', business: 'provision-shop', knows: ['Mei Ling'] },
+  { name: 'Rahim', role: 'owner', business: 'market-stall', knows: ['Fatimah', 'Ah Huat'] },
+  { name: 'Mei Ling', role: 'seeker', knows: ['Mdm Tan'] },
+  { name: 'Ah Kow', role: 'seeker', knows: [] },
+  { name: 'Siti', role: 'seeker', knows: ['Fatimah'] },
+  { name: 'Muthu', role: 'seeker', knows: ['Raju'] },
+  { name: 'Ah Seng', role: 'seeker', knows: ['Ah Huat'] },
+  { name: 'Fatimah', role: 'seeker', knows: ['Rahim', 'Siti'] },
+  { name: 'Raju', role: 'seeker', knows: ['Muthu'] },
 ];
 
 /**

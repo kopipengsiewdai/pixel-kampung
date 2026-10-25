@@ -26,6 +26,9 @@ Claude writes 10 rough placeholder cards, used only for M2 testing and
 clearly marked as throwaway. The real cast cards (M4), which the owner edits,
 replace them.
 
+*Done in M4:* the owner-approved [cast](cast.md) replaced them
+(`src/seed/cards.ts`).
+
 ## 4. Testing may spend up to US$10
 
 Paid trials run before the town goes 24/7. They start with a few residents

@@ -20,7 +20,7 @@ import { FakeModel } from '../mind/fake-model.ts';
 import { MemoryStore } from '../mind/memory.ts';
 import { Mind } from '../mind/mind.ts';
 import { mindBrains } from '../mind/setup.ts';
-import { TEST_CARDS } from '../seed/test-cards.ts';
+import { CARDS } from '../seed/cards.ts';
 import { Town, fakeBrains } from '../town.ts';
 import { ASSETS_DIR, buildClient } from '../watch/bundle.ts';
 import { MAX_SPEED } from '../watch/player.ts';
@@ -70,7 +70,7 @@ if (args.replay !== undefined) {
   const seed = numArg(args, 'seed', 42);
   const msPerMinute = 60_000 / speed;
   const memory = new MemoryStore(':memory:');
-  const mind = new Mind({ client: new FakeModel(seed), memory, costs: new CostLog(null), cards: TEST_CARDS, townCap: Infinity });
+  const mind = new Mind({ client: new FakeModel(seed), memory, costs: new CostLog(null), cards: CARDS, townCap: Infinity });
   const live = new LiveSource({
     label: `Fake town at ${speed}×`,
     msPerMinute,

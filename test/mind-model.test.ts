@@ -173,7 +173,7 @@ describe('the real path end to end, against a stubbed network', () => {
     const { Mind } = await import('../src/mind/mind.ts');
     const { MemoryStore } = await import('../src/mind/memory.ts');
     const { mindBrains } = await import('../src/mind/setup.ts');
-    const { TEST_CARDS } = await import('../src/seed/test-cards.ts');
+    const { CARDS } = await import('../src/seed/cards.ts');
     const { SIM_START } = await import('../src/cli/start.ts');
     const bodies: any[] = [];
     let n = 0;
@@ -191,7 +191,7 @@ describe('the real path end to end, against a stubbed network', () => {
     }) as typeof fetch;
     const dir = mkdtempSync(join(tmpdir(), 'kampung-e2e-'));
     try {
-      const mind = new Mind({ client: new AnthropicModel({ apiKey: 'k', fetch: stub, maxRetries: 0 }), memory: new MemoryStore(':memory:'), costs: new CostLog(dir), cards: TEST_CARDS });
+      const mind = new Mind({ client: new AnthropicModel({ apiKey: 'k', fetch: stub, maxRetries: 0 }), memory: new MemoryStore(':memory:'), costs: new CostLog(dir), cards: CARDS });
       const events: { type: string; who?: string }[] = [];
       const town = Town.create(1, SIM_START, { brains: mindBrains(mind, fakeBrains, ['siti']), observer: mind.observe, onEvent: (e) => events.push(e) });
       await town.runUntil(SIM_START + 60);

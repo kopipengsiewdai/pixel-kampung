@@ -68,6 +68,8 @@ under the agreed [M2 decisions](m2-decisions.md) and [v1 spec](v1-spec.md)
   name only counts with "the", so "the well" counts but "well" doesn't.
 - To explore, a resident can walk north, south, east or west (8 tiles).
 - An owner knows their own shop from the start.
+- Family and old friends (each card's Knows line) are known from day one;
+  everyone else is met in play.
 
 ## Talk
 
