@@ -5,6 +5,7 @@
  * Their money comes from outside, through the `travellers` account, and only
  * up to each shop's daily budget (an owner's dial, src/sim/dials.ts).
  */
+import { practise } from './skills.ts';
 import { quantityLabel, type ItemId } from './items.ts';
 import type { Cents } from './money.ts';
 import { addGoods, countGoods, TRAVELLERS_ID, type Resident, type Shop, type World } from './state.ts';
@@ -167,5 +168,6 @@ export function stoveMinute(w: World, r: Resident): void {
   if (!shop) return;
   addGoods(shop.stock, s.item, s.qty);
   w.emit({ type: 'cooked', who: r.id, item: s.item, qty: s.qty });
+  practise(w, r, 'cooking', s.batches);
   w.notify(r.id, `The ${s.item} is ready: ${quantityLabel(s.item, s.qty)}.`);
 }

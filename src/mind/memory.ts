@@ -1,3 +1,4 @@
+import { LEVEL_UP_LINES } from '../sim/skills.ts';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -30,6 +31,8 @@ export function importanceOf(kind: MemoryKind, text: string): number {
   if (kind === 'plan') return 5;
   const s = text.toLowerCase();
   if (/let you go|quit|accepted your job|now work for|offers you work|you no longer work/.test(s)) return 8;
+  // A level reached at a skill: a moment in their working life.
+  if (LEVEL_UP_LINES.has(text)) return 7;
   if (/wages|still owes|paid you|owe|lend|borrow|\biou\b|pays you back|lets you off/.test(s)) return 7;
   if (/trade|gave you|turned down|^you pin your note|for you\.$|^you water .+'s beds|^you mend .+'s nets/.test(s)) return 6;
   if (kind === 'thought') return 4;

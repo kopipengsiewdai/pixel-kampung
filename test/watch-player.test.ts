@@ -66,7 +66,7 @@ describe('the replay player', () => {
 
 function resident(id: string, x: number, y: number, route = [{ x, y }]): ResidentView {
   return {
-    id, name: id, role: 'seeker', age: 30, child: false, homeId: 'house-1', x, y, route, activity: null, sleep: null, doing: '', place: null,
+    id, name: id, role: 'seeker', age: 30, child: false, skills: [], homeId: 'house-1', x, y, route, activity: null, sleep: null, doing: '', place: null,
     money: 0, hunger: 0, energy: 1000, hungerWord: 'full', energyWord: 'rested', job: null, carrying: [],
   };
 }

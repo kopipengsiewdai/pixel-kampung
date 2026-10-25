@@ -93,7 +93,14 @@ Ordered stock is dropped off at the owner's shop.
   catches today bring one more fish), sweep your shop or where you're on
   shift (15 min; travellers wait 12 minutes there today, not 8). A batch of
   kopi or fish porridge takes a pail of water. At the dawn tide (06:00–09:00)
-  a fishing line comes up empty 15% of the time, not 30%.
+  and the evening tide (17:00–19:00) a fishing line comes up empty half as
+  often.
+- Skills (skills.md): fishing, farming and cooking get better with finished
+  deeds, so much a day. A novice's odds, yields and times are as above; a
+  better fisher's line comes up empty less often (30/25/20/15/10%), a handy
+  grower harvests one more a bed, a handy cook is a fifth quicker. Any bed
+  harvested on the day it's ready gives two more. Skills rust with disuse
+  and fade after a year; a Master can show someone how, up to Expert.
 - Travellers from the coast road (daily-life.md B) come to each shop at set
   hours, queue (4 at most, 8 minutes at most), and are served 2 minutes
   each by the owner there or a worker on shift there, neither cooking. They

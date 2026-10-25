@@ -1,3 +1,4 @@
+import { crowdSoon, mastered, skillLines, type SkillId } from './skills.ts';
 import { isRipe, isStaffed, shiftLabel, shopHere } from './actions/everyone.ts';
 import { CHORE_DOING, errandLines } from './actions/chores.ts';
 import { offersFor } from './actions/haggle.ts';
@@ -103,6 +104,12 @@ export interface Perception {
   busyShop: { server: string; owner: string; alone: boolean; waiting: number } | null;
   /** On shift: how many travellers they've served today. */
   servedToday: number | null;
+  /** What they know of their own skills, in words, and an Expert's sense of the moment (docs/design/skills.md). */
+  skills: string[];
+  /** For the free fake brain only (the words are in `skills`): who offers to show them how, what they could teach, and a crowd coming. */
+  lessonOffers: { from: string }[];
+  canTeach: SkillId[];
+  crowdSoon: boolean;
   /** Errands they're running, asked to run, or asked of someone. */
   errands: string[];
   /** Their nets are mended for today's next catches. */
@@ -268,6 +275,10 @@ export function perceive(w: World, r: Resident): Perception {
     },
     busyShop: shop && shop.ownerId !== r.id && !(r.activity?.kind === 'working') ? busyShopOf(w, shop) : null,
     servedToday: r.activity?.kind === 'working' && jobRow ? (w.shop(jobRow.placeId)?.today.servedBy[r.id] ?? 0) : null,
+    skills: skillLines(w, r),
+    lessonOffers: w.state.lessonOffers.filter((o) => o.learnerId === r.id).map((o) => ({ from: w.resident(o.teacherId).name })),
+    canTeach: mastered(r),
+    crowdSoon: crowdSoon(w, r),
     errands: errandLines(w, r),
     netsMended: !!r.mended && r.mended.day === today && r.mended.left > 0,
     priceOffers: offersFor(w, r).map((o) => ({
@@ -375,6 +386,7 @@ export function describe(p: Perception): string {
   if (!p.debts.owe.length && !p.debts.owedYou.length && !p.debts.wages.length && !p.business?.owed.length) {
     lines.push('Nobody owes you anything, and you owe nobody.');
   }
+  lines.push(...p.skills);
   // What they are, every moment, so nobody talks as if they ran a shop they don't (or shared one that's theirs).
   if (!p.job && !p.business) lines.push("You have no work just now, and you don't run a stall or shop.");
   if (p.job) {

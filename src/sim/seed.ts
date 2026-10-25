@@ -5,6 +5,7 @@ import { PLACE_BY_ID, PLACES } from './map.ts';
 import { Rng } from './rng.ts';
 import { FARM_BEDS, HOUSE_IDS, type WorldState } from './state.ts';
 import { dayIndex } from './time.ts';
+import { threshold, type SkillId } from './skills.ts';
 import { freshDay } from './travellers.ts';
 
 function slug(name: string): string {
@@ -50,6 +51,9 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
       knownPlaces: [homeId, ...(c.places ?? PLACES.map((p) => p.id)).filter((id) => id !== homeId)],
       // Family and old friends are known from day one; everyone else is met in play.
       knownPeople: c.knows.map(slug),
+      // The old hands start at their level (docs/design/skills.md); everyone else a novice.
+      skills: Object.fromEntries((Object.entries(c.skills ?? {}) as [SkillId, number][])
+        .map(([s, level]) => [s, { xp: threshold(s, level), peak: level, lastDay: dayIndex(t), today: { day: dayIndex(t), xp: 0 }, rusty: false, drops: 0 }])),
     };
   });
   const shops = cast.flatMap((c, i) => {
@@ -79,7 +83,9 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
     debtOffers: [],
     priceOffers: [],
     errands: [],
-    beds: Array.from({ length: FARM_BEDS }, (_, n) => ({ n: n + 1, planterId: null, plantedDay: 0, wateredDays: 0, lastWateredDay: null })),
+    lessons: [],
+    lessonOffers: [],
+    beds: Array.from({ length: FARM_BEDS }, (_, n) => ({ n: n + 1, planterId: null, plantedDay: 0, wateredDays: 0, lastWateredDay: null, readyDay: null })),
     notes: [],
     lorryHere: false,
     firsts: [],

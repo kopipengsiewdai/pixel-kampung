@@ -61,6 +61,11 @@ const FAMILY_V12 = [
   { id: 'aminah', name: 'Aminah', livesWith: 'fatimah', knows: ['fatimah', 'hassan', 'rahim'] },
   { id: 'hassan', name: 'Hassan', livesWith: 'fatimah', knows: ['fatimah', 'aminah', 'rahim'] },
 ];
+/** The old hands' starting skills, frozen for v12 → v13: [level, experience at that level's start]. */
+const SKILLS_V13: Record<string, Record<string, [number, number]>> = {
+  rahim: { fishing: [5, 4380] }, 'ah-huat': { cooking: [5, 4384] }, 'mak-esah': { cooking: [5, 4384] },
+  fatimah: { farming: [4, 1460] }, 'ah-kow': { farming: [2, 146] }, hassan: { fishing: [2, 219] },
+};
 /** Who in the town already knows them, frozen for v11 → v12. */
 const KNOW_FAMILY_V12: Record<string, string[]> = { siti: ['mak-esah'], fatimah: ['aminah', 'hassan'], rahim: ['aminah', 'hassan'] };
 
@@ -242,6 +247,23 @@ export const UPGRADES: readonly Upgrade[] = [
         }];
       });
       return { world: { ...world, residents: [...old, ...added] }, brains };
+    },
+  },
+  {
+    from: 12,
+    why: "Residents get better at fishing, farming and cooking by doing them: the old hands (Rahim, Ah Huat, Mak Esah, Fatimah, Ah Kow, Hassan) start at their levels, everyone else a novice. A master can show someone how. A bed knows when it was ready.",
+    save: ({ world, brains }) => {
+      // The day by the time code as it stood at v12 (frozen).
+      const day = Math.floor(((world.t as number) + 8 * 60) / 1440);
+      const residents = (world.residents as { id: string }[]).map((r) => ({
+        ...r,
+        skills: Object.fromEntries(Object.entries(SKILLS_V13[r.id] ?? {}).map(([s, [peak, xp]]) => [s, { xp, peak, lastDay: day, today: { day, xp: 0 }, rusty: false, drops: 0 }])),
+      }));
+      // A bed that has had its two waterings was ready on the later of its last watering and its second day after planting.
+      const beds = (world.beds as { plantedDay: number; wateredDays: number; lastWateredDay: number | null }[]).map((b) => ({
+        ...b, readyDay: b.wateredDays >= 2 && b.lastWateredDay !== null ? Math.max(b.lastWateredDay, b.plantedDay + 2) : null,
+      }));
+      return { world: { ...world, residents, beds, lessons: [], lessonOffers: [] }, brains };
     },
   },
 ];

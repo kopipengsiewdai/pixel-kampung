@@ -262,6 +262,45 @@ make and sell (answer 1: split).
   that only real neglect rusts.
 - **Prompt growth:** at most three lines; Novices see none.
 
+## As built (S1, save v13)
+
+- `src/sim/skills.ts` holds the numbers above: thresholds, caps, rust and
+  drop days, every line, `practise`, `fadeSkills` (each midnight and after a
+  quiet skip), `toolsChange` (the hook, unused), and the lesson rules.
+  `src/sim/actions/teach.ts` holds `teach` and the lesson's agree/refuse.
+- **Effects in S1:**
+  - fishing's empty-line odds at every level (30/25/20/15/10%, halved at the
+    tides);
+  - the evening tide (17:00–19:00) for everyone;
+  - Handy farming +1 a bed;
+  - +2 for any bed harvested on its ready day (the bed's new `readyDay`: the
+    later of its second watering and two days after planting);
+  - Handy cooking a fifth quicker;
+  - the Expert lines (tides from 30 minutes before, crowds 45 minutes before
+    the kopitiam's busy hours, a bed at its best).
+- **Not yet (S2):** the Skilled and Master abilities and items, and a Master
+  cook's extra serving and price. Until S2, Skilled's lines speak only of the
+  craft: "You're a good hand with a line.", "Your lines come up empty less
+  often now."
+- **Who sees what:**
+  - the teacher sees their pending offer ("You've offered to show Siti how
+    to fish.");
+  - lines say "how to fish", never "how he fishes", so no pronouns;
+  - helping water a neighbour's beds counts as farming for the helper.
+- `teach` is offered to anyone with a mastered skill and someone nearby, as
+  "show someone nearby how to do what you do best (person, and item: what)".
+  `agree`/`refuse` take a lesson like any offer; words with show, teach,
+  learn or lesson choose it.
+- **Starting levels** come from `skills` in `src/seed/cast.ts` (a new town)
+  and a frozen table in the v12 → v13 step (the living town).
+- **Watchers:** the wiki's People show each skill's level name, % to the
+  next, and rust. The trial prints a `--- skills ---` block.
+- **The fake brain:**
+  - a Master at the work offers once a day to someone beside them, and stays
+    (fishing alongside) while it's on;
+  - a learner, on shift or not, agrees;
+  - an Expert cook keeps twice as much ready ahead of a crowd.
+
 ## Answers (2026-10-25)
 
 1. **Two PRs: yes** (Claude's call, owner informed). S1, the core, comes after

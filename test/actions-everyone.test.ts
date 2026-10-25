@@ -239,7 +239,8 @@ describe('plant / water / harvest', () => {
     put(w, 'Siti', 'farm');
     accepted(act(w, siti.id, { verb: 'water' }));
     refused(act(w, siti.id, { verb: 'harvest' }), /isn't ready yet/);
-    w.state.t = sgt(9, 0, 2);
+    // A day late: the plain harvest (on the day it was ready, two more).
+    w.state.t = sgt(9, 0, 3);
     accepted(act(w, siti.id, { verb: 'harvest' }));
     expect(siti.items.vegetables).toBe(5);
     expect(w.state.beds.every((b) => b.planterId === null)).toBe(true);

@@ -1,3 +1,4 @@
+import type { SkillId } from './skills.ts';
 import type { ItemId } from './items.ts';
 import type { Cents } from './money.ts';
 import type { Bundle } from './state.ts';
@@ -42,6 +43,11 @@ export type EventBody =
   | { type: 'errand_taken'; who: string; from: string }
   | { type: 'errand_refused'; who: string; from: string }
   | { type: 'errand_done'; who: string; for: string; cents: Cents; paid: boolean }
+  | { type: 'skill_up'; who: string; skill: SkillId; level: number }
+  | { type: 'skill_lost'; who: string; skill: SkillId; level: number }
+  | { type: 'lesson_offered'; who: string; to: string; skill: SkillId }
+  | { type: 'lesson_agreed'; who: string; from: string; skill: SkillId }
+  | { type: 'lesson_refused'; who: string; from: string; skill: SkillId }
   | { type: 'traveller_bought'; shop: string; owner: string; by: string; item: ItemId; cents: Cents }
   | { type: 'travellers_hour'; shop: string; served: number; cents: Cents; left: number }
   | { type: 'price_offered'; who: string; owner: string; shop: string; item: ItemId; qty: number; cents: Cents }

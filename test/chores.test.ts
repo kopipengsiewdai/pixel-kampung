@@ -293,7 +293,8 @@ describe('fishing at the dawn tide', () => {
   it('comes up empty less often between 6 and 9 in the morning', () => {
     const empty = (hour: number) => {
       const w = newWorld(hour);
-      const r = put(w, 'Rahim', 'jetty');
+      // A novice: the tides' effect on today's odds.
+      const r = put(w, 'Siti', 'jetty');
       let n = 0;
       for (let i = 0; i < 400; i++) {
         r.items = {};

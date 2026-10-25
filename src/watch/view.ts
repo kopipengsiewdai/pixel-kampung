@@ -3,6 +3,7 @@
  * a frame each minute. Owner's view only (real numbers, ids, everyone at
  * once); nothing here ever goes into a resident's prompt.
  */
+import { skillsView } from '../sim/skills.ts';
 import { CHORE_DOING } from '../sim/actions/chores.ts';
 import { DAYS_TO_GROW, isRipe, isStaffed, shiftLabel } from '../sim/actions/everyone.ts';
 import { LORRY_BUYS, LORRY_SELLS, quantityLabel, type ItemId } from '../sim/items.ts';
@@ -145,6 +146,7 @@ export class FrameBuilder {
         role: r.role,
         age: w.ageOf(r),
         child: w.ageOf(r) < GROWN_AGE,
+        skills: skillsView(r),
         homeId: r.homeId,
         x: pos.x,
         y: pos.y,

@@ -6,6 +6,8 @@
 import { quantityLabel } from '../items.ts';
 import { formatMoney, type Cents } from '../money.ts';
 import type { Debt, DebtOffer, Errand, Resident, World } from '../state.ts';
+import { howTo, type LessonOffer } from '../skills.ts';
+import { lessonFrom, refuseLesson, takeLesson } from './teach.ts';
 import { describeErrand, errandFrom, refuseErrand, takeErrand } from './chores.ts';
 import { acceptPrice, priceOfferFrom, refusePrice } from './haggle.ts';
 import { type ActionResult, type Intent, moneyOf, no, ok, personNearby, quoted, textOf } from './common.ts';
@@ -89,12 +91,13 @@ function offerFrom(w: World, r: Resident, from: unknown): { o: Resident; offer: 
  * item, or it's the only one), a money offer, or neither (asked which).
  */
 function whichOffer(w: World, r: Resident, i: Intent):
-  { price: NonNullable<ReturnType<typeof priceOfferFrom>> } | { money: { o: Resident; offer: DebtOffer } } | { errand: Errand } | string {
+  { price: NonNullable<ReturnType<typeof priceOfferFrom>> } | { money: { o: Resident; offer: DebtOffer } } | { errand: Errand } | { lesson: LessonOffer } | string {
   const moneyOrWhy = offerFrom(w, r, i.from);
   const money = typeof moneyOrWhy === 'string' ? null : moneyOrWhy;
   const price = priceOfferFrom(w, r, i.from);
   const errand = errandFrom(w, r, i.from);
-  const found = [money && { money }, price && { price }, errand && { errand }].filter((x) => !!x);
+  const lesson = lessonFrom(w, r, i.from);
+  const found = [money && { money }, price && { price }, errand && { errand }, lesson && { lesson }].filter((x) => !!x);
   if (found.length === 0) return moneyOrWhy as string;
   if (found.length === 1) return found[0]!;
   if (price && i.item !== undefined && i.item !== null && i.item !== '') return { price };
@@ -102,15 +105,17 @@ function whichOffer(w: World, r: Resident, i: Intent):
   const words = typeof i.text === 'string' ? i.text : '';
   const aboutErrand = errand !== null && (/\berrand|\bfetch|\bwater\b/i.test(words) || errandWords(w, errand).some((x) => words.toLowerCase().includes(x)));
   const aboutMoney = money !== null && /\b(money|loan|lend|borrow|owe|iou)/i.test(words);
-  if (aboutErrand && !aboutMoney) return { errand };
-  if (aboutMoney && !aboutErrand) return { money };
+  const aboutLesson = lesson !== null && /\b(show|teach|learn|lesson)/i.test(words);
+  const about = [aboutErrand && { errand: errand! }, aboutMoney && { money: money! }, aboutLesson && { lesson: lesson! }].filter((x) => !!x);
+  if (about.length === 1) return about[0]!;
   const name = w.residentByName(i.from, r)!.name;
   const parts = [
     money ? 'asked you about money' : null,
     price ? `offered ${formatMoney(price.offer.cents)} for ${quantityLabel(price.offer.item, price.offer.qty)}` : null,
     errand ? describeErrand(w, errand) : null,
+    lesson ? `offered to show you ${howTo(lesson.skill)}` : null,
   ].filter((x): x is string => !!x);
-  const say = [money ? '"the loan"' : null, price ? `the ${price.offer.item}` : null, errand ? '"the errand"' : null].filter((x): x is string => !!x);
+  const say = [money ? '"the loan"' : null, price ? `the ${price.offer.item}` : null, errand ? '"the errand"' : null, lesson ? '"the lesson"' : null].filter((x): x is string => !!x);
   return `${name} has ${parts.length === 2 ? parts.join(' and ') : `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`}. Which do you mean? Say ${say.length === 2 ? say.join(' or ') : `${say.slice(0, -1).join(', ')} or ${say.at(-1)}`}.`;
 }
 
@@ -124,6 +129,7 @@ export function agree(w: World, r: Resident, i: Intent): ActionResult {
   if (typeof which === 'string') return no(which);
   if ('price' in which) return acceptPrice(w, r, which.price);
   if ('errand' in which) return takeErrand(w, r, which.errand);
+  if ('lesson' in which) return takeLesson(w, r, which.lesson);
   const found = which.money;
   const { o, offer: x } = found;
   const near = personNearby(w, r, o.name);
@@ -156,6 +162,7 @@ export function refuse(w: World, r: Resident, i: Intent): ActionResult {
   if (typeof which === 'string') return no(which);
   if ('price' in which) return refusePrice(w, r, which.price);
   if ('errand' in which) return refuseErrand(w, r, which.errand);
+  if ('lesson' in which) return refuseLesson(w, r, which.lesson);
   const found = which.money;
   const { o, offer: x } = found;
   const sum = formatMoney(x.cents);

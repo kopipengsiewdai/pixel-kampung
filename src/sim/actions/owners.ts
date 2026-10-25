@@ -1,3 +1,4 @@
+import { effectiveLevel, HANDY_COOK } from '../skills.ts';
 import { endShift } from '../activities.ts';
 import { LORRY_SELLS, RECIPES, quantityLabel, type ItemId } from '../items.ts';
 import { PLACE_BY_ID } from '../map.ts';
@@ -174,6 +175,8 @@ export function cook(w: World, r: Resident, i: Intent): ActionResult {
   for (const [need, n] of Object.entries(recipe.needs) as [ItemId, number][]) addGoods(shop.stock, need, -n * batches);
   // At the stove until it's done (daily-life.md B): the servings go into the kitchen then.
   const qty = recipe.yields * batches;
-  r.stove = { item, batches, qty, shopId: shop.id, until: w.t + (COOK_MINUTES[item] ?? 10) * batches };
+  // A handy cook is a fifth quicker at the stove.
+  const minutes = Math.round((COOK_MINUTES[item] ?? 10) * (effectiveLevel(r, 'cooking') >= 2 ? HANDY_COOK : 1));
+  r.stove = { item, batches, qty, shopId: shop.id, until: w.t + minutes * batches };
   return ok(`You start cooking ${batches === 1 ? 'a batch' : `${batches} batches`} of ${item}.`);
 }

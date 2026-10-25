@@ -6,6 +6,8 @@ import * as debts from './debts.ts';
 import * as everyone from './everyone.ts';
 import { offersFor } from './haggle.ts';
 import * as owners from './owners.ts';
+import * as teach from './teach.ts';
+import { mastered } from '../skills.ts';
 
 export type { ActionResult, Intent } from './common.ts';
 
@@ -23,6 +25,9 @@ interface ActionDef {
 const atShop = (w: World, r: Resident) => everyone.shopHere(w, r) !== null;
 const at = (id: string) => (w: World, r: Resident) => w.isAt(r, id);
 const withPeople = (w: World, r: Resident) => w.nearby(r).some((o) => !w.isAsleep(o));
+/** Something someone offered or asked r that waits on a yes or no. */
+const somethingOffered = (w: World, r: Resident) => w.state.debtOffers.some((o) => o.toId === r.id) || offersFor(w, r).length > 0
+  || w.state.errands.some((e) => !e.taken && e.runnerId === r.id) || w.state.lessonOffers.some((o) => o.learnerId === r.id);
 
 /** The whole v1 action space (spec §3). Nothing else can be done. */
 export const ACTIONS: Record<string, ActionDef> = {
@@ -55,11 +60,11 @@ export const ACTIONS: Record<string, ActionDef> = {
   },
   agree: {
     run: debts.agree, ownersOnly: false, says: 'agree to what someone offered or asked of you, or a price offered at your counter (person, and item for a price at your counter)',
-    here: (w, r) => w.state.debtOffers.some((o) => o.toId === r.id) || offersFor(w, r).length > 0 || w.state.errands.some((e) => !e.taken && e.runnerId === r.id),
+    here: (w, r) => somethingOffered(w, r),
   },
   refuse: {
     run: debts.refuse, ownersOnly: false, says: 'turn down what someone offered or asked of you, or a price offered at your counter (person, and item for a price at your counter)',
-    here: (w, r) => w.state.debtOffers.some((o) => o.toId === r.id) || offersFor(w, r).length > 0 || w.state.errands.some((e) => !e.taken && e.runnerId === r.id),
+    here: (w, r) => somethingOffered(w, r),
   },
   repay: {
     run: debts.repay, ownersOnly: false, says: 'pay back money you owe (person, and money to pay only part)',
@@ -81,6 +86,10 @@ export const ACTIONS: Record<string, ActionDef> = {
   help: {
     run: chores.help, ownersOnly: false, says: 'help someone with their work here (person)',
     here: (w, r) => w.state.residents.some((o) => o.id !== r.id && w.knowsPerson(r, o.id) && chores.canHelp(w, r, o) !== null),
+  },
+  teach: {
+    run: teach.teach, ownersOnly: false, says: 'show someone nearby how to do what you do best (person, and item: what)',
+    here: (w, r) => mastered(r).length > 0 && withPeople(w, r),
   },
   ask_errand: {
     run: chores.askErrand, ownersOnly: false, says: 'ask someone to run an errand for pay (person; words: "fetch water", or "take something to someone"; money)', here: withPeople,
