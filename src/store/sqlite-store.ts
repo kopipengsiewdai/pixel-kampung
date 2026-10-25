@@ -141,7 +141,12 @@ export class SqliteStore {
  * world's. They only differ if code from before 0.9.0, which doesn't check,
  * went on saving the world into a file that had already been upgraded.
  */
-interface Versions { tables: number | null; world: number | null }
+interface Versions {
+  tables: number | null;
+  world: number | null;
+  /** The saved minute, which tells two saves at the same versions apart. */
+  t: number | null;
+}
 
 function readVersions(db: DatabaseSync): Versions {
   const has = (name: string) => db.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(name) !== undefined;
@@ -151,21 +156,25 @@ function readVersions(db: DatabaseSync): Versions {
     return v;
   };
   const meta = has('meta') ? db.prepare("SELECT value FROM meta WHERE key = 'schema'").get() as { value: string } | undefined : undefined;
-  const snap = has('snapshot') ? db.prepare('SELECT world FROM snapshot WHERE id = 1').get() as { world: string } | undefined : undefined;
+  const snap = has('snapshot') ? db.prepare('SELECT t, world FROM snapshot WHERE id = 1').get() as { t: number; world: string } | undefined : undefined;
   return {
     tables: meta ? num(meta.value, 'file') : null,
     world: snap ? num((JSON.parse(snap.world) as { version?: unknown }).version, 'world') : null,
+    t: snap ? snap.t : null,
   };
 }
 
-/** Reads the versions without writing anything (no checkpoint, no journal change), where the file allows it. */
-function peekVersions(path: string): Versions {
-  let db: DatabaseSync;
+function openReadOnly(path: string): DatabaseSync {
   try {
-    db = new DatabaseSync(path, { readOnly: true });
-  } catch {
-    db = new DatabaseSync(path);
+    return new DatabaseSync(path, { readOnly: true });
+  } catch (err) {
+    throw new Error(`The save at ${path} couldn't be read without writing to it (${err instanceof Error ? err.message : String(err)}). Not starting, so nothing in it is touched.`);
   }
+}
+
+/** Reads the versions without writing anything (no checkpoint, no journal change), or refuses. */
+function peekVersions(path: string): Versions {
+  const db = openReadOnly(path);
   try {
     return readVersions(db);
   } finally {
@@ -173,12 +182,36 @@ function peekVersions(path: string): Versions {
   }
 }
 
-/** The first free backup name beside the save: kampung.db.bak-v1, then kampung.db.bak-v1.2, ... */
-function backupPath(path: string, from: number): string {
+/** Whether the file at p is a whole copy of the save described by `found`: same versions, same saved minute. */
+function isBackupOf(p: string, found: Versions): boolean {
+  try {
+    const db = openReadOnly(p);
+    try {
+      const ok = (db.prepare('PRAGMA quick_check').get() as { quick_check: string }).quick_check === 'ok';
+      const v = readVersions(db);
+      return ok && v.tables === found.tables && v.world === found.world && v.t === found.t;
+    } finally {
+      db.close();
+    }
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Where the backup goes: kampung.db.bak-v1, then kampung.db.bak-v1.2, ...
+ * A backup of this very save, left by an earlier try whose upgrade failed, is
+ * reused rather than copied again (a town restarted after each failure would
+ * otherwise pile up copies). Any other backup is never overwritten.
+ */
+function backupFor(path: string, from: number, found: Versions): { path: string; reused: boolean } {
   const base = `${path}.bak-v${from}`;
   let p = base;
-  for (let n = 2; existsSync(p); n++) p = `${base}.${n}`;
-  return p;
+  for (let n = 2; existsSync(p); n++) {
+    if (isBackupOf(p, found)) return { path: p, reused: true };
+    p = `${base}.${n}`;
+  }
+  return { path: p, reused: false };
 }
 
 /**
@@ -189,22 +222,23 @@ function backupPath(path: string, from: number): string {
  */
 function upgrade(db: DatabaseSync, path: string, found: Versions, to: number, steps: readonly Upgrade[], log: (line: string) => void): void {
   const from = Math.min(found.tables ?? to, found.world ?? to);
-  const backup = backupPath(path, from);
-  db.prepare('VACUUM INTO ?').run(backup);
-  // VACUUM INTO doesn't flush its copy: make sure it's on disk, and whole, before touching the save.
-  const fd = openSync(backup, 'r+');
-  try {
-    fsyncSync(fd);
-  } finally {
-    closeSync(fd);
+  const { path: backup, reused } = backupFor(path, from, found);
+  if (!reused) {
+    db.prepare('VACUUM INTO ?').run(backup);
+    // VACUUM INTO doesn't flush its copy: make sure it's on disk, and whole, before touching the save.
+    const fd = openSync(backup, 'r+');
+    try {
+      fsyncSync(fd);
+    } finally {
+      closeSync(fd);
+    }
+    if (!isBackupOf(backup, found)) throw new Error(`The backup at ${backup} didn't come out right; nothing was changed. Not starting.`);
   }
-  const copy = peekVersions(backup);
-  if (copy.tables !== found.tables || copy.world !== found.world) throw new Error(`The backup at ${backup} didn't come out right; nothing was changed. Not starting.`);
-  log(`Upgrading the saved town from v${from} to v${to}; the old save is backed up at ${backup}.`);
+  log(`Upgrading the saved town from v${from} to v${to}; the old save is backed up at ${backup}${reused ? ' (kept from an earlier try)' : ''}.`);
   db.exec('BEGIN IMMEDIATE');
   try {
     const now = readVersions(db);
-    if (now.tables !== found.tables || now.world !== found.world) {
+    if (now.tables !== found.tables || now.world !== found.world || now.t !== found.t) {
       throw new Error('The save changed while it was being upgraded: is another Pixel Kampung running on it? Nothing was changed. Stop the other one and start again.');
     }
     const row = db.prepare('SELECT world, brains FROM snapshot WHERE id = 1').get() as { world: string; brains: string } | undefined;

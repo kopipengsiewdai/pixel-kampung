@@ -4,6 +4,17 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **Backups:** a town restarted after every failed upgrade keeps one backup
+  of its old save instead of a new full copy per try.
+- **Refusal:** a save that can't be opened read-only is refused with a plain
+  message, so a refused save is never written to.
+- **Guard:** an upgraded save must now fit today's saved types at every depth
+  (brains included) and have exactly today's tables.
+- **Living town:** nothing to pick up. Saved state is unchanged and a v2 town
+  carries on as it is.
+
 ## 0.9.1 (2026-10-25)
 
 - Watch page: residents are no longer hidden behind shop fronts and buildings; they always draw in front.

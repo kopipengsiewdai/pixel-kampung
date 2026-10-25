@@ -68,6 +68,51 @@ const SAVED_TYPES: readonly [file: string, type: string][] = [
   ['src/brain/fake-brain.ts', 'Memory'],
   ['src/mind/mind.ts', 'MindState'],
 ];
+/** A brain saves as one of these. */
+const BRAIN_TYPES = ['Memory', 'MindState'];
+
+let typesCache: { checker: ts.TypeChecker; types: Map<string, ts.Type> } | null = null;
+
+/** Today's saved types, read by the type checker (once per run). */
+function savedTypes(): { checker: ts.TypeChecker; types: Map<string, ts.Type> } {
+  if (typesCache) return typesCache;
+  const files = SAVED_TYPES.map(([f]) => fileURLToPath(new URL(`../${f}`, import.meta.url)));
+  const program = ts.createProgram(files, { strict: true, noEmit: true, allowImportingTsExtensions: true, module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext, target: ts.ScriptTarget.ES2023 });
+  const checker = program.getTypeChecker();
+  const types = new Map<string, ts.Type>();
+  SAVED_TYPES.forEach(([f, name], i) => {
+    const source = program.getSourceFile(files[i]!)!;
+    const decl = source.statements.find((s): s is ts.InterfaceDeclaration => ts.isInterfaceDeclaration(s) && s.name.text === name);
+    if (!decl) throw new Error(`${name} not found in ${f}`);
+    types.set(name, checker.getTypeAtLocation(decl));
+  });
+  typesCache = { checker, types };
+  return typesCache;
+}
+
+/** A save file's tables and indexes, whitespace aside (re-indenting the code that makes a table changes nothing saved). */
+export function tablesOf(path: string): string[] {
+  const db = new DatabaseSync(path, { readOnly: true });
+  try {
+    const ddl = db.prepare("SELECT sql FROM sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY type = 'index', name").all() as { sql: string }[];
+    return ddl.map((d) => `${d.sql.replace(/\s+/g, ' ').replace(/\( /g, '(').replace(/ \)/g, ')')};`);
+  } finally {
+    db.close();
+  }
+}
+
+/** The tables a fresh save file gets today (a thinking town's: memories included). */
+export function freshTables(): string[] {
+  const dir = mkdtempSync(join(tmpdir(), 'kampung-shape-'));
+  try {
+    const path = join(dir, 'kampung.db');
+    new SqliteStore(path).close();
+    new MemoryStore(path).close();
+    return tablesOf(path);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
 
 /**
  * The shape of everything a save holds: the saved types as the type checker
@@ -76,10 +121,7 @@ const SAVED_TYPES: readonly [file: string, type: string][] = [
  * change to what gets saved.
  */
 export function saveShape(): string {
-  const files = SAVED_TYPES.map(([f]) => fileURLToPath(new URL(`../${f}`, import.meta.url)));
-  const program = ts.createProgram(files, { strict: true, noEmit: true, allowImportingTsExtensions: true, module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext, target: ts.ScriptTarget.ES2023 });
-  const checker = program.getTypeChecker();
-
+  const { checker, types } = savedTypes();
   const pad = (n: number) => '  '.repeat(n);
   const seen = new Set<ts.Type>();
   function shape(type: ts.Type, depth: number): string {
@@ -105,29 +147,80 @@ export function saveShape(): string {
     return lines.length ? `{\n${lines.join('\n')}\n${pad(depth)}}` : '{}';
   }
 
-  const out: string[] = [];
-  SAVED_TYPES.forEach(([f, name], i) => {
-    const source = program.getSourceFile(files[i]!)!;
-    const decl = source.statements.find((s): s is ts.InterfaceDeclaration => ts.isInterfaceDeclaration(s) && s.name.text === name);
-    if (!decl) throw new Error(`${name} not found in ${f}`);
-    out.push(`${f} ${name} ${shape(checker.getTypeAtLocation(decl), 0)}`);
-  });
-
-  const dir = mkdtempSync(join(tmpdir(), 'kampung-shape-'));
-  try {
-    const path = join(dir, 'kampung.db');
-    new SqliteStore(path).close();
-    new MemoryStore(path).close();
-    const db = new DatabaseSync(path, { readOnly: true });
-    const ddl = db.prepare("SELECT sql FROM sqlite_master WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%' ORDER BY type = 'index', name").all() as { sql: string }[];
-    db.close();
-    // Whitespace aside: re-indenting the code that makes a table changes nothing saved.
-    const flat = (sql: string) => sql.replace(/\s+/g, ' ').replace(/\( /g, '(').replace(/ \)/g, ')');
-    out.push(`Tables of a fresh save:\n${ddl.map((d) => `${flat(d.sql)};`).join('\n')}`);
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
-  }
+  const out = SAVED_TYPES.map(([f, name]) => `${f} ${name} ${shape(types.get(name)!, 0)}`);
+  out.push(`Tables of a fresh save:\n${freshTables().join('\n')}`);
   return out.join('\n\n') + '\n';
+}
+
+/**
+ * Where a saved world and its brains don't fit today's saved types, at any
+ * depth: a missing field, a field today's code no longer has, or a value of
+ * the wrong kind. Each brain must fit one of the brain types. Empty means
+ * today's code reads every value as it expects.
+ */
+export function misfits(save: { world: unknown; brains: Record<string, unknown> }): string[] {
+  const { checker, types } = savedTypes();
+
+  function check(v: unknown, type: ts.Type, at: string, out: string[]): void {
+    const f = type.flags;
+    if (f & (ts.TypeFlags.Any | ts.TypeFlags.Unknown)) return;
+    if (type.isUnion()) {
+      const tries = type.types.map((t) => {
+        const o: string[] = [];
+        check(v, t, at, o);
+        return o;
+      });
+      if (tries.some((o) => o.length === 0)) return;
+      out.push(...tries.sort((a, b) => a.length - b.length)[0]!);
+      return;
+    }
+    const bad = () => out.push(`${at}: ${JSON.stringify(v)?.slice(0, 40)} isn't ${checker.typeToString(type)}`);
+    if (f & ts.TypeFlags.Null) { if (v !== null) bad(); return; }
+    if (f & ts.TypeFlags.Undefined) { if (v !== undefined) bad(); return; }
+    if (type.isStringLiteral() || type.isNumberLiteral()) { if (v !== type.value) bad(); return; }
+    if (f & ts.TypeFlags.BooleanLiteral) { if (String(v) !== checker.typeToString(type)) bad(); return; }
+    if (f & ts.TypeFlags.String) { if (typeof v !== 'string') bad(); return; }
+    if (f & ts.TypeFlags.Number) { if (typeof v !== 'number') bad(); return; }
+    if (f & ts.TypeFlags.Boolean) { if (typeof v !== 'boolean') bad(); return; }
+    if (checker.isArrayType(type)) {
+      if (!Array.isArray(v)) { bad(); return; }
+      const el = checker.getTypeArguments(type as ts.TypeReference)[0]!;
+      v.forEach((x, i) => check(x, el, `${at}[${i}]`, out));
+      return;
+    }
+    if (f & ts.TypeFlags.Object) {
+      if (typeof v !== 'object' || v === null || Array.isArray(v)) { bad(); return; }
+      const o = v as Record<string, unknown>;
+      const props = checker.getPropertiesOfType(type);
+      const index = checker.getIndexInfosOfType(type)[0];
+      for (const p of props) {
+        if (!(p.name in o)) {
+          if (!(p.flags & ts.SymbolFlags.Optional)) out.push(`${at}.${p.name}: missing`);
+          continue;
+        }
+        check(o[p.name], checker.getTypeOfSymbol(p), `${at}.${p.name}`, out);
+      }
+      const named = new Set(props.map((p) => p.name));
+      for (const k of Object.keys(o).filter((k) => !named.has(k))) {
+        if (index) check(o[k], index.type, `${at}[${JSON.stringify(k)}]`, out);
+        else out.push(`${at}.${k}: today's saves have no such field`);
+      }
+      return;
+    }
+    out.push(`${at}: can't check against ${checker.typeToString(type)}`);
+  }
+
+  const out: string[] = [];
+  check(save.world, types.get('WorldState')!, 'world', out);
+  for (const [id, b] of Object.entries(save.brains)) {
+    const tries = BRAIN_TYPES.map((name) => {
+      const o: string[] = [];
+      check(b, types.get(name)!, `brains.${id}`, o);
+      return o;
+    });
+    if (tries.every((o) => o.length > 0)) out.push(...tries.sort((a, c) => a.length - c.length)[0]!);
+  }
+  return out;
 }
 
 export const FIXTURE_SEED = 7;
