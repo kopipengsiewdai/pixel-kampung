@@ -55,6 +55,8 @@ export interface WatchServerOptions {
   lan?: boolean;
   /** This PC's home-network IPv4 addresses (default: found from its network cards). */
   lanAddresses?: string[];
+  /** English for lines residents said or thought (a thinking town only). */
+  translate?: (texts: string[]) => Promise<(string | null)[]>;
 }
 
 /** Private (home-network) IPv4 addresses of this PC: 10.x, 172.16-31.x and 192.168.x. */
@@ -223,6 +225,22 @@ export async function startWatchServer(opts: WatchServerOptions): Promise<WatchS
     if (method === 'POST') {
       if (!(req.headers['content-type'] ?? '').startsWith('application/json')) {
         send(res, 415, 'text/plain; charset=utf-8', 'JSON only.');
+        return;
+      }
+      if (path === '/api/translate' && opts.translate) {
+        let body: unknown;
+        try {
+          body = await readJson(req);
+        } catch {
+          send(res, 400, 'text/plain; charset=utf-8', 'Bad request.');
+          return;
+        }
+        const texts = body && typeof body === 'object' ? (body as { texts?: unknown }).texts : undefined;
+        if (!Array.isArray(texts) || !texts.every((x) => typeof x === 'string')) {
+          send(res, 400, 'text/plain; charset=utf-8', 'Bad request.');
+          return;
+        }
+        json(res, 200, { english: await opts.translate(texts) });
         return;
       }
       if (!source.control || (path !== '/api/replay' && path !== '/api/replay/open')) {

@@ -134,6 +134,7 @@ body {
 .toggle button { background: var(--panel-2); color: var(--ink); border: none; padding: 2px 8px; cursor: pointer; font: inherit; font-size: 12px; }
 .toggle button + button { border-left: 1px solid var(--line); }
 .toggle button[aria-pressed=true] { background: var(--ink); color: var(--panel); }
+.english { text-decoration: underline dotted; text-underline-offset: 3px; }
 
 .feed {
   list-style: none;

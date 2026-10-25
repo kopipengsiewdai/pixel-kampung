@@ -2,8 +2,8 @@ import type Anthropic from '@anthropic-ai/sdk';
 
 /** Routine thinks and talk run on the cheap model; plans, reflections and owners' big calls on the bigger one. */
 export type Tier = 'routine' | 'big';
-/** `trader`: a village character's short call (Pak Osman's prices, a haggle, his news). */
-export type ThinkKind = 'act' | 'business' | 'plan' | 'reflect' | 'trader';
+/** `trader`: a village character's short call (Pak Osman's prices, a haggle, his news). `translate`: the owner's watch page asking for English. */
+export type ThinkKind = 'act' | 'business' | 'plan' | 'reflect' | 'trader' | 'translate';
 
 /** Token counts as the API reports them. */
 export interface TokenUsage {
