@@ -1,4 +1,5 @@
-import type { Resident, World } from '../state.ts';
+import { countGoods, type Resident, type World } from '../state.ts';
+import { ITEMS, type ItemId } from '../items.ts';
 import { dayIndex, isNight } from '../time.ts';
 import { type ActionResult, type Intent, no } from './common.ts';
 import * as chores from './chores.ts';
@@ -126,7 +127,7 @@ export const ACTIONS: Record<string, ActionDef> = {
   harvest: { run: everyone.harvest, ownersOnly: false, says: 'harvest your beds', here: at('farm') },
   eat: {
     run: everyone.eat, ownersOnly: false, says: 'eat or drink something you carry, or from your own shop (item)',
-    here: (w, r) => Object.keys(r.items).length > 0 || everyone.shopHere(w, r)?.ownerId === r.id,
+    here: (w, r) => (Object.keys(r.items) as ItemId[]).some((i) => ITEMS[i]?.food && countGoods(r.items, i) > 0) || everyone.shopHere(w, r)?.ownerId === r.id,
   },
   sleep: { run: everyone.sleep, ownersOnly: false, says: 'sleep', here: (w, r) => w.isAt(r, r.homeId) },
   accept_job: {

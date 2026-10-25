@@ -173,18 +173,25 @@ function kitchenFor(w: World, r: Resident): Shop | string {
 export function cook(w: World, r: Resident, i: Intent): ActionResult {
   const shop = kitchenFor(w, r);
   if (typeof shop === 'string') return no(shop);
-  const item = itemOf(i.item);
+  // Cooking "rice" can only mean boiling it.
+  const named = itemOf(i.item);
+  const item = named === 'rice' ? 'bubur' : named;
   const recipe = item ? RECIPES[item] : undefined;
   if (!item || !recipe || skillLevel(r, 'cooking') < (recipe.level ?? 1)) return no(`You don't know how to make ${quoted(i.item)}.`);
   const batches = qtyOf(i.batches);
   if (batches === null) return no(SAY_NOTHING_SENSIBLE);
   for (const [need, n] of Object.entries(recipe.needs) as [ItemId, number][]) {
-    if (countGoods(shop.stock, need) < n * batches) {
+    if (countGoods(shop.stock, need) + countGoods(r.items, need) < n * batches) {
       const perBatch = goodsLabel(recipe.needs);
       return no(`Each batch takes ${perBatch}, and the kitchen is short of ${need}.`);
     }
   }
-  for (const [need, n] of Object.entries(recipe.needs) as [ItemId, number][]) addGoods(shop.stock, need, -n * batches);
+  // The kitchen's stock first, then what the cook has brought along.
+  for (const [need, n] of Object.entries(recipe.needs) as [ItemId, number][]) {
+    const fromStock = Math.min(countGoods(shop.stock, need), n * batches);
+    addGoods(shop.stock, need, -fromStock);
+    if (n * batches > fromStock) addGoods(r.items, need, -(n * batches - fromStock));
+  }
   // At the stove until it's done (daily-life.md B): the servings go into the kitchen then.
   // A master cook's batch gives one more serving.
   const master = skillLevel(r, 'cooking') === 5;

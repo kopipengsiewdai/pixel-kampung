@@ -171,6 +171,12 @@ function goodsList(g: Goods): { item: ItemId; qty: number }[] {
   return (Object.entries(g) as [ItemId, number][]).filter(([, n]) => n > 0).map(([item, qty]) => ({ item, qty }));
 }
 
+/** How hungry someone looks to anyone nearby. */
+function looks(o: Resident): string {
+  return o.activity?.kind === 'sleeping' ? '' : o.hunger >= FAINT_HUNGER ? ', looking faint with hunger' : o.hunger >= LOOKS_HUNGRY ? ', looking hungry' : '';
+}
+const LOOKS_HUNGRY = 700;
+
 function doing(w: World, o: Resident): string {
   switch (o.activity?.kind) {
     case 'walking': return 'walking by';
@@ -239,7 +245,7 @@ export function perceive(w: World, r: Resident): Perception {
     placeId: here?.id ?? null,
     where: here ? placeLabel(w, r, here) : 'out on the footpath',
     atHome: w.isAt(r, r.homeId),
-    people: w.nearby(r).map((o) => ({ name: o.name, doing: doing(w, o) })),
+    people: w.nearby(r).map((o) => ({ name: o.name, doing: doing(w, o) + looks(o) })),
     money: r.money,
     carrying: goodsList(r.items),
     hunger: hungerWord(r.hunger),

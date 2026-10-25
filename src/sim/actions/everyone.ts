@@ -668,7 +668,7 @@ export function readNoticeBoard(w: World, r: Resident): ActionResult {
     learnFromWords(w, r, n.text);
     w.learnPerson(r, n.authorId);
   }
-  const lines = w.state.notes.map((n) => `- "${n.text}" (${w.resident(n.authorId).name})`);
+  const lines = w.state.notes.map((n) => `- "${n.text}" (${n.authorId === r.id ? 'your note' : w.resident(n.authorId).name})`);
   return ok(`Notes on the board:\n${lines.join('\n')}`);
 }
 

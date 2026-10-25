@@ -20,7 +20,7 @@ export const WAIT_MINUTES = 8;
 /** In a shop swept today, they'll wait longer. */
 export const SWEPT_WAIT_MINUTES = 12;
 /** Minutes at the stove a batch takes (kopi is quicker). */
-export const COOK_MINUTES: Partial<Record<ItemId, number>> = { kopi: 5, 'fish porridge': 10, 'vegetable rice': 10, 'sambal kangkong': 8 };
+export const COOK_MINUTES: Partial<Record<ItemId, number>> = { kopi: 5, 'fish porridge': 10, 'vegetable rice': 10, 'sambal kangkong': 8, bubur: 12 };
 
 /** When travellers come to each shop: one every so many minutes in its busy hours, and in its other open hours (07–21). */
 export const TRAVELLER_HOURS: Record<string, { busy: [number, number][]; busyEvery: number; otherEvery: number }> = {

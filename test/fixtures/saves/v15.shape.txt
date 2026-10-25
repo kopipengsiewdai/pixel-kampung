@@ -40,7 +40,7 @@ src/sim/state.ts WorldState {
     cents: number
     expires: number
     id: number
-    item: "bread" | "chilli" | "coffee" | "fish porridge" | "fish" | "kerosene" | "kopi" | "papaya" | "red snapper" | "rice" | "sambal kangkong" | "vegetable rice" | "vegetables" | "water" | null
+    item: "bread" | "bubur" | "chilli" | "coffee" | "fish porridge" | "fish" | "kerosene" | "kopi" | "papaya" | "red snapper" | "rice" | "sambal kangkong" | "vegetable rice" | "vegetables" | "water" | null
     kind: "take" | "water"
     runnerId: string
     taken: false | true
@@ -114,6 +114,7 @@ src/sim/state.ts WorldState {
     visit: null | {
       buys: {
         bread?: number | undefined
+        bubur?: number | undefined
         chilli?: number | undefined
         coffee?: number | undefined
         fish?: number | undefined
@@ -136,6 +137,7 @@ src/sim/state.ts WorldState {
       }
       goods: {
         bread?: number | undefined
+        bubur?: number | undefined
         chilli?: number | undefined
         coffee?: number | undefined
         fish?: number | undefined
@@ -155,6 +157,7 @@ src/sim/state.ts WorldState {
       heard: string[]
       held: {
         bread?: number | undefined
+        bubur?: number | undefined
         chilli?: number | undefined
         coffee?: number | undefined
         fish?: number | undefined
@@ -174,7 +177,7 @@ src/sim/state.ts WorldState {
         cents: number
         forShop: null | string
         id: number
-        item: "bread" | "chilli" | "coffee" | "fish porridge" | "fish" | "kerosene" | "kopi" | "papaya" | "red snapper" | "rice" | "sambal kangkong" | "vegetable rice" | "vegetables" | "water"
+        item: "bread" | "bubur" | "chilli" | "coffee" | "fish porridge" | "fish" | "kerosene" | "kopi" | "papaya" | "red snapper" | "rice" | "sambal kangkong" | "vegetable rice" | "vegetables" | "water"
         later: false | true
         qty: number
         side: "buys" | "sells"
@@ -183,6 +186,7 @@ src/sim/state.ts WorldState {
       priced: false | true
       produce: {
         bread?: number | undefined
+        bubur?: number | undefined
         chilli?: number | undefined
         coffee?: number | undefined
         fish?: number | undefined
@@ -199,6 +203,7 @@ src/sim/state.ts WorldState {
       }
       sells: {
         bread?: number | undefined
+        bubur?: number | undefined
         chilli?: number | undefined
         coffee?: number | undefined
         fish?: number | undefined
@@ -225,7 +230,7 @@ src/sim/state.ts WorldState {
     cents: number
     expires: number
     id: number
-    item: "bread" | "chilli" | "coffee" | "fish porridge" | "fish" | "kerosene" | "kopi" | "papaya" | "red snapper" | "rice" | "sambal kangkong" | "vegetable rice" | "vegetables" | "water"
+    item: "bread" | "bubur" | "chilli" | "coffee" | "fish porridge" | "fish" | "kerosene" | "kopi" | "papaya" | "red snapper" | "rice" | "sambal kangkong" | "vegetable rice" | "vegetables" | "water"
     qty: number
     shopId: string
   }[]
@@ -269,6 +274,7 @@ src/sim/state.ts WorldState {
     id: string
     items: {
       bread?: number | undefined
+      bubur?: number | undefined
       chilli?: number | undefined
       coffee?: number | undefined
       fish?: number | undefined
@@ -346,7 +352,7 @@ src/sim/state.ts WorldState {
     }
     stove: null | {
       batches: number
-      item: "bread" | "chilli" | "coffee" | "fish porridge" | "fish" | "kerosene" | "kopi" | "papaya" | "red snapper" | "rice" | "sambal kangkong" | "vegetable rice" | "vegetables" | "water"
+      item: "bread" | "bubur" | "chilli" | "coffee" | "fish porridge" | "fish" | "kerosene" | "kopi" | "papaya" | "red snapper" | "rice" | "sambal kangkong" | "vegetable rice" | "vegetables" | "water"
       qty: number
       shopId: string
       until: number
@@ -358,6 +364,7 @@ src/sim/state.ts WorldState {
   shops: {
     buyLimits: {
       bread?: number | undefined
+      bubur?: number | undefined
       chilli?: number | undefined
       coffee?: number | undefined
       fish?: number | undefined
@@ -374,6 +381,7 @@ src/sim/state.ts WorldState {
     }
     buyPrices: {
       bread?: number | undefined
+      bubur?: number | undefined
       chilli?: number | undefined
       coffee?: number | undefined
       fish?: number | undefined
@@ -396,11 +404,12 @@ src/sim/state.ts WorldState {
     id: string
     ownerId: string
     queue: {
-      item: "bread" | "chilli" | "coffee" | "fish porridge" | "fish" | "kerosene" | "kopi" | "papaya" | "red snapper" | "rice" | "sambal kangkong" | "vegetable rice" | "vegetables" | "water"
+      item: "bread" | "bubur" | "chilli" | "coffee" | "fish porridge" | "fish" | "kerosene" | "kopi" | "papaya" | "red snapper" | "rice" | "sambal kangkong" | "vegetable rice" | "vegetables" | "water"
       t: number
     }[]
     sellPrices: {
       bread?: number | undefined
+      bubur?: number | undefined
       chilli?: number | undefined
       coffee?: number | undefined
       fish?: number | undefined
@@ -417,11 +426,12 @@ src/sim/state.ts WorldState {
     }
     serving: {
       by: string
-      item: "bread" | "chilli" | "coffee" | "fish porridge" | "fish" | "kerosene" | "kopi" | "papaya" | "red snapper" | "rice" | "sambal kangkong" | "vegetable rice" | "vegetables" | "water"
+      item: "bread" | "bubur" | "chilli" | "coffee" | "fish porridge" | "fish" | "kerosene" | "kopi" | "papaya" | "red snapper" | "rice" | "sambal kangkong" | "vegetable rice" | "vegetables" | "water"
       until: number
     }[]
     stock: {
       bread?: number | undefined
+      bubur?: number | undefined
       chilli?: number | undefined
       coffee?: number | undefined
       fish?: number | undefined
@@ -450,6 +460,7 @@ src/sim/state.ts WorldState {
       }
       tooDear: {
         bread?: number | undefined
+        bubur?: number | undefined
         chilli?: number | undefined
         coffee?: number | undefined
         fish?: number | undefined
@@ -486,6 +497,7 @@ src/sim/state.ts WorldState {
       cents: number
       items: {
         bread?: number | undefined
+        bubur?: number | undefined
         chilli?: number | undefined
         coffee?: number | undefined
         fish?: number | undefined
@@ -507,6 +519,7 @@ src/sim/state.ts WorldState {
       cents: number
       items: {
         bread?: number | undefined
+        bubur?: number | undefined
         chilli?: number | undefined
         coffee?: number | undefined
         fish?: number | undefined

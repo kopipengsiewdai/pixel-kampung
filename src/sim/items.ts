@@ -3,7 +3,7 @@ import type { Cents } from './money.ts';
 export type ItemId =
   | 'fish' | 'vegetables' | 'rice' | 'coffee' | 'bread'
   | 'kopi' | 'fish porridge' | 'vegetable rice' | 'water'
-  | 'red snapper' | 'chilli' | 'papaya' | 'sambal kangkong' | 'kerosene';
+  | 'red snapper' | 'chilli' | 'papaya' | 'sambal kangkong' | 'kerosene' | 'bubur';
 
 export interface ItemDef {
   id: ItemId;
@@ -45,6 +45,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   'sambal kangkong': {
     id: 'sambal kangkong', one: 'a plate of sambal kangkong', many: '{n} plates of sambal kangkong',
     aliases: ['sambal', 'kangkong belacan'], food: { hunger: 300 },
+  },
+  bubur: {
+    id: 'bubur', one: 'a bowl of bubur', many: '{n} bowls of bubur',
+    aliases: ['plain rice', 'rice porridge', 'plain porridge', 'congee', 'boiled rice', 'cooked rice', 'nasi', 'bowl of rice', 'rice bowl'], food: { hunger: 300 },
   },
   kerosene: {
     id: 'kerosene', one: 'a tin of kerosene', many: '{n} tins of kerosene', aliases: ['minyak tanah', 'lamp oil', 'paraffin'],
@@ -105,4 +109,6 @@ export const RECIPES: Partial<Record<ItemId, Recipe>> = {
   'vegetable rice': { makes: 'vegetable rice', needs: { vegetables: 1, rice: 1 }, yields: 2 },
   // A Skilled cook's dish: ties the kitchen to a Skilled grower's chilli.
   'sambal kangkong': { makes: 'sambal kangkong', needs: { vegetables: 1, chilli: 1 }, yields: 3, level: 3 },
+  // Plain rice boiled soft: the dish that turns the lorry's rice into a meal.
+  bubur: { makes: 'bubur', needs: { rice: 1, water: 1 }, yields: 3 },
 };

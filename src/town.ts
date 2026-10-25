@@ -1,6 +1,7 @@
 import type { Brain } from './brain/brain.ts';
 import { FakeBrain } from './brain/fake-brain.ts';
 import { act, verbOf, type Intent } from './sim/actions/index.ts';
+import { isStaffed } from './sim/actions/everyone.ts';
 import { DEFAULT_DIALS, type Dials } from './sim/dials.ts';
 import type { EventBody, GameEvent, LedgerEntry } from './sim/events.ts';
 import { ITEMS, type ItemId } from './sim/items.ts';
@@ -51,12 +52,17 @@ function pottered(w: World, r: Resident, p: Perception): void {
   if (own && p.placeId === own.id) return;
   // Hungry, with nothing in hand to eat: where food is sold comes first, at once.
   if (r.hunger >= HUNGRY_FROM && !Object.keys(r.items).some((i) => ITEMS[i as ItemId].food && (r.items[i as ItemId] ?? 0) > 0)) {
-    const food = w.state.shops.filter((s) => s.id !== p.placeId && r.knownPlaces.includes(s.id)
+    const food = w.state.shops.filter((s) => s.id !== p.placeId && r.knownPlaces.includes(s.id) && isStaffed(w, s)
       && (Object.entries(s.sellPrices) as [ItemId, number][]).some(([i, price]) => ITEMS[i].food && (s.stock[i] ?? 0) > 0 && price <= r.money))
       .map((s) => w.placeName(PLACE_BY_ID.get(s.id)!));
     if (food.length) {
       const list = food.length === 1 ? food[0]! : `${food.slice(0, -1).join(', ')} or ${food.at(-1)}`;
       r.reply = { ok: true, text: `You're hungry. You could get something to eat at ${list}.` };
+      return;
+    }
+    // Nobody serving anywhere: there are always fish in the sea.
+    if (p.placeId !== 'jetty' && r.knownPlaces.includes('jetty')) {
+      r.reply = { ok: true, text: "You're hungry. You could catch a fish at the jetty." };
       return;
     }
   }
@@ -76,6 +82,7 @@ const NUDGE_FIRST = ['jetty', 'farm'];
 /** The refusals (from personNearby and say) that asking again this minute can't change. */
 const NOT_NEARBY = / isn't nearby\. /;
 const SAID_ALL = / have said all there is to say\.$/;
+const NOBODY_MINDING = /^Nobody's minding /;
 
 /** The person an action is aimed at, lower-cased, if any. */
 function personOf(i: Intent): string | null {
@@ -217,7 +224,7 @@ export class Town {
             break;
           }
           // Two who have said all there is to say won't find more this minute either.
-          if (!res.ok && SAID_ALL.test(res.reply ?? '')) break;
+          if (!res.ok && (SAID_ALL.test(res.reply ?? '') || NOBODY_MINDING.test(res.reply ?? ''))) break;
           if (res.ok) {
             const what = sameness(intent);
             const before = r.lastDone;

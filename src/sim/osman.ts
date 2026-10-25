@@ -333,7 +333,8 @@ export function arrive(w: World, leaves: number): void {
   for (const r of w.state.residents) {
     if (w.isAsleep(r)) continue;
     w.learnPlace(r, 'lorry-stop');
-    w.notify(r.id, "You hear the lorry's horn from the lorry stop.");
+    // Shopkeepers know the horn means the stock for their shelves.
+    w.notify(r.id, w.shopOf(r.id) ? "You hear the lorry's horn from the lorry stop: the lorry man has come with stock for the shops." : "You hear the lorry's horn from the lorry stop.");
   }
 }
 
