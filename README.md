@@ -55,6 +55,7 @@ the residents' own economy (rent, the lorry trader, festivals) takes over:
 | Dial | Default | What it does |
 |---|---|---|
 | `travellerBudgetCents` | `600` | What travellers from the coast road spend at one shop in a game day, at most ($6); once spent, no more come to it that day |
+| `travellerReserve` | `2` | How many of anything a shop keeps back from travellers for the kampung's own people |
 
 There is one living town, upgraded in place by each release: a save from an
 older version is backed up beside it and upgraded on start, and a save from a

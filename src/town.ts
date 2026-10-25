@@ -3,8 +3,9 @@ import { FakeBrain } from './brain/fake-brain.ts';
 import { act, verbOf, type Intent } from './sim/actions/index.ts';
 import { DEFAULT_DIALS, type Dials } from './sim/dials.ts';
 import type { EventBody, GameEvent, LedgerEntry } from './sim/events.ts';
-import { PLACES } from './sim/map.ts';
-import { perceive, type Perception } from './sim/perception.ts';
+import { ITEMS, type ItemId } from './sim/items.ts';
+import { PLACE_BY_ID, PLACES } from './sim/map.ts';
+import { HUNGRY_FROM, perceive, type Perception } from './sim/perception.ts';
 import { createWorld } from './sim/seed.ts';
 import { MAX_REPLAY_MINUTES, skipQuietly } from './sim/skip.ts';
 import { World, type Resident, type WorldState } from './sim/state.ts';
@@ -47,6 +48,17 @@ function pottered(w: World, r: Resident, p: Perception): void {
   if (r.activity) return;
   const own = w.shopOf(r.id);
   if (own && p.placeId === own.id) return;
+  // Hungry, with nothing in hand to eat: where food is sold comes first, at once.
+  if (r.hunger >= HUNGRY_FROM && !Object.keys(r.items).some((i) => ITEMS[i as ItemId].food && (r.items[i as ItemId] ?? 0) > 0)) {
+    const food = w.state.shops.filter((s) => s.id !== p.placeId && r.knownPlaces.includes(s.id)
+      && (Object.entries(s.sellPrices) as [ItemId, number][]).some(([i, price]) => ITEMS[i].food && (s.stock[i] ?? 0) > 0 && price <= r.money))
+      .map((s) => w.placeName(PLACE_BY_ID.get(s.id)!));
+    if (food.length) {
+      const list = food.length === 1 ? food[0]! : `${food.slice(0, -1).join(', ')} or ${food.at(-1)}`;
+      r.reply = { ok: true, text: `You're hungry. You could get something to eat at ${list}.` };
+      return;
+    }
+  }
   if (r.lastDone && w.t - r.lastDone.t < POTTERS_BEFORE_NUDGE * QUIET_THINK_MINUTES) return;
   // Places they know with something to do there first (the jetty, the farm plot), then one more, turning with the time.
   const known = PLACES.filter((pl) => pl.kind !== 'house' && pl.id !== p.placeId && r.knownPlaces.includes(pl.id));

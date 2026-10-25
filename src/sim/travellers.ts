@@ -70,7 +70,7 @@ export function servers(w: World, shop: Shop): Resident[] {
 /** The thing a traveller wants: one of what the shop sells and has, picked by fixed weights (no randomness). */
 function wanted(w: World, shop: Shop): ItemId | null {
   const choices = (Object.entries(WANTS[shop.id] ?? {}) as [ItemId, number][])
-    .filter(([item]) => shop.sellPrices[item] && countGoods(shop.stock, item) > 0);
+    .filter(([item]) => shop.sellPrices[item] && countGoods(shop.stock, item) > w.dials.travellerReserve);
   const total = choices.reduce((n, [, k]) => n + k, 0);
   if (!total) return null;
   let pick = (Math.imul(w.t, 2654435761) >>> 0) % total;
@@ -90,7 +90,8 @@ export function travellersMinute(w: World): void {
     // Finished serving: the sale goes through if the thing is still there.
     for (const s of shop.serving.filter((x) => x.until <= w.t)) {
       const price = shop.sellPrices[s.item];
-      if (price && countGoods(shop.stock, s.item) > 0 && price <= (TRAVELLER_PAYS[s.item] ?? 0)) {
+      // The last few are kept back for the kampung's own people (an owner's dial).
+      if (price && countGoods(shop.stock, s.item) > w.dials.travellerReserve && price <= (TRAVELLER_PAYS[s.item] ?? 0)) {
         addGoods(shop.stock, s.item, -1);
         w.transfer(TRAVELLERS_ID, shop.ownerId, price, `travellers bought ${s.item}`);
         w.emit({ type: 'traveller_bought', shop: shop.id, owner: shop.ownerId, by: s.by, item: s.item, cents: price });
