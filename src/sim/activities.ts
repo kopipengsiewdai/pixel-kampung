@@ -1,4 +1,4 @@
-import { effectiveLevel, emptyChance, practise } from './skills.ts';
+import { effectiveLevel, emptyChance, practise, skillLevel } from './skills.ts';
 import { findPath } from './map.ts';
 import { dayIndex, isNight, minuteOfDay } from './time.ts';
 import type { Resident, World } from './state.ts';
@@ -71,6 +71,11 @@ export function catchFish(w: World, r: Resident): void {
     m.left -= 1;
   }
   if (qty > 0) addGoods(r.items, 'fish', qty);
+  // A master's line brings up a red snapper about one time in twelve.
+  if (skillLevel(r, 'fishing') === 5 && w.rng.next() < 1 / 12) {
+    addGoods(r.items, 'red snapper', 1);
+    w.notify(r.id, 'A red snapper comes up on your line!');
+  }
   practise(w, r, 'fishing');
   r.activity = null;
   r.thinkAt = w.t;

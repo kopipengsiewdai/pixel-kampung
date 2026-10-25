@@ -4,6 +4,17 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **Skills, what the skilled and masters can do:**
+  - A skilled fisher with mended nets can **cast a net** from the jetty (45 minutes, up to four fish, one mended catch used), and a master's line sometimes brings up a **red snapper**.
+  - A skilled grower can plant **chilli** (four watered days, four handfuls a bed), and a master can plant a **papaya tree** that fruits every three days once grown, as long as it's watered.
+  - A skilled cook knows **sambal kangkong** (vegetables and chilli, three plates).
+  - A master cook's batches give one more serving, and travellers pay up to a fifth more where a master cooked that day.
+  - Travellers buy chilli, papaya and red snapper at the market stall, and sambal kangkong at the kopitiam, when they're priced.
+  - Since 0.17.0, novices too get two more from a bed harvested on the day it's ready (5 → 7 for kangkong), and everyone fishes the evening tide (17:00–19:00). That means more vegetables and fish for the lorry: watch lorry income.
+- **Living town:** at upgrade (save v14) every bed is growing kangkong, as before, and no master has cooked yet today.
+
 ## 0.17.0 (2026-10-25): skills
 
 - **Skills:** residents get better at fishing, farming and cooking by doing them, a little each day, over a year or two to mastery. Better fishers' lines come up empty less often; a handy grower harvests one more a bed and a handy cook is quicker at the stove. An expert senses the tides, the crowds from the road, or a bed at its best. A master can show someone how, up to expert. Unused, a skill goes rusty after a few weeks and slips after a year. Residents meet all this in words, never numbers; the wiki shows each resident's skills. There's an evening tide now too (17:00–19:00), and a bed harvested on the day it's ready gives two more.

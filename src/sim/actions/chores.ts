@@ -11,22 +11,22 @@ import { dayIndex, MINUTES_PER_DAY, SGT_OFFSET_MIN } from '../time.ts';
 import { type ActionResult, type Intent, itemOf, moneyOf, no, ok, personNearby, quoted, textOf } from './common.ts';
 import { addDebt } from './debts.ts';
 import { waterBed } from './everyone.ts';
-import { practise } from '../skills.ts';
+import { practise, skillLevel } from '../skills.ts';
 import { TRAVELLER_PAYS } from '../travellers.ts';
 
 /** How long each chore takes, in game minutes. */
-export const CHORE_MINUTES: Record<ChoreKind, number> = { fetch_water: 10, mend_nets: 30, sweep: 15 };
+export const CHORE_MINUTES: Record<ChoreKind, number> = { fetch_water: 10, mend_nets: 30, sweep: 15, cast_net: 45 };
 /** Mended nets bring one more fish on this many catches, the same day. */
 export const MENDED_CATCHES = 3;
 /** An errand asked lapses unanswered after this many minutes. */
 export const ERRAND_OFFER_MINUTES = 30;
 
 /** What someone at a chore is doing, as others see it (and the watch page). */
-export const CHORE_DOING: Record<ChoreKind, string> = { fetch_water: 'fetching water', mend_nets: 'mending nets', sweep: 'sweeping' };
+export const CHORE_DOING: Record<ChoreKind, string> = { fetch_water: 'fetching water', mend_nets: 'mending nets', sweep: 'sweeping', cast_net: 'casting a net' };
 
 /** What they're told if they try something else meanwhile. */
 export function busyAt(chore: ChoreKind): string {
-  return { fetch_water: "You're fetching water.", mend_nets: "You're mending nets.", sweep: "You're sweeping." }[chore];
+  return { fetch_water: "You're fetching water.", mend_nets: "You're mending nets.", sweep: "You're sweeping.", cast_net: "You're casting your net." }[chore];
 }
 
 /** The start of the next day: when a taken errand lapses. */
@@ -52,6 +52,24 @@ export function mendNets(w: World, r: Resident): ActionResult {
   start(w, r, 'mend_nets', null, null);
   return ok('You sit down on the jetty and start mending your nets.');
 }
+
+/** Nets mended today, with a catch or more left in them. */
+export function netsMended(w: World, r: Resident): boolean {
+  return !!r.mended && r.mended.day === dayIndex(w.t) && r.mended.left > 0;
+}
+
+/** A Skilled fisher's net, thrown from the jetty: 45 minutes, 0–4 fish, and one of the mended nets' catches (skills.md S2). */
+export function castNet(w: World, r: Resident): ActionResult {
+  if (!w.isAt(r, 'jetty')) return no('You can only cast a net from the jetty.');
+  if (skillLevel(r, 'fishing') < 3) return no("You've never got the hang of throwing a net.");
+  if (!netsMended(w, r)) return no('Your nets need mending before you can cast them.');
+  r.mended!.left -= 1;
+  start(w, r, 'cast_net', null, null);
+  return ok('You gather the net and throw it out over the water.');
+}
+
+/** What a cast net brings in: 0–4 fish, about 2.25 on average. */
+const NET_CATCH = [0.1, 0.3, 0.55, 0.8];
 
 /** The shop r can sweep where they stand: their own, or the one they're on shift at. */
 export function sweepable(w: World, r: Resident): string | null {
@@ -116,6 +134,13 @@ export function finishChore(w: World, r: Resident): void {
       w.notify(a.forId, `${r.name} mends your nets for you.`);
       w.remember(r.id, `You mend ${owner.name}'s nets.`);
     } else w.remember(r.id, 'Your nets are mended.');
+  } else if (a.chore === 'cast_net') {
+    const roll = w.rng.next();
+    const qty = NET_CATCH.filter((p) => roll >= p).length;
+    if (qty > 0) addGoods(r.items, 'fish', qty);
+    practise(w, r, 'fishing', 2);
+    w.emit({ type: 'caught_fish', who: r.id, qty });
+    w.remember(r.id, qty ? `You haul in the net: ${quantityLabel('fish', qty)}.` : 'You haul in the net: nothing in it.');
   } else if (a.shopId) {
     const shop = w.shop(a.shopId);
     if (shop) shop.sweptDay = today;

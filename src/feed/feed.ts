@@ -82,7 +82,7 @@ export function feedText(e: GameEvent, n: Names): { text: string; notable: boole
     case 'caught_fish': return line(e.qty === 0 ? `${n(e.who)} caught nothing.` : `${n(e.who)} landed ${quantityLabel('fish', e.qty)}.`);
     case 'planted': return line(`${n(e.who)} planted kangkong in bed ${e.bed}.`);
     case 'watered': return line(`${n(e.who)} watered the kangkong.`);
-    case 'harvested': return line(`${n(e.who)} harvested ${quantityLabel('vegetables', e.qty)}.`, true);
+    case 'harvested': return line(`${n(e.who)} harvested ${quantityLabel(e.item ?? 'vegetables', e.qty)}.`, true);
     case 'ate': return line(`${n(e.who)} had ${quantityLabel(e.item, 1)}.`);
     case 'fell_asleep':
       if (e.reason === 'collapse') return line(`${n(e.who)} is so worn out they doze off on the spot.`, true);

@@ -1,4 +1,4 @@
-import { effectiveLevel, HANDY_COOK } from '../skills.ts';
+import { effectiveLevel, HANDY_COOK, skillLevel } from '../skills.ts';
 import { endShift } from '../activities.ts';
 import { LORRY_SELLS, RECIPES, quantityLabel, type ItemId } from '../items.ts';
 import { PLACE_BY_ID } from '../map.ts';
@@ -163,7 +163,7 @@ export function cook(w: World, r: Resident, i: Intent): ActionResult {
   if (typeof shop === 'string') return no(shop);
   const item = itemOf(i.item);
   const recipe = item ? RECIPES[item] : undefined;
-  if (!item || !recipe) return no(`You don't know how to make ${quoted(i.item)}.`);
+  if (!item || !recipe || skillLevel(r, 'cooking') < (recipe.level ?? 1)) return no(`You don't know how to make ${quoted(i.item)}.`);
   const batches = qtyOf(i.batches);
   if (batches === null) return no(SAY_NOTHING_SENSIBLE);
   for (const [need, n] of Object.entries(recipe.needs) as [ItemId, number][]) {
@@ -174,7 +174,9 @@ export function cook(w: World, r: Resident, i: Intent): ActionResult {
   }
   for (const [need, n] of Object.entries(recipe.needs) as [ItemId, number][]) addGoods(shop.stock, need, -n * batches);
   // At the stove until it's done (daily-life.md B): the servings go into the kitchen then.
-  const qty = recipe.yields * batches;
+  // A master cook's batch gives one more serving.
+  const master = skillLevel(r, 'cooking') === 5;
+  const qty = (recipe.yields + (master ? 1 : 0)) * batches;
   // A handy cook is a fifth quicker at the stove.
   const minutes = Math.round((COOK_MINUTES[item] ?? 10) * (effectiveLevel(r, 'cooking') >= 2 ? HANDY_COOK : 1));
   r.stove = { item, batches, qty, shopId: shop.id, until: w.t + minutes * batches };

@@ -90,27 +90,27 @@ export function howTo(s: SkillId): string {
 
 /**
  * Everything a resident is told of their own skill, in words (self: Handy to
- * Master; up: on reaching Handy to Master). Skilled's lines speak of the
- * craft only: the new things it brings come with S2.
+ * Master; up: on reaching Handy to Master). Skilled's lines name what it
+ * brings: a net, chilli, sambal kangkong.
  */
 export const SKILL_LINES: Record<SkillId, { self: string[]; up: string[]; rusty: string; back: string; lost: string }> = {
   fishing: {
-    self: ["You're handy with a fishing line.", "You're a good hand with a line.", 'You can read the tides.', 'People say nobody fishes like you.'],
-    up: ['The line feels natural in your hands now.', 'Your lines come up empty less often now.', "You've started to feel when the tide will turn.", 'You know these waters as well as anyone.'],
+    self: ["You're handy with a fishing line.", 'You know how to throw a net.', 'You can read the tides.', 'People say nobody fishes like you.'],
+    up: ['The line feels natural in your hands now.', "You've worked out how to throw a net.", "You've started to feel when the tide will turn.", 'You know these waters as well as anyone.'],
     rusty: "It's been a while since you last fished; your hands are slow.",
     back: 'The feel of the line comes back to you.',
     lost: "You've lost some of your feel for the nets.",
   },
   farming: {
-    self: ["You've a feel for growing things.", 'You know your way around a vegetable bed.', 'You know when a bed is at its best.', 'People say nobody grows like you.'],
-    up: ["You're getting the knack of the beds.", 'Your beds do well under your hands.', 'You can tell when your kangkong is at its best.', 'The soil does what you ask of it.'],
+    self: ["You've a feel for growing things.", "You've learnt to grow chilli.", 'You know when a bed is at its best.', 'People say nobody grows like you.'],
+    up: ["You're getting the knack of the beds.", 'You think you could grow chilli now.', 'You can tell when your kangkong is at its best.', 'The soil does what you ask of it.'],
     rusty: "It's been a while since you last worked a bed; your hands are slow.",
     back: 'The feel of the soil comes back to you.',
     lost: "You've lost some of your feel for the soil.",
   },
   cooking: {
     self: ['You can cook a decent meal.', 'You know your way around a kitchen.', 'You can tell when the crowds will come.', 'People say nobody cooks like you.'],
-    up: ['Your cooking is coming along.', "You've found your feet in the kitchen.", "You've started to sense when the crowds will come.", 'Your cooking has become your own.'],
+    up: ['Your cooking is coming along.', "You've worked out how to make sambal kangkong.", "You've started to sense when the crowds will come.", 'Your cooking has become your own.'],
     rusty: "It's been a while since you last cooked; your hands are slow.",
     back: 'The feel of the stove comes back to you.',
     lost: "You've lost some of your feel for the stove.",

@@ -267,6 +267,15 @@ export const UPGRADES: readonly Upgrade[] = [
       return { world: { ...world, residents, beds, lessons: [], lessonOffers: [] }, brains };
     },
   },
+  {
+    from: 13,
+    why: "The skilled can cast a net, grow chilli and cook sambal kangkong; a master fisher sometimes lands a red snapper, a master grower can plant a papaya tree, and a master cook's batches go further (and travellers pay a little more where one cooked today). Every bed is growing kangkong, as before; no master has cooked yet today.",
+    save: ({ world, brains }) => {
+      const beds = (world.beds as Record<string, unknown>[]).map((b) => ({ ...b, crop: 'kangkong', pickedDay: null }));
+      const shops = (world.shops as { today: Record<string, unknown> }[]).map((s) => ({ ...s, today: { ...s.today, masterCooked: false } }));
+      return { world: { ...world, beds, shops }, brains };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

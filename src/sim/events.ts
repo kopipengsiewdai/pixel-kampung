@@ -1,4 +1,5 @@
 import type { SkillId } from './skills.ts';
+import type { ChoreKind } from './state.ts';
 import type { ItemId } from './items.ts';
 import type { Cents } from './money.ts';
 import type { Bundle } from './state.ts';
@@ -22,7 +23,7 @@ export type EventBody =
   | { type: 'caught_fish'; who: string; qty: number }
   | { type: 'planted'; who: string; bed: number }
   | { type: 'watered'; who: string; beds: number }
-  | { type: 'harvested'; who: string; qty: number }
+  | { type: 'harvested'; who: string; qty: number; item?: ItemId }
   | { type: 'ate'; who: string; item: ItemId }
   | { type: 'fell_asleep'; who: string; reason: 'night' | 'nap' | 'collapse' }
   | { type: 'woke'; who: string }
@@ -37,7 +38,7 @@ export type EventBody =
   | { type: 'trade_offered'; who: string; to: string; give: Bundle; want: Bundle }
   | { type: 'traded'; who: string; with: string; give: Bundle; want: Bundle }
   | { type: 'trade_declined'; who: string; from: string }
-  | { type: 'chore_done'; who: string; chore: 'fetch_water' | 'mend_nets' | 'sweep'; for: string | null }
+  | { type: 'chore_done'; who: string; chore: ChoreKind; for: string | null }
   | { type: 'helped'; who: string; to: string; how: 'beds' }
   | { type: 'errand_asked'; who: string; to: string; what: string; cents: Cents }
   | { type: 'errand_taken'; who: string; from: string }

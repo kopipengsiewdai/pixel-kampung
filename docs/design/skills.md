@@ -301,6 +301,23 @@ make and sell (answer 1: split).
   - a learner, on shift or not, agrees;
   - an Expert cook keeps twice as much ready ahead of a crowd.
 
+## As built (S2, save v14)
+
+- **Fishing:**
+  - `cast_net` is a 45-minute chore at the jetty, for raw fishing level 3+ (it stays when rusty), with nets mended today. It uses one mended catch.
+  - The net brings 0–4 fish (10/20/25/25/20%, about 2.25) and counts as 2 deeds.
+  - A Master's line (raw level 5) also brings up a red snapper 1 time in 12.
+- **Farming:**
+  - Beds have a `crop` (kangkong, chilli or papaya) and `pickedDay`. `plant` takes an item, and its hint names the crops the resident knows.
+  - Chilli is 4 days and 4 waterings for 4 a bed, with the Handy +1 and the best-day +2.
+  - A papaya tree gives its first 2 fruit after 10 days, then 2 every 3 days while watered within the last 3. It stays in its bed.
+- **Cooking:**
+  - Sambal kangkong (`level: 3` on the recipe) takes vegetables and chilli, makes 3 plates and takes 8 minutes.
+  - A Master's batch (raw level 5) gives one more serving.
+  - The shop's `today.masterCooked` lets travellers pay up to 1.2× (`travellerPays`).
+- **Travellers:** they want chilli, papaya and red snapper at the stall, and sambal kangkong at the kopitiam. Their limits are chilli 40¢, papaya 60¢, red snapper $1.50 and sambal kangkong 50¢.
+- **Not built:** fake-brain use of the S2 abilities.
+
 ## Answers (2026-10-25)
 
 1. **Two PRs: yes** (Claude's call, owner informed). S1, the core, comes after

@@ -115,16 +115,16 @@ describe('what each level does (S1: handy and expert)', () => {
     const day = dayIndex(w.t);
     const ah = put(w, 'Ah Kow', 'farm');
     const siti = put(w, 'Siti', 'farm');
-    w.state.beds[0] = { n: 1, planterId: ah.id, plantedDay: day - 2, wateredDays: 2, lastWateredDay: day - 1, readyDay: day };
-    w.state.beds[1] = { n: 2, planterId: siti.id, plantedDay: day - 4, wateredDays: 2, lastWateredDay: day - 3, readyDay: day - 2 };
+    w.state.beds[0] = { n: 1, planterId: ah.id, plantedDay: day - 2, wateredDays: 2, lastWateredDay: day - 1, readyDay: day, crop: 'kangkong', pickedDay: null };
+    w.state.beds[1] = { n: 2, planterId: siti.id, plantedDay: day - 4, wateredDays: 2, lastWateredDay: day - 3, readyDay: day - 2, crop: 'kangkong', pickedDay: null };
     accepted(act(w, ah.id, { verb: 'harvest' }));
     expect(ah.items.vegetables).toBe(6 + 2);
     accepted(act(w, siti.id, { verb: 'harvest' }));
     expect(siti.items.vegetables).toBe(5);
     const fatimah = put(w, 'Fatimah', 'farm');
-    w.state.beds[2] = { n: 3, planterId: fatimah.id, plantedDay: day - 2, wateredDays: 2, lastWateredDay: day - 1, readyDay: day };
+    w.state.beds[2] = { n: 3, planterId: fatimah.id, plantedDay: day - 2, wateredDays: 2, lastWateredDay: day - 1, readyDay: day, crop: 'kangkong', pickedDay: null };
     expect(seen(w, 'Fatimah')).toContain('Bed 3 is at its best today.');
-    w.state.beds[3] = { n: 4, planterId: siti.id, plantedDay: day - 2, wateredDays: 2, lastWateredDay: day - 1, readyDay: day };
+    w.state.beds[3] = { n: 4, planterId: siti.id, plantedDay: day - 2, wateredDays: 2, lastWateredDay: day - 1, readyDay: day, crop: 'kangkong', pickedDay: null };
     expect(seen(w, 'Siti')).not.toContain('at its best');
   });
 
