@@ -69,8 +69,10 @@ describe('the live source', () => {
     const live = new LiveSource({ label: 'Live town', msPerMinute: 60_000, everyMs: 0 });
     const town = Town.create(42, START, live.hooks());
     await town.runUntil(START + 120);
-    const card = live.card('siti')!;
-    expect(card.name).toBe('Siti');
+    // Someone who noticed something (fake-brain residents mostly notice talk, so it depends on the run).
+    const r = town.world.state.residents.find((x) => x.recent.length > 0)!;
+    const card = live.card(r.id)!;
+    expect(card.name).toBe(r.name);
     expect(card.thoughts).toEqual([]);
     expect(card.mindNote).toMatch(/fake brain/);
     expect(card.noticed.length).toBeGreaterThan(0);

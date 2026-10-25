@@ -10,6 +10,9 @@ never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 - **The kampung calendar:** the town has its own dates (12 months, 365 days, a leap day every fourth year from Year 4), and residents know today's date. The watch page shows the same date.
 - **Thinking stays within the real budget:** each resident still has US$0.0139 of thinking per real hour and the town US$3.33 per real day, so residents think about half as often per game hour (every 10 game minutes when nothing happens, 2 minutes after doing something).
 - **Living town:** at upgrade (save v3) the clock is anchored where the town stands, so nothing jumps: the date becomes 1 January, Year 0, and the time of day and weekday carry on. Time missed while the town was stopped for the upgrade passes quietly, four times as fast as before.
+- **Answers:** a resident someone spoke to first is told, in plain words, that the other person is waiting for their answer, until they answer, the other leaves, or the chat has run long.
+- **No loops:** doing the very same thing again within a few minutes still goes through, but doesn't bring the next thought straight on, and the resident hears "You've just done that."
+- **Living town:** at upgrade (save v4) every resident starts with nothing remembered as last done; the waiting line needs no upgrade, since it comes from what they've already heard.
 ## 0.9.3 (2026-10-25)
 
 - Shopkeepers can no longer "set" a price to what it already is: it's refused in-world ("That's already your price"). Mdm Tan had re-set rice to $4.20 every minute and never answered the people asking her for work.
