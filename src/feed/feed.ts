@@ -53,6 +53,16 @@ export function feedText(e: GameEvent, n: Names): { text: string; notable: boole
     case 'told_to_leave': return line(`${n(e.who)} tells ${n(e.to)} to leave the house.${e.homeless ? ` ${n(e.to)} has nowhere to sleep tonight.` : ''}`, true);
     case 'proposed': return line(`${n(e.who)} asks ${n(e.to)} to marry them!`, true);
     case 'married': return line(`${n(e.who)} and ${n(e.to)} are married!`, true);
+    case 'let': return line(`${n(e.who)} rents ${place(e.place)} from the village head.`, true);
+    case 'rent_paid': return line(`${n(e.who)} pays ${formatMoney(e.cents)} rent for ${place(e.place)}.`);
+    case 'rent_missed': return line(`${n(e.who)} misses the rent for ${place(e.place)}.`, true);
+    case 'taken_back': return line(`The village head takes ${place(e.place)} back from ${n(e.who)} for rent unpaid.`, true);
+    case 'handed_back': return line(`${n(e.who)} hands ${place(e.place)} back to the village head.`, true);
+    case 'stall_asked': return line(`${n(e.who)} asks the village head for ${place(e.place)}.`);
+    case 'stall_offered': return line(`The village head offers ${place(e.place)} to ${n(e.who)}.`, true);
+    case 'knocked': return line(`${n(e.who)} knocks at the village head's door.`);
+    case 'village_head_out': return line(e.duty === 'rent_round' ? 'The village head comes out on his Monday round for the rent.' : 'The village head walks down to the notice board.');
+    case 'village_notice': return line(`The village head pins a notice: "${e.text}"`, true);
     case 'turned_down': return line(`${n(e.who)} turns down ${n(e.to)}'s proposal.`, true);
     case 'job_offered': return line(`${n(e.who)} offered ${n(e.to)} work, ${hour(e.startHour)} to ${hour(e.startHour + e.hours)}, at ${formatMoney(e.wage)} a shift.`);
     case 'hired': return line(`${n(e.who)} is now working for ${n(e.by)} at ${place(e.shop)} (${formatMoney(e.wage)} a shift).`, true);

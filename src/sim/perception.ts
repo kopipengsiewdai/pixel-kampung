@@ -5,6 +5,8 @@ import { PLACES, PLACE_BY_ID } from './map.ts';
 import { formatMoney, type Cents } from './money.ts';
 import { TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, type Goods, type Observation, type Resident, type World } from './state.ts';
 import { nowLabel } from './calendar.ts';
+import { headDoing, headNearby, villageLines } from '../village/head.ts';
+import { VILLAGE_HEAD } from '../village/village.ts';
 import { heldBy, householdLines, houseOf, isClose, kinOf } from './households.ts';
 import { dayIndex, sgtHour, sgtMinute } from './time.ts';
 
@@ -55,6 +57,10 @@ export interface Perception {
   people: { name: string; doing: string; kin?: string; close?: true }[];
   /** Their household, marriage and any offers to them, in plain words; only what applies. */
   household: string[];
+  /** The village head: at his door, and what they rent from him. */
+  village: string[];
+  /** Wages they owe, by worker: shown with their business, or on their own once it's gone. */
+  owesWages: { name: string; cents: Cents }[];
   money: Cents;
   carrying: { item: ItemId; qty: number }[];
   hunger: HungerWord;
@@ -144,8 +150,10 @@ export function perceive(w: World, r: Resident): Perception {
     people: w.nearby(r).map((o) => {
       const kin = kinOf(r, o);
       return { name: o.name, doing: doing(w, o), ...(kin ? { kin } : {}), ...(isClose(w, r, o) ? { close: true as const } : {}) };
-    }),
+    }).concat(headNearby(w, r) ? [{ name: VILLAGE_HEAD.name, doing: headDoing(w) }] : []),
     household: householdLines(w, r),
+    village: villageLines(w, r),
+    owesWages: w.state.owed.filter((o) => o.employerId === r.id).map((o) => ({ name: w.resident(o.workerId).name, cents: o.cents })),
     money: r.money,
     carrying: goodsList(r.items),
     hunger: hungerWord(r.hunger),
@@ -239,6 +247,8 @@ export function describe(p: Perception): string {
     : "There's nobody else around.");
   lines.push(`You feel ${p.hunger} and ${p.energy}. You have ${formatMoney(p.money)}${p.carrying.length ? ` and you're carrying ${p.carrying.map((c) => quantityLabel(c.item, c.qty)).join(', ')}` : ''}.`);
   lines.push(...p.household);
+  lines.push(...p.village);
+  if (!p.business && p.owesWages.length) lines.push(`You owe wages: ${p.owesWages.map((o) => `${o.name} ${formatMoney(o.cents)}`).join(', ')}.`);
   if (p.job) {
     lines.push(`You work for ${p.job.boss} at ${p.job.place}, ${p.job.shift}.${p.job.onShift ? " You're on shift now." : ''}`);
     if (p.job.onShift) lines.push(`In the shop: ${p.job.stock.map((s) => quantityLabel(s.item, s.qty)).join(', ') || 'nothing'}.`);

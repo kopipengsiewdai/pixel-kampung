@@ -8,7 +8,7 @@
 import * as Phaser from 'phaser';
 import { lightAt } from '../light.ts';
 import type { Frame, Layout, LayoutPlace, ResidentView, Update } from '../types.ts';
-import { BUILDINGS, PEOPLE_ORDER, PLANTS, PROPS, bedTile, type Prop } from './decor.ts';
+import { BUILDINGS, HEAD_HOUSE, HEAD_LOOK, PEOPLE_ORDER, PLANTS, PROPS, bedTile, type Prop } from './decor.ts';
 
 const T = 16;
 const ZOOM = 2;
@@ -23,8 +23,11 @@ const PEOPLE_DEPTH = 5000;
 
 interface Pt { x: number; y: number }
 
+/** What a sprite needs: a resident, or a village character (hidden while indoors, and not clickable). */
+type MoverView = Pick<ResidentView, 'id' | 'name' | 'x' | 'y' | 'route' | 'activity' | 'homeId'> & { villager?: true; hidden?: boolean };
+
 interface Mover {
-  view: ResidentView;
+  view: MoverView;
   sprite: Phaser.GameObjects.Sprite;
   label: Phaser.GameObjects.Text;
   zz: Phaser.GameObjects.Image;
@@ -149,6 +152,11 @@ export class TownScene extends Phaser.Scene {
       const home = p.id;
       this.glows.push({ img: glow, lit: (f) => f.residents.some((r) => r.homeId === home && this.isInside(r, home) && r.activity !== 'sleeping') });
     }
+    // The village head's house, its lamp lit while he's at home.
+    const head = this.image(HEAD_HOUSE);
+    head.setDepth(head.y + head.height - 8);
+    const headGlow = this.add.image(head.x + 9, head.y + 25, 'k', 'glow').setOrigin(0, 0).setDepth(OVERLAY_DEPTH + 1).setBlendMode(Phaser.BlendModes.ADD).setVisible(false);
+    this.glows.push({ img: headGlow, lit: (f) => (f.villagers ?? []).some((v) => !v.out) });
     for (const b of BUILDINGS) this.image(b);
     for (const p of PROPS) this.image(p);
     for (const p of PLANTS) this.image(p);
@@ -161,6 +169,8 @@ export class TownScene extends Phaser.Scene {
     shopLamp(2 * T + 104, 6 * T + 25, 'kopitiam');
     shopLamp(14 * T + 52, 6 * T + 30, 'provision-shop');
     shopLamp(25 * T + 44, 6 * T + 16, 'market-stall');
+    shopLamp(25 * T, 11 * T, 'stall-1');
+    shopLamp(30 * T, 11 * T, 'stall-2');
   }
 
   private placeBeds(): void {
@@ -183,7 +193,7 @@ export class TownScene extends Phaser.Scene {
     this.tweens.add({ targets: boat, y: boat.y + 1, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
   }
 
-  private isInside(r: ResidentView, homeId: string | null): boolean {
+  private isInside(r: MoverView, homeId: string | null): boolean {
     const home = homeId ? this.homes.get(homeId) : undefined;
     if (!home) return false;
     return r.x >= home.rect.x && r.x < home.rect.x + home.rect.w && r.y >= home.rect.y && r.y < home.rect.y + home.rect.h;
@@ -217,7 +227,12 @@ export class TownScene extends Phaser.Scene {
       spread.set(r.id, { x: offs[0]!, y: offs[1]! });
     }
 
-    for (const r of f.residents) {
+    // Village characters walk like anyone, and vanish indoors.
+    const villagers = (f.villagers ?? []).map((v): MoverView => ({
+      id: v.id, name: v.name, x: v.x, y: v.y, route: v.route, homeId: null,
+      activity: v.out && v.route.length > 1 ? 'walking' : null, villager: true, hidden: !v.out,
+    }));
+    for (const r of [...f.residents, ...villagers] as MoverView[]) {
       let m = this.movers.get(r.id);
       if (!m) {
         m = this.makeMover(r);
@@ -269,13 +284,16 @@ export class TownScene extends Phaser.Scene {
     for (const g of this.glows) g.img.setVisible(light.alpha > 0.2 && g.lit(f));
   }
 
-  private makeMover(r: ResidentView): Mover {
+  private makeMover(r: MoverView): Mover {
     const idx = PEOPLE_ORDER.indexOf(r.id);
-    const look = idx >= 0 ? idx : hash(r.id.length, r.id.charCodeAt(0)) % PEOPLE_ORDER.length;
+    const look = r.villager ? HEAD_LOOK.look : idx >= 0 ? idx : hash(r.id.length, r.id.charCodeAt(0)) % PEOPLE_ORDER.length;
     const p = tileCentre(r);
     const sprite = this.add.sprite(p.x, p.y, 'people', look * 4).setOrigin(0.5, 1);
-    sprite.setInteractive({ hitArea: new Phaser.Geom.Rectangle(-4, -6, 24, 24), hitAreaCallback: Phaser.Geom.Rectangle.Contains, useHandCursor: true });
-    sprite.on('pointerdown', () => this.hooks.onPick(r.id));
+    if (r.villager) sprite.setTint(HEAD_LOOK.tint);
+    else {
+      sprite.setInteractive({ hitArea: new Phaser.Geom.Rectangle(-4, -6, 24, 24), hitAreaCallback: Phaser.Geom.Rectangle.Contains, useHandCursor: true });
+      sprite.on('pointerdown', () => this.hooks.onPick(r.id));
+    }
     const label = this.add.text(p.x, p.y - 16, r.name, {
       fontFamily: 'ui-monospace, Consolas, monospace', fontSize: '7px', color: '#fdf6e3', stroke: '#1d1d1d', strokeThickness: 2, resolution: 4,
     }).setOrigin(0.5, 1).setDepth(OVERLAY_DEPTH + 5);
@@ -299,16 +317,16 @@ export class TownScene extends Phaser.Scene {
       else if (r.activity === 'fishing') m.facing = DOWN;
       const row = moving ? Math.floor(time / 140) % 4 : 0;
       const asleep = r.activity === 'sleeping';
-      const inside = asleep && this.isInside(r, r.homeId);
+      const inside = (asleep && this.isInside(r, r.homeId)) || r.hidden === true;
       m.sprite.setPosition(pos.x, pos.y).setFrame(row * PEOPLE_COLS + m.look * 4 + m.facing);
       m.sprite.setVisible(!inside).setAngle(asleep && !inside ? 90 : 0).setDepth(PEOPLE_DEPTH + pos.y);
       m.label.setPosition(pos.x, pos.y - 16).setVisible(!inside || r.id === this.selected);
       const bob = Math.sin(time / 500 + m.look) * 1.5;
       if (inside) {
-        const home = this.homes.get(r.homeId!)!;
-        m.zz.setPosition(home.rect.x * T + 18 + (m.look % 3) * 6, home.rect.y * T - 6 + bob);
+        const home = this.homes.get(r.homeId!);
+        if (home) m.zz.setPosition(home.rect.x * T + 18 + (m.look % 3) * 6, home.rect.y * T - 6 + bob);
       } else m.zz.setPosition(pos.x + 6, pos.y - 18 + bob);
-      m.zz.setVisible(asleep);
+      m.zz.setVisible(asleep && !r.hidden);
       if (r.id === this.selected) {
         this.ring.setVisible(!inside).setPosition(pos.x, pos.y).setDepth(PEOPLE_DEPTH + pos.y - 1);
       }

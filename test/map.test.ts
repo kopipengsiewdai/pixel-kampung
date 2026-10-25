@@ -3,12 +3,12 @@ import { MAP_W, MAP_H, PLACES, findPath, placeAt, renderMap, tileAt, isWalkable 
 import { ITEMS, findItem, quantityLabel, LORRY_SELLS, LORRY_BUYS, RECIPES } from '../src/sim/items.ts';
 
 describe('map', () => {
-  it('is about 40×30', () => {
-    expect(MAP_W).toBe(40);
+  it('is about 44×30 (widened for the village head\'s house)', () => {
+    expect(MAP_W).toBe(44);
     expect(MAP_H).toBe(30);
     const lines = renderMap().split('\n');
     expect(lines).toHaveLength(30);
-    for (const l of lines) expect(l).toHaveLength(40);
+    for (const l of lines) expect(l).toHaveLength(44);
   });
 
   it('has every place the spec lists', () => {

@@ -1,16 +1,19 @@
 /**
- * The kampung: one 40×30 tile map. Houses along the top, the shops below
- * them, the farm plot to the south-west, the beach and sea at the bottom, and
- * the jetty running out over the water.
+ * The kampung: one 44×30 tile map. Houses along the top, with the village
+ * head's house at the top of the path; the shops below them, two stalls by
+ * the wet market, the farm plot to the south-west, the beach and sea at the
+ * bottom, and the jetty running out over the water. (It was 40 wide; the
+ * columns added on the east moved nothing.)
  */
-export const MAP_W = 40;
+export const MAP_W = 44;
 export const MAP_H = 30;
 
 export type Tile = 'grass' | 'path' | 'sand' | 'sea' | 'jetty' | 'floor' | 'field';
 
 export type PlaceKind =
   | 'house' | 'kopitiam' | 'provision_shop' | 'market_stall'
-  | 'jetty' | 'farm' | 'well' | 'notice_board' | 'lorry_stop';
+  | 'jetty' | 'farm' | 'well' | 'notice_board' | 'lorry_stop'
+  | 'village_head_house' | 'stall';
 
 export interface Point { x: number; y: number }
 export interface Rect { x: number; y: number; w: number; h: number }
@@ -45,6 +48,10 @@ export const PLACES: readonly Place[] = [
   place('lorry-stop', 'lorry_stop', 'the lorry stop', { x: 34, y: 6, w: 5, h: 4 }),
   place('farm', 'farm', 'the farm plot', { x: 2, y: 15, w: 11, h: 6 }),
   place('jetty', 'jetty', 'the jetty', { x: 31, y: 22, w: 2, h: 7 }, { x: 31, y: 27 }),
+  // The village head's house on its rise at the top of the path; its porch (his door) is the spot.
+  place('village-head-house', 'village_head_house', "the village head's house", { x: 40, y: 0, w: 4, h: 4 }, { x: 41, y: 3 }),
+  place('stall-1', 'stall', 'the stall under the tree', { x: 24, y: 11, w: 3, h: 2 }),
+  place('stall-2', 'stall', 'the corner stall', { x: 29, y: 11, w: 3, h: 2 }),
 ];
 
 export const PLACE_BY_ID: ReadonlyMap<string, Place> = new Map(PLACES.map((p) => [p.id, p]));
@@ -63,13 +70,15 @@ function buildGrid(): Tile[][] {
   const vLine = (x: number, y0: number, y1: number) => { for (let y = y0; y <= y1; y++) set(x, y, 'path'); };
 
   // Main footpath past the houses, with a stub to each door.
-  hLine(4, 1, 38);
+  hLine(4, 1, 41);
   for (const h of HOUSES) set(h.rect.x + 1, 3, 'path');
   // Stubs down to the shops, the well, the notice board and the lorry stop.
   for (const x of [5, 11, 17, 22, 27, 36]) set(x, 5, 'path');
   // South to the farm plot, and down to the beach and the jetty.
   vLine(13, 5, 18);
   vLine(32, 5, 21);
+  // Along the front of the two stalls by the wet market.
+  hLine(10, 24, 32);
 
   for (const p of PLACES) {
     const t: Tile = p.kind === 'jetty' ? 'jetty' : p.kind === 'farm' ? 'field' : 'floor';
@@ -154,7 +163,7 @@ export function findPath(a: Point, b: Point): Point[] | null {
 const GLYPH: Record<Tile, string> = { grass: '.', path: '=', sand: ':', sea: '~', jetty: '#', floor: ' ', field: ',' };
 const PLACE_GLYPH: Record<PlaceKind, string> = {
   house: 'H', kopitiam: 'K', provision_shop: 'P', market_stall: 'M', jetty: 'J',
-  farm: 'F', well: 'W', notice_board: 'N', lorry_stop: 'L',
+  farm: 'F', well: 'W', notice_board: 'N', lorry_stop: 'L', village_head_house: 'V', stall: 'S',
 };
 
 /** ASCII view of the map, one character per tile. */

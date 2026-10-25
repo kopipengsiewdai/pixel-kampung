@@ -124,6 +124,33 @@ export const UPGRADES: readonly Upgrade[] = [
       return { world: { ...world, residents, houses, homeOffers: [], proposals: [], bonds: {}, news }, brains };
     },
   },
+  {
+    from: 5,
+    why: "The village head, Mr Lim, in his house at the top of the kampung: he lets the empty houses and two new stalls, collects rent on Mondays for the village fund, and pins his notices. Everyone has always known his house.",
+    save: ({ world, brains }) => {
+      if ('villagers' in world) return { world, brains };
+      // Frozen at v6: his house and its door, the stalls, and the day a game minute falls on (SGT).
+      const HOUSE = 'village-head-house';
+      const DOOR = { x: 41, y: 3 };
+      const STALLS = ['stall-1', 'stall-2'];
+      const today = Math.floor(((world.t as number) + 8 * 60) / 1440);
+      type R = { knownPlaces: string[] };
+      const residents = (world.residents as R[]).map((r) => ({ ...r, knownPlaces: r.knownPlaces.includes(HOUSE) ? [...r.knownPlaces] : [...r.knownPlaces, HOUSE] }));
+      return {
+        world: {
+          ...world,
+          residents,
+          villagers: { 'village-head': { pos: { ...DOOR }, indoors: true, duty: null, path: [] } },
+          leases: [],
+          rents: {},
+          fund: { cents: 0, depositsHeld: 0 },
+          villageNotices: [],
+          stallCalls: STALLS.map((placeId) => ({ placeId, opened: today, applicants: [], offeredTo: null, offerUntil: null })),
+        },
+        brains,
+      };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

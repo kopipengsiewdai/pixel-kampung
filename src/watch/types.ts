@@ -60,6 +60,18 @@ export interface ResidentView {
   spouse?: string | null;
 }
 
+/** A village character (the village head): seen only when out of doors. */
+export interface VillagerView {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
+  route: Point[];
+  out: boolean;
+  /** "calling round for the rent" */
+  doing: string;
+}
+
 export interface ShopView {
   id: string;
   name: string;
@@ -83,6 +95,8 @@ export interface Frame {
   minuteOfDay: number;
   lorryHere: boolean;
   residents: ResidentView[];
+  /** Absent in frames recorded before the village head. */
+  villagers?: VillagerView[];
   shops: ShopView[];
   /** Wages owed, worker by employer. */
   owed: { employerId: string; workerId: string; cents: number }[];

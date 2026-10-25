@@ -4,10 +4,10 @@ import { perceive } from '../src/sim/perception.ts';
 import { act, accepted, newWorld, put, refused, who } from './helpers.ts';
 
 describe('residents start knowing almost nothing', () => {
-  it('a job-seeker knows only home; an owner also knows their shop', () => {
+  it("a job-seeker knows only home and the village head's house; an owner also knows their shop", () => {
     const w = newWorld(9, 0, 1, true, false);
-    expect(who(w, 'Siti').knownPlaces).toEqual([who(w, 'Siti').homeId]);
-    expect(who(w, 'Ah Huat').knownPlaces.sort()).toEqual([who(w, 'Ah Huat').homeId, 'kopitiam'].sort());
+    expect(who(w, 'Siti').knownPlaces.sort()).toEqual([who(w, 'Siti').homeId, 'village-head-house'].sort());
+    expect(who(w, 'Ah Huat').knownPlaces.sort()).toEqual([who(w, 'Ah Huat').homeId, 'kopitiam', 'village-head-house'].sort());
     // People: only family and old friends (Siti knows Fatimah from the well).
     expect(who(w, 'Siti').knownPeople).toEqual([who(w, 'Fatimah').id]);
     expect(who(w, 'Ah Kow').knownPeople).toEqual([]);
@@ -16,7 +16,7 @@ describe('residents start knowing almost nothing', () => {
   it("can't walk to a place they don't know of yet", () => {
     const w = newWorld(9, 0, 1, true, false);
     refused(act(w, who(w, 'Siti').id, { verb: 'walk_to', where: 'the jetty' }), /don't know of anywhere called "the jetty"/);
-    expect(perceive(w, who(w, 'Siti')).placesYouKnow).toEqual(['home']);
+    expect(perceive(w, who(w, 'Siti')).placesYouKnow).toEqual(['home', "the village head's house"]);
   });
 
   it('can set off in a direction to explore', () => {

@@ -6,6 +6,7 @@ import { PLACE_BY_ID } from './map.ts';
 import { NEED_MAX, type Resident, type World } from './state.ts';
 import { lookAbout } from './discovery.ts';
 import { canSleepHere, ROUGH_REST, ROUGH_REST_CAP } from './households.ts';
+import { villageHeadMinute } from '../village/head.ts';
 import { isNight, minuteOfDay } from './time.ts';
 
 export const LORRY_ARRIVES = 7 * 60;
@@ -105,6 +106,7 @@ export function advance(w: World): void {
 
   w.state.jobOffers = w.state.jobOffers.filter((o) => o.expires > t);
   w.state.trades = w.state.trades.filter((o) => o.expires > t);
+  villageHeadMinute(w);
   w.state.homeOffers = w.state.homeOffers.filter((o) => o.expires > t);
   w.state.proposals = w.state.proposals.filter((o) => o.expires > t);
 }

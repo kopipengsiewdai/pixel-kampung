@@ -110,7 +110,7 @@ describe('the watch server', () => {
   it('gives the layout, a resident card and its own memory use', async () => {
     const { server } = await liveServer();
     const layout = await (await fetch(new URL('/api/layout', server.url))).json() as { w: number };
-    expect(layout.w).toBe(40);
+    expect(layout.w).toBe(44);
     const card = await (await fetch(new URL('/api/resident/siti', server.url))).json() as { name: string };
     expect(card.name).toBe('Siti');
     expect((await fetch(new URL('/api/resident/nobody', server.url))).status).toBe(404);

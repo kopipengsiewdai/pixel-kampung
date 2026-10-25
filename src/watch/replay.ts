@@ -4,6 +4,7 @@
  * SQLite file under KAMPUNG_HOME/trials/, next to the residents' memories.
  * The reader opens that file read-only, even while the trial is still going.
  */
+import { villageCharacter } from '../village/village.ts';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -187,7 +188,7 @@ export class ReplayReader {
     return rows.map((r) => this.decode(r)!);
   }
 
-  private name = (id: string): string => this.names[id] ?? id;
+  private name = (id: string): string => this.names[id] ?? villageCharacter(id)?.name ?? id;
 
   /** Feed lines after t0, up to and including t1, in order. */
   feedBetween(t0: number, t1: number): FeedLine[] {

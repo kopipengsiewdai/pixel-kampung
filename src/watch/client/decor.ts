@@ -32,6 +32,9 @@ export const PROPS: readonly Prop[] = [
   { atlas: 'p', frame: 'barrel', x: 20, y: 10 }, { atlas: 'p', frame: 'sack', x: 14, y: 10 },
   // Wet-market stall: crates of produce.
   { atlas: 'p', frame: 'crate', x: 25, y: 9 }, { atlas: 'p', frame: 'crate', x: 30, y: 9 }, { atlas: 'p', frame: 'pot', x: 26, y: 9 },
+  // The two stalls by the wet market (let by the village head).
+  { atlas: 'p', frame: 'crate', x: 24, y: 11 }, { atlas: 'p', frame: 'table', x: 25, y: 11 }, { atlas: 'p', frame: 'sack', x: 26, y: 11 },
+  { atlas: 'p', frame: 'crate', x: 29, y: 11 }, { atlas: 'p', frame: 'table', x: 30, y: 11 }, { atlas: 'p', frame: 'barrel', x: 31, y: 11 },
   // By the jetty.
   { atlas: 'p', frame: 'barrel', x: 30, y: 21 }, { atlas: 'p', frame: 'crate', x: 33, y: 21 },
 ];
@@ -54,7 +57,15 @@ export const PLANTS: readonly Prop[] = [
   { atlas: 'p', frame: 'flower', x: 19, y: 13 }, { atlas: 'p', frame: 'flowers', x: 24, y: 17 }, { atlas: 'p', frame: 'flower', x: 29, y: 13 },
   { atlas: 'p', frame: 'flowers', x: 36, y: 18 }, { atlas: 'p', frame: 'tuft', x: 17, y: 18 }, { atlas: 'p', frame: 'tuft', x: 27, y: 18 },
   { atlas: 'p', frame: 'tuft', x: 3, y: 13 }, { atlas: 'p', frame: 'rock', x: 38, y: 11 }, { atlas: 'p', frame: 'flowers', x: 33, y: 10 },
+  // The east side, below the village head's house.
+  { atlas: 'p', frame: 'big-tree', x: 41, y: 8 }, { atlas: 'p', frame: 'tree', x: 42, y: 13 }, { atlas: 'p', frame: 'bush', x: 40, y: 16 },
+  { atlas: 'k', frame: 'palm-0', x: 41.5, y: 19 }, { atlas: 'p', frame: 'flower', x: 42, y: 6 }, { atlas: 'p', frame: 'fern-0', x: 40, y: 11 },
 ];
+
+/** The village head's house, at the top of the path: the biggest attap house, half a tile in on its rise. */
+export const HEAD_HOUSE: Prop = { atlas: 'k', frame: 'house-2', x: 40.5, y: 0 };
+/** He wears the first pack character, in a khaki shirt (tinted) so he doesn't pass for Ah Huat. */
+export const HEAD_LOOK = { look: 0, tint: 0xd9c48f };
 
 /** Which pack character each of the default cast wears (people.png columns, in cast order). */
 export const PEOPLE_ORDER = ['ah-huat', 'mdm-tan', 'rahim', 'mei-ling', 'ah-kow', 'siti', 'muthu', 'ah-seng', 'fatimah', 'raju'];

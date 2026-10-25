@@ -121,7 +121,7 @@ const chosen = order.slice(0, minds);
 let town: Town;
 const print = (e: GameEvent) => {
   record.onEvent!(e);
-  const line = feedLine(e, (id) => town.world.resident(id).name);
+  const line = feedLine(e, (id) => town.world.nameOf(id));
   if (line && (args.feed === true || line.notable || e.type === 'kampung_quiet')) console.log(formatFeedLine(line, town.world.state));
 };
 town = Town.create(seed, SIM_START, { brains: mindBrains(mind, fakeBrains, chosen), observer: mind.observe, onEvent: print, onTick: record.onTick });
