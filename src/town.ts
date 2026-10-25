@@ -1,6 +1,7 @@
 import type { Brain } from './brain/brain.ts';
 import { FakeBrain } from './brain/fake-brain.ts';
 import { act, verbOf, type Intent } from './sim/actions/index.ts';
+import { DEFAULT_DIALS, type Dials } from './sim/dials.ts';
 import type { EventBody, GameEvent, LedgerEntry } from './sim/events.ts';
 import { PLACES } from './sim/map.ts';
 import { perceive, type Perception } from './sim/perception.ts';
@@ -103,6 +104,8 @@ export interface TownOptions {
   onTick?: (world: World) => void;
   /** For a new town: the real moment its first minute (t) stands for (default: t as real minutes). */
   anchorMs?: number;
+  /** The owner's dials (src/sim/dials.ts); any left out keep their defaults. */
+  dials?: Partial<Dials>;
 }
 
 /** The running kampung: world + brains + optional store, advanced a minute at a time. */
@@ -116,6 +119,7 @@ export class Town {
   private constructor(state: WorldState, opts: TownOptions, savedBrains?: Record<string, unknown>) {
     this.world = new World(state);
     this.world.observer = opts.observer ?? null;
+    this.world.dials = { ...DEFAULT_DIALS, ...opts.dials };
     this.store = opts.store;
     this.onEvent = opts.onEvent;
     this.onTick = opts.onTick;
@@ -173,7 +177,7 @@ export class Town {
     }
     if (!isNight(w.t)) {
       for (const r of w.state.residents) {
-        if ((r.activity && r.activity.kind !== 'working') || w.t < r.thinkAt) continue;
+        if ((r.activity && r.activity.kind !== 'working') || r.stove || w.t < r.thinkAt) continue;
         const brain = this.brains.get(r.id)!;
         r.thinkAt = w.t + QUIET_THINK_MINUTES;
         const absentBefore = !!r.reply && !r.reply.ok && NOT_NEARBY.test(r.reply.text);

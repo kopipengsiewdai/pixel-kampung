@@ -26,7 +26,7 @@ import { placeCardOf } from './view.ts';
 export const ECONOMY_DAYS = 8;
 
 /** The events the Economy section reads: money changing hands. */
-export const ECONOMY_EVENTS: ReadonlySet<string> = new Set(['bought', 'sold', 'lorry_sale', 'lorry_order', 'wages_paid', 'gave', 'traded', 'debt_agreed', 'repaid']);
+export const ECONOMY_EVENTS: ReadonlySet<string> = new Set(['bought', 'sold', 'lorry_sale', 'lorry_order', 'wages_paid', 'gave', 'traded', 'debt_agreed', 'repaid', 'traveller_bought']);
 
 const dayStart = (d: number) => d * MINUTES_PER_DAY - SGT_OFFSET_MIN;
 
@@ -76,6 +76,7 @@ export function economyOf(
       case 'bought': sale(e.cents); if (isToday) earn(e.from, e.cents); break;
       case 'sold': sale(e.cents); if (isToday) earn(e.who, e.cents); break;
       case 'lorry_sale': sale(e.cents); row.moneyIn += e.cents; if (isToday) earn(e.who, e.cents); break;
+      case 'traveller_bought': sale(e.cents); row.moneyIn += e.cents; if (isToday) earn(e.owner, e.cents); break;
       case 'lorry_order': sale(e.cents, -e.cents); row.moneyOut += e.cents; break;
       case 'wages_paid': if (isToday) earn(e.to, e.cents); break;
       case 'gave': if (isToday && e.cents > 0) earn(e.to, e.cents); break;
@@ -139,7 +140,8 @@ export function moneyOf(
   for (const e of events) {
     if (e.t > now.t || dayIndex(e.t) < from) continue;
     if (shop) {
-      if (e.type === 'bought' && e.shop === id) add(e, 'Sales', name(e.who), quantityLabel(e.item, e.qty), e.cents);
+      if (e.type === 'traveller_bought' && e.shop === id) add(e, 'Sales', 'travellers from the road', quantityLabel(e.item, 1), e.cents);
+      else if (e.type === 'bought' && e.shop === id) add(e, 'Sales', name(e.who), quantityLabel(e.item, e.qty), e.cents);
       else if (e.type === 'sold' && e.shop === id) add(e, 'Purchases', name(e.who), quantityLabel(e.item, e.qty), -e.cents);
       else if (e.type === 'lorry_order' && e.shop === id) add(e, 'Lorry', 'the lorry', quantityLabel(e.item, e.qty), -e.cents);
       else if (e.type === 'wages_paid' && e.who === shop.ownerId) add(e, 'Wages', name(e.to), 'wages', -e.cents);
@@ -155,6 +157,7 @@ export function moneyOf(
         else if (e.to === id) add(e, 'Purchases', name(e.who), quantityLabel(e.item, e.qty), -e.cents);
         break;
       case 'lorry_sale': if (e.who === id) add(e, 'Lorry', 'the lorry', quantityLabel(e.item, e.qty), e.cents); break;
+      case 'traveller_bought': if (e.owner === id) add(e, 'Sales', 'travellers from the road', quantityLabel(e.item, 1), e.cents); break;
       case 'lorry_order': if (e.who === id) add(e, 'Lorry', 'the lorry', quantityLabel(e.item, e.qty), -e.cents); break;
       case 'wages_paid':
         if (e.who === id) add(e, 'Wages', name(e.to), 'wages', -e.cents);

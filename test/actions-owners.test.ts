@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ACTIONS } from '../src/sim/actions/index.ts';
+import { advance } from '../src/sim/tick.ts';
 import { advanceTo } from '../src/sim/tick.ts';
 import { act, accepted, newWorld, put, refused, who, sgt } from './helpers.ts';
 import { createWorld } from '../src/sim/seed.ts';
@@ -212,6 +213,7 @@ describe('cook, as a kopitiam worker on shift', () => {
     expect(p.actions.map((a) => a.verb).sort()).toEqual(['cook', 'look around', 'say']);
     expect(p.job?.stock).toContainEqual({ item: 'fish', qty: 2 });
     accepted(act(w, siti.id, { verb: 'cook', item: 'fish porridge' }));
+    for (let i = 0; i < 10; i++) advance(w);
     expect(w.shop('kopitiam')!.stock['fish porridge']).toBe(6);
     expect(siti.activity?.kind).toBe('working');
     refused(act(w, siti.id, { verb: 'walk_to', where: 'home' }), /middle of your shift/);
@@ -236,8 +238,11 @@ describe('cook', () => {
     accepted(act(w, huat.id, { verb: 'cook', item: 'fish porridge', batches: 2 }));
     expect(stock.fish).toBeUndefined();
     expect(stock.rice).toBe(2);
+    // Two batches take 20 minutes at the stove.
+    for (let i = 0; i < 20; i++) advance(w);
     expect(stock['fish porridge']).toBe(8);
     accepted(act(w, huat.id, { verb: 'cook', item: 'kopi' }));
+    for (let i = 0; i < 5; i++) advance(w);
     expect(stock.kopi).toBe(15);
   });
   it('refusals: no kitchen, away from it, unknown dish, short of ingredients', () => {

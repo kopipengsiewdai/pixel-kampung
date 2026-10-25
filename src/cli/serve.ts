@@ -23,6 +23,7 @@ import { numArg, parseArgs } from './args.ts';
 import { openSave } from './open-save.ts';
 import { join } from 'node:path';
 import { readApiKey } from '../config/env.ts';
+import { readSettings, settingsPath } from '../config/settings.ts';
 import { AnthropicModel } from '../mind/anthropic-model.ts';
 import { TOWN_DAILY_CAP } from '../mind/budget.ts';
 import { CostLog } from '../mind/cost-log.ts';
@@ -42,6 +43,10 @@ const home = kampungHome();
 // Upgrades an older save first (backed up beside it); refuses one from newer code.
 const store = openSave(dbPath(home));
 const clock = new SystemClock();
+// The owner's dials (written with the defaults on first start, for the owner to edit).
+const settings = readSettings(home);
+for (const w of settings.warnings) console.error(w);
+console.log(`Dials (${settingsPath(home)}): ${JSON.stringify(settings.dials)}`);
 
 let town: Town;
 const print = (e: GameEvent) => {
@@ -49,7 +54,7 @@ const print = (e: GameEvent) => {
   if (line) console.log(formatFeedLine(line, town.world.state));
 };
 
-let mindOpts: Partial<TownOptions> = {};
+let mindOpts: Partial<TownOptions> = { dials: settings.dials };
 let memory: MemoryStore | null = null;
 let costs: CostLog | null = null;
 if (args.minds === true) {
@@ -67,7 +72,7 @@ if (args.minds === true) {
     cards: CARDS,
     onError: (err) => console.error(`A thinking call failed: ${err instanceof Error ? err.constructor.name : 'Error'}${err && typeof err === 'object' && 'status' in err ? ` (HTTP ${String(err.status)})` : ''}`),
   });
-  mindOpts = { brains: mindBrains(mind, fakeBrains), observer: mind.observe };
+  mindOpts = { ...mindOpts, brains: mindBrains(mind, fakeBrains), observer: mind.observe };
 }
 
 // The watch page: the owner's view only, read-only towards the town.

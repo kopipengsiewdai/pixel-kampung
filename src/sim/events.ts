@@ -36,6 +36,8 @@ export type EventBody =
   | { type: 'trade_offered'; who: string; to: string; give: Bundle; want: Bundle }
   | { type: 'traded'; who: string; with: string; give: Bundle; want: Bundle }
   | { type: 'trade_declined'; who: string; from: string }
+  | { type: 'traveller_bought'; shop: string; owner: string; by: string; item: ItemId; cents: Cents }
+  | { type: 'travellers_hour'; shop: string; served: number; cents: Cents; left: number }
   | { type: 'price_offered'; who: string; owner: string; shop: string; item: ItemId; qty: number; cents: Cents }
   | { type: 'price_refused'; who: string; from: string; shop: string; item: ItemId; qty: number; cents: Cents }
   | { type: 'debt_offered'; who: string; to: string; kind: 'lend' | 'borrow' | 'iou'; cents: Cents; what: string | null }

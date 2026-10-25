@@ -4,6 +4,7 @@ import { PLACE_BY_ID, PLACES } from './map.ts';
 import { Rng } from './rng.ts';
 import { FARM_BEDS, HOUSE_IDS, type WorldState } from './state.ts';
 import { dayIndex } from './time.ts';
+import { freshDay } from './travellers.ts';
 
 function slug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -37,6 +38,7 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
       recent: [],
       reply: null,
       lastDone: null,
+      stove: null,
       // Home first; a newcomer knows only a few places, everyone else the whole kampung.
       knownPlaces: [homeId, ...(c.places ?? PLACES.map((p) => p.id)).filter((id) => id !== homeId)],
       // Family and old friends are known from day one; everyone else is met in play.
@@ -45,7 +47,10 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
   });
   const shops = cast.flatMap((c, i) => {
     if (c.role !== 'owner' || !c.business) return [];
-    return [{ id: c.business, ownerId: residents[i]!.id, stock: { ...SHOP_STOCK[c.business] }, sellPrices: {}, buyPrices: {}, buyLimits: {} }];
+    return [{
+      id: c.business, ownerId: residents[i]!.id, stock: { ...SHOP_STOCK[c.business] }, sellPrices: {}, buyPrices: {}, buyLimits: {},
+      queue: [], serving: [], today: freshDay(dayIndex(t)), hour: { served: 0, cents: 0, left: 0 },
+    }];
   });
   return {
     version: SCHEMA_VERSION,

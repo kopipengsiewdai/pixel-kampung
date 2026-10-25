@@ -17,6 +17,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { readApiKey } from '../config/env.ts';
+import { readSettings } from '../config/settings.ts';
 import { kampungHome } from '../config/paths.ts';
 import { feedLine, formatFeedLine } from '../feed/feed.ts';
 import { AnthropicModel } from '../mind/anthropic-model.ts';
@@ -129,7 +130,10 @@ const print = (e: GameEvent) => {
   const line = feedLine(e, (id) => town.world.resident(id).name);
   if (line && (args.feed === true || line.notable || e.type === 'kampung_quiet')) console.log(formatFeedLine(line, town.world.state));
 };
-town = Town.create(seed, SIM_START, { brains: mindBrains(mind, fakeBrains, chosen), observer: mind.observe, onEvent: print, onTick: record.onTick });
+// The same dials as the living town under this KAMPUNG_HOME.
+const settings = readSettings(home);
+for (const w of settings.warnings) console.error(w);
+town = Town.create(seed, SIM_START, { brains: mindBrains(mind, fakeBrains, chosen), observer: mind.observe, onEvent: print, onTick: record.onTick, dials: settings.dials });
 console.log(`${fake ? 'Dry run (fake model, $0)' : `Trial, up to US$${budget.toFixed(2)}`}: ${minds} on the model for ${hours} game hours.`);
 
 const end = SIM_START + Math.round(hours * 60);
@@ -168,5 +172,22 @@ const purses = (role: 'owner' | 'seeker') => town.world.state.residents.filter((
 console.log('\n--- money ---');
 console.log(`debts made: ${count('debt_agreed')} (${formatMoney(cents('debt_agreed'))}), paid back: ${count('repaid')} (${formatMoney(cents('repaid'))}), let off: ${count('let_off')} (${formatMoney(cents('let_off'))}); asked or offered: ${count('debt_offered')}, turned down: ${count('debt_refused')}`);
 console.log(`at the end: owners hold ${formatMoney(purses('owner'))}, seekers ${formatMoney(purses('seeker'))}; still owed ${formatMoney(town.world.state.debts.reduce((n, d) => n + d.cents, 0))}`);
+const byShop = new Map<string, { served: number; cents: number; left: number }>();
+for (const e of events) {
+  if (e.type === 'traveller_bought') {
+    const row = byShop.get(e.shop) ?? { served: 0, cents: 0, left: 0 };
+    row.served++;
+    row.cents += e.cents;
+    byShop.set(e.shop, row);
+  } else if (e.type === 'travellers_hour' && e.left) {
+    const row = byShop.get(e.shop) ?? { served: 0, cents: 0, left: 0 };
+    row.left += e.left;
+    byShop.set(e.shop, row);
+  }
+}
+const wagesPaid = events.reduce((n, e) => n + (e.type === 'wages_paid' ? e.cents : 0), 0);
+console.log('\n--- work ---');
+console.log(`jobs offered: ${count('job_offered')}, hired: ${count('hired')}, wages paid: ${formatMoney(wagesPaid)}`);
+console.log(`travellers served: ${[...byShop].map(([shop, r]) => `${shop} ${r.served} (${formatMoney(r.cents)}), ${r.left} unserved`).join('; ') || 'none'}`);
 if (!fake) console.log(`all trials so far: US$${spentOnTrials(costRoot).toFixed(4)} of US$${TRIAL_ALLOWANCE}`);
 console.log(`\nWatch it back: npm run watch -- --replay trial-${stamp}.db`);

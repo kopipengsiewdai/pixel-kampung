@@ -174,6 +174,20 @@ export const UPGRADES: readonly Upgrade[] = [
     why: 'A buyer can offer less than a shop asks, and whoever minds the counter can take it or turn it down; no offers are waiting yet.',
     save: ({ world, brains }) => ({ world: { ...world, priceOffers: [] }, brains }),
   },
+  {
+    from: 9,
+    why: 'Travellers from the coast road stop at the shops and queue to be served, and cooking takes time at the stove; every shop starts the day with nobody waiting, and nobody is mid-cook.',
+    save: ({ world, brains }) => {
+      // The day by the time code as it stood at v9 (frozen).
+      const day = Math.floor(((world.t as number) + 8 * 60) / 1440);
+      const shops = (world.shops as Record<string, unknown>[]).map((s) => ({
+        ...s,
+        queue: [], serving: [], today: { day, served: 0, cents: 0, left: 0, away: 0, awayTold: 0, tooDear: {}, servedBy: {} }, hour: { served: 0, cents: 0, left: 0 },
+      }));
+      const residents = (world.residents as Record<string, unknown>[]).map((r) => ({ ...r, stove: null }));
+      return { world: { ...world, shops, residents }, brains };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

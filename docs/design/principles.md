@@ -150,6 +150,14 @@ AI residents are players *inside* the world, not developers of it.
 - **Action names are in-world verbs.** Tools are named the way the character
   would think of them (`talk`, `pick up`, `buy`), not after engine calls.
 
+## Guardrails are training wheels (agreed 2026-10-25)
+
+The goal is for residents to **manage their own economy without our
+guardrails**. Limits we add on money from outside (such as the travellers'
+daily budget per shop, an owner's dial in `$KAMPUNG_HOME/settings.json`) are
+training wheels: each is loosened, and in the end removed, as real sinks
+(rent, Pak Osman, festivals) and the residents' own behaviour take over.
+
 ## One world forever (agreed 2026-10-25)
 
 The town that launches is **never reset** unless the owner says so. Every

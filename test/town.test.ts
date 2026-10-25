@@ -16,12 +16,14 @@ async function runDays(seed: number, days: number) {
 }
 
 describe('the fake-brain town', () => {
-  it('runs 3 game days on a fixed seed: no exceptions, money conserved except through the lorry', async () => {
+  it('runs 3 game days on a fixed seed: no exceptions, money conserved except through the lorry and travellers', async () => {
     const { town, events, before } = await runDays(42, 3);
     const after = town.world.state.residents.reduce((s, r) => s + r.money, 0);
     const lorryIn = events.filter((e) => e.type === 'lorry_sale').reduce((s, e) => s + (e.type === 'lorry_sale' ? e.cents : 0), 0);
     const lorryOut = events.filter((e) => e.type === 'lorry_order').reduce((s, e) => s + (e.type === 'lorry_order' ? e.cents : 0), 0);
-    expect(after - before).toBe(lorryIn - lorryOut);
+    // Travellers from the road pay in from outside too.
+    const travellersIn = events.reduce((s, e) => s + (e.type === 'traveller_bought' ? e.cents : 0), 0);
+    expect(after - before).toBe(lorryIn - lorryOut + travellersIn);
     for (const r of town.world.state.residents) {
       expect(r.money, r.name).toBeGreaterThanOrEqual(0);
       expect(Number.isInteger(r.money)).toBe(true);

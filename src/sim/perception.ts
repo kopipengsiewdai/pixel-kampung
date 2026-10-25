@@ -1,11 +1,12 @@
 import { isRipe, isStaffed, shiftLabel, shopHere } from './actions/everyone.ts';
 import { offersFor } from './actions/haggle.ts';
+import { servers } from './travellers.ts';
 import type { DealKind } from './talk.ts';
 import { availableActions } from './actions/index.ts';
 import { ITEMS, LORRY_BUYS, LORRY_SELLS, quantityLabel, type ItemId } from './items.ts';
 import { PLACES, PLACE_BY_ID, type Place } from './map.ts';
 import { formatMoney, type Cents } from './money.ts';
-import { CIRCLE_LINES, SAID_ALL_LINES, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, WORD_MINUTES, type Debt, type Goods, type Observation, type Resident, type TalkRecord, type World } from './state.ts';
+import { CIRCLE_LINES, SAID_ALL_LINES, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, WORD_MINUTES, type Debt, type Goods, type Observation, type Resident, type Shop, type TalkRecord, type World } from './state.ts';
 import { nowLabel } from './calendar.ts';
 import { dayIndex, sgtHour, sgtMinute } from './time.ts';
 
@@ -83,6 +84,9 @@ export interface Perception {
     buys: PriceTag[];
     workers: string[];
     owed: { name: string; cents: Cents }[];
+    /** Travellers waiting now, and today's (seen only at the shop): served, left unserved, and turned away by price (by item). */
+    waiting: number;
+    today: { served: number; left: number; tooDear: { item: ItemId; n: number }[] };
   } | null;
   shop: { name: string; staffed: boolean; sells: PriceTag[]; buys: PriceTag[] } | null;
   lorry: { here: boolean; sells: PriceTag[]; buys: PriceTag[] } | null;
@@ -92,6 +96,10 @@ export interface Perception {
   trades: { from: string; give: string; want: string }[];
   /** Money they owe and are owed, summed per person (an IOU's words with it), and wages owed to them. */
   debts: { owe: { name: string; cents: Cents; what: string | null }[]; owedYou: { name: string; cents: Cents; what: string | null }[]; wages: { name: string; cents: Cents }[] };
+  /** In a shop someone else runs: who is serving, if only one, and how many travellers wait. */
+  busyShop: { server: string; owner: string; alone: boolean; waiting: number } | null;
+  /** On shift: how many travellers they've served today. */
+  servedToday: number | null;
   /** Prices offered at a counter they're minding, below what the shop asks. */
   priceOffers: { from: string; item: ItemId; qty: number; cents: Cents; asking: Cents }[];
   /** Loans offered or asked for, and IOUs written to them, waiting on their yes. */
@@ -200,6 +208,14 @@ export function perceive(w: World, r: Resident): Perception {
       buys: buyTags(own),
       workers: w.state.jobs.filter((j) => j.employerId === r.id).map((j) => w.resident(j.workerId).name),
       owed: w.state.owed.filter((o) => o.employerId === r.id).map((o) => ({ name: w.resident(o.workerId).name, cents: o.cents })),
+      waiting: own.queue.length,
+      // Today's count is seen at the shop; away from it, the owner hears on coming back who found nobody serving.
+      today: w.isAt(r, own.id) && own.today.day === today ? {
+        served: own.today.served,
+        // Unserved: gave up in the queue, or found nobody serving.
+        left: own.today.left + own.today.away,
+        tooDear: (Object.entries(own.today.tooDear) as [ItemId, number][]).filter(([, n]) => n > 0).map(([item, n]) => ({ item, n })),
+      } : { served: 0, left: 0, tooDear: [] },
     } : null,
     shop: shop && shop.ownerId !== r.id ? {
       name: PLACE_BY_ID.get(shop.id)!.name,
@@ -227,6 +243,8 @@ export function perceive(w: World, r: Resident): Perception {
       owedYou: debtsBy(w, (d) => d.creditor === r.id, (d) => d.debtor),
       wages: w.state.owed.filter((o) => o.workerId === r.id).map((o) => ({ name: w.resident(o.employerId).name, cents: o.cents })),
     },
+    busyShop: shop && shop.ownerId !== r.id && !(r.activity?.kind === 'working') ? busyShopOf(w, shop) : null,
+    servedToday: r.activity?.kind === 'working' && jobRow ? (w.shop(jobRow.placeId)?.today.servedBy[r.id] ?? 0) : null,
     priceOffers: offersFor(w, r).map((o) => ({
       from: w.resident(o.buyerId).name, item: o.item, qty: o.qty, cents: o.cents, asking: (w.shop(o.shopId)!.sellPrices[o.item] ?? 0) * o.qty,
     })),
@@ -269,6 +287,19 @@ function debtsBy(w: World, mine: (d: Debt) => boolean, other: (d: Debt) => strin
     out.set(id, row);
   }
   return [...out.values()];
+}
+
+function busyShopOf(w: World, shop: Shop): { server: string; owner: string; alone: boolean; waiting: number } | null {
+  if (!shop.queue.length) return null;
+  const on = servers(w, shop);
+  return { server: on[0] ? on[0].name : w.resident(shop.ownerId).name, owner: w.resident(shop.ownerId).name, alone: on.length === 1, waiting: shop.queue.length };
+}
+
+const NUMBER_WORDS = ['no', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'eleven', 'twelve'];
+/** "Three", "12": a small count as a word. */
+function count(n: number, capital = false): string {
+  const s = NUMBER_WORDS[n] ?? String(n);
+  return capital ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
 function describeBundle(b: { items: Goods; cents: Cents }): string {
@@ -331,6 +362,12 @@ export function describe(p: Perception): string {
     if (p.business.buys.length) lines.push(`You're buying: ${p.business.buys.map(priceLine).join(', ')}.`);
     if (p.business.workers.length) lines.push(`Working for you: ${p.business.workers.join(', ')}.`);
     if (p.business.owed.length) lines.push(`You owe wages: ${p.business.owed.map((o) => `${o.name} ${formatMoney(o.cents)}`).join(', ')}.`);
+    if (p.business.atShop && p.business.waiting) {
+      lines.push(`${count(p.business.waiting, true)} ${p.business.waiting === 1 ? 'traveller from the road is' : 'travellers from the road are'} waiting to be served.`);
+    }
+    const t = p.business.today;
+    if (t.served || t.left) lines.push(`Today you've served ${t.served}; ${t.left} left without being served.`);
+    for (const d of t.tooDear) lines.push(`${count(d.n, true)} ${d.n === 1 ? 'person' : 'people'} turned away at your ${d.item} price.`);
   }
   if (p.shop) {
     lines.push(`${p.shop.staffed ? 'Someone is serving.' : "Nobody's serving right now."} For sale: ${p.shop.sells.map(priceLine).join(', ') || 'nothing'}.`);
@@ -347,6 +384,12 @@ export function describe(p: Perception): string {
   if (p.freeBeds !== null) lines.push(`${p.freeBeds} bed${p.freeBeds === 1 ? ' is' : 's are'} free on the plot.`);
   for (const o of p.jobOffers) lines.push(`${o.from} has offered you work ${shiftLabel(o.startHour, o.hours)} for ${formatMoney(o.wage)} a shift.`);
   for (const t of p.trades) lines.push(`${t.from} offers you ${t.give} for ${t.want}.`);
+  if (p.busyShop) {
+    const b = p.busyShop;
+    const waiting = `${count(b.waiting)} ${b.waiting === 1 ? 'traveller is' : 'travellers are'} waiting`;
+    lines.push(b.alone ? `${b.server} is serving alone, and ${waiting}.` : `${count(b.waiting, true)} ${b.waiting === 1 ? 'traveller from the road is' : 'travellers from the road are'} waiting.`);
+  }
+  if (p.servedToday !== null && p.servedToday > 0) lines.push(`You've served ${p.servedToday} ${p.servedToday === 1 ? 'person' : 'people'} this shift.`);
   for (const o of p.priceOffers) lines.push(`${o.from} offers ${formatMoney(o.cents)} for ${quantityLabel(o.item, o.qty)}.`);
   for (const o of p.moneyOffers) {
     const sum = formatMoney(o.cents);

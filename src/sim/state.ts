@@ -1,3 +1,4 @@
+import { DEFAULT_DIALS, type Dials } from './dials.ts';
 import type { ItemId } from './items.ts';
 import { settledBy, settles, type DealKind, type Settles } from './talk.ts';
 import type { Point } from './map.ts';
@@ -46,6 +47,8 @@ export interface Resident {
   reply: { ok: boolean; text: string } | null;
   /** The last thing they did that went through (written the same way each time), and when: doing it again straight away doesn't bring the next thought on. */
   lastDone: { what: string; t: number } | null;
+  /** A batch cooking at a shop's stove: busy until it's done (daily-life.md B). */
+  stove: { item: ItemId; batches: number; qty: number; shopId: string; until: number } | null;
   /** Place ids they know of: seen, or heard named. They start knowing only home. */
   knownPlaces: string[];
   /** Resident ids they've met. */
@@ -61,6 +64,14 @@ export interface Shop {
   buyPrices: Partial<Record<ItemId, Cents>>;
   /** How many more the owner will buy at the posted price; no entry means no limit. */
   buyLimits: Partial<Record<ItemId, number>>;
+  /** Travellers waiting to be served, oldest first: what each wants and when they came. */
+  queue: { item: ItemId; t: number }[];
+  /** Who is serving a traveller now, what, and until when. */
+  serving: { by: string; item: ItemId; until: number }[];
+  /** Today's travellers: served (and what they spent), left unserved, found nobody serving (and how many of those the owner has heard of), turned away by price, and served by whom. */
+  today: { day: number; served: number; cents: Cents; left: number; away: number; awayTold: number; tooDear: Partial<Record<ItemId, number>>; servedBy: Record<string, number> };
+  /** This hour's travellers, for the hourly feed line. */
+  hour: { served: number; cents: Cents; left: number };
 }
 
 export interface Job {
@@ -196,7 +207,9 @@ export const LORRY_ID = 'lorry';
 /** Where each purse's money stood when the ledger began: a town's start, or the upgrade that began it. */
 export const OPENING_ID = 'kampung-opening';
 /** Accounts outside the town: money appears from or vanishes into them. */
-export const OUTSIDE: ReadonlySet<string> = new Set([LORRY_ID, OPENING_ID]);
+/** Customers from the coast road: their money comes from outside the town. */
+export const TRAVELLERS_ID = 'travellers';
+export const OUTSIDE: ReadonlySet<string> = new Set([LORRY_ID, OPENING_ID, TRAVELLERS_ID]);
 export const FARM_BEDS = 8;
 export const MAX_RECENT = 12;
 export const NEARBY_TILES = 3;
@@ -223,6 +236,8 @@ export class World {
   private ledger: LedgerEntry[] = [];
   /** Hears every observation a resident takes in (a mind keeps them as memories). */
   observer: ((residentId: string, t: number, text: string) => void) | null = null;
+  /** The owner's dials, from the private settings (not saved with the town). */
+  dials: Dials = { ...DEFAULT_DIALS };
 
   constructor(state: WorldState) {
     this.state = state;
