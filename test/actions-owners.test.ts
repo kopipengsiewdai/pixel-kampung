@@ -242,11 +242,11 @@ describe('cook', () => {
 });
 
 describe('the action space', () => {
-  it('is exactly the v1 list plus households, each with accept and refusal tests (households in households.test.ts)', () => {
+  it("is exactly the v1 list plus households and the village head's door, each with accept and refusal tests (in households.test.ts and village-head.test.ts)", () => {
     expect(Object.keys(ACTIONS).sort()).toEqual([
-      'accept_job', 'accept_trade', 'buy', 'cook', 'decline_trade', 'eat', 'fish', 'give', 'harvest',
-      'let_go', 'look_around', 'marry', 'move_in', 'offer_job', 'offer_trade', 'order_stock', 'pay_wages', 'pin_note', 'plant',
-      'propose', 'quit_job', 'read_notice_board', 'say', 'sell', 'set_price', 'sleep', 'take_in', 'tell_to_leave', 'turn_down',
+      'accept_job', 'accept_trade', 'buy', 'cook', 'decline_trade', 'eat', 'fish', 'give', 'hand_back', 'harvest', 'knock',
+      'let_go', 'look_around', 'marry', 'move_in', 'offer_job', 'offer_trade', 'order_stock', 'pay_rent', 'pay_wages', 'pin_note', 'plant',
+      'propose', 'quit_job', 'read_notice_board', 'rent_place', 'say', 'sell', 'set_price', 'sleep', 'take_in', 'tell_to_leave', 'turn_down',
       'walk_to', 'water', 'work_shift',
     ]);
   });

@@ -1,8 +1,10 @@
 import { atRoughSpot, heldBy, noteSpoken } from '../households.ts';
+import { HEAD_REPLY, headNearby } from '../../village/head.ts';
+import { VILLAGE_HEAD, villageCharacterByName } from '../../village/village.ts';
 import { FISHING_MINUTES, restedFor, startSleep } from '../activities.ts';
 import { ITEMS, LORRY_BUYS, quantityLabel, type ItemId } from '../items.ts';
-import { MAP_H, MAP_W, PLACES, PLACE_BY_ID, findPath, isWalkable, type Point } from '../map.ts';
-import { learnFromWords } from '../discovery.ts';
+import { MAP_H, MAP_W, PLACES, PLACE_BY_ID, distance, findPath, isWalkable, type Point } from '../map.ts';
+import { learnFromWords, SIGHT_TILES } from '../discovery.ts';
 import { formatMoney } from '../money.ts';
 import { describe, perceive } from '../perception.ts';
 import { PLACE_WORDS } from '../places.ts';
@@ -98,6 +100,14 @@ export function resolveDestination(w: World, r: Resident, where: unknown): Desti
     if (!w.knowsPerson(r, person.id)) return `You don't know anyone called ${quoted(where)}.`;
     return { point: person.pos, placeId: null, label: person.name, personId: person.id };
   }
+  const villager = villageCharacterByName(where);
+  if (villager) {
+    // Out and in sight, they go to him; otherwise to his door.
+    const body = w.state.villagers[villager.id]!;
+    if (!body.indoors && distance(body.pos, r.pos) <= SIGHT_TILES) return { point: { ...body.pos }, placeId: null, label: villager.name };
+    const p = PLACE_BY_ID.get(villager.homeId)!;
+    return { point: p.spot, placeId: p.id, label: p.name };
+  }
   const exact = PLACES.find((p) => p.kind !== 'house' && normalise(p.name) === s);
   if (exact && w.knowsPlace(r, exact.id)) return { point: exact.spot, placeId: exact.id, label: exact.name };
   return unknown;
@@ -128,6 +138,8 @@ export function say(w: World, r: Resident, i: Intent): ActionResult {
   if (!text) return no('You open your mouth, but nothing comes out.');
   if (text.length > MAX_SAY) return no("That's a lot to say in one go. Keep it shorter.");
   let to: Resident | null = null;
+  const villager = villageCharacterByName(i.to);
+  if (villager) return sayToVillageHead(w, r, text);
   if (i.to !== undefined && i.to !== null && i.to !== '') {
     const o = personNearby(w, r, i.to);
     if (typeof o === 'string') return no(o);
@@ -155,6 +167,21 @@ export function say(w: World, r: Resident, i: Intent): ActionResult {
     else w.remember(o.id, line, forYou);
   }
   w.remember(r.id, to ? `You say to ${to.name}: "${text}"` : `You say: "${text}"`, true);
+  return ok();
+}
+
+/** Speaking to the village head, out on his rounds: those nearby overhear, and he answers in a few set words. */
+function sayToVillageHead(w: World, r: Resident, text: string): ActionResult {
+  if (!headNearby(w, r)) return no(`${VILLAGE_HEAD.name} isn't nearby.`);
+  w.emit({ type: 'said', who: r.id, to: VILLAGE_HEAD.id, text });
+  for (const o of w.nearby(r)) {
+    if (w.isAsleep(o)) continue;
+    w.learnPerson(o, r.id);
+    learnFromWords(w, o, text);
+    w.remember(o.id, `${r.name} says to ${VILLAGE_HEAD.name}: "${text}"`);
+  }
+  w.remember(r.id, `You say to ${VILLAGE_HEAD.name}: "${text}"`, true);
+  w.notify(r.id, HEAD_REPLY, true);
   return ok();
 }
 
@@ -494,12 +521,18 @@ export function give(w: World, r: Resident, i: Intent): ActionResult {
 export function readNoticeBoard(w: World, r: Resident): ActionResult {
   if (!w.isAt(r, 'notice-board')) return no("You can't read the notice board from here.");
   w.emit({ type: 'read_notices', who: r.id });
-  if (w.state.notes.length === 0) return ok('The notice board is empty.');
+  const official = w.state.villageNotices;
+  if (w.state.notes.length === 0 && official.length === 0) return ok('The notice board is empty.');
+  for (const n of official) learnFromWords(w, r, n.text);
   for (const n of w.state.notes) {
     learnFromWords(w, r, n.text);
     w.learnPerson(r, n.authorId);
   }
-  const lines = w.state.notes.map((n) => `- "${n.text}" (${w.resident(n.authorId).name})`);
+  // The village head's notice is pinned at the top.
+  const lines = [
+    ...official.map((n) => `- "${n.text}" (${VILLAGE_HEAD.name})`),
+    ...w.state.notes.map((n) => `- "${n.text}" (${w.resident(n.authorId).name})`),
+  ];
   return ok(`Notes on the board:\n${lines.join('\n')}`);
 }
 

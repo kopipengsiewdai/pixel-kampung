@@ -12,7 +12,9 @@ import type { Goods, Resident, Shop, World } from '../sim/state.ts';
 import { dateAt, MONTHS } from '../sim/calendar.ts';
 import { shortStamp } from '../sim/calendar.ts';
 import { dayIndex, minuteOfDay, sgtHour, sgtMinute } from '../sim/time.ts';
-import type { Card, Carried, Frame, Layout, ResidentView, ShopView, Thought } from './types.ts';
+import type { Card, Carried, Frame, Layout, ResidentView, ShopView, Thought, VillagerView } from './types.ts';
+import { headDoing } from '../village/head.ts';
+import { VILLAGE_CHARACTERS } from '../village/village.ts';
 
 export function layoutOf(w: World): Layout {
   const tiles: Tile[][] = Array.from({ length: MAP_H }, (_, y) => Array.from({ length: MAP_W }, (_, x) => tileAt(x, y)!));
@@ -94,17 +96,23 @@ function shopView(w: World, s: Shop): ShopView {
 export class FrameBuilder {
   private paths = new Map<string, Point[]>();
 
+  /** The tiles stepped through since the last frame, ending here; and remembers what's left of the walk. */
+  private routeOf(id: string, pos: Point, path: readonly Point[] | null): Point[] {
+    const before = this.paths.get(id);
+    const i = before ? before.findIndex((p) => p.x === pos.x && p.y === pos.y) : -1;
+    const route = i >= 0 ? before!.slice(0, i + 1) : [pos];
+    if (path) this.paths.set(id, path.map((p) => ({ x: p.x, y: p.y })));
+    else this.paths.delete(id);
+    return route;
+  }
+
   build(w: World): Frame {
     const t = w.t;
     const today = dayIndex(t);
     const residents = w.state.residents.map((r): ResidentView => {
       const pos = { x: r.pos.x, y: r.pos.y };
-      const before = this.paths.get(r.id);
-      const i = before ? before.findIndex((p) => p.x === pos.x && p.y === pos.y) : -1;
-      const route = i >= 0 ? before!.slice(0, i + 1) : [pos];
       const a = r.activity;
-      if (a?.kind === 'walking') this.paths.set(r.id, a.path.map((p) => ({ x: p.x, y: p.y })));
-      else this.paths.delete(r.id);
+      const route = this.routeOf(r.id, pos, a?.kind === 'walking' ? a.path : null);
       const here = w.placeOf(r);
       return {
         id: r.id,
@@ -136,6 +144,12 @@ export class FrameBuilder {
       minuteOfDay: minuteOfDay(t),
       lorryHere: w.state.lorryHere,
       residents,
+      villagers: VILLAGE_CHARACTERS.map((c): VillagerView => {
+        const body = w.state.villagers[c.id]!;
+        const pos = { x: body.pos.x, y: body.pos.y };
+        const route = this.routeOf(c.id, pos, body.indoors ? null : body.path);
+        return { id: c.id, name: c.name, ...pos, route, out: !body.indoors, doing: body.indoors ? 'at home' : headDoing(w) };
+      }),
       shops: w.state.shops.map((s) => shopView(w, s)),
       owed: w.state.owed.map((o) => ({ ...o })),
       beds: w.state.beds.map((b) => ({

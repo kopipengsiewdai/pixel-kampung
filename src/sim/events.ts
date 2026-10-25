@@ -50,7 +50,17 @@ export type EventBody =
   | { type: 'told_to_leave'; who: string; to: string; homeless: boolean }
   | { type: 'proposed'; who: string; to: string }
   | { type: 'married'; who: string; to: string }
-  | { type: 'turned_down'; who: string; to: string };
+  | { type: 'turned_down'; who: string; to: string }
+  | { type: 'let'; who: string; place: string; rent: Cents; deposit: Cents }
+  | { type: 'rent_paid'; who: string; place: string; cents: Cents }
+  | { type: 'rent_missed'; who: string; place: string; cents: Cents }
+  | { type: 'taken_back'; who: string; place: string }
+  | { type: 'handed_back'; who: string; place: string }
+  | { type: 'stall_asked'; who: string; place: string }
+  | { type: 'stall_offered'; who: string; place: string }
+  | { type: 'knocked'; who: string; text: string }
+  | { type: 'village_head_out'; duty: 'rent_round' | 'notice' }
+  | { type: 'village_notice'; text: string };
 
 export type EventType = EventBody['type'];
 export type GameEvent = EventBody & { seq: number; t: number };

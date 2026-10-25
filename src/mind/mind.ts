@@ -51,7 +51,7 @@ export class Mind {
 
   brainFor(residentId: string, name: string, role: 'owner' | 'seeker', shop: string | null, t: number): MindBrain {
     const card = this.cards.find((c) => c.name === name) ?? { name, age: 30, personality: 'Ordinary.', want: 'a decent life', worry: 'about hard times', knows: '' };
-    return new MindBrain(this, residentId, systemPrompt(card, role, shop), t);
+    return new MindBrain(this, residentId, card, shop && role === 'owner' ? shop : null, t);
   }
 
   observe = (residentId: string, t: number, text: string): void => {
@@ -96,14 +96,19 @@ interface MindState {
 export class MindBrain implements Brain {
   private readonly mind: Mind;
   private readonly id: string;
-  private readonly system: string;
+  private readonly card: Card;
+  /** The business the stable prompt was written for; it's rewritten if they take one on or give one up. */
+  private shop: string | null;
+  private system: string;
   private s: MindState;
   private budget: Budget;
 
-  constructor(mind: Mind, id: string, system: string, t: number) {
+  constructor(mind: Mind, id: string, card: Card, shop: string | null, t: number) {
     this.mind = mind;
     this.id = id;
-    this.system = system;
+    this.card = card;
+    this.shop = shop;
+    this.system = systemPrompt(card, shop ? 'owner' : 'seeker', shop);
     this.budget = new Budget(t);
     this.s = { budget: this.budget.save(), planDay: null, plan: null, businessDay: null, businessCalls: 0, reflectedDay: null };
   }
@@ -184,6 +189,11 @@ export class MindBrain implements Brain {
     const memories = this.mind.memory.recall(this.id, ctx.t, cue, 16)
       .filter((m, i, all) => !seen.has(m.text) && all.findIndex((x) => x.text === m.text) === i)
       .slice(-8);
+    const shop = p.business?.place ?? null;
+    if (shop !== this.shop) {
+      this.shop = shop;
+      this.system = systemPrompt(this.card, shop ? 'owner' : 'seeker', shop);
+    }
     const user = userPrompt(kind, p, memories, this.s.plan);
     if (this.mind.keepSent) this.mind.sent.push({ kind, system: this.system, user });
     let res: ThinkResponse;

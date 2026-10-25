@@ -1,6 +1,7 @@
 import { endShift, startSleep } from './activities.ts';
 import { RESTED } from './activities.ts';
 import { nearestRough, ROUGH_REST, ROUGH_REST_CAP } from './households.ts';
+import { villageHeadSkip } from '../village/head.ts';
 import type { World } from './state.ts';
 import { dayIndex, GAME_SPEED, isNight, minuteOfDay } from './time.ts';
 import { LORRY_ARRIVES, LORRY_LEAVES } from './tick.ts';
@@ -57,5 +58,6 @@ export function skipQuietly(w: World, to: number): void {
   w.state.trades = w.state.trades.filter((o) => o.expires > to);
   w.state.homeOffers = w.state.homeOffers.filter((o) => o.expires > to);
   w.state.proposals = w.state.proposals.filter((o) => o.expires > to);
+  villageHeadSkip(w);
   w.emit({ type: 'quiet_spell', minutes: gap });
 }

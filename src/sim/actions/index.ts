@@ -4,6 +4,7 @@ import { type ActionResult, type Intent, no } from './common.ts';
 import * as everyone from './everyone.ts';
 import * as owners from './owners.ts';
 import * as households from './households.ts';
+import * as village from './village.ts';
 import { couldSleep } from '../activities.ts';
 
 export type { ActionResult, Intent } from './common.ts';
@@ -70,6 +71,10 @@ export const ACTIONS: Record<string, ActionDef> = {
     run: households.turnDown, ownersOnly: false, says: 'turn down someone who asked to marry you (person)',
     here: (w, r) => w.state.proposals.some((p) => p.toId === r.id),
   },
+  knock: { run: village.knock, ownersOnly: false, says: 'knock and say something to Mr Lim (words)', here: village.atHisDoor },
+  rent_place: { run: village.rentPlace, ownersOnly: false, says: 'rent a house or ask for a stall Mr Lim has to let (which)', here: village.canRentHere },
+  pay_rent: { run: village.payRent, ownersOnly: false, says: 'pay Mr Lim rent (which, and how many weeks)', here: village.rentsHere },
+  hand_back: { run: village.handBack, ownersOnly: false, says: 'hand back a house or stall you rent from Mr Lim (which)', here: village.rentsHere },
   read_notice_board: { run: everyone.readNoticeBoard, ownersOnly: false, says: 'read the notice board', here: at('notice-board') },
   pin_note: { run: everyone.pinNote, ownersOnly: false, says: 'pin a note on the board (words)', here: at('notice-board') },
   set_price: {

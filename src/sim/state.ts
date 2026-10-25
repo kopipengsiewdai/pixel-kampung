@@ -7,6 +7,7 @@ import { Rng } from './rng.ts';
 import type { EventBody as Body } from './events.ts';
 import type { Calendar } from './calendar.ts';
 import type { GameClock } from './time.ts';
+import { FUND_ID, VILLAGE_HEAD_ID, villageCharacter, type VillagerBody } from '../village/village.ts';
 
 export type Role = 'owner' | 'seeker';
 export type Goods = Partial<Record<ItemId, number>>;
@@ -163,6 +164,39 @@ export interface WorldState {
   bonds: Record<string, Bond>;
   /** Told on the next minute, then cleared. */
   news: NewsItem[];
+  /** Village characters' bodies, by id. */
+  villagers: Record<string, VillagerBody>;
+  /** What the village head lets: rented houses and stalls. */
+  leases: Lease[];
+  /** Weekly rent for each place he lets, where it differs from the starting rent. */
+  rents: Record<string, Cents>;
+  /** The village fund: what's in it, and how much of that is stall deposits held. */
+  fund: { cents: Cents; depositsHeld: Cents };
+  /** His notices on the board (above residents' notes). */
+  villageNotices: { id: number; text: string; t: number }[];
+  /** Stalls he's letting: who has asked, and whom he has offered it to. */
+  stallCalls: StallCall[];
+}
+
+/** A house or stall the village head lets. Rent is paid up to (not including) the Monday `paidUntil`, a day index. */
+export interface Lease {
+  placeId: string;
+  tenantId: string;
+  rent: Cents;
+  deposit: Cents;
+  paidUntil: number;
+  /** Rent owed from a round they missed (due by the next Monday). */
+  owed: Cents;
+}
+
+export interface StallCall {
+  placeId: string;
+  /** Day index it went up for letting; he chooses three days later. */
+  opened: number;
+  applicants: string[];
+  offeredTo: string | null;
+  /** The last day the one offered it may come and pay. */
+  offerUntil: number | null;
 }
 
 export const LORRY_ID = 'lorry';
@@ -204,14 +238,24 @@ export class World {
   }
 
   /** Moves money. 'lorry' is outside the town: money appears from or vanishes into it. */
+  /**
+   * Moves money. Residents and the village fund are inside the town; the
+   * lorry and the village head's own purse are outside it (money appears from
+   * or vanishes into them), and nothing is ever paid into his purse.
+   */
   transfer(fromId: string, toId: string, cents: Cents, reason: string): void {
     if (!Number.isInteger(cents) || cents <= 0) throw new Error(`bad transfer amount ${cents}`);
-    if (fromId !== LORRY_ID) {
+    if (toId === VILLAGE_HEAD_ID) throw new Error("nothing is paid into the village head's own purse");
+    if (fromId === FUND_ID) {
+      if (this.state.fund.cents < cents) throw new Error(`the village fund cannot cover ${cents}`);
+      this.state.fund.cents -= cents;
+    } else if (fromId !== LORRY_ID && fromId !== VILLAGE_HEAD_ID) {
       const from = this.resident(fromId);
       if (from.money < cents) throw new Error(`${fromId} cannot cover ${cents}`);
       from.money -= cents;
     }
-    if (toId !== LORRY_ID) this.resident(toId).money += cents;
+    if (toId === FUND_ID) this.state.fund.cents += cents;
+    else if (toId !== LORRY_ID) this.resident(toId).money += cents;
     this.ledger.push({ seq: ++this.state.ledgerSeq, t: this.state.t, from: fromId, to: toId, cents, reason });
   }
 
@@ -241,6 +285,11 @@ export class World {
     const r = this.state.residents.find((x) => x.id === id);
     if (!r) throw new Error(`no resident ${id}`);
     return r;
+  }
+
+  /** Anyone's name by id: a resident, a village character, or the lorry. */
+  nameOf(id: string): string {
+    return this.state.residents.find((r) => r.id === id)?.name ?? villageCharacter(id)?.name ?? (id === LORRY_ID ? 'the lorry' : id);
   }
 
   residentByName(name: unknown): Resident | null {
@@ -315,7 +364,8 @@ export class World {
   }
 
   knowsPerson(r: Resident, otherId: string): boolean {
-    return r.id === otherId || r.knownPeople.includes(otherId);
+    // Everyone knows the village head; he's been here forever.
+    return r.id === otherId || r.knownPeople.includes(otherId) || villageCharacter(otherId) !== null;
   }
 
   learnPlace(r: Resident, placeId: string): void {

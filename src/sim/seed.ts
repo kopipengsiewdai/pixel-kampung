@@ -4,6 +4,8 @@ import { PLACE_BY_ID } from './map.ts';
 import { Rng } from './rng.ts';
 import { FARM_BEDS, HOUSE_IDS, type WorldState } from './state.ts';
 import { dayIndex } from './time.ts';
+import { VILLAGE_HEAD } from '../village/village.ts';
+import { STALL_IDS } from '../village/lets.ts';
 
 function slug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -40,7 +42,8 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
       recent: [],
       reply: null,
       lastDone: null,
-      knownPlaces: c.business ? [homeId, c.business] : [homeId],
+      // Everyone knows home, and the village head's house at the top of the path; owners know their shop.
+      knownPlaces: [homeId, VILLAGE_HEAD.homeId, ...(c.business ? [c.business] : [])],
       // Family and old friends are known from day one; everyone else is met in play.
       knownPeople: c.knows.map(slug),
     };
@@ -75,5 +78,11 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
     proposals: [],
     bonds: {},
     news: [],
+    villagers: { [VILLAGE_HEAD.id]: { pos: { ...PLACE_BY_ID.get(VILLAGE_HEAD.homeId)!.spot }, indoors: true, duty: null, path: [] } },
+    leases: [],
+    rents: {},
+    fund: { cents: 0, depositsHeld: 0 },
+    villageNotices: [],
+    stallCalls: STALL_IDS.map((placeId) => ({ placeId, opened: dayIndex(t), applicants: [], offeredTo: null, offerUntil: null })),
   };
 }

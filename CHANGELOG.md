@@ -6,6 +6,11 @@ never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
 ## Unreleased
 
+- **The village head:** Mr Lim lives in the big house at the top of the kampung (the map is a little wider for it). He answers his door in the daytime, lets the two empty houses and two new stalls by the wet market, and pins a to-let notice on the board.
+- **Rent:** a house is $1.50 a week and a stall $3.00 a week with $5.00 down, paid into the village fund. He calls for the rent on Monday mornings; a missed week is owed, and if it's still owed the next Monday he takes the place back (never a family home). Rent can also be paid at his door, up to four weeks ahead.
+- **Stalls:** anyone without a business can ask for a stall at his door; after three days he offers it to the earliest who asked, who has two days to come and pay.
+- **Living town:** at upgrade (save v6) everyone already knows Mr Lim and his house; he's at home, the fund is empty, nothing is let yet, and both stalls are open to ask for. Nobody moves or loses a cent, and nobody is told: his to-let notice goes up at 10:00 that morning or the next.
+
 - **Families live together:** Ah Seng lives in his father Ah Huat's house and Mei Ling in her aunt Mdm Tan's; two houses stand empty.
 - **Homes:** a household head can offer someone a home or tell them to leave; someone with nowhere to live sleeps rough (on the jetty, in the kopitiam, under the eaves) and rests worse.
 - **Marriage:** two people who have talked on enough different days grow close, and can propose and say yes (or no). Close family can't marry.
