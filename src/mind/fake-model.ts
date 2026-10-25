@@ -1,4 +1,5 @@
 import { FakeBrain } from '../brain/fake-brain.ts';
+import type { Intent } from '../sim/actions/index.ts';
 import type { Perception } from '../sim/perception.ts';
 import type { ModelClient, ThinkRequest, ThinkResponse } from './model.ts';
 import { MODELS } from './anthropic-model.ts';
@@ -22,9 +23,22 @@ export class FakeModel implements ModelClient {
   private brains = new Map<string, FakeBrain>();
   private lastCall = new Map<string, number>();
   private readonly seed: number;
+  private readonly chatty: boolean;
 
-  constructor(seed: number) {
+  /**
+   * chatty: always answer whoever last spoke to you, as the residents in paid
+   * trial 2 did, so a free trial shows what talk costs.
+   */
+  constructor(seed: number, opts: { chatty?: boolean } = {}) {
     this.seed = seed;
+    this.chatty = opts.chatty ?? false;
+  }
+
+  /** An answer to the last line someone said to you, if they're still here. */
+  private answer(p: Perception): Intent | null {
+    const who = /^(.+?) says(?: to you)?: "/.exec(p.talk.at(-1) ?? '')?.[1];
+    if (!who || !p.people.some((x) => x.name === who && x.doing !== 'asleep')) return null;
+    return { verb: 'say', text: 'Morning! Yes, about that deal...', to: who };
   }
 
   private brain(id: string): FakeBrain {
@@ -64,7 +78,8 @@ export class FakeModel implements ModelClient {
     if (req.kind === 'plan') text = 'Today: eat, earn a little, see who is about.';
     else if (req.kind === 'reflect') text = 'A long day. I should keep some money aside for tomorrow.';
     else {
-      const intent = this.brain(req.residentId).decide(req.hint as Perception);
+      const p = req.hint as Perception;
+      const intent = (this.chatty ? this.answer(p) : null) ?? this.brain(req.residentId).decide(p);
       toolCall = { name: 'do', input: intent ? fromIntent(intent) : { action: 'potter about' } };
       // Now and then a passing thought, as a real model would write before acting.
       if (req.kind === 'business' || req.t % 7 === 0) text = intent ? `Better ${intent.verb.replace(/_/g, ' ')}.` : 'Nothing to do just now.';

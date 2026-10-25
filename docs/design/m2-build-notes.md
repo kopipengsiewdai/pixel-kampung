@@ -51,13 +51,14 @@ under the agreed [M2 decisions](m2-decisions.md) and [v1 spec](v1-spec.md)
   - 8: hired or fired
   - 7: wages and debts
   - 6: trades
-  - 5: words said to you
+  - 5: words said to you, and your own
   - 3: overheard talk, and failed tries
   - 2: everyday doings
   - 8: reflections
 - Recall scores recency (0.99 per game hour), importance and word overlap with
   the moment, and keeps 8.
-- Memories already shown under "Lately" are left out.
+- Memories already shown in the notes (under "Lately" or "The talk so far")
+  are left out; older things heard can still come back.
 - Trivial memories (importance 3 or less) fade after 14 days.
 
 ## Discovery
@@ -70,9 +71,25 @@ under the agreed [M2 decisions](m2-decisions.md) and [v1 spec](v1-spec.md)
 
 ## Talk
 
+- **A speaker waits for an answer.** Saying something doesn't bring the
+  speaker's next thought forward (any other action that works does, to the
+  next minute). Being spoken to wakes them instead. So a chat goes line by
+  line, one line a minute between two people, not two.
 - After 8 lines between two people within 30 minutes, the listener still
   hears what's said but isn't woken to answer at once. That applies to
-  everything said to the listener, whether or not they were named.
+  everything said to the listener, whether or not they were named. From then
+  on both talk only at the quiet pace (every 5 minutes) until the chat has
+  been quiet for 30 minutes.
+- A speaker remembers their own words (`You say to Ah Seng: "..."`). The last
+  6 lines of a resident's own conversations from the last 30 minutes (said to
+  them, to everyone, or by them) are shown together, oldest first, under "The
+  talk so far". Talk between others is only overheard and stays under
+  "Lately". (Trial 2 showed residents re-greeting each other with every line:
+  a speaker never saw what they had said.)
+- Measured with two residents who always answer each other: 119 lines in an
+  hour before this rule, 29 after. A free trial where every resident answers
+  whoever last spoke to them (`npm run trial -- --fake --chatty --hours 4`)
+  went from 38.4 calls per resident-hour to 14.2.
 
 ## Trials
 

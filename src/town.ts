@@ -1,6 +1,6 @@
 import type { Brain } from './brain/brain.ts';
 import { FakeBrain } from './brain/fake-brain.ts';
-import { act } from './sim/actions/index.ts';
+import { act, verbOf } from './sim/actions/index.ts';
 import type { EventBody, GameEvent, LedgerEntry } from './sim/events.ts';
 import { perceive } from './sim/perception.ts';
 import { createWorld } from './sim/seed.ts';
@@ -111,7 +111,9 @@ export class Town {
           const res = act(w, r.id, intent);
           r.reply = res.reply ? { ok: res.ok, text: res.reply } : null;
           if (res.ok) {
-            r.thinkAt = Math.min(r.thinkAt, w.t + 1);
+            // A speaker waits for an answer: being spoken to wakes them (until the
+            // chat has run long), so saying something never brings the next thought on.
+            if (verbOf(intent) !== 'say') r.thinkAt = Math.min(r.thinkAt, w.t + 1);
             break;
           }
         }
