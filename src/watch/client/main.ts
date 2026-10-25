@@ -23,7 +23,7 @@ function money(cents: number): string {
 }
 
 let scene: TownScene | null = null;
-let msPerMinute = 15_000; // the live town's pace until the server says otherwise
+let msPerMinute = 12_500; // the live town's pace (a game day every five real hours) until the server says otherwise
 let latest: Update | null = null;
 let selected: string | null = null;
 /** The place whose card is open, if a place was clicked rather than a person. */

@@ -12,7 +12,7 @@ import { perceive } from '../src/sim/perception.ts';
 import { createWorld } from '../src/sim/seed.ts';
 import { World } from '../src/sim/state.ts';
 import * as time from '../src/sim/time.ts';
-import { dayIndex, GAME_SPEED, gameMinuteAt, minuteOfDay, REAL_MS_PER_GAME_MINUTE, realMsAt } from '../src/sim/time.ts';
+import { dayIndex, GAME_MINUTES_PER_REAL_MINUTE, gameMinuteAt, minuteOfDay, REAL_MS_PER_GAME_MINUTE, realMsAt } from '../src/sim/time.ts';
 import { shortStamp, weekdayAt } from '../src/sim/calendar.ts';
 import { feedLine, formatFeedLine } from '../src/feed/feed.ts';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -22,22 +22,29 @@ import { Town, fakeBrains } from '../src/town.ts';
 import { clockLabel } from '../src/watch/view.ts';
 import { sgt } from './helpers.ts';
 
-describe('the 4x clock', () => {
+describe("the kampung's clock", () => {
   const clock = { anchorT: 1000, anchorMs: 5_000_000 };
 
-  it('runs four game minutes to a real minute: a game day is six real hours', () => {
-    expect(GAME_SPEED).toBe(4);
-    expect(REAL_MS_PER_GAME_MINUTE).toBe(15_000);
+  it('a game day is five real hours: a game minute is 12.5 real seconds', () => {
+    expect(REAL_MS_PER_GAME_MINUTE).toBe(12_500);
+    expect(GAME_MINUTES_PER_REAL_MINUTE).toBe(4.8);
     expect(gameMinuteAt(clock, clock.anchorMs)).toBe(1000);
-    expect(gameMinuteAt(clock, clock.anchorMs + 14_999)).toBe(1000);
-    expect(gameMinuteAt(clock, clock.anchorMs + 15_000)).toBe(1001);
+    expect(gameMinuteAt(clock, clock.anchorMs + 12_499)).toBe(1000);
+    expect(gameMinuteAt(clock, clock.anchorMs + 12_500)).toBe(1001);
     expect(gameMinuteAt(clock, clock.anchorMs + 60_000)).toBe(1004);
-    expect(gameMinuteAt(clock, clock.anchorMs + 6 * 3_600_000)).toBe(1000 + 1440);
+    expect(gameMinuteAt(clock, clock.anchorMs + 5 * 3_600_000)).toBe(1000 + 1440);
+  });
+
+  it('so the same game hour drifts through the real day, coming round again only every five real days', () => {
+    // 4.8 game days to a real day: game 07:00 falls at a different real time each day, and back where it began after 5.
+    const at7 = (n: number) => realMsAt(clock, 1000 + n * 1440) % 86_400_000;
+    expect(new Set([0, 1, 2, 3, 4].map((d) => at7(Math.round(d * 4.8)))).size).toBeGreaterThan(1);
+    expect(realMsAt(clock, 1000 + 24 * 1440) - realMsAt(clock, 1000)).toBe(5 * 86_400_000);
   });
 
   it('turns a game minute back into the real moment it starts', () => {
     for (const t of [1000, 1001, 2440, 999_999]) expect(gameMinuteAt(clock, realMsAt(clock, t))).toBe(t);
-    expect(realMsAt(clock, 1004) - realMsAt(clock, 1000)).toBe(60_000);
+    expect(realMsAt(clock, 1024) - realMsAt(clock, 1000)).toBe(5 * 60_000);
   });
 
   it('a new town keeps its clock in the save', () => {
@@ -102,12 +109,12 @@ describe('the kampung calendar', () => {
 });
 
 describe('thinking money stays in real time', () => {
-  it('a resident earns US$0.0139 of thinking per real hour, which is four game hours', () => {
+  it('a resident earns US$0.0139 of thinking per real hour, which is 4.8 game hours', () => {
     const b = new Budget(0, 0);
     b.refill(60);
-    expect(b.level).toBeCloseTo(HOURLY_ALLOWANCE / GAME_SPEED, 10);
-    b.refill(60 * (1 + GAME_SPEED));
-    expect(b.level).toBeCloseTo(HOURLY_ALLOWANCE * 1.25, 10);
+    expect(b.level).toBeCloseTo(HOURLY_ALLOWANCE / 4.8, 10);
+    b.refill(60 + 288); // a real hour later
+    expect(b.level).toBeCloseTo(HOURLY_ALLOWANCE * (1 + 1 / 4.8), 10);
   });
 
   it("the town's daily cap is per real day: four game days share one US$3.33", async () => {
@@ -137,7 +144,7 @@ describe('thinking money stays in real time', () => {
   });
 });
 
-describe('game-time rules on the 4x clock', () => {
+describe('game-time rules on the kampung clock', () => {
   it('night, the lorry and the days all follow game time', async () => {
     const start = sgt(6, 0) - 1;
     const types: { t: number; type: string }[] = [];
@@ -145,19 +152,19 @@ describe('game-time rules on the 4x clock', () => {
     await town.runUntil(start + 1440);
     const lorry = types.find((e) => e.type === 'lorry_arrived')!;
     expect(minuteOfDay(lorry.t)).toBe(7 * 60);
-    // One game day took six real hours.
-    expect(realMsAt(town.world.state.clock, start + 1440) - realMsAt(town.world.state.clock, start)).toBe(6 * 3_600_000);
+    // One game day took five real hours.
+    expect(realMsAt(town.world.state.clock, start + 1440) - realMsAt(town.world.state.clock, start)).toBe(5 * 3_600_000);
   });
 });
 
-describe('review fixes: the 4x clock under load', () => {
+describe('review fixes: the kampung clock under load', () => {
   it('a town that falls behind by a few real minutes (slow thinking) replays them; only real downtime passes quietly', async () => {
     const start = sgt(9, 0);
     const events: string[] = [];
     const town = Town.create(5, start, { onEvent: (e) => events.push(e.type) });
-    await town.catchUp(start + 30); // 7.5 real minutes behind
+    await town.catchUp(start + 30); // 6.25 real minutes behind
     expect(events).not.toContain('quiet_spell');
-    expect(MAX_REPLAY_MINUTES).toBe(10 * GAME_SPEED); // ten real minutes, as before the 4x clock
+    expect(MAX_REPLAY_MINUTES).toBe(48); // ten real minutes
     await town.catchUp(start + 30 + 2 * 60); // the PC slept half an hour
     expect(events).toContain('quiet_spell');
   });
@@ -219,5 +226,23 @@ describe('the kampung week', () => {
       const text = readFileSync(f, 'utf8');
       expect(text, f).not.toMatch(/getUTCDay\(|\bweekday\(/);
     }
+  });
+});
+
+describe('v4 → v5: a game day every five real hours', () => {
+  it('re-anchors the clock where the town stands, at the real moment it got there, so nothing jumps', async () => {
+    const { UPGRADES } = await import('../src/store/upgrades.ts');
+    const step = UPGRADES.find((u) => u.from === 4)!;
+    const t = 29_000_000;
+    // Saved 1000 game minutes after its last anchor, at 15 real seconds a game minute.
+    const world = { t, clock: { anchorT: t - 1000, anchorMs: 1_700_000_000_000 } };
+    const up = step.save!({ world, brains: {} }).world as unknown as { t: number; clock: { anchorT: number; anchorMs: number } };
+    expect(up.t).toBe(t);
+    expect(up.clock).toEqual({ anchorT: t, anchorMs: 1_700_000_000_000 + 1000 * 15_000 });
+    // From there on, the new pace: a real minute later it's 4.8 game minutes on.
+    expect(gameMinuteAt(up.clock, up.clock.anchorMs)).toBe(t);
+    expect(gameMinuteAt(up.clock, up.clock.anchorMs + 5 * 60_000)).toBe(t + 24);
+    // Running it again changes nothing.
+    expect(step.save!({ world: up as unknown as Record<string, unknown>, brains: {} }).world).toEqual(up);
   });
 });

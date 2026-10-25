@@ -2,7 +2,7 @@
  * Measure what real thinking costs (M2). Runs a fast game from Monday 06:00
  * with a few residents on the model and the rest on the free fake brain, then
  * reports thoughts per waking game hour and cost per REAL resident-hour (four
- * game hours on the 4x clock) against the $0.0139 ceiling.
+ * game hours on the kampung clock) against the $0.0139 ceiling.
  *
  *   npm run trial -- --fake [--minds 10] [--hours 24]       free dry run
  *   npm run trial -- --fake --chatty                        ...where everyone answers talk
@@ -33,7 +33,7 @@ import { Town, fakeBrains } from '../town.ts';
 import { ReplayRecorder, recordTown } from '../watch/replay.ts';
 import { numArg, parseArgs } from './args.ts';
 import { SIM_START } from './start.ts';
-import { GAME_SPEED, isNight } from '../sim/time.ts';
+import { GAME_MINUTES_PER_REAL_MINUTE, isNight } from '../sim/time.ts';
 
 /** M2 decision 4: the most all paid trials may spend together. */
 export const TRIAL_ALLOWANCE = 10;
@@ -133,9 +133,9 @@ memory.close();
 recorder.close();
 if (fatal) console.error(`Stopped early: the API refused a request (${fatal}). Check the key in ${join(home, '.env')}.`);
 
-// Thinking money is per REAL hour; on the 4x clock a real hour is four game hours.
+// Thinking money is per REAL hour; a real hour is 4.8 game hours.
 const gameHours = (town.t - SIM_START) / 60;
-const residentHours = minds * (gameHours / GAME_SPEED);
+const residentHours = minds * (gameHours / GAME_MINUTES_PER_REAL_MINUTE);
 let wakingMinutes = 0;
 for (let t = SIM_START + 1; t <= town.t; t++) if (!isNight(t)) wakingMinutes++;
 const thoughts = (stats.byKind.act ?? 0) + (stats.byKind.business ?? 0);
@@ -145,7 +145,7 @@ console.log('\n--- what thinking cost ---');
 if (failures) console.log(`failed calls: ${failures} (each charged at its estimate)`);
 console.log(`calls: ${stats.calls} (${Object.entries(stats.byKind).map(([k, n]) => `${k} ${n}`).join(', ')})`);
 console.log(`thoughts per resident per waking game hour: ${(thoughts / (minds * (wakingMinutes / 60))).toFixed(1)}`);
-console.log(`calls per real resident-hour: ${(stats.calls / residentHours).toFixed(1)} (${gameHours.toFixed(1)} game hours = ${(gameHours / GAME_SPEED).toFixed(1)} real hours)`);
+console.log(`calls per real resident-hour: ${(stats.calls / residentHours).toFixed(1)} (${gameHours.toFixed(1)} game hours = ${(gameHours / GAME_MINUTES_PER_REAL_MINUTE).toFixed(1)} real hours)`);
 console.log(`tokens: ${inputAll} in (${Math.round((100 * stats.cacheRead) / Math.max(1, inputAll))}% from cache), ${stats.output} out`);
 console.log(`spent: US$${stats.usd.toFixed(4)}${fake ? ' (estimated from fake token counts)' : ''}`);
 console.log(`per real resident-hour: US$${perHour.toFixed(5)} against a ceiling of US$${HOURLY_ALLOWANCE} (${Math.round((100 * perHour) / HOURLY_ALLOWANCE)}%)`);

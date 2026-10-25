@@ -109,6 +109,17 @@ export const UPGRADES: readonly Upgrade[] = [
       };
     },
   },
+  {
+    from: 4,
+    why: 'A game day takes five real hours instead of six, so the same game hour drifts through the real day.',
+    save: ({ world, brains }) => {
+      // Re-anchored where the town stands: at the real moment it reached its last minute at the old
+      // pace (15 real seconds a game minute, frozen here), so nothing jumps. From then on the new pace.
+      const t = world.t as number;
+      const old = world.clock as { anchorT: number; anchorMs: number };
+      return { world: { ...world, clock: { anchorT: t, anchorMs: old.anchorMs + (t - old.anchorT) * 15_000 } }, brains };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

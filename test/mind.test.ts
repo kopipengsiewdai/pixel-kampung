@@ -39,9 +39,9 @@ function mindTown(seed: number, opts: { costDir?: string | null; townCap?: numbe
 }
 
 describe('thinking budget', () => {
-  it('fills at $0.0139 a real hour (four game hours) up to a cap, and empties with each call', () => {
+  it('fills at $0.0139 a real hour (4.8 game hours) up to a cap, and empties with each call', () => {
     const b = new Budget(0, 0);
-    b.refill(4 * 60);
+    b.refill(4.8 * 60);
     expect(b.level).toBeCloseTo(HOURLY_ALLOWANCE, 10);
     b.refill(60 * 100);
     expect(b.level).toBe(BUCKET_CAP);
