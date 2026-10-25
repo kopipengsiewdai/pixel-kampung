@@ -7,27 +7,28 @@ import { PLACE_BY_ID } from '../src/sim/map.ts';
 import { act, accepted, expectInWorld, newWorld, refused, who } from './helpers.ts';
 
 /** The approved cast, as written in docs/design/cast.md. */
-function castDoc(): { name: string; age: number; business: string | null }[] {
+function castDoc(): { name: string; age: number; business: string | null; family: boolean }[] {
   const doc = readFileSync(new URL('../docs/design/cast.md', import.meta.url), 'utf8');
   const BUSINESS: Record<string, string> = { kopitiam: 'kopitiam', 'provision shop': 'provision-shop', 'wet-market stall': 'market-stall' };
+  const familyFrom = doc.indexOf('## Living with family');
   return [...doc.matchAll(/^\*\*\d+\. (.+?)\*\*, (\d+)(?:, runs the (.+))?$/gm)]
-    .map((m) => ({ name: m[1]!, age: Number(m[2]), business: m[3] ? BUSINESS[m[3].trim()]! : null }));
+    .map((m) => ({ name: m[1]!, age: Number(m[2]), business: m[3] ? BUSINESS[m[3].trim()]! : null, family: m.index! > familyFrom }));
 }
 
 describe('the cast', () => {
   it('matches the approved cast: names, ages, roles and businesses', () => {
     const doc = castDoc();
-    expect(doc).toHaveLength(10);
+    expect(doc).toHaveLength(13);
     expect(CARDS.map((c) => [c.name, c.age])).toEqual(doc.map((d) => [d.name, d.age]));
     expect(CAST.map((c) => [c.name, c.role, c.business ?? null]))
-      .toEqual(doc.map((d) => [d.name, d.business ? 'owner' : 'seeker', d.business]));
+      .toEqual(doc.map((d) => [d.name, d.business ? 'owner' : d.family ? 'family' : 'seeker', d.business]));
   });
 
-  it("each card's trade is the one on the approved page, word for word, and only five have one", () => {
+  it("each card's trade is the one on the approved page, word for word, and only six have one", () => {
     const doc = readFileSync(new URL('../docs/design/cast.md', import.meta.url), 'utf8');
     const told = [...doc.matchAll(/^- \*Trade \(told as\):\* "(.+)"$/gm)].map((m) => m[1]);
     expect(CARDS.filter((c) => c.trade).map((c) => c.trade)).toEqual(told);
-    expect(told).toHaveLength(5);
+    expect(told).toHaveLength(6);
   });
 
   it("each card's ties name exactly the people they start out knowing", () => {

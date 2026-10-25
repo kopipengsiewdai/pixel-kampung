@@ -1,3 +1,5 @@
+import { CAST } from '../seed/cast.ts';
+import { dateAt } from '../sim/calendar.ts';
 import { PLACE_BY_ID } from '../sim/map.ts';
 import type { BrainFactory } from '../town.ts';
 import type { Mind } from './mind.ts';
@@ -7,6 +9,9 @@ export function mindBrains(mind: Mind, fallback: BrainFactory, only?: readonly s
   return (r, index, seed, state) => {
     if (only && !only.includes(r.id)) return fallback(r, index, seed, state);
     const shop = state.shops.find((s) => s.ownerId === r.id);
-    return mind.brainFor(r.id, r.name, r.role, shop ? PLACE_BY_ID.get(shop.id)!.name : null, state.t);
+    const allowance = CAST.find((c) => c.name === r.name)?.allowance ?? 1;
+    // Their age as the kampung's years go by (a birthday is new year).
+    const age = dateAt(state, state.t).year - r.born;
+    return mind.brainFor(r.id, r.name, r.role, shop ? PLACE_BY_ID.get(shop.id)!.name : null, state.t, allowance, age);
   };
 }

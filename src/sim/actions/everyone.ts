@@ -88,7 +88,7 @@ export function resolveDestination(w: World, r: Resident, where: unknown): Desti
   const owned = /^(.+?)['’]s\s+(.+)$/.exec(s);
   if (owned) {
     const shopId = Object.entries(PLACE_WORDS).find(([id, words]) => words.includes(owned[2]!) && w.shop(id))?.[0];
-    const owner = w.residentByName(owned[1]);
+    const owner = w.residentByName(owned[1], r);
     if (shopId && owner && w.shop(shopId)!.ownerId === owner.id) {
       if (!w.knowsPlace(r, shopId)) return unknown;
       const p = PLACE_BY_ID.get(shopId)!;
@@ -97,14 +97,14 @@ export function resolveDestination(w: World, r: Resident, where: unknown): Desti
   }
   const house = /^(.+?)['’]s\s+(house|home|place)$/.exec(s);
   if (house) {
-    const o = w.residentByName(house[1]);
+    const o = w.residentByName(house[1], r);
     if (o && w.knowsPlace(r, o.homeId)) {
       const h = w.home(o);
       return { point: h.spot, placeId: h.id, label: w.placeName(h) };
     }
     return unknown;
   }
-  const person = w.residentByName(where);
+  const person = w.residentByName(where, r);
   if (person && person.id === r.id) return "That's you.";
   if (person) {
     if (!w.knowsPerson(r, person.id)) return `You don't know anyone called ${quoted(where)}.`;
@@ -148,7 +148,7 @@ export function canGoWith(w: World, r: Resident, o: Resident): boolean {
 }
 
 export function goWith(w: World, r: Resident, i: Intent): ActionResult {
-  const o = w.residentByName(i.to);
+  const o = w.residentByName(i.to, r);
   if (!o || !w.knowsPerson(r, o.id)) return no(`You don't know anyone called ${quoted(i.to)}.`);
   if (o.id === r.id) return no("That's you.");
   let point: Point;
@@ -367,7 +367,7 @@ export function offerTrade(w: World, r: Resident, i: Intent): ActionResult {
 }
 
 function tradeFrom(w: World, r: Resident, from: unknown) {
-  const o = w.residentByName(from);
+  const o = w.residentByName(from, r);
   if (!o) return `You don't know anyone called ${quoted(from)}.`;
   const offer = w.state.trades.find((t) => t.fromId === o.id && t.toId === r.id);
   if (!offer) return `${o.name} hasn't offered you a trade.`;
@@ -501,7 +501,7 @@ export function shiftLabel(startHour: number, hours: number): string {
 }
 
 export function acceptJob(w: World, r: Resident, i: Intent): ActionResult {
-  const boss = w.residentByName(i.from);
+  const boss = w.residentByName(i.from, r);
   if (!boss) return no(`You don't know anyone called ${quoted(i.from)}.`);
   const offer = w.state.jobOffers.find((o) => o.employerId === boss.id && o.workerId === r.id);
   if (!offer) return no(`${boss.name} hasn't offered you a job.`);

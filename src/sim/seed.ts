@@ -1,4 +1,5 @@
 import { SCHEMA_VERSION } from '../store/upgrades.ts';
+import { CARDS } from '../seed/cards.ts';
 import { CAST, SHOP_STOCK, START_MONEY, type CastMember } from '../seed/cast.ts';
 import { PLACE_BY_ID, PLACES } from './map.ts';
 import { Rng } from './rng.ts';
@@ -20,13 +21,18 @@ export interface NewWorldOptions {
 export function createWorld(seed: number, t: number, opts: NewWorldOptions = {}): WorldState {
   const cast = opts.cast ?? CAST;
   const rng = new Rng(seed);
-  const residents = cast.map((c, i) => {
-    const homeId = HOUSE_IDS[i]!;
+  // Each has a house of their own, in cast order, unless they live with family.
+  const own = cast.filter((c) => !c.livesWith);
+  const houseOf = (c: CastMember): string => HOUSE_IDS[own.indexOf(cast.find((o) => o.name === (c.livesWith ?? c.name))!)]!;
+  const residents = cast.map((c) => {
+    const homeId = houseOf(c);
     const [lo, hi] = START_MONEY[c.role];
     return {
       id: slug(c.name),
       name: c.name,
       role: c.role,
+      // A new kampung starts in Year 0.
+      born: -(CARDS.find((card) => card.name === c.name)?.age ?? 30),
       homeId,
       pos: { ...PLACE_BY_ID.get(homeId)!.spot },
       money: rng.int(lo, hi),

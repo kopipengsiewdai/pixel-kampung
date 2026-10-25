@@ -13,7 +13,9 @@ import { bubbleText, idleKindOf, idlePose, type IdleKind } from './idle.ts';
 
 const T = 16;
 const ZOOM = 2;
-const PEOPLE_COLS = 40; // people.png is 10 residents × 4 directions wide
+const PEOPLE_COLS = 4 * 13; // people.png is 13 residents × 4 directions wide
+/** Children are drawn at this size. */
+const CHILD_SCALE = 0.75;
 const DOWN = 0;
 const UP = 1;
 const LEFT = 2;
@@ -39,6 +41,8 @@ interface Mover {
   bubbleUntil: number;
   idle: IdleKind;
   look: number;
+  /** How far above their feet the name sits (lower for a child). */
+  lift: number;
   facing: number;
   pts: Pt[];
   start: number;
@@ -293,10 +297,11 @@ export class TownScene extends Phaser.Scene {
     const idx = PEOPLE_ORDER.indexOf(r.id);
     const look = idx >= 0 ? idx : hash(r.id.length, r.id.charCodeAt(0)) % PEOPLE_ORDER.length;
     const p = tileCentre(r);
-    const sprite = this.add.sprite(p.x, p.y, 'people', look * 4).setOrigin(0.5, 1);
+    const sprite = this.add.sprite(p.x, p.y, 'people', look * 4).setOrigin(0.5, 1).setScale(r.child ? CHILD_SCALE : 1);
+    const lift = r.child ? Math.round(16 * CHILD_SCALE) : 16;
     sprite.setInteractive({ hitArea: new Phaser.Geom.Rectangle(-4, -6, 24, 24), hitAreaCallback: Phaser.Geom.Rectangle.Contains, useHandCursor: true });
     sprite.on('pointerup', (ptr: Phaser.Input.Pointer) => { if (this.isTap(ptr)) this.hooks.onPick(r.id); });
-    const label = this.add.text(p.x, p.y - 16, r.name, {
+    const label = this.add.text(p.x, p.y - lift, r.name, {
       fontFamily: 'ui-monospace, Consolas, monospace', fontSize: '7px', color: '#fdf6e3', stroke: '#1d1d1d', strokeThickness: 2, resolution: 4,
     }).setOrigin(0.5, 1).setDepth(OVERLAY_DEPTH + 5);
     const zz = this.add.image(p.x + 6, p.y - 18, 'k', 'zz').setDepth(OVERLAY_DEPTH + 4).setVisible(false);
@@ -304,7 +309,7 @@ export class TownScene extends Phaser.Scene {
       fontFamily: 'ui-monospace, Consolas, monospace', fontSize: '7px', color: '#1d1d1d', backgroundColor: '#fdf6e3',
       padding: { x: 3, y: 2 }, resolution: 4, wordWrap: { width: 110 },
     }).setOrigin(0.5, 1).setDepth(OVERLAY_DEPTH + 6).setVisible(false);
-    return { view: r, sprite, label, zz, bubble, saidT: r.said?.t ?? -1, bubbleUntil: 0, idle: 'none', look, facing: DOWN, pts: [p], start: 0, dur: 1 };
+    return { view: r, sprite, label, zz, bubble, saidT: r.said?.t ?? -1, bubbleUntil: 0, idle: 'none', look, lift, facing: DOWN, pts: [p], start: 0, dur: 1 };
   }
 
   /** A tap or click, not the end of a finger dragging the zoomed map about. */
@@ -412,7 +417,7 @@ export class TownScene extends Phaser.Scene {
       m.sprite.setPosition(pos.x, pos.y).setFrame(row * PEOPLE_COLS + m.look * 4 + m.facing);
       m.bubble.setPosition(pos.x, pos.y - 27).setVisible(!inside && time < m.bubbleUntil);
       m.sprite.setVisible(!inside).setAngle(asleep && !inside ? 90 : 0).setDepth(PEOPLE_DEPTH + pos.y);
-      m.label.setPosition(pos.x, pos.y - 16).setVisible(!inside || r.id === this.selected);
+      m.label.setPosition(pos.x, pos.y - m.lift).setVisible(!inside || r.id === this.selected);
       const bob = Math.sin(time / 500 + m.look) * 1.5;
       if (inside) {
         const home = this.homes.get(r.homeId)!;

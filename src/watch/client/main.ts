@@ -274,7 +274,7 @@ function renderCard(c: Card): void {
   const parts: (Node | null)[] = [
     el('header', {},
       el('h3', {}, c.name),
-      el('span', { class: 'role' }, c.role === 'owner' ? 'shop owner' : 'looking for work'),
+      el('span', { class: 'role' }, c.role === 'owner' ? 'shop owner' : c.role === 'family' ? 'lives with family' : 'looking for work'),
       el('span', { class: 'needs' },
         need('🍚', c.hungerWord, 'Hunger', c.hunger >= 450, c.hunger >= 700),
         need('⚡', c.energyWord, 'Energy', c.energy <= 350, c.energy <= 150)),

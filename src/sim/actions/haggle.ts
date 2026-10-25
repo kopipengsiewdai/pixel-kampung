@@ -61,7 +61,7 @@ export function offerPrice(w: World, r: Resident, shop: Shop, item: ItemId, qty:
 
 /** The price offer from someone named, at a counter r is minding. */
 export function priceOfferFrom(w: World, r: Resident, from: unknown): { buyer: Resident; offer: PriceOffer; shop: Shop } | null {
-  const buyer = w.residentByName(from);
+  const buyer = w.residentByName(from, r);
   if (!buyer) return null;
   const offer = offersFor(w, r).find((o) => o.buyerId === buyer.id);
   return offer ? { buyer, offer, shop: w.shop(offer.shopId)! } : null;

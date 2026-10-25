@@ -42,7 +42,7 @@ describe('recording a trial', () => {
 
     const f = r.frameAt(START + 60);
     expect(f.t).toBe(START + 60);
-    expect(f.residents).toHaveLength(10);
+    expect(f.residents).toHaveLength(13);
     // Before the start: the first frame. After the end: the last.
     expect(r.frameAt(START - 100).t).toBe(START);
     expect(r.frameAt(START + 10_000).t).toBe(START + 120);

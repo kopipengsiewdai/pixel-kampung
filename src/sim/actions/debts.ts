@@ -77,7 +77,7 @@ export function addDebt(w: World, debtor: string, creditor: string, kind: Debt['
 }
 
 function offerFrom(w: World, r: Resident, from: unknown): { o: Resident; offer: DebtOffer } | string {
-  const o = w.residentByName(from);
+  const o = w.residentByName(from, r);
   if (!o) return `You don't know anyone called ${quoted(from)}.`;
   const found = w.state.debtOffers.find((x) => x.fromId === o.id && x.toId === r.id);
   if (!found) return `${o.name} hasn't asked you about any money.`;
@@ -104,7 +104,7 @@ function whichOffer(w: World, r: Resident, i: Intent):
   const aboutMoney = money !== null && /\b(money|loan|lend|borrow|owe|iou)/i.test(words);
   if (aboutErrand && !aboutMoney) return { errand };
   if (aboutMoney && !aboutErrand) return { money };
-  const name = w.residentByName(i.from)!.name;
+  const name = w.residentByName(i.from, r)!.name;
   const parts = [
     money ? 'asked you about money' : null,
     price ? `offered ${formatMoney(price.offer.cents)} for ${quantityLabel(price.offer.item, price.offer.qty)}` : null,

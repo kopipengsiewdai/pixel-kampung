@@ -4,7 +4,7 @@
  * reports thoughts per waking game hour and cost per REAL resident-hour (4.8
  * game hours on the kampung clock) against the $0.0139 ceiling.
  *
- *   npm run trial -- --fake [--minds 10] [--hours 24]       free dry run
+ *   npm run trial -- --fake [--minds 13] [--hours 24]       free dry run
  *   npm run trial -- --fake --chatty                        ...where everyone answers talk
  *   npm run trial -- --fake --circles                       ...where talk narrates deals instead of doing them
  *   npm run trial -- --minds 3 --hours 4 --budget 1.00      real calls (owner's PC)
@@ -42,9 +42,12 @@ import { GAME_MINUTES_PER_REAL_MINUTE, isNight } from '../sim/time.ts';
 /** M2 decision 4: the most all paid trials may spend together. */
 export const TRIAL_ALLOWANCE = 10;
 
+/** Who goes on the model first: one owner among the first few, so business calls are measured too; those living with family last. */
+const ORDER = ['ah-huat', 'siti', 'raju', 'mei-ling', 'ah-kow', 'muthu', 'ah-seng', 'fatimah', 'mdm-tan', 'rahim', 'mak-esah', 'aminah', 'hassan'];
+
 const args = parseArgs(process.argv.slice(2));
 const fake = args.fake === true;
-const minds = Math.max(1, Math.min(10, numArg(args, 'minds', fake ? 10 : 3)));
+const minds = Math.max(1, Math.min(ORDER.length, numArg(args, 'minds', fake ? ORDER.length : 3)));
 const hours = Math.max(1, numArg(args, 'hours', fake ? 24 : 4));
 const seed = numArg(args, 'seed', 42);
 const home = kampungHome();
@@ -119,9 +122,7 @@ const memory = new MemoryStore(trialDb);
 const recorder = new ReplayRecorder(trialDb, { seed, label: `${fake ? 'dry run' : 'trial'} ${stamp.slice(0, 16)}, ${minds} on the model` });
 const record = recordTown(recorder);
 const mind = new Mind({ client: counting, memory, costs: new CostLog(costDir), cards: CARDS, townCap: budget, onError });
-// One owner among the minds, so business calls are measured too.
-const order = ['ah-huat', 'siti', 'raju', 'mei-ling', 'ah-kow', 'muthu', 'ah-seng', 'fatimah', 'mdm-tan', 'rahim'];
-const chosen = order.slice(0, minds);
+const chosen = ORDER.slice(0, minds);
 let town: Town;
 const events: GameEvent[] = [];
 const print = (e: GameEvent) => {

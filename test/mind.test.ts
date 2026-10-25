@@ -171,7 +171,7 @@ describe('a town of minds, on the fake model ($0)', () => {
     const ids = town.world.state.residents.map((r) => r.id);
     const kinds = new Set(ids.flatMap((id) => memory.all(id).map((m) => m.kind)));
     for (const k of ['noticed', 'did', 'thought', 'plan', 'reflection']) expect(kinds, k).toContain(k);
-    expect(mind.sent.filter((s) => s.kind === 'plan')).toHaveLength(20);
+    expect(mind.sent.filter((s) => s.kind === 'plan')).toHaveLength(26);
     expect(mind.sent.filter((s) => s.kind === 'reflect').length).toBeGreaterThanOrEqual(15);
     const business = mind.sent.filter((s) => s.kind === 'business').length;
     expect(business).toBeGreaterThan(0);

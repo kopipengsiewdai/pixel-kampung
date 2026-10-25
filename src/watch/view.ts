@@ -9,7 +9,7 @@ import { LORRY_BUYS, LORRY_SELLS, quantityLabel, type ItemId } from '../sim/item
 import { MAP_H, MAP_W, PLACES, PLACE_BY_ID, tileAt, type Point, type Tile } from '../sim/map.ts';
 import { formatMoney, type Cents } from '../sim/money.ts';
 import { energyWord, hungerWord } from '../sim/perception.ts';
-import type { Goods, Resident, Shop, World } from '../sim/state.ts';
+import { GROWN_AGE, type Goods, type Resident, type Shop, type World } from '../sim/state.ts';
 import { dateAt, MONTHS, shortStamp } from '../sim/calendar.ts';
 import { dayIndex, minuteOfDay, sgtHour, sgtMinute } from '../sim/time.ts';
 import type { GameEvent } from '../sim/events.ts';
@@ -143,6 +143,8 @@ export class FrameBuilder {
         id: r.id,
         name: r.name,
         role: r.role,
+        age: w.ageOf(r),
+        child: w.ageOf(r) < GROWN_AGE,
         homeId: r.homeId,
         x: pos.x,
         y: pos.y,

@@ -22,6 +22,14 @@ agent-hour. What drives cost is how many places and actions we build.
   that's $10 per resident per month, about **$0.014 per resident-hour**. This
   is a hard design ceiling. Routine actions use the cheapest model, sleep and
   idle time cost nothing, and bigger models are only for rare, big decisions.
+- **Per-resident allowance (owner, 2026-10-25).** Each adult earns a full
+  share of thinking, $0.0139 a real hour (`HOURLY_ALLOWANCE`,
+  `src/mind/budget.ts`); Mak Esah, Aminah and Hassan get about half
+  (`allowance: 0.5` in `src/seed/cast.ts`). That's 11.5 shares for 13
+  residents, about $115 a month if every share were spent in full, so the
+  **town's daily cap ($3.33, $100 a month) is what holds the budget**; it is
+  unchanged. Real spending runs well under the shares (residents sleep, idle
+  and wait), and once the town reaches its cap it rests until real midnight.
 
 ## Who gives out work (agreed 2026-10-24)
 

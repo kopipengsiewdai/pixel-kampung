@@ -1,6 +1,7 @@
 # Skills: getting better at what you do
 
-Status: **proposal, for the owner's answers** (questions at the end). It
+Status: **settled 2026-10-25** (answers at the end: 4 and 5 are the owner's
+decisions; 1–3 are Claude's calls, owner informed). It
 builds on B (timed cooking, [daily-life.md](daily-life.md)) and C (mended
 nets, the dawn tide), so the build comes after both are merged, and before
 the village head (PR 9). Everything a resident meets here is in-world: no
@@ -21,8 +22,9 @@ numbers, levels or "experience" reach a prompt.
   about a year unused, but never below Handy once Skilled was reached. Each
   skill fades at its own rate, with a hook for a change of tools.
 - Starting levels: Ah Huat cooking Master, Rahim fishing Master, Fatimah
-  farming Expert, Ah Kow farming Handy, Hassan fishing Handy (when the
-  families PR brings him). Everyone else starts as a Novice at everything.
+  farming Expert, Ah Kow farming Handy, Hassan fishing Handy, and Mak Esah
+  cooking Master (answer 5); Hassan and Mak Esah come with the families PR.
+  Everyone else starts as a Novice at everything.
 
 ## The principle: Novice is today
 
@@ -189,12 +191,12 @@ day, xp }, rusty: boolean }>>`, plus `lessons: Lesson[]` and
 papaya, sambal kangkong) and a bed's `crop`. The upgrade step (the next save
 version at merge, with frozen fixtures and a "Living town" line) gives
 everyone an empty `skills`, then the owner's starting levels at their
-thresholds. Hassan's fishing comes with the families PR if it lands after
-this one; whichever lands second seeds it.
+thresholds. The families PR lands first, so S1 seeds Hassan's fishing
+and Mak Esah's cooking too.
 
 **No back-credit from the town's history.** The live town has a few weeks
 of fishing behind it, but crediting it would be the one place experience
-didn't come from doing. Question 3 asks.
+didn't come from doing (answer 3).
 
 ## The code, briefly
 
@@ -245,11 +247,11 @@ income against before.
 
 S1 alone is worth having: the town gets better at things, and the Experts
 are told the tides, the best day and the crowds. S2 adds the new things to
-make and sell. Question 1 asks whether to split.
+make and sell (answer 1: split).
 
 ## Risks
 
-- **Money towards the masters.** Rahim, Ah Huat and Fatimah start ahead and
+- **Money towards the masters.** Rahim, Ah Huat, Mak Esah and Fatimah start ahead and
   stay there for a year; jobless seekers fish at Novice odds. That's the
   story (the old hands and the newcomers), but the trial watches seekers'
   income, and the knobs are the Master effects.
@@ -260,14 +262,17 @@ make and sell. Question 1 asks whether to split.
   that only real neglect rusts.
 - **Prompt growth:** at most three lines; Novices see none.
 
-## Questions for the owner
+## Answers (2026-10-25)
 
-1. **Two PRs** (S1 the core first, S2 the abilities and new items after), or
-   one?
-2. **The new things** at Skilled and Master: chilli, red snapper, papaya and
-   sambal kangkong. Keep, swap any, or fewer?
-3. **No back-credit** for what the town has done before the change: agreed?
-4. **Teaching stops at Expert**, so even a taught Master takes over a year:
-   agreed?
-5. **Mak Esah** (63, families PR): a starting cooking level? Suggest Expert,
-   an old hand at the stove at home.
+1. **Two PRs: yes** (Claude's call, owner informed). S1, the core, comes after
+   the families PR; S2, the abilities and new items, after it.
+2. **The new things: yes, as S2 abilities** (Claude's call, owner informed):
+   chilli, red snapper, papaya and sambal kangkong, kept grounded in a 1960s
+   Singapore kampung.
+3. **No back-credit: yes** (Claude's call, owner informed). Starting levels come
+   from the residents' stories instead.
+4. **Teaching only up to Expert: yes (owner decision).** The last step to
+   Master always comes from your own practice, so mastery takes at least a
+   game year.
+5. **Mak Esah starts as a Master cook (owner decision)**, so she can teach.
+   Ah Huat stays a Master too.
