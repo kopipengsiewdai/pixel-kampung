@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.10.5 (2026-10-25): no more talking in circles
 
 - **Going round in circles:** after six lines with nothing done between them, two people see they keep going round in circles, and the chat stops waking them; doing something together starts the count again.
 - **Words don't move money:** talk of paying, a deal or a job as if done, with nothing done within a few minutes, is noticed by both, in plain words ("You and Rahim have talked of paying, but no money has changed hands.").
