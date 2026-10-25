@@ -62,7 +62,7 @@ stays 3 tiles a game minute, which is 4.8 times faster to watch.
 **Thinking money stays in real time:** US$0.0139 per resident per real hour
 and US$3.33 for the town per real day, which is 4.8 game days. To fit,
 residents think about half as often per game hour as before (aiming for at
-most about 13 thoughts per waking game hour). With nothing happening they
+most about 11 thoughts per waking game hour at a game day every five real hours; it was 13 at six). With nothing happening they
 think every 10 game minutes, and 2 game minutes after something they did goes
 through. Being spoken to still wakes them the next minute.
 

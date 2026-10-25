@@ -78,7 +78,7 @@ const onEvent = (e: GameEvent) => {
   hooks.onEvent(e);
 };
 
-// A new town starts at the real hour, then runs on its own clock (saved with it): 4 game minutes a real minute.
+// A new town starts at the real hour, then runs on its own clock (saved with it): 4.8 game minutes a real minute.
 const startMs = clock.nowMs();
 town = Town.resume({ store, onEvent, onTick: hooks.onTick, ...mindOpts })
   ?? Town.create(numArg(args, 'seed', Date.now() % 2_147_483_647), gameMinuteFromMs(startMs) - 1, { anchorMs: startMs - REAL_MS_PER_GAME_MINUTE, store, onEvent, onTick: hooks.onTick, ...mindOpts });

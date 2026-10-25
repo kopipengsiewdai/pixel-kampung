@@ -125,7 +125,7 @@ describe('someone is waiting for your answer', () => {
 
   it('goes once the chat has run long', () => {
     const w = spokenTo();
-    w.state.talk[talkKey(who(w, 'Ah Kow').id, who(w, 'Mdm Tan').id)] = { lines: TALK_SOFT_LIMIT + 1, lastT: w.t };
+    w.state.talk[talkKey(who(w, 'Ah Kow').id, who(w, 'Mdm Tan').id)] = { lines: TALK_SOFT_LIMIT + 1, lastT: w.t, idle: 0, word: null };
     expect(waiting(w, 'Mdm Tan')).toEqual([]);
   });
 

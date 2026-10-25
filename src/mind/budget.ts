@@ -1,8 +1,8 @@
 import { REAL_MS_PER_GAME_MINUTE } from '../sim/time.ts';
 
 /**
- * Spec §5: each resident earns US$0.0139 of thinking a REAL hour (four game
- * hours, 4.8 game hours to a real hour), saved up while asleep or idle, with a cap.
+ * Spec §5: each resident earns US$0.0139 of thinking a REAL hour (4.8 game
+ * hours), saved up while asleep or idle, with a cap.
  */
 export const HOURLY_ALLOWANCE = 0.0139;
 /** About 4 real hours' worth: enough for a plan, a reflection or a run of quick thinks. */

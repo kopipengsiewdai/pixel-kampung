@@ -10,9 +10,8 @@ import { POTTER } from './tools.ts';
  * features, prices or how anything in the kampung works.
  */
 export function systemPrompt(card: Card, role: 'owner' | 'seeker', shop: string | null): string {
-  const roleLine = role === 'owner' && shop
-    ? `You own ${shop}.`
-    : "You don't have work at the moment.";
+  // Only an owner's line: it can't go stale. Whether someone has work is in the notes each moment.
+  const roleLine = role === 'owner' && shop ? `You own ${shop}.` : '';
   return [
     `You are ${card.name}, ${card.age}. ${card.personality}`,
     `You want ${card.want}. You worry ${card.worry}.`,
