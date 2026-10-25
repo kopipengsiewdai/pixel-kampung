@@ -259,9 +259,10 @@ export const UPGRADES: readonly Upgrade[] = [
         ...r,
         skills: Object.fromEntries(Object.entries(SKILLS_V13[r.id] ?? {}).map(([s, [peak, xp]]) => [s, { xp, peak, lastDay: day, today: { day, xp: 0 }, rusty: false, drops: 0 }])),
       }));
-      // A bed that has had its two waterings was ready on the later of its last watering and its second day after planting.
+      // A bed that has just had its two waterings was ready on the later of its last watering and its second day after planting.
       const beds = (world.beds as { plantedDay: number; wateredDays: number; lastWateredDay: number | null }[]).map((b) => ({
-        ...b, readyDay: b.wateredDays >= 2 && b.lastWateredDay !== null ? Math.max(b.lastWateredDay, b.plantedDay + 2) : null,
+        // Only a bed on exactly its second watering can be at its best: one watered on and on is long past it.
+        ...b, readyDay: b.wateredDays === 2 && b.lastWateredDay !== null ? Math.max(b.lastWateredDay, b.plantedDay + 2) : null,
       }));
       return { world: { ...world, residents, beds, lessons: [], lessonOffers: [] }, brains };
     },
