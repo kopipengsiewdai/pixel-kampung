@@ -182,14 +182,29 @@ function peekVersions(path: string): Versions {
   }
 }
 
-/** Whether the file at p is a whole copy of the save described by `found`: same versions, same saved minute. */
-function isBackupOf(p: string, found: Versions): boolean {
+/**
+ * What a save holds, in brief: its versions, the saved world and brains word
+ * for word, and how many rows each other table has and its newest one. A
+ * memory or event written within the same minute, or a different town that
+ * happens to share the minute, makes it differ.
+ */
+function contentsOf(db: DatabaseSync): string {
+  const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all() as { name: string }[];
+  const parts: unknown[] = [readVersions(db)];
+  for (const { name } of tables) {
+    if (name === 'snapshot') parts.push(db.prepare('SELECT world, brains FROM snapshot WHERE id = 1').get() ?? null);
+    else parts.push([name, db.prepare(`SELECT count(*) AS n, max(rowid) AS last FROM "${name}"`).get()]);
+  }
+  return JSON.stringify(parts);
+}
+
+/** Whether the file at p is a whole copy of this very save, as it stands now. */
+function isBackupOf(p: string, contents: string): boolean {
   try {
     const db = openReadOnly(p);
     try {
       const ok = (db.prepare('PRAGMA quick_check').get() as { quick_check: string }).quick_check === 'ok';
-      const v = readVersions(db);
-      return ok && v.tables === found.tables && v.world === found.world && v.t === found.t;
+      return ok && contentsOf(db) === contents;
     } finally {
       db.close();
     }
@@ -204,11 +219,11 @@ function isBackupOf(p: string, found: Versions): boolean {
  * reused rather than copied again (a town restarted after each failure would
  * otherwise pile up copies). Any other backup is never overwritten.
  */
-function backupFor(path: string, from: number, found: Versions): { path: string; reused: boolean } {
+function backupFor(path: string, from: number, contents: string): { path: string; reused: boolean } {
   const base = `${path}.bak-v${from}`;
   let p = base;
   for (let n = 2; existsSync(p); n++) {
-    if (isBackupOf(p, found)) return { path: p, reused: true };
+    if (isBackupOf(p, contents)) return { path: p, reused: true };
     p = `${base}.${n}`;
   }
   return { path: p, reused: false };
@@ -222,7 +237,8 @@ function backupFor(path: string, from: number, found: Versions): { path: string;
  */
 function upgrade(db: DatabaseSync, path: string, found: Versions, to: number, steps: readonly Upgrade[], log: (line: string) => void): void {
   const from = Math.min(found.tables ?? to, found.world ?? to);
-  const { path: backup, reused } = backupFor(path, from, found);
+  const contents = contentsOf(db);
+  const { path: backup, reused } = backupFor(path, from, contents);
   if (!reused) {
     db.prepare('VACUUM INTO ?').run(backup);
     // VACUUM INTO doesn't flush its copy: make sure it's on disk, and whole, before touching the save.
@@ -232,7 +248,7 @@ function upgrade(db: DatabaseSync, path: string, found: Versions, to: number, st
     } finally {
       closeSync(fd);
     }
-    if (!isBackupOf(backup, found)) throw new Error(`The backup at ${backup} didn't come out right; nothing was changed. Not starting.`);
+    if (!isBackupOf(backup, contents)) throw new Error(`The backup at ${backup} didn't come out right; nothing was changed. Not starting.`);
   }
   log(`Upgrading the saved town from v${from} to v${to}; the old save is backed up at ${backup}${reused ? ' (kept from an earlier try)' : ''}.`);
   db.exec('BEGIN IMMEDIATE');

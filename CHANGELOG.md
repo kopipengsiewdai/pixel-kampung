@@ -9,7 +9,7 @@ never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 - **Backups:** a town restarted after every failed upgrade keeps one backup
   of its old save instead of a new full copy per try.
 - **Refusal:** a save that can't be opened read-only is refused with a plain
-  message, so a refused save is never written to.
+  message, so a refused save itself is never written to.
 - **Guard:** an upgraded save must now fit today's saved types at every depth
   (brains included) and have exactly today's tables.
 - **Living town:** nothing to pick up. Saved state is unchanged and a v2 town

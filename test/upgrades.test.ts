@@ -4,12 +4,18 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
 import { DatabaseSync } from 'node:sqlite';
+import { SIM_START } from '../src/cli/start.ts';
+import { CostLog } from '../src/mind/cost-log.ts';
+import { FakeModel } from '../src/mind/fake-model.ts';
 import { MemoryStore } from '../src/mind/memory.ts';
+import { Mind } from '../src/mind/mind.ts';
+import { mindBrains } from '../src/mind/setup.ts';
+import { CARDS } from '../src/seed/cards.ts';
 import { createWorld } from '../src/sim/seed.ts';
 import type { WorldState } from '../src/sim/state.ts';
 import { SaveTooNewError, SqliteStore } from '../src/store/sqlite-store.ts';
 import { SCHEMA_VERSION, UPGRADES, type SaveData, type Upgrade } from '../src/store/upgrades.ts';
-import { Town } from '../src/town.ts';
+import { Town, fakeBrains } from '../src/town.ts';
 import { dumpSql, FIXTURE_DIR, fixtureShape, fixtureSql, fixtureUpgraded, freshTables, loadSql, misfits, peek, saveShape, tablesOf, upgradedHeader, upgradeOneStep } from './saves.ts';
 
 const dirs: string[] = [];
@@ -142,7 +148,7 @@ describe('the guard itself', () => {
     expect(misfits(save)).toEqual([]);
     const w = save.world as unknown as WorldState;
     delete (w.beds[2] as Partial<WorldState['beds'][number]>).wateredDays;
-    (w.residents[1]!.recent as unknown[]).push({ t: 1, text: 'hi', talk: 'yes' });
+    (w.residents[1]!.recent as unknown[]).push({ t: 1, text: 'hi', talk: 'true' }); // a flag saved as text
     (w.talk as Record<string, unknown>)['a|b'] = { lines: 'two', lastT: 3 };
     (save.brains['siti'] as Record<string, unknown>).mood = 'cheerful';
     expect(misfits(save)).toEqual(expect.arrayContaining([
@@ -151,6 +157,24 @@ describe('the guard itself', () => {
       expect.stringMatching(/^world\.talk\["a\|b"\]\.lines: /),
       expect.stringMatching(/^brains\.siti/),
     ]));
+  });
+
+  it("checks a thinking resident's saved mind too", async () => {
+    const memory = new MemoryStore(':memory:');
+    const mind = new Mind({ client: new FakeModel(4), memory, costs: new CostLog(null), cards: CARDS });
+    const town = Town.create(4, SIM_START, { brains: mindBrains(mind, fakeBrains, ['siti']), observer: mind.observe });
+    await town.runUntil(SIM_START + 120);
+    const save = town.snapshot() as unknown as SaveData;
+    const siti = save.brains['siti'] as Record<string, unknown>;
+    expect(siti).toHaveProperty('budget'); // a mind's state, not the fake brain's
+    expect(misfits(save)).toEqual([]);
+    siti.planDay = 'Monday';
+    (siti.budget as Record<string, unknown>).level = null;
+    expect(misfits(save)).toEqual(expect.arrayContaining([
+      expect.stringMatching(/^brains\.siti\.planDay: /),
+      expect.stringMatching(/^brains\.siti\.budget\.level: /),
+    ]));
+    memory.close();
   });
 
   it('notices a table left in an old shape', () => {
@@ -198,6 +222,27 @@ describe('opening a save', () => {
     new SqliteStore(path).close();
     expect(readdirSync(join(path, '..')).filter((n) => n.includes('.bak-'))).toEqual(['kampung.db.bak-v1']);
     expect(schemaOf(`${path}.bak-v1`)).toBe(1);
+  });
+
+  it('a backup is not reused once the save has changed, even within the same minute', () => {
+    const path = savePath();
+    loadSql(fixtureSql(1), path);
+    const broken: Upgrade[] = [...UPGRADES, { from: SCHEMA_VERSION, why: 'A step that always goes wrong.', save: () => { throw new Error('boom'); } }];
+    expect(() => new SqliteStore(path, { upgrades: broken })).toThrow(/boom/);
+    // A memory was written in the same minute, before the snapshot was saved again.
+    exec(path, "INSERT INTO memories (resident, t, kind, text, importance) VALUES ('siti', 1, 'thought', 'Rain soon.', 4)");
+    expect(() => new SqliteStore(path, { upgrades: broken })).toThrow(/boom/);
+    expect(readdirSync(join(path, '..')).filter((n) => n.includes('.bak-')).sort()).toEqual(['kampung.db.bak-v1', 'kampung.db.bak-v1.2']);
+    expect(peek<{ n: number }>(`${path}.bak-v1.2`, 'SELECT count(*) AS n FROM memories').n).toBe(4);
+  });
+
+  it('a backup of a different town at the same minute is not reused', () => {
+    const path = savePath();
+    loadSql(fixtureSql(1), path);
+    loadSql(fixtureSql(1), `${path}.bak-v1`);
+    exec(`${path}.bak-v1`, "UPDATE snapshot SET world = json_set(world, '$.seed', 99)");
+    new SqliteStore(path).close();
+    expect(readdirSync(join(path, '..')).filter((n) => n.includes('.bak-')).sort()).toEqual(['kampung.db.bak-v1', 'kampung.db.bak-v1.2']);
   });
 
   it("a backup is only reused if it's of this very save: same versions, same minute", () => {

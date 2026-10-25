@@ -178,7 +178,7 @@ export function misfits(save: { world: unknown; brains: Record<string, unknown> 
     if (f & ts.TypeFlags.Null) { if (v !== null) bad(); return; }
     if (f & ts.TypeFlags.Undefined) { if (v !== undefined) bad(); return; }
     if (type.isStringLiteral() || type.isNumberLiteral()) { if (v !== type.value) bad(); return; }
-    if (f & ts.TypeFlags.BooleanLiteral) { if (String(v) !== checker.typeToString(type)) bad(); return; }
+    if (f & ts.TypeFlags.BooleanLiteral) { if (typeof v !== 'boolean' || String(v) !== checker.typeToString(type)) bad(); return; }
     if (f & ts.TypeFlags.String) { if (typeof v !== 'string') bad(); return; }
     if (f & ts.TypeFlags.Number) { if (typeof v !== 'number') bad(); return; }
     if (f & ts.TypeFlags.Boolean) { if (typeof v !== 'boolean') bad(); return; }
