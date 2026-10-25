@@ -41,7 +41,8 @@ const ASK: Record<ThinkKind, string> = {
 export function userPrompt(kind: ThinkKind, p: Perception, memories: readonly Memory[], plan: string | null): string {
   const parts = [describe(p)];
   parts.push(`Places you know: ${p.placesYouKnow.join(', ')}.`);
-  if (plan && kind !== 'plan') parts.push(`\nYour plan for today:\n${plan}`);
+  // A plan made this morning may say "I'm hungry": it's read against how they feel now.
+  if (plan && kind !== 'plan') parts.push(`\nYour plan for today:\n${plan}\n(You feel ${p.hunger} and ${p.energy} right now.)`);
   parts.push(memoryLines(memories));
   if (kind === 'act' || kind === 'business') {
     const doable = [...p.actions.map((a) => `- ${a.verb}: ${a.says}`), `- ${POTTER}`];

@@ -2,7 +2,8 @@ import type { Brain } from './brain/brain.ts';
 import { FakeBrain } from './brain/fake-brain.ts';
 import { act, verbOf, type Intent } from './sim/actions/index.ts';
 import type { EventBody, GameEvent, LedgerEntry } from './sim/events.ts';
-import { perceive } from './sim/perception.ts';
+import { PLACES } from './sim/map.ts';
+import { perceive, type Perception } from './sim/perception.ts';
 import { createWorld } from './sim/seed.ts';
 import { MAX_REPLAY_MINUTES, skipQuietly } from './sim/skip.ts';
 import { World, type Resident, type WorldState } from './sim/state.ts';
@@ -32,6 +33,41 @@ export const AFTER_ACTION_MINUTES = 2;
  */
 export const REPEAT_MINUTES = QUIET_THINK_MINUTES;
 export const REPEAT_NUDGE = "You've just done that.";
+/** Pottering about with nothing done for this many quiet thoughts running, a resident is reminded of places they could go. */
+export const POTTERS_BEFORE_NUDGE = 3;
+
+/**
+ * Pottering about again. Once nothing has been done for POTTERS_BEFORE_NUDGE
+ * quiet thoughts, they're reminded, in-world, of places they could go. Read
+ * from when they last did something (saved), so a restart changes nothing.
+ */
+function pottered(w: World, r: Resident, p: Perception): void {
+  // Busy (walking, fishing, on shift, asleep) or minding their own shop: waiting is what they're doing.
+  if (r.activity) return;
+  const own = w.shopOf(r.id);
+  if (own && p.placeId === own.id) return;
+  if (r.lastDone && w.t - r.lastDone.t < POTTERS_BEFORE_NUDGE * QUIET_THINK_MINUTES) return;
+  // Places they know with something to do there first (the jetty, the farm plot), then one more, turning with the time.
+  const known = PLACES.filter((pl) => pl.kind !== 'house' && pl.id !== p.placeId && r.knownPlaces.includes(pl.id));
+  const work = known.filter((pl) => NUDGE_FIRST.includes(pl.id));
+  const rest = known.filter((pl) => !NUDGE_FIRST.includes(pl.id));
+  const places = [...work, ...(rest.length ? [rest[Math.floor(w.t / QUIET_THINK_MINUTES) % rest.length]!] : [])].map((pl) => pl.name);
+  const list = places.length <= 1 ? places.join('') : `${places.slice(0, -1).join(', ')} or ${places.at(-1)}`;
+  r.reply = { ok: true, text: places.length ? `There's nothing more to do here. You could walk to ${list}.` : "There's nothing more to do here. You could set off north, south, east or west." };
+}
+
+/** Places a nudge names first: there's always something to do at them. */
+const NUDGE_FIRST = ['jetty', 'farm'];
+
+/** The refusals (from personNearby and say) that asking again this minute can't change. */
+const NOT_NEARBY = / isn't nearby\. /;
+const SAID_ALL = / have said all there is to say\.$/;
+
+/** The person an action is aimed at, lower-cased, if any. */
+function personOf(i: Intent): string | null {
+  const v = i.to ?? i.from ?? i.who;
+  return typeof v === 'string' && v.trim() ? v.trim().toLowerCase() : null;
+}
 
 /** A value with every object's keys in order, all the way down. */
 function canon(v: unknown): unknown {
@@ -140,12 +176,25 @@ export class Town {
         if ((r.activity && r.activity.kind !== 'working') || w.t < r.thinkAt) continue;
         const brain = this.brains.get(r.id)!;
         r.thinkAt = w.t + QUIET_THINK_MINUTES;
+        const absentBefore = !!r.reply && !r.reply.ok && NOT_NEARBY.test(r.reply.text);
         for (let i = 0; i < TRIES_PER_THOUGHT; i++) {
-          const intent = await brain.decide(perceive(w, r), { t: w.t, realMs, residentId: r.id, emit });
+          const p = perceive(w, r);
+          const intent = await brain.decide(p, { t: w.t, realMs, residentId: r.id, emit });
           r.reply = null;
-          if (!intent) break;
+          if (!intent) {
+            if (i === 0) pottered(w, r, p);
+            break;
+          }
           const res = act(w, r.id, intent);
           r.reply = res.reply ? { ok: res.ok, text: res.reply } : null;
+          if (!res.ok && personOf(intent) && NOT_NEARBY.test(res.reply ?? '')) {
+            // Asking again this minute won't bring them back: think again shortly, with who is here in view
+            // (at the quiet pace if they were already told last time).
+            if (!absentBefore) r.thinkAt = Math.min(r.thinkAt, w.t + AFTER_ACTION_MINUTES);
+            break;
+          }
+          // Two who have said all there is to say won't find more this minute either.
+          if (!res.ok && SAID_ALL.test(res.reply ?? '')) break;
           if (res.ok) {
             const what = sameness(intent);
             const before = r.lastDone;

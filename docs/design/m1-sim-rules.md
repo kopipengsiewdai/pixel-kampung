@@ -130,6 +130,35 @@ Ordered stock is dropped off at the owner's shop.
   everyone's money as it stood). The nightly check replays the ledger from
   the first opening entry; what came before it is already in it.
 
+## Living-town review fixes (2026-10-25)
+
+- Someone who isn't nearby is answered with who is: "Ah Seng isn't nearby.
+  There's nobody here with you." / "Here with you: Siti and Muthu." That
+  refusal ends the thought (asking again that minute won't bring them back),
+  and the next comes after the short after-action gap (at the quiet pace if
+  the last thought ended the same way). A name nobody in the
+  kampung has: "You don't know anyone called "Mak"; there's nobody by that
+  name in the kampung."
+- Pottering about with nothing done for 3 quiet thoughts (30 minutes), a
+  resident who isn't busy (walking, fishing, on shift) or minding their own
+  shop is reminded of places they know: the farm plot and the jetty first,
+  then one more turning with the time, never where they are ("There's
+  nothing more to do here. You could walk to …"). Read from when they last
+  did something, so nothing new is saved.
+- Hungry at home with no food carried: "There's no food in the house." The
+  day's plan is shown with how they feel now.
+- Memories recalled leave out "Nearby: …" lines (who was there then).
+- When the lorry arrives, everyone awake hears its horn ("You hear the
+  lorry's horn from the lorry stop."), learns where it stops, and thinks
+  again within a minute.
+- Standing in a shop, residents see whose it is ("Mdm Tan's provision shop";
+  the owner, "your provision shop"), and can walk to it by that name. Only
+  the words change: the place keeps its own name and id in perception.
+- Two who keep talking with nothing done for twice the circles count (12
+  lines) have said all there is to say: both see it, lines to each other are
+  held back ("You and Siti have said all there is to say."), and doing
+  something together, or 30 quiet minutes, opens it again.
+
 ## Downtime
 
 - A gap of up to 10 minutes is replayed. A longer gap is skipped in one jump:
