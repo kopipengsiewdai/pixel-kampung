@@ -28,6 +28,7 @@ export function feedText(e: GameEvent, n: Names): { text: string; notable: boole
   const line = (text: string, notable = false) => ({ text, notable });
   switch (e.type) {
     case 'walked': return line(`${n(e.who)} heads to ${e.to}.`);
+    case 'went_with': return line(e.to ? `${n(e.who)} goes with ${n(e.with)} to ${e.to}.` : `${n(e.who)} goes after ${n(e.with)}.`);
     case 'said': return line(e.to ? `${n(e.who)} to ${n(e.to)}: "${e.text}"` : `${n(e.who)}: "${e.text}"`);
     case 'bought': return line(`${n(e.who)} bought ${quantityLabel(e.item, e.qty)} from ${n(e.from)} for ${formatMoney(e.cents)}.`);
     case 'sold': return line(`${n(e.who)} sold ${quantityLabel(e.item, e.qty)} to ${n(e.to)} for ${formatMoney(e.cents)}.`);

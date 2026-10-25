@@ -24,6 +24,10 @@ const withPeople = (w: World, r: Resident) => w.nearby(r).some((o) => !w.isAslee
 /** The whole v1 action space (spec §3). Nothing else can be done. */
 export const ACTIONS: Record<string, ActionDef> = {
   walk_to: { run: everyone.walkTo, ownersOnly: false, says: 'walk to a place or a person you know, or north, south, east or west (where)' },
+  go_with: {
+    run: everyone.goWith, ownersOnly: false, says: 'go along with someone who is setting off (person)',
+    here: (w, r) => w.state.residents.some((o) => everyone.canGoWith(w, r, o)),
+  },
   look_around: { run: everyone.lookAround, ownersOnly: false, says: 'look around' },
   say: { run: everyone.say, ownersOnly: false, says: 'say something (words, and person if it is meant for someone)' },
   buy: { run: everyone.buy, ownersOnly: false, says: 'buy something here (item, amount)', here: atShop },

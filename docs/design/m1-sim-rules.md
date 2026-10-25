@@ -107,6 +107,12 @@ Ordered stock is dropped off at the owner's shop.
 - "Nearby" means in the same place, or within 3 tiles in the open.
 - Trade offers lapse after 30 minutes. Notes hold up to 200 characters; the
   board holds 12, and the oldest falls off.
+- Going somewhere together: when someone you exchanged a line with in the
+  last 5 minutes sets off, you notice ("Ah Huat sets off for the
+  kopitiam.") and think again within a minute. "Go with" someone walks you
+  to where they're heading. It's offered while someone nearby is walking, or
+  someone you spoke with in the last 5 minutes is; if they've already
+  stopped, you go after them. Nothing about it is saved.
 
 ## Downtime
 

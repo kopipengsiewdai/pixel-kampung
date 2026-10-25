@@ -206,7 +206,7 @@ export class World {
         if (a?.kind === 'working' && this.state.jobs.some((j) => j.id === a.jobId && j.placeId === e.shop)) settle(e.who, r.id, 'money');
       }
     }
-    if (e.type === 'walked') {
+    if (e.type === 'walked' || e.type === 'went_with') {
       for (const [k, rec] of Object.entries(this.state.talk)) if (k.split('|').includes(e.who)) rec.idle = 0;
     }
   }

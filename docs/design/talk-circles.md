@@ -123,7 +123,7 @@ waiting line.
 since they last *did* something together. It counts exactly as `lines` does
 (once per line said to the other; a line to everyone counts for each pair
 that hears it). It's reset to 0 by any settling event in the table above
-(either kind), and by either of them setting off on a walk (`walked`), which
+(either kind), and by either of them setting off on a walk (`walked`, or `went_with` when going with someone), which
 covers walking away and walking off together. Like `lines`, it starts again
 after 30 quiet minutes.
 
