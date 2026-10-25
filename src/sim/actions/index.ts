@@ -3,6 +3,7 @@ import { isNight } from '../time.ts';
 import { type ActionResult, type Intent, no } from './common.ts';
 import * as debts from './debts.ts';
 import * as everyone from './everyone.ts';
+import { offersFor } from './haggle.ts';
 import * as owners from './owners.ts';
 
 export type { ActionResult, Intent } from './common.ts';
@@ -31,7 +32,7 @@ export const ACTIONS: Record<string, ActionDef> = {
   },
   look_around: { run: everyone.lookAround, ownersOnly: false, says: 'look around' },
   say: { run: everyone.say, ownersOnly: false, says: 'say something (words, and person if it is meant for someone)' },
-  buy: { run: everyone.buy, ownersOnly: false, says: 'buy something here (item, amount)', here: atShop },
+  buy: { run: everyone.buy, ownersOnly: false, says: 'buy something here (item, amount, and money if you offer less than the price)', here: atShop },
   sell: {
     run: everyone.sell, ownersOnly: false, says: 'sell something here (item, amount)',
     here: (w, r) => atShop(w, r) || (w.isAt(r, 'lorry-stop') && w.state.lorryHere),
@@ -51,12 +52,12 @@ export const ACTIONS: Record<string, ActionDef> = {
     run: debts.writeIou, ownersOnly: false, says: 'write someone an IOU saying you owe them (person, money, words: what for)', here: withPeople,
   },
   agree: {
-    run: debts.agree, ownersOnly: false, says: 'agree to what someone offered or asked about money (person)',
-    here: (w, r) => w.state.debtOffers.some((o) => o.toId === r.id),
+    run: debts.agree, ownersOnly: false, says: 'agree to what someone offered or asked about money, or a price offered at your counter (person, and item for a price at your counter)',
+    here: (w, r) => w.state.debtOffers.some((o) => o.toId === r.id) || offersFor(w, r).length > 0,
   },
   refuse: {
-    run: debts.refuse, ownersOnly: false, says: 'turn down what someone offered or asked about money (person)',
-    here: (w, r) => w.state.debtOffers.some((o) => o.toId === r.id),
+    run: debts.refuse, ownersOnly: false, says: 'turn down what someone offered or asked about money, or a price offered at your counter (person, and item for a price at your counter)',
+    here: (w, r) => w.state.debtOffers.some((o) => o.toId === r.id) || offersFor(w, r).length > 0,
   },
   repay: {
     run: debts.repay, ownersOnly: false, says: 'pay back money you owe (person, and money to pay only part)',
@@ -113,7 +114,7 @@ const BUSY: Record<string, string> = {
 };
 
 /** What can still be done in the middle of a shift, without leaving it. */
-export const ON_SHIFT = new Set(['look_around', 'say', 'cook']);
+export const ON_SHIFT = new Set(['look_around', 'say', 'cook', 'agree', 'refuse']);
 
 /** The action asked for, as written in ACTIONS ("Walk to" → walk_to); '' if none. */
 export function verbOf(intent: unknown): string {

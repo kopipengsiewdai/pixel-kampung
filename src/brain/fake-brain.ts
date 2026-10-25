@@ -81,7 +81,12 @@ export class FakeBrain implements Brain {
   }
 
   decide(p: Perception): Intent | null {
-    if (p.job?.onShift) return p.refused ? null : this.onShift(p);
+    if (p.job?.onShift) {
+      if (p.refused) return null;
+      const haggle = p.priceOffers[0];
+      if (haggle) return { verb: haggle.cents >= 0.8 * haggle.asking ? 'agree' : 'refuse', from: haggle.from, item: haggle.item };
+      return this.onShift(p);
+    }
     if (p.refused) return this.rng.chance(0.5) ? null : this.wander(p);
     return this.needs(p) ?? this.offers(p) ?? this.shift(p)
       ?? (p.business ? this.owner(p) : this.seeker(p));
@@ -123,6 +128,9 @@ export class FakeBrain implements Brain {
   }
 
   private offers(p: Perception): Intent | null {
+    // A price offered at the counter: taken if it's within a fifth of the asking price.
+    const haggle = p.priceOffers[0];
+    if (haggle) return { verb: haggle.cents >= 0.8 * haggle.asking ? 'agree' : 'refuse', from: haggle.from, item: haggle.item };
     const trade = p.trades[0];
     if (trade) return { verb: this.rng.chance(0.6) ? 'accept_trade' : 'decline_trade', from: trade.from };
     const ask = p.moneyOffers[0];

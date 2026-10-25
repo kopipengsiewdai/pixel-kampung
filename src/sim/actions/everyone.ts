@@ -3,6 +3,7 @@ import { dealKind, settlesBy } from '../talk.ts';
 import { ITEMS, LORRY_BUYS, quantityLabel, type ItemId } from '../items.ts';
 import { MAP_H, MAP_W, PLACES, PLACE_BY_ID, findPath, isWalkable, type Point } from '../map.ts';
 import { learnFromWords } from '../discovery.ts';
+import { offerPrice } from './haggle.ts';
 import { formatMoney } from '../money.ts';
 import { perceive } from '../perception.ts';
 import { PLACE_WORDS } from '../places.ts';
@@ -16,6 +17,8 @@ import {
 } from './common.ts';
 
 export const MAX_SAY = 300;
+/** A gift of no money, or none of something. */
+export const GIVING_NOTHING = "You'd be giving nothing.";
 export const MAX_NOTE = 200;
 export const MAX_NOTES = 12;
 export const TRADE_OFFER_MINUTES = 30;
@@ -251,7 +254,7 @@ function capital(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function recordFirstSale(w: World, shop: Shop): void {
+export function recordFirstSale(w: World, shop: Shop): void {
   const key = `first-sale:${shop.id}`;
   if (w.state.firsts.includes(key)) return;
   w.state.firsts.push(key);
@@ -283,6 +286,12 @@ export function buy(w: World, r: Resident, i: Intent): ActionResult {
   if (have === 0) return no(`${name} has run out of ${item}.`);
   if (have < qty) return no(`${name} only has ${quantityLabel(item, have)} left.`);
   const cost = price * qty;
+  // A price named below the shop's is an offer for whoever minds the counter; at or above it, a sale at the shop's price.
+  if (i.money !== undefined && i.money !== null && i.money !== '') {
+    const offered = moneyOf(i.money);
+    if (offered === null || offered === 0) return no("That doesn't sound like money.");
+    if (offered < cost) return offerPrice(w, r, shop, item, qty, offered);
+  }
   if (r.money < cost) return no(`You can't afford that: ${quantityLabel(item, qty)} costs ${formatMoney(cost)} and you have ${formatMoney(r.money)}.`);
   w.transfer(r.id, shop.ownerId, cost, `bought ${item}`);
   addGoods(shop.stock, item, -qty);
@@ -538,16 +547,18 @@ export function give(w: World, r: Resident, i: Intent): ActionResult {
   const hasMoney = i.money !== undefined && i.money !== null && i.money !== '';
   if (hasMoney) {
     const cents = moneyOf(i.money);
-    if (cents === null || cents === 0) return no("That doesn't sound like money.");
+    if (cents === null) return no("That doesn't sound like money.");
+    if (cents === 0) return no(GIVING_NOTHING);
     if (r.money < cents) return no(`You only have ${formatMoney(r.money)}.`);
     w.transfer(r.id, o.id, cents, 'gift');
     w.emit({ type: 'gave', who: r.id, to: o.id, item: null, qty: 0, cents });
     w.notify(o.id, `${r.name} gave you ${formatMoney(cents)}.`);
     return ok(`You give ${o.name} ${formatMoney(cents)}.`);
   }
-  if (i.item === undefined) return no("You're not sure what to give.");
+  if (i.item === undefined || i.item === null || i.item === '') return no(GIVING_NOTHING);
   const item = itemOf(i.item);
   if (!item) return no(`You don't have anything called ${quoted(i.item)}.`);
+  if (i.qty === 0 || i.qty === '0') return no(GIVING_NOTHING);
   const qty = qtyOf(i.qty);
   if (qty === null) return no(SAY_NOTHING_SENSIBLE);
   if (countGoods(r.items, item) < qty) return no(`You don't have ${quantityLabel(item, qty)}.`);

@@ -4,6 +4,12 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **Haggling at the counter:** a buyer can name what they'll pay. At or above the shop's price it's a sale at the shop's price; below it, whoever minds the counter (the owner, or a worker on shift) sees the offer and can take it or turn it down, and a taken offer is a sale at that price, shown in the feed. A worker can take an offer down to four-fifths of the price; the owner, any. It lapses after a few minutes, or once the buyer leaves, and the buyer hears it wasn't taken. In the living town Ah Seng and Rahim agreed 26¢ for a bunch of vegetables, then he paid the posted 30¢, twice.
+- **Giving nothing:** a gift of no money or none of something is refused ("You'd be giving nothing.") and nothing is recorded.
+- **Living town:** at upgrade (save v9) no offers are waiting at any counter.
+
 ## 0.12.1 (2026-10-25): fixes from watching the town
 
 - **Someone who's gone:** talking to or dealing with someone who isn't nearby now says who is ("Ah Seng isn't nearby. There's nobody here with you."), and the resident stops trying that minute. "Isn't nearby" was 22% of all action results (Raju tried Ah Seng 79 times). A name nobody in the kampung has is answered so.

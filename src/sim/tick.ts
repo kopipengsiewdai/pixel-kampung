@@ -2,6 +2,7 @@ import {
   COLLAPSE_WAKE_ENERGY, RESTED, WALK_TILES_PER_MINUTE,
   catchFish, endShift, interrupt, startSleep, wake, walkHomeToSleep,
 } from './activities.ts';
+import { lapsePriceOffers } from './actions/haggle.ts';
 import { PLACE_BY_ID } from './map.ts';
 import { NEED_MAX, type Resident, type World } from './state.ts';
 import { lookAbout } from './discovery.ts';
@@ -106,6 +107,7 @@ export function advance(w: World): void {
   w.state.jobOffers = w.state.jobOffers.filter((o) => o.expires > t);
   w.state.trades = w.state.trades.filter((o) => o.expires > t);
   w.state.debtOffers = w.state.debtOffers.filter((o) => o.expires > t);
+  lapsePriceOffers(w);
 }
 
 export function advanceTo(w: World, t: number): void {

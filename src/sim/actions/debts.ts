@@ -3,8 +3,10 @@
  * without agreeing. A loan offered or asked for, or an IOU written, waits on
  * the other one's yes; money moves only through World.transfer.
  */
+import { quantityLabel } from '../items.ts';
 import { formatMoney, type Cents } from '../money.ts';
 import type { Debt, DebtOffer, Resident, World } from '../state.ts';
+import { acceptPrice, priceOfferFrom, refusePrice } from './haggle.ts';
 import { type ActionResult, type Intent, moneyOf, no, ok, personNearby, quoted, textOf } from './common.ts';
 
 export const DEBT_OFFER_MINUTES = 30;
@@ -81,9 +83,24 @@ function offerFrom(w: World, r: Resident, from: unknown): { o: Resident; offer: 
   return { o, offer: found };
 }
 
+/**
+ * Which of someone's offers r means: a price at r's counter (when r names the
+ * item, or it's the only one), a money offer, or neither (asked which).
+ */
+function whichOffer(w: World, r: Resident, i: Intent): { price: ReturnType<typeof priceOfferFrom> } | { money: { o: Resident; offer: DebtOffer } } | string {
+  const money = offerFrom(w, r, i.from);
+  const price = priceOfferFrom(w, r, i.from);
+  if (typeof money === 'string') return price ? { price } : money;
+  if (!price) return { money };
+  if (i.item !== undefined && i.item !== null && i.item !== '') return { price };
+  return `${money.o.name} has asked you about money and offered ${formatMoney(price.offer.cents)} for ${quantityLabel(price.offer.item, price.offer.qty)}. Which do you mean?`;
+}
+
 export function agree(w: World, r: Resident, i: Intent): ActionResult {
-  const found = offerFrom(w, r, i.from);
-  if (typeof found === 'string') return no(found);
+  const which = whichOffer(w, r, i);
+  if (typeof which === 'string') return no(which);
+  if ('price' in which) return acceptPrice(w, r, which.price!);
+  const found = which.money;
   const { o, offer: x } = found;
   const near = personNearby(w, r, o.name);
   if (typeof near === 'string') return no(near);
@@ -111,8 +128,10 @@ export function agree(w: World, r: Resident, i: Intent): ActionResult {
 }
 
 export function refuse(w: World, r: Resident, i: Intent): ActionResult {
-  const found = offerFrom(w, r, i.from);
-  if (typeof found === 'string') return no(found);
+  const which = whichOffer(w, r, i);
+  if (typeof which === 'string') return no(which);
+  if ('price' in which) return refusePrice(w, r, which.price!);
+  const found = which.money;
   const { o, offer: x } = found;
   const sum = formatMoney(x.cents);
   w.state.debtOffers = w.state.debtOffers.filter((y) => y.id !== x.id);

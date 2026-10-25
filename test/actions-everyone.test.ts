@@ -396,7 +396,7 @@ describe('give', () => {
     put(w, 'Raju', 'well');
     refused(act(w, siti.id, { verb: 'give', to: 'Raju', money: 999999 }), /only have/);
     refused(act(w, siti.id, { verb: 'give', to: 'Raju', item: 'fish' }), /don't have a fish/);
-    refused(act(w, siti.id, { verb: 'give', to: 'Raju' }), /not sure what to give/);
+    refused(act(w, siti.id, { verb: 'give', to: 'Raju' }), /You'd be giving nothing/);
     refused(act(w, siti.id, { verb: 'give', to: 'Siti', money: 1 }), /That's you/);
     refused(act(w, siti.id, { verb: 'give', to: 'Rahim', money: 1 }), /isn't nearby/);
   });
