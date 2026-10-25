@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.12.1 (2026-10-25): fixes from watching the town
 
 - **Someone who's gone:** talking to or dealing with someone who isn't nearby now says who is ("Ah Seng isn't nearby. There's nobody here with you."), and the resident stops trying that minute. "Isn't nearby" was 22% of all action results (Raju tried Ah Seng 79 times). A name nobody in the kampung has is answered so.
 - **Nothing to do:** after half an hour of pottering about with nothing done, a resident who isn't busy or minding their own shop is reminded of places they could walk to (the farm plot and the jetty first, never where they are). The day's plan is read against how they feel now; hungry at home with nothing to eat, they see "There's no food in the house." Memories no longer bring back who was nearby then.
