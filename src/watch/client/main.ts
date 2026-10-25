@@ -46,12 +46,15 @@ function feedItem(l: FeedLine): HTMLLIElement {
   return el('li', l.notable ? { class: 'notable' } : {}, el('span', { class: 'stamp' }, stampOf(l.t)), l.text);
 }
 
-/** "Mon 07:05" from a game minute (Singapore time). */
+/** The town's calendar: its 1 January, Year 0 (a Monday), from the server. */
+let firstDay = 0;
+
+/** "Mon 07:05" from a game minute, by the kampung's week (as the server's shortStamp). */
 function stampOf(t: number): string {
-  const ms = (t + 8 * 60) * 60_000;
-  const d = new Date(ms);
-  const day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getUTCDay()];
-  return `${day} ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+  const day = Math.floor((t + 8 * 60) / 1440);
+  const mod = ((t + 8 * 60) % 1440 + 1440) % 1440;
+  const name = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][(((day - firstDay) % 7) + 7) % 7];
+  return `${name} ${String(Math.floor(mod / 60)).padStart(2, '0')}:${String(mod % 60).padStart(2, '0')}`;
 }
 
 function setFeed(lines: FeedLine[]): void {
@@ -223,6 +226,7 @@ function onHello(h: Hello): void {
   const notice = $('notice');
   notice.hidden = !h.notice;
   notice.textContent = h.notice ?? '';
+  firstDay = h.calendar.firstDay;
   if (h.replay) {
     showReplay(h.replay);
     void loadTrials(h.replay.file);

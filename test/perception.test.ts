@@ -88,7 +88,7 @@ describe('story feed', () => {
     accepted(act(w, siti.id, { verb: 'accept_job', from: 'Ah Huat' }));
     const names = (id: string) => w.resident(id).name;
     const lines = w.takeEvents().map((e) => feedLine(e, names)).filter((l) => l !== null);
-    const text = lines.map(formatFeedLine);
+    const text = lines.map((l) => formatFeedLine(l, w.state));
     expect(text).toContain('[Mon 09:00] Siti bought 2 cups of kopi from Ah Huat for 20¢.');
     expect(text).toContain('[Mon 09:00] ★ Ah Huat makes the first sale at the kopitiam!');
     expect(text).toContain('[Mon 09:00] ★ Siti is now working for Ah Huat at the kopitiam ($2.00 a shift).');

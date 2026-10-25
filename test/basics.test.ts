@@ -43,7 +43,7 @@ describe('rng', () => {
   });
 });
 
-describe('time of day (the hour and weekday run on from the old Singapore-time counter)', () => {
+describe('time of day (the hour runs on from the old Singapore-time counter)', () => {
   // 2026-11-02T06:00:00+08:00
   const sixAm = gameMinuteFromMs(Date.parse('2026-11-01T22:00:00Z'));
   it('maps real time to Singapore hours', () => {

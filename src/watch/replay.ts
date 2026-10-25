@@ -13,7 +13,8 @@ import type { MemoryKind } from '../mind/memory.ts';
 import type { GameEvent } from '../sim/events.ts';
 import { createWorld } from '../sim/seed.ts';
 import { World } from '../sim/state.ts';
-import { dayIndex, shortStamp } from '../sim/time.ts';
+import { shortStamp, type Calendar } from '../sim/calendar.ts';
+import { dayIndex } from '../sim/time.ts';
 import type { TownOptions } from '../town.ts';
 import type { Frame, Thought } from './types.ts';
 import { FrameBuilder, type CardExtras } from './view.ts';
@@ -100,8 +101,8 @@ function hasTable(db: DatabaseSync, name: string): boolean {
 
 interface MemoryRow { id: number; resident: string; t: number; kind: string; text: string }
 
-function thought(m: { t: number; kind: string; text: string }): Thought {
-  return { t: m.t, stamp: shortStamp(m.t), kind: m.kind, text: m.kind === 'plan' ? m.text.replace(PLAN_PREFIX, '') : m.text };
+function thought(m: { t: number; kind: string; text: string }, cal: { calendar: Calendar }): Thought {
+  return { t: m.t, stamp: shortStamp(cal, m.t), kind: m.kind, text: m.kind === 'plan' ? m.text.replace(PLAN_PREFIX, '') : m.text };
 }
 
 /**
@@ -112,11 +113,12 @@ export function extrasFrom(
   latest: (resident: string, kinds: readonly string[], upTo: number, n: number) => { t: number; kind: string; text: string }[],
   id: string,
   t: number,
+  cal: { calendar: Calendar },
 ): CardExtras {
   const plan = latest(id, ['plan'], t, 1)[0];
-  const thoughts = latest(id, THOUGHT_KINDS, t, SHOWN).reverse().map(thought);
-  const noticed = latest(id, ['noticed'], t, SHOWN).reverse().map(thought);
-  const todays = plan && dayIndex(plan.t) === dayIndex(t) ? thought(plan) : null;
+  const thoughts = latest(id, THOUGHT_KINDS, t, SHOWN).reverse().map((m) => thought(m, cal));
+  const noticed = latest(id, ['noticed'], t, SHOWN).reverse().map((m) => thought(m, cal));
+  const todays = plan && dayIndex(plan.t) === dayIndex(t) ? thought(plan, cal) : null;
   const hasMind = thoughts.length > 0 || plan !== undefined;
   return {
     plan: todays,
@@ -206,11 +208,16 @@ export class ReplayReader {
     return out;
   }
 
+  /** The trial's calendar: a trial is a new town, so its 1 January is the day it started. */
+  calendar(): { calendar: Calendar } {
+    return { calendar: { firstDay: dayIndex(this.info().start) } };
+  }
+
   extras(id: string, t: number): CardExtras {
     if (!this.memories) return { plan: null, thoughts: [], noticed: [], mindNote: 'This trial kept no thoughts.' };
     return extrasFrom((resident, kinds, upTo, n) => this.db
       .prepare(`SELECT id, resident, t, kind, text FROM memories WHERE resident = ? AND t <= ? AND kind IN (${kinds.map(() => '?').join(',')}) ORDER BY t DESC, id DESC LIMIT ?`)
-      .all(resident, upTo, ...kinds, n) as unknown as MemoryRow[], id, t);
+      .all(resident, upTo, ...kinds, n) as unknown as MemoryRow[], id, t, this.calendar());
   }
 
   private memoryFeed(where: string, args: number[]): FeedLine[] {

@@ -11,7 +11,13 @@ import { dateAt, dateLabel, dateOfDay, dayOfDate, isLeapYear, MONTHS, nowLabel }
 import { perceive } from '../src/sim/perception.ts';
 import { createWorld } from '../src/sim/seed.ts';
 import { World } from '../src/sim/state.ts';
-import { dayIndex, GAME_SPEED, gameMinuteAt, minuteOfDay, REAL_MS_PER_GAME_MINUTE, realMsAt, weekday } from '../src/sim/time.ts';
+import * as time from '../src/sim/time.ts';
+import { dayIndex, GAME_SPEED, gameMinuteAt, minuteOfDay, REAL_MS_PER_GAME_MINUTE, realMsAt } from '../src/sim/time.ts';
+import { shortStamp, weekdayAt } from '../src/sim/calendar.ts';
+import { feedLine, formatFeedLine } from '../src/feed/feed.ts';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Town, fakeBrains } from '../src/town.ts';
 import { clockLabel } from '../src/watch/view.ts';
 import { sgt } from './helpers.ts';
@@ -70,12 +76,13 @@ describe('the kampung calendar', () => {
     }
   });
 
-  it('a town knows its date; the weekday carries on from the clock', () => {
-    const w = createWorld(1, sgt(9)); // a Monday
+  it('a town knows its date; 1 January, Year 0 is a Monday and the week runs on from it', () => {
+    const w = createWorld(1, sgt(9));
     expect(w.calendar).toEqual({ firstDay: dayIndex(sgt(9)) });
     const d = dateAt(w, sgt(9, 30, 2));
     expect(d).toEqual({ year: 0, month: 1, day: 3, weekday: 'Wednesday' });
-    expect(d.weekday).toBe(weekday(sgt(9, 30, 2)));
+    expect(weekdayAt(w, sgt(9, 30, 6))).toBe('Sunday');
+    expect(weekdayAt(w, sgt(9, 30, 7))).toBe('Monday');
     expect(dateLabel(d)).toBe('Wednesday, 3 January, Year 0');
     expect(nowLabel(w, sgt(7, 15, 1))).toBe('Tuesday, 2 January, Year 0, 7:15 in the morning');
     expect(nowLabel(w, sgt(12, 0, 0))).toBe('Monday, 1 January, Year 0, 12:00 noon');
@@ -185,5 +192,32 @@ describe('review fixes: the 4x clock under load', () => {
     expect(() => clockLabel(w)).not.toThrow();
     expect(dateAt(w.state, w.t)).toMatchObject({ year: 0, month: 1, day: 1 });
     expect(dateAt(w.state, w.t + 1)).toMatchObject({ day: 2 });
+  });
+});
+
+describe('the kampung week', () => {
+  it('starts on a Monday whatever weekday the old clock had: a town begun on a Thursday is still on Monday, 1 January', () => {
+    const thursday = sgt(9, 0, 3);
+    const w = new World(createWorld(1, thursday));
+    expect(dateAt(w.state, thursday)).toMatchObject({ day: 1, weekday: 'Monday' });
+    expect(nowLabel(w.state, thursday)).toBe('Monday, 1 January, Year 0, 9:00 in the morning');
+    expect(shortStamp(w.state, thursday + 65)).toBe('Mon 10:05');
+    expect(clockLabel(w)).toBe('Monday 1 January, Year 0, 09:00');
+    expect(perceive(w, w.state.residents[0]!).time).toMatch(/^Monday, 1 January/);
+    expect(formatFeedLine(feedLine({ seq: 1, t: thursday, type: 'morning' }, () => '')!, w.state)).toMatch(/^\[Mon 09:00\]/);
+  });
+
+  it('no game rule reads the old clock weekday: weekdays come only from the calendar', () => {
+    expect('weekday' in time).toBe(false);
+    expect('shortStamp' in time).toBe(false);
+    const root = fileURLToPath(new URL('../src/', import.meta.url));
+    const files: string[] = [];
+    const walk = (d: string) => { for (const n of readdirSync(d)) { const p = join(d, n); if (statSync(p).isDirectory()) walk(p); else if (p.endsWith('.ts')) files.push(p); } };
+    walk(root);
+    for (const f of files) {
+      if (f.endsWith(join('sim', 'calendar.ts'))) continue;
+      const text = readFileSync(f, 'utf8');
+      expect(text, f).not.toMatch(/getUTCDay\(|\bweekday\(/);
+    }
   });
 });

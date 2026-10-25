@@ -69,10 +69,14 @@ with the town running in real time.
 ## The kampung calendar (agreed 2026-10-25)
 
 **The kampung has its own calendar, not the real date.** When the town moved
-to the 4x clock, its date became **1 January, Year 0**. The time of day and
-the weekday carried on unchanged. From then on it has 12 months and 365 days,
-with a leap day (29 February) every fourth year: Year 4, 8, 12 and so on.
-Year 0 has none. That's 4 game days per real day.
+to the 4x clock, its date became **Monday, 1 January, Year 0**. The time of
+day carried on unchanged, but the weekday jumped once to Monday: 1 January,
+Year 0 is a Monday, and the week runs on from it. From then on it has 12
+months and 365 days, with a leap day (29 February) every fourth year: Year 4,
+8, 12 and so on. Year 0 has none. That's 4 game days per real day. Every
+weekday rule goes by this calendar, never by the real date (the lorry and its
+Sunday off, rent weeks, plans, what residents perceive, the watch page and
+the news).
 
 **Residents know the date.** It's part of what they perceive, in in-world
 words ("Tuesday, 3 January, Year 0, 7:15 in the morning"). The watch page shows
