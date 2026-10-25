@@ -61,6 +61,14 @@ export const UPGRADES: readonly Upgrade[] = [
       };
     },
   },
+  {
+    from: 2,
+    why: "Residents remember what they last did, so doing the same thing again straight away doesn't keep them from answering anyone.",
+    save: ({ world, brains }) => ({
+      world: { ...world, residents: (world.residents as Record<string, unknown>[]).map((r) => ('lastDone' in r ? r : { ...r, lastDone: null })) },
+      brains,
+    }),
+  },
 ];
 
 /** The save version this code writes and reads. */

@@ -3,11 +3,35 @@ import { availableActions } from './actions/index.ts';
 import { LORRY_BUYS, LORRY_SELLS, quantityLabel, type ItemId } from './items.ts';
 import { PLACES, PLACE_BY_ID } from './map.ts';
 import { formatMoney, type Cents } from './money.ts';
-import { TALK_GAP_MINUTES, TALK_SOFT_LIMIT, type Goods, type Resident, type World } from './state.ts';
+import { TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, type Goods, type Observation, type Resident, type World } from './state.ts';
 import { dayIndex, sgtHour, sgtMinute, timeLabel } from './time.ts';
 
 /** How many lines of their own ongoing conversation a resident has in mind. */
 export const TALK_LINES = 6;
+/** Someone who spoke to you waits this many minutes for an answer, then gives up waiting. */
+export const WAIT_MINUTES = 15;
+
+/**
+ * Who is waiting on r for an answer: someone still nearby and awake who spoke
+ * to r first (r hadn't said anything to them just before) in the last
+ * WAIT_MINUTES, and whom r hasn't answered since, to them or to everyone,
+ * unless their chat has already run long. An answer to something r said
+ * doesn't keep r waited on, so each opener gets an answer without the two
+ * going back and forth for the sake of it.
+ */
+export function waitingOn(w: World, r: Resident): Resident[] {
+  return w.nearby(r).filter((o) => {
+    if (w.isAsleep(o)) return false;
+    const chat = w.state.talk[talkKey(r.id, o.id)];
+    // Once the chat has run long ("you've been talking for a while"), nobody is kept waiting.
+    if (chat && chat.lines >= TALK_SOFT_LIMIT && w.t - chat.lastT <= TALK_GAP_MINUTES) return false;
+    const asked = r.recent.findLastIndex((x) => x.talk && w.t - x.t <= WAIT_MINUTES && x.text.startsWith(`${o.name} says to you: "`));
+    if (asked < 0) return false;
+    const toThem = (x: Observation) => x.talk === true && (x.text.startsWith(`You say to ${o.name}: "`) || x.text.startsWith('You say: "'));
+    const spokeFirst = !r.recent.slice(0, asked).some((x) => toThem(x) && r.recent[asked]!.t - x.t <= WAIT_MINUTES);
+    return spokeFirst && !r.recent.slice(asked + 1).some(toThem);
+  });
+}
 
 export type HungerWord = 'full' | 'not hungry' | 'hungry' | 'very hungry' | 'starving';
 export type EnergyWord = 'rested' | 'fine' | 'tired' | 'exhausted';
@@ -57,6 +81,8 @@ export interface Perception {
   talk: string[];
   /** People they've been talking with for a while. */
   longTalks: string[];
+  /** People nearby who said something to them and haven't had an answer yet. */
+  waiting: string[];
   /** What happened when they last tried something. */
   reply?: string;
   refused?: boolean;
@@ -162,6 +188,7 @@ export function perceive(w: World, r: Resident): Perception {
     longTalks: Object.entries(w.state.talk)
       .filter(([k, v]) => v.lines >= TALK_SOFT_LIMIT && w.t - v.lastT <= TALK_GAP_MINUTES && k.split('|').includes(r.id))
       .map(([k]) => w.resident(k.split('|').find((id) => id !== r.id)!).name),
+    waiting: waitingOn(w, r).map((o) => o.name),
     actions: availableActions(w, r),
     placesYouKnow: PLACES.filter((pl) => w.knowsPlace(r, pl.id)).flatMap((pl) => {
       if (pl.id === r.homeId) return ['home'];
@@ -232,6 +259,7 @@ export function describe(p: Perception): string {
   if (lately.length) lines.push(`Lately: ${lately.join(' ')}`);
   if (p.talk.length) lines.push(`The talk so far:\n${p.talk.map((l) => `- ${l}`).join('\n')}`);
   for (const n of p.longTalks) lines.push(`You've been talking with ${n} for a while.`);
+  for (const n of p.waiting) lines.push(`${n} is waiting for your answer.`);
   if (p.reply) lines.push(p.reply);
   return lines.join('\n');
 }

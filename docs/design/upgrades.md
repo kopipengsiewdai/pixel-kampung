@@ -115,3 +115,4 @@ used differently). That still needs a step, and the reviewer checks for it.
 | Step | Why |
 |---|---|
 | v1 → v2 | Family and old friends know each other, as the cast was written (#13 seeded the ties only in new towns). They're merged into `knownPeople` alongside anyone already met. |
+| v2 → v3 | Residents remember what they last did (`lastDone`, starting empty), so doing the same thing again straight away doesn't keep them from answering anyone. |

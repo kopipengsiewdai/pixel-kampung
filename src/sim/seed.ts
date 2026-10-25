@@ -28,6 +28,7 @@ export function createWorld(seed: number, t: number, cast: readonly CastMember[]
       thinkAt: t,
       recent: [],
       reply: null,
+      lastDone: null,
       knownPlaces: c.business ? [homeId, c.business] : [homeId],
       // Family and old friends are known from day one; everyone else is met in play.
       knownPeople: c.knows.map(slug),

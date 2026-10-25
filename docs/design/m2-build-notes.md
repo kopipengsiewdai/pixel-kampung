@@ -92,6 +92,27 @@ under the agreed [M2 decisions](m2-decisions.md) and [v1 spec](v1-spec.md)
   hour before this rule, 29 after. A free trial where every resident answers
   whoever last spoke to them (`npm run trial -- --fake --chatty --hours 4`)
   went from 38.4 calls per resident-hour to 14.2.
+- **Someone spoken to sees who is waiting on them** (2026-10-25; live data:
+  17 of 29 lines said to someone got no reply within 3 minutes). When someone
+  nearby spoke to you first and you haven't answered since, your notes say
+  `Ah Kow is waiting for your answer.` It goes once you answer (to them or to
+  everyone), once they've left or fallen asleep, after 15 minutes, or once the
+  chat has run long. An answer to something you said doesn't keep you waited
+  on, so each opener gets an answer without the pair going back and forth for
+  its own sake.
+- **Doing the same thing again doesn't bring the next thought on.** An action
+  identical to the resident's last successful one, within 5 minutes of it,
+  still goes through, but the next thought comes at the quiet pace, and the
+  reply adds "You've just done that." (A live owner re-set the same price
+  every minute, 37 times, and never answered the two people waiting.) What
+  they last did is saved (`lastDone`), so a restarted town carries on
+  exactly.
+- Measured on the free fake model, 10 residents for 17 waking hours over 3
+  seeds, with the fake answering anyone shown as waiting: openers left
+  unanswered within 3 game minutes went from 167 of 174 to 23 of 134, for
+  3.7% more thoughts (5054 to 5240). Chatty mode barely moved (7 of 44 to
+  6 of 40). Haiku's response to the line is what counts; the live town will
+  show it.
 
 ## Trials
 

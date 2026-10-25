@@ -1,6 +1,6 @@
 import type { Brain } from './brain/brain.ts';
 import { FakeBrain } from './brain/fake-brain.ts';
-import { act, verbOf } from './sim/actions/index.ts';
+import { act, verbOf, type Intent } from './sim/actions/index.ts';
 import type { EventBody, GameEvent, LedgerEntry } from './sim/events.ts';
 import { perceive } from './sim/perception.ts';
 import { createWorld } from './sim/seed.ts';
@@ -15,6 +15,18 @@ import { SCHEMA_VERSION } from './store/upgrades.ts';
 export const TRIES_PER_THOUGHT = 3;
 /** With nothing happening, a resident thinks again after this many minutes. */
 export const QUIET_THINK_MINUTES = 5;
+/**
+ * Doing the very same thing again within this many minutes of last doing it
+ * doesn't bring the next thought on (a resident could otherwise loop on it,
+ * every minute, and never get round to anyone waiting on them).
+ */
+export const REPEAT_MINUTES = QUIET_THINK_MINUTES;
+export const REPEAT_NUDGE = "You've just done that.";
+
+/** The same intent, written the same way whatever order its parts came in. */
+function sameness(i: Intent): string {
+  return JSON.stringify(i, Object.keys(i).sort());
+}
 
 export type BrainFactory = (resident: Resident, index: number, seed: number, state: WorldState) => Brain;
 
@@ -114,9 +126,17 @@ export class Town {
           const res = act(w, r.id, intent);
           r.reply = res.reply ? { ok: res.ok, text: res.reply } : null;
           if (res.ok) {
-            // A speaker waits for an answer: being spoken to wakes them (until the
-            // chat has run long), so saying something never brings the next thought on.
-            if (verbOf(intent) !== 'say') r.thinkAt = Math.min(r.thinkAt, w.t + 1);
+            const what = sameness(intent);
+            const before = r.lastDone;
+            r.lastDone = { what, t: w.t };
+            if (before?.what === what && w.t - before.t <= REPEAT_MINUTES) {
+              // The same again: it goes through, but the next thought comes at the quiet pace.
+              r.reply = { ok: true, text: r.reply ? `${r.reply.text} ${REPEAT_NUDGE}` : REPEAT_NUDGE };
+            } else if (verbOf(intent) !== 'say') {
+              // A speaker waits for an answer: being spoken to wakes them (until the
+              // chat has run long), so saying something never brings the next thought on.
+              r.thinkAt = Math.min(r.thinkAt, w.t + 1);
+            }
             break;
           }
         }
