@@ -65,6 +65,11 @@ PR and green CI (never push to it directly). The owner can revoke this at any
 time. Paid API spend beyond an agreed cap, and anything public beyond this
 repo, still needs his yes.
 
+Owner, 2026-10-25: "Yes, you can publish each release's tag and notes on
+GitHub from now on." Claude pushes each release tag and publishes its GitHub
+release (notes = that version's CHANGELOG section), then deploys it to the
+living town with `%USERPROFILE%\.kampungin\deploy.ps1 <tag>`.
+
 ## Working rules
 
 - No scratch files or logs in the repo root or Desktop: use the session
