@@ -3,11 +3,12 @@ import { advance, advanceTo } from '../src/sim/tick.ts';
 import { perceive } from '../src/sim/perception.ts';
 import { act, accepted, newWorld, put, refused, who } from './helpers.ts';
 
-describe('residents start knowing almost nothing', () => {
-  it('a job-seeker knows only home; an owner also knows their shop', () => {
+describe('residents know their kampung, and still meet people and new places in play', () => {
+  it('everyone who has lived here knows every place; Ah Kow, the newcomer, only home, the well and the kopitiam', () => {
     const w = newWorld(9, 0, 1, true, false);
-    expect(who(w, 'Siti').knownPlaces).toEqual([who(w, 'Siti').homeId]);
-    expect(who(w, 'Ah Huat').knownPlaces.sort()).toEqual([who(w, 'Ah Huat').homeId, 'kopitiam'].sort());
+    expect(who(w, 'Siti').knownPlaces).toContain('jetty');
+    expect(who(w, 'Ah Huat').knownPlaces).toContain('kopitiam');
+    expect(who(w, 'Ah Kow').knownPlaces).toEqual([who(w, 'Ah Kow').homeId, 'well', 'kopitiam']);
     // People: only family and old friends (Siti knows Fatimah from the well).
     expect(who(w, 'Siti').knownPeople).toEqual([who(w, 'Fatimah').id]);
     expect(who(w, 'Ah Kow').knownPeople).toEqual([]);
@@ -15,8 +16,9 @@ describe('residents start knowing almost nothing', () => {
 
   it("can't walk to a place they don't know of yet", () => {
     const w = newWorld(9, 0, 1, true, false);
-    refused(act(w, who(w, 'Siti').id, { verb: 'walk_to', where: 'the jetty' }), /don't know of anywhere called "the jetty"/);
-    expect(perceive(w, who(w, 'Siti')).placesYouKnow).toEqual(['home']);
+    const kow = who(w, 'Ah Kow');
+    refused(act(w, kow.id, { verb: 'walk_to', where: 'the jetty' }), /don't know of anywhere called "the jetty"/);
+    expect(perceive(w, kow).placesYouKnow).toEqual(['home', 'the kopitiam', 'the well']);
   });
 
   it('can set off in a direction to explore', () => {
@@ -32,24 +34,24 @@ describe('residents start knowing almost nothing', () => {
 
   it('learns a place by seeing it', () => {
     const w = newWorld(9, 0, 1, true, false);
-    const siti = put(w, 'Siti', 'jetty');
+    const kow = put(w, 'Ah Kow', 'jetty');
     advance(w);
-    expect(siti.knownPlaces).toContain('jetty');
-    expect(perceive(w, siti).placesYouKnow).toContain('the jetty');
-    expect(w.takeEvents()).toContainEqual(expect.objectContaining({ type: 'found_place', who: siti.id, place: 'jetty' }));
-    accepted(act(w, siti.id, { verb: 'walk_to', where: 'home' }));
+    expect(kow.knownPlaces).toContain('jetty');
+    expect(perceive(w, kow).placesYouKnow).toContain('the jetty');
+    expect(w.takeEvents()).toContainEqual(expect.objectContaining({ type: 'found_place', who: kow.id, place: 'jetty' }));
+    accepted(act(w, kow.id, { verb: 'walk_to', where: 'home' }));
   });
 
   it('learns a place by hearing it named, and a person by meeting them', () => {
     const w = newWorld(9, 0, 1, true, false);
-    const siti = put(w, 'Siti', 'well');
+    const kow = put(w, 'Ah Kow', 'well');
     const raju = put(w, 'Raju', 'well');
     advance(w);
-    expect(siti.knownPeople).toContain(raju.id);
-    expect(siti.knownPlaces).not.toContain('jetty');
-    accepted(act(w, raju.id, { verb: 'say', text: 'The fish are biting at the jetty today.', to: 'Siti' }));
-    expect(siti.knownPlaces).toContain('jetty');
-    accepted(act(w, siti.id, { verb: 'walk_to', where: 'the jetty' }));
+    expect(kow.knownPeople).toContain(raju.id);
+    expect(kow.knownPlaces).not.toContain('jetty');
+    accepted(act(w, raju.id, { verb: 'say', text: 'The fish are biting at the jetty today.', to: 'Ah Kow' }));
+    expect(kow.knownPlaces).toContain('jetty');
+    accepted(act(w, kow.id, { verb: 'walk_to', where: 'the jetty' }));
   });
 
   it('a name inside another word teaches nothing', () => {
@@ -60,10 +62,12 @@ describe('residents start knowing almost nothing', () => {
     expect(raju.knownPeople).toEqual([who(w, 'Muthu').id, siti.id]);
   });
 
-  it("knows someone's house only once they know the person and have seen or heard of it", () => {
+  it("knows a house by whose it is once they know the place; the person is still met in play", () => {
     const w = newWorld(9, 0, 1, true, false);
+    const kow = who(w, 'Ah Kow');
+    refused(act(w, kow.id, { verb: 'walk_to', where: "Ah Huat's house" }), /don't know of anywhere/);
+    refused(act(w, kow.id, { verb: 'walk_to', where: 'Ah Huat' }), /don't know anyone called "Ah Huat"|don't know of anywhere/);
     const siti = who(w, 'Siti');
-    refused(act(w, siti.id, { verb: 'walk_to', where: "Ah Huat's house" }), /don't know of anywhere/);
-    refused(act(w, siti.id, { verb: 'walk_to', where: 'Ah Huat' }), /don't know anyone called "Ah Huat"|don't know of anywhere/);
+    accepted(act(w, siti.id, { verb: 'walk_to', where: "Ah Huat's house" }));
   });
 });

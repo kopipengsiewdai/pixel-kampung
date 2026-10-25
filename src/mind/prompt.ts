@@ -16,6 +16,7 @@ export function systemPrompt(card: Card, role: 'owner' | 'seeker', shop: string 
     `You are ${card.name}, ${card.age}. ${card.personality}`,
     `You want ${card.want}. You worry ${card.worry}.`,
     card.knows,
+    card.trade ?? '',
     roleLine,
     'You live in a kampung by the sea, in Singapore, in the 1960s.',
     `Live as ${card.name} would, one moment at a time. Each moment you get notes on where you are, what you notice and remember, and what you could do right now.`,

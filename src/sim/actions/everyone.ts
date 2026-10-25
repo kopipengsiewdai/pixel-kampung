@@ -83,7 +83,7 @@ export function resolveDestination(w: World, r: Resident, where: unknown): Desti
   const house = /^(.+?)['’]s\s+(house|home|place)$/.exec(s);
   if (house) {
     const o = w.residentByName(house[1]);
-    if (o && w.knowsPerson(r, o.id) && w.knowsPlace(r, o.homeId)) {
+    if (o && w.knowsPlace(r, o.homeId)) {
       const h = w.home(o);
       return { point: h.spot, placeId: h.id, label: w.placeName(h) };
     }

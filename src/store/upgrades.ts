@@ -42,6 +42,14 @@ const TIES_V2: Record<string, readonly string[]> = {
   raju: ['muthu'],
 };
 
+/** Every place in the kampung as it stood at v7 (src/sim/map.ts), frozen for v7 → v8. */
+const PLACES_V8 = [
+  'house-1', 'house-2', 'house-3', 'house-4', 'house-5', 'house-6', 'house-7', 'house-8', 'house-9', 'house-10',
+  'kopitiam', 'notice-board', 'provision-shop', 'well', 'market-stall', 'lorry-stop', 'farm', 'jetty',
+];
+/** What Ah Kow, the newcomer, knows besides home, frozen for v7 → v8. */
+const NEWCOMER_PLACES_V8 = ['well', 'kopitiam'];
+
 export const UPGRADES: readonly Upgrade[] = [
   {
     from: 1,
@@ -147,6 +155,18 @@ export const UPGRADES: readonly Upgrade[] = [
       const put = db.prepare('INSERT INTO ledger (seq, t, from_id, to_id, cents, reason) VALUES (?, ?, ?, ?, ?, ?)');
       let seq = world.ledgerSeq;
       for (const r of world.residents) if (r.money > 0) put.run(++seq, world.t, 'kampung-opening', r.id, r.money, 'opening');
+    },
+  },
+  {
+    from: 7,
+    why: 'Everyone who has lived here knows every place in the kampung (the jetty, the farm plot, the well, the board, the shops, the lorry stop and every house); Ah Kow, who arrived last month, knows the well and the kopitiam.',
+    save: ({ world, brains }) => {
+      // Owner, 2026-10-25: places are known; how things work is still discovered. Kept in what each knew, appended.
+      const residents = (world.residents as { id: string; knownPlaces: string[] }[]).map((r) => {
+        const add = (r.id === 'ah-kow' ? NEWCOMER_PLACES_V8 : PLACES_V8).filter((id) => !r.knownPlaces.includes(id));
+        return add.length ? { ...r, knownPlaces: [...r.knownPlaces, ...add] } : r;
+      });
+      return { world: { ...world, residents }, brains };
     },
   },
 ];

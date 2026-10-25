@@ -23,6 +23,13 @@ describe('the cast', () => {
       .toEqual(doc.map((d) => [d.name, d.business ? 'owner' : 'seeker', d.business]));
   });
 
+  it("each card's trade is the one on the approved page, word for word, and only five have one", () => {
+    const doc = readFileSync(new URL('../docs/design/cast.md', import.meta.url), 'utf8');
+    const told = [...doc.matchAll(/^- \*Trade \(told as\):\* "(.+)"$/gm)].map((m) => m[1]);
+    expect(CARDS.filter((c) => c.trade).map((c) => c.trade)).toEqual(told);
+    expect(told).toHaveLength(5);
+  });
+
   it("each card's ties name exactly the people they start out knowing", () => {
     const names = CAST.map((c) => c.name);
     for (const member of CAST) {

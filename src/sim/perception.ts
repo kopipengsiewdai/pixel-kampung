@@ -221,7 +221,8 @@ export function perceive(w: World, r: Resident): Perception {
       if (pl.id === r.homeId) return ['home'];
       if (pl.kind !== 'house') return [pl.name];
       const owner = w.state.residents.find((x) => x.homeId === pl.id);
-      return owner && w.knowsPerson(r, owner.id) ? [w.placeName(pl)] : [];
+      // A house is known by whose it is; the person is still met in play.
+      return owner ? [w.placeName(pl)] : [];
     }),
   };
   if (r.reply) {

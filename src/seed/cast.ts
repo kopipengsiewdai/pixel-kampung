@@ -12,6 +12,12 @@ export interface CastMember {
   business?: 'kopitiam' | 'provision-shop' | 'market-stall';
   /** People they already know when the town starts (family and old friends). */
   knows: readonly string[];
+  /**
+   * A newcomer knows only these places besides home. Everyone else who has
+   * lived here knows every place in the kampung (owner, 2026-10-25: places are
+   * known; how things work is discovered).
+   */
+  places?: readonly string[];
 }
 
 export const CAST: readonly CastMember[] = [
@@ -19,7 +25,7 @@ export const CAST: readonly CastMember[] = [
   { name: 'Mdm Tan', role: 'owner', business: 'provision-shop', knows: ['Mei Ling'] },
   { name: 'Rahim', role: 'owner', business: 'market-stall', knows: ['Fatimah', 'Ah Huat'] },
   { name: 'Mei Ling', role: 'seeker', knows: ['Mdm Tan'] },
-  { name: 'Ah Kow', role: 'seeker', knows: [] },
+  { name: 'Ah Kow', role: 'seeker', knows: [], places: ['well', 'kopitiam'] },
   { name: 'Siti', role: 'seeker', knows: ['Fatimah'] },
   { name: 'Muthu', role: 'seeker', knows: ['Raju'] },
   { name: 'Ah Seng', role: 'seeker', knows: ['Ah Huat'] },

@@ -50,8 +50,15 @@ On day one a resident knows only their name, their role and their home. They
 don't know about the lorry, prices, farming or cooking until they find out by
 trying, looking and talking.
 
-- **Places are discovered too.** A resident starts knowing only home. A place
-  joins what they know once they've seen it or someone has mentioned it.
+- **Places are known; how things work is discovered** (owner, 2026-10-25,
+  revising this decision). Everyone who has lived here knows every place in
+  the kampung from day one, and every house by whose it is; a newcomer (Ah
+  Kow) knows only home, the well and the kopitiam. What the lorry sells, how
+  crops grow, prices, and anything new the village head builds are still
+  found out in play. *Replaced:* at first a resident knew only home, and the
+  living town showed no fishing or farming at all because nobody had found
+  the jetty or the farm plot. A place a newcomer hasn't seen joins what they
+  know once they see it or hear it named.
 - **Early exploration costs more AI.** That's accepted; the trials measure it.
 
 ## 7. With no thinking budget, needs only
