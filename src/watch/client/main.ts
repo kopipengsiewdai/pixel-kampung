@@ -3,7 +3,7 @@
  * owner clicks, and replay controls. Read-only: it only listens to the town.
  * Everything residents said or thought is shown as text, never as HTML.
  */
-import type { Card, FeedLine, Hello, ReplayState, Thought, Update } from '../types.ts';
+import type { Card, FeedLine, Hello, PlaceCard, ReplayState, Thought, Update } from '../types.ts';
 import { startGame, type TownScene } from './scene.ts';
 
 const FEED_KEPT = 200;
@@ -26,6 +26,8 @@ let scene: TownScene | null = null;
 let msPerMinute = 15_000; // the live town's pace until the server says otherwise
 let latest: Update | null = null;
 let selected: string | null = null;
+/** The place whose card is open, if a place was clicked rather than a person. */
+let selectedPlace: string | null = null;
 let replay: ReplayState | null = null;
 let seeking = false;
 let cardTimer: ReturnType<typeof setTimeout> | null = null;
@@ -37,6 +39,10 @@ const probe = {
   get updates() { return updates; },
   get drawn() { return scene?.drawn ?? 0; },
   openCard: (id: string) => pick(id),
+  /** Where to click on the page to pick a place, clear of anyone in it. */
+  placePoint: (id: string) => scene?.screenPointOf(id) ?? null,
+  /** What residents are idling at, and how many speech bubbles are showing. */
+  liveliness: () => scene?.liveliness() ?? null,
 };
 (window as unknown as { __kampung: typeof probe }).__kampung = probe;
 
@@ -55,6 +61,11 @@ function stampOf(t: number): string {
   const mod = ((t + 8 * 60) % 1440 + 1440) % 1440;
   const name = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][(((day - firstDay) % 7) + 7) % 7];
   return `${name} ${String(Math.floor(mod / 60)).padStart(2, '0')}:${String(mod % 60).padStart(2, '0')}`;
+}
+
+/** "Monday 1 January, Year 0, 07:05" → "Mon 1 Jan, 07:05". */
+function shortClock(clock: string): string {
+  return clock.replace(/^(\w{3})\w* (\d+) (\w{3})\w*, Year \d+, /, '$1 $2 $3, ');
 }
 
 function setFeed(lines: FeedLine[]): void {
@@ -97,7 +108,6 @@ function thoughtItem(t: Thought, quote: boolean): HTMLLIElement {
 }
 
 function renderCard(c: Card): void {
-  const card = $('card');
   const close = el('button', { class: 'close', type: 'button', 'aria-label': 'Close' }, '×');
   close.addEventListener('click', () => pick(null));
   const parts: (Node | null)[] = [
@@ -128,13 +138,74 @@ function renderCard(c: Card): void {
   else parts.push(el('p', { class: 'note' }, c.mindNote ?? 'Nothing yet.'));
   if (c.noticed.length) parts.push(el('h4', {}, 'Lately noticed'), el('ul', {}, ...c.noticed.slice().reverse().map((t) => thoughtItem(t, false))));
   parts.push(el('footer', {}, "Owner's view. Nothing on this card ever reaches a resident."));
+  showCard(parts);
+}
+
+/** Shows the card (on a phone, a full-screen sheet over the page). */
+function showCard(parts: (Node | null)[]): void {
+  const card = $('card');
   card.replaceChildren(...parts.filter((p): p is Node => p !== null));
   card.hidden = false;
+  document.body.classList.add('sheet');
+}
+
+function placeCardView(c: PlaceCard): void {
+  const close = el('button', { class: 'close', type: 'button', 'aria-label': 'Close' }, '×');
+  close.addEventListener('click', () => pickPlace(null));
+  const list = (items: string[], none: string) => (items.length ? items.join(', ') : none);
+  const parts: (Node | null)[] = [
+    el('header', {}, el('h3', {}, c.name), close),
+    el('dl', {}, el('dt', {}, 'Here now'), el('dd', {}, list(c.here, 'nobody'))),
+  ];
+  if (c.home) parts.push(el('dl', {}, el('dt', {}, 'Home of'), el('dd', {}, c.home.of ?? 'nobody')));
+  if (c.shop) {
+    parts.push(el('dl', {},
+      el('dt', {}, 'Owner'), el('dd', {}, c.shop.owner),
+      el('dt', {}, 'Serving'), el('dd', {}, c.shop.serving ?? 'nobody minding it'),
+      el('dt', {}, 'Workers'), el('dd', {}, list(c.shop.workers, 'none')),
+      el('dt', {}, 'Stock'), el('dd', {}, list(c.shop.stock.map((x) => x.label), 'empty')),
+      el('dt', {}, 'Sells'), el('dd', {}, list(c.shop.sells, 'no prices yet')),
+      el('dt', {}, 'Buys'), el('dd', {}, list(c.shop.buys, 'nothing')),
+    ));
+  }
+  if (c.notes) {
+    parts.push(el('h4', {}, 'Notes pinned'));
+    parts.push(c.notes.length
+      ? el('ul', {}, ...c.notes.map((n) => el('li', {}, el('span', { class: 'stamp' }, n.stamp), `${n.author}: `, el('span', { class: 'quote' }, `“${n.text}”`))))
+      : el('p', { class: 'note' }, 'The board is bare.'));
+  }
+  if (c.beds) {
+    parts.push(el('h4', {}, 'Beds'));
+    parts.push(el('ul', {}, ...c.beds.map((b) => el('li', {}, `Bed ${b.n}: `, b.who ? `${b.who}'s ${b.growing}, ${b.status}` : b.status))));
+  }
+  if (c.fishing) parts.push(el('dl', {}, el('dt', {}, 'Fishing'), el('dd', {}, list(c.fishing, 'nobody'))));
+  if (c.lorry) {
+    parts.push(el('dl', {},
+      el('dt', {}, 'The lorry'), el('dd', {}, c.lorry.next),
+      el('dt', {}, 'It sells'), el('dd', {}, list(c.lorry.sells, 'nothing')),
+      el('dt', {}, 'It buys'), el('dd', {}, list(c.lorry.buys, 'nothing')),
+    ));
+  }
+  parts.push(el('footer', {}, "Owner's view. Nothing on this card ever reaches a resident."));
+  showCard(parts);
 }
 
 let cardAsked = 0;
 
 async function refreshCard(): Promise<void> {
+  if (selectedPlace) {
+    const id = selectedPlace;
+    const ask = ++cardAsked;
+    lastCardFetch = Date.now();
+    try {
+      const res = await fetch(`/api/place/${encodeURIComponent(id)}`);
+      const card = res.ok ? await res.json() as PlaceCard : null;
+      if (card && ask === cardAsked && selectedPlace === id) placeCardView(card);
+    } catch {
+      // As for a resident's card: the next update asks again.
+    }
+    return;
+  }
   if (!selected) return;
   const id = selected;
   const ask = ++cardAsked;
@@ -151,7 +222,7 @@ async function refreshCard(): Promise<void> {
 
 /** Card refreshes at most once a second while the town moves. */
 function scheduleCard(): void {
-  if (!selected || cardTimer) return;
+  if ((!selected && !selectedPlace) || cardTimer) return;
   const wait = Math.max(0, 1000 - (Date.now() - lastCardFetch));
   cardTimer = setTimeout(() => {
     cardTimer = null;
@@ -161,13 +232,66 @@ function scheduleCard(): void {
 
 function pick(id: string | null): void {
   selected = id;
+  selectedPlace = null;
+  scene?.selectPlace(null);
   scene?.select(id);
   for (const b of $('roster').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.id === id));
   if (!id) {
     $('card').hidden = true;
+    document.body.classList.remove('sheet');
     return;
   }
   void refreshCard();
+}
+
+/** Opens a place's card (and closes any resident's). */
+function pickPlace(id: string | null): void {
+  pick(null);
+  selectedPlace = id;
+  scene?.selectPlace(id);
+  if (!id) return;
+  void refreshCard();
+}
+
+/** A finger moving further than this (CSS pixels) is panning the map, not tapping it. */
+const DRAG_PX = 10;
+/** The press now ending was a pan: it picks nothing. */
+let dragged = false;
+
+/** On a phone: the map at twice the size inside its own box, to pan with a finger; and back. */
+function wireZoom(): void {
+  const zoom = $('zoom');
+  zoom.addEventListener('click', () => {
+    const map = $('map');
+    const on = map.classList.toggle('zoomed');
+    zoom.setAttribute('aria-pressed', String(on));
+    zoom.textContent = on ? '−' : '+';
+    scene?.refit();
+    if (on) {
+      map.scrollLeft = (map.scrollWidth - map.clientWidth) / 2;
+      map.scrollTop = (map.scrollHeight - map.clientHeight) / 2;
+    }
+    scene?.moved();
+  });
+  // Taps land where they look, however the page or the zoomed map has scrolled: the map measures where
+  // the canvas is as each press starts and ends (before the town hears of it), and on every scroll.
+  const map = $('map');
+  for (const type of ['touchstart', 'touchend', 'mousedown', 'mouseup']) map.addEventListener(type, () => scene?.moved(), { capture: true, passive: true });
+  // A finger that moves (or whose touch the browser takes over to scroll) is panning, not picking.
+  let from: { x: number; y: number } | null = null;
+  map.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    from = t ? { x: t.clientX, y: t.clientY } : null;
+    dragged = false;
+  }, { capture: true, passive: true });
+  map.addEventListener('touchmove', (e) => {
+    const t = e.touches[0];
+    if (from && t && Math.hypot(t.clientX - from.x, t.clientY - from.y) > DRAG_PX) dragged = true;
+  }, { capture: true, passive: true });
+  map.addEventListener('touchcancel', () => { dragged = true; }, { capture: true, passive: true });
+  map.addEventListener('mousedown', () => { dragged = false; }, { capture: true, passive: true });
+  map.addEventListener('scroll', () => scene?.moved(), { passive: true });
+  window.addEventListener('scroll', () => scene?.moved(), { passive: true });
 }
 
 document.addEventListener('keydown', (e) => {
@@ -233,7 +357,9 @@ function onHello(h: Hello): void {
   }
   setFeed(h.feed);
   const first: Update = { frame: h.frame, feed: [], snap: true };
-  if (!scene) scene = startGame($('map'), h.layout, { onPick: (id) => pick(id) });
+  $('version').textContent = `v${h.version}`;
+  $('map').style.setProperty('--map-aspect', `${h.layout.w} / ${h.layout.h}`);
+  if (!scene) scene = startGame($('stage'), h.layout, { onPick: (id) => { if (!dragged) pick(id); }, onPickPlace: (id) => { if (!dragged) pickPlace(id); } });
   onUpdate(first);
 }
 
@@ -242,7 +368,8 @@ function onUpdate(u: Update): void {
   latest = u;
   if (u.msPerMinute) msPerMinute = u.msPerMinute;
   if (u.replay) showReplay(u.replay);
-  $('clock').textContent = u.frame.clock;
+  // The full date, and a short one for a phone's header ("Mon 1 Jan, 07:05").
+  $('clock').replaceChildren(el('span', { class: 'long' }, u.frame.clock), el('span', { class: 'short' }, shortClock(u.frame.clock)));
   if (u.resetFeed) setFeed(u.feed);
   else addFeed(u.feed);
   renderRoster(u);
@@ -267,4 +394,5 @@ function connect(): void {
 }
 
 wireReplay();
+wireZoom();
 connect();

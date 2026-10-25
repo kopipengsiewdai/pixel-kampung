@@ -9,6 +9,7 @@ import * as Phaser from 'phaser';
 import { lightAt } from '../light.ts';
 import type { Frame, Layout, LayoutPlace, ResidentView, Update } from '../types.ts';
 import { BUILDINGS, PEOPLE_ORDER, PLANTS, PROPS, bedTile, type Prop } from './decor.ts';
+import { bubbleText, idleKindOf, idlePose, type IdleKind } from './idle.ts';
 
 const T = 16;
 const ZOOM = 2;
@@ -17,9 +18,13 @@ const DOWN = 0;
 const UP = 1;
 const LEFT = 2;
 const RIGHT = 3;
+/** Real milliseconds a speech bubble stays up. */
+const BUBBLE_MS = 4500;
 const OVERLAY_DEPTH = 9000;
 /** Residents draw above every building and prop (still under the night tint), so nobody is hidden inside a shop. */
 const PEOPLE_DEPTH = 5000;
+/** A press that moves further than this (in map pixels) before it lifts is a drag, not a tap. */
+const TAP_SLOP = 12;
 
 interface Pt { x: number; y: number }
 
@@ -28,6 +33,11 @@ interface Mover {
   sprite: Phaser.GameObjects.Sprite;
   label: Phaser.GameObjects.Text;
   zz: Phaser.GameObjects.Image;
+  bubble: Phaser.GameObjects.Text;
+  /** The game minute of the line in the bubble, and until when (page clock) it shows. */
+  saidT: number;
+  bubbleUntil: number;
+  idle: IdleKind;
   look: number;
   facing: number;
   pts: Pt[];
@@ -37,6 +47,8 @@ interface Mover {
 
 export interface TownHooks {
   onPick(id: string): void;
+  /** A click on a place (not on anyone in it). */
+  onPickPlace(id: string): void;
 }
 
 function hash(x: number, y: number): number {
@@ -58,6 +70,7 @@ export class TownScene extends Phaser.Scene {
   private frame: Frame | null = null;
   private overlay!: Phaser.GameObjects.Rectangle;
   private ring!: Phaser.GameObjects.Ellipse;
+  private placeRing!: Phaser.GameObjects.Rectangle;
   private lorry!: Phaser.GameObjects.Image;
   private lorryHere = false;
   private beds: { tiles: Phaser.GameObjects.Image[]; crops: Phaser.GameObjects.Image[] }[] = [];
@@ -90,6 +103,7 @@ export class TownScene extends Phaser.Scene {
     this.placeLorryAndBoat();
     this.overlay = this.add.rectangle(0, 0, w * T, h * T, 0x000000, 0).setOrigin(0, 0).setDepth(OVERLAY_DEPTH);
     this.ring = this.add.ellipse(0, 0, 14, 6).setStrokeStyle(1, 0xf2c14e).setVisible(false);
+    this.placeZones();
     this.ready = true;
     if (this.pending) {
       this.apply(this.pending.u, this.pending.msPerMinute);
@@ -224,6 +238,12 @@ export class TownScene extends Phaser.Scene {
         this.movers.set(r.id, m);
       }
       m.view = r;
+      m.idle = idleKindOf(r, this.placeKindAt(r.x, r.y));
+      if (r.said && r.said.t !== m.saidT) {
+        m.saidT = r.said.t;
+        m.bubble.setText(bubbleText(r.said.text));
+        m.bubbleUntil = snap ? 0 : now + BUBBLE_MS;
+      }
       const off = spread.get(r.id) ?? { x: 0, y: 0 };
       const end = tileCentre(r);
       end.x += off.x;
@@ -275,16 +295,98 @@ export class TownScene extends Phaser.Scene {
     const p = tileCentre(r);
     const sprite = this.add.sprite(p.x, p.y, 'people', look * 4).setOrigin(0.5, 1);
     sprite.setInteractive({ hitArea: new Phaser.Geom.Rectangle(-4, -6, 24, 24), hitAreaCallback: Phaser.Geom.Rectangle.Contains, useHandCursor: true });
-    sprite.on('pointerdown', () => this.hooks.onPick(r.id));
+    sprite.on('pointerup', (ptr: Phaser.Input.Pointer) => { if (this.isTap(ptr)) this.hooks.onPick(r.id); });
     const label = this.add.text(p.x, p.y - 16, r.name, {
       fontFamily: 'ui-monospace, Consolas, monospace', fontSize: '7px', color: '#fdf6e3', stroke: '#1d1d1d', strokeThickness: 2, resolution: 4,
     }).setOrigin(0.5, 1).setDepth(OVERLAY_DEPTH + 5);
     const zz = this.add.image(p.x + 6, p.y - 18, 'k', 'zz').setDepth(OVERLAY_DEPTH + 4).setVisible(false);
-    return { view: r, sprite, label, zz, look, facing: DOWN, pts: [p], start: 0, dur: 1 };
+    const bubble = this.add.text(p.x, p.y - 24, '', {
+      fontFamily: 'ui-monospace, Consolas, monospace', fontSize: '7px', color: '#1d1d1d', backgroundColor: '#fdf6e3',
+      padding: { x: 3, y: 2 }, resolution: 4, wordWrap: { width: 110 },
+    }).setOrigin(0.5, 1).setDepth(OVERLAY_DEPTH + 6).setVisible(false);
+    return { view: r, sprite, label, zz, bubble, saidT: r.said?.t ?? -1, bubbleUntil: 0, idle: 'none', look, facing: DOWN, pts: [p], start: 0, dur: 1 };
+  }
+
+  /** A tap or click, not the end of a finger dragging the zoomed map about. */
+  private isTap(ptr: Phaser.Input.Pointer): boolean {
+    return ptr.getDistance() < TAP_SLOP;
+  }
+
+  /** The canvas moved on the page (the page or the zoomed map scrolled): pointers map from where it is now. */
+  moved(): void {
+    this.game.scale.updateBounds();
+  }
+
+  /** Fits the canvas to its box again (after the box changed size, as for the phone zoom). */
+  refit(): void {
+    // refresh() reuses the box size it measured last; measure it again first.
+    this.game.scale.getParentBounds();
+    this.game.scale.refresh();
   }
 
   select(id: string | null): void {
     this.selected = id;
+  }
+
+  /** Every place can be clicked; the zones sit under everyone, so a click on a person still picks the person. */
+  private placeZones(): void {
+    this.placeRing = this.add.rectangle(0, 0, 1, 1).setOrigin(0, 0).setStrokeStyle(1, 0xf2c14e).setDepth(OVERLAY_DEPTH + 2).setVisible(false);
+    for (const p of this.layout.places) {
+      const r = this.placeRect(p);
+      this.add.zone(r.x, r.y, r.w, r.h).setOrigin(0, 0).setDepth(-5)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerup', (ptr: Phaser.Input.Pointer) => { if (this.isTap(ptr)) this.hooks.onPickPlace(p.id); });
+    }
+  }
+
+  /** A place's clickable area in world pixels (a house takes in its roof). */
+  private placeRect(p: LayoutPlace): { x: number; y: number; w: number; h: number } {
+    const roof = p.kind === 'house' ? T : 0;
+    return { x: p.rect.x * T, y: p.rect.y * T - roof, w: p.rect.w * T, h: p.rect.h * T + roof };
+  }
+
+  selectPlace(id: string | null): void {
+    const p = id ? this.layout.places.find((x) => x.id === id) : undefined;
+    if (!p) {
+      this.placeRing.setVisible(false);
+      return;
+    }
+    const r = this.placeRect(p);
+    this.placeRing.setPosition(r.x, r.y).setSize(r.w, r.h).setVisible(true);
+  }
+
+  /**
+   * Where on the page to click to pick a place, at least `clearance` tiles
+   * from anyone (people drift as they idle), or null if there's no such spot
+   * right now (for the headless page check).
+   */
+  screenPointOf(id: string, clearance = 2): { x: number; y: number } | null {
+    const p = this.layout.places.find((x) => x.id === id);
+    if (!p) return null;
+    let best: { x: number; y: number; d: number } | null = null;
+    for (let y = p.rect.y; y < p.rect.y + p.rect.h; y++) {
+      for (let x = p.rect.x; x < p.rect.x + p.rect.w; x++) {
+        const d = Math.min(99, ...[...this.movers.values()].map((m) => Math.hypot(m.sprite.x / T - x - 0.5, m.sprite.y / T - y - 0.5)));
+        if (!best || d > best.d) best = { x, y, d };
+      }
+    }
+    if (!best || best.d < clearance) return null;
+    const canvas = this.game.canvas.getBoundingClientRect();
+    const k = canvas.width / (this.layout.w * T);
+    return { x: canvas.left + (best.x + 0.5) * T * k, y: canvas.top + (best.y + 0.5) * T * k };
+  }
+
+  /** The kind of place a tile is in, or null out on the footpaths. */
+  private placeKindAt(x: number, y: number): string | null {
+    const p = this.layout.places.find((pl) => x >= pl.rect.x && x < pl.rect.x + pl.rect.w && y >= pl.rect.y && y < pl.rect.y + pl.rect.h);
+    return p?.kind ?? null;
+  }
+
+  /** What everyone is idling at, and how many speech bubbles are up (for the headless page check). */
+  liveliness(): { idle: Record<string, number>; bubbles: number } {
+    const idle: Record<string, number> = {};
+    for (const m of this.movers.values()) idle[m.idle] = (idle[m.idle] ?? 0) + 1;
+    return { idle, bubbles: [...this.movers.values()].filter((m) => m.bubble.visible).length };
   }
 
   update(time: number): void {
@@ -297,10 +399,18 @@ export class TownScene extends Phaser.Scene {
       const moving = f < 1 && m.pts.length > 1 && pos.dx * pos.dx + pos.dy * pos.dy > 0;
       if (moving) m.facing = Math.abs(pos.dx) > Math.abs(pos.dy) ? (pos.dx > 0 ? RIGHT : LEFT) : (pos.dy > 0 ? DOWN : UP);
       else if (r.activity === 'fishing') m.facing = DOWN;
-      const row = moving ? Math.floor(time / 140) % 4 : 0;
+      // Waiting between thoughts: a small, purely visual bit of life, never away from where they really are.
+      const idle = !moving && f >= 1 ? idlePose(m.idle, time, m.look + 1) : null;
+      if (idle) {
+        pos.x += idle.dx;
+        pos.y += idle.dy;
+        if (idle.facing !== null) m.facing = idle.facing;
+      }
+      const row = moving || idle?.stepping ? Math.floor(time / (moving ? 140 : 220)) % 4 : 0;
       const asleep = r.activity === 'sleeping';
       const inside = asleep && this.isInside(r, r.homeId);
       m.sprite.setPosition(pos.x, pos.y).setFrame(row * PEOPLE_COLS + m.look * 4 + m.facing);
+      m.bubble.setPosition(pos.x, pos.y - 27).setVisible(!inside && time < m.bubbleUntil);
       m.sprite.setVisible(!inside).setAngle(asleep && !inside ? 90 : 0).setDepth(PEOPLE_DEPTH + pos.y);
       m.label.setPosition(pos.x, pos.y - 16).setVisible(!inside || r.id === this.selected);
       const bob = Math.sin(time / 500 + m.look) * 1.5;
@@ -370,6 +480,9 @@ export function startGame(parent: HTMLElement, layout: Layout, hooks: TownHooks)
     backgroundColor: '#121b1b',
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     fps: { target: 30, limit: 30 },
+    // Touches are the page's too: only presses on the canvas itself reach the town (not taps on a card
+    // sheet over it), and a finger can still scroll the page or pan the zoomed map.
+    input: { windowEvents: false, touch: { capture: false } },
     audio: { noAudio: true },
     banner: false,
     scene,

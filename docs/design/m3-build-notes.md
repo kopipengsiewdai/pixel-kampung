@@ -33,6 +33,15 @@ resident's prompt; the page only reads the town.
   over the real time those minutes take, so they keep to the footpaths.
   Sleepers at home are inside (a "z" over the roof); someone who dozed off
   outside lies down where they are. Names stack when people share a tile.
+- **Idle life** (2026-10-25): nobody stands frozen between thoughts. Purely
+  on the page, from what they're doing and where: someone at the kopitiam
+  sits and turns to whoever's about; an owner minding the shop or a worker
+  on shift sweeps to and fro; a fisher faces the water and tugs the line now
+  and then; anyone else strolls a tile or so and back; someone at home looks
+  about. They never drift more than a tile and a half from where they really
+  are, and people stay out of step. When someone speaks, a short speech
+  bubble shows their line (the first few words if it's long) for a few
+  seconds. Nothing changes the town, the save or what residents perceive.
 - **Day and night** tint follows the Singapore clock: night from about 20:30
   to 05:00, warm at dawn and dusk. Windows glow at night when someone's home
   and awake; shop lamps glow while someone minds the shop.
@@ -43,6 +52,53 @@ resident's prompt; the page only reads the town.
   wages owed either way; today's plan, the last few thoughts and evening
   reflections, and what they noticed lately. Fake-brain residents have no
   thoughts, and the card says so. The card is marked as the owner's view.
+- **Place card** (click a place on the map; 2026-10-25): who's there now,
+  and what's inside. A shop shows its owner, who's serving (the owner if
+  minding it, else a worker on shift), its workers, stock and both price
+  lists. The notice board shows every note, newest first, with who wrote it
+  and when. The farm plot shows each bed: whose kangkong, ready or how far
+  along. The jetty shows who's fishing. The lorry stop shows when the lorry
+  comes next and its buying and selling prices. A house shows whose it is.
+  Clicks on a person still open their card; the picked place is outlined.
+  Same owner's-view rule: nothing on it reaches a resident. Replays of
+  trials recorded before place cards show what their frames have.
+
+### On a phone
+
+The owner watches on his phone over home Wi-Fi (`--lan`), so below 600px wide
+the page is one column that scrolls down and never sideways (owner request,
+2026-10-25):
+
+- **Header:** one line, with a short date ("Mon 1 Jan, 07:05"), the version
+  and the mode. Replay controls take a second line when there are any.
+- **Map:** it spans the width at the map's own shape, with
+  `image-rendering: pixelated`. The scale isn't a whole number at phone
+  widths (704 map pixels into about 380), so the pixels stay crisp but not
+  all the same size. A **zoom** button (44px, bottom right of the map) shows
+  the map at twice the size inside its own box, to pan with a finger; the
+  page itself never scrolls sideways. The browser's own pinch zoom still
+  works.
+- **Feed:** stacked below the map, after the resident chips.
+- **Touch:** resident chips, the zoom button, replay controls and a card's
+  close button are at least 44px tall.
+- **Cards:** a resident's or place's card opens as a full-screen sheet with a
+  sticky header and close button, and the page behind it doesn't scroll.
+- **Touch:** Phaser listens only on the canvas and never swallows touches
+  (`windowEvents: false`, no touch capture), so a finger scrolls the page
+  or pans the zoomed map, and a tap on a card sheet never reaches the map
+  beneath it. A press picks someone or a place only when it lifts without
+  having moved (more than 10px is a pan), and the map re-measures where the
+  canvas is as each press starts and ends, so taps land where they look
+  after any scroll.
+- **Desktop:** the layout is unchanged; the header gains only the version.
+- **Later pages** (the wiki, What's new) use the same breakpoint and rules.
+
+The headless page check runs the live fake town at 390×844 (touch, 3×). It
+checks for no sideways overflow, the canvas spanning the width, the feed
+below the map, a one-line header, 44px chips, a card opening as a sheet and
+closing, a tapped place opening its card, a tap inside the sheet not reaching
+the map, a finger drag panning the zoomed map without opening anything, a tap
+landing right after the map moved, and zooming in and out.
 
 ## Speeds and replay
 

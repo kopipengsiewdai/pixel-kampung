@@ -4,6 +4,7 @@
  * current frame, recent feed) and then updates, merged so a slow page or a
  * fast clock never floods it.
  */
+import { VERSION } from '../version.ts';
 import { basename } from 'node:path';
 import { feedLine, type FeedLine } from '../feed/feed.ts';
 import type { GameEvent } from '../sim/events.ts';
@@ -14,8 +15,8 @@ import { shortStamp } from '../sim/calendar.ts';
 import type { TownOptions } from '../town.ts';
 import { ReplayPlayer } from './player.ts';
 import type { ReplayReader } from './replay.ts';
-import type { Card, Frame, Hello, Layout, ReplayState, Update } from './types.ts';
-import { FrameBuilder, cardOf, layoutOf, type CardExtras } from './view.ts';
+import type { Card, Frame, Hello, Layout, PlaceCard, ReplayState, Update } from './types.ts';
+import { FrameBuilder, cardOf, layoutOf, placeCardOf, type CardExtras } from './view.ts';
 
 export const FEED_KEPT = 200;
 export const ROUTE_KEPT = 64;
@@ -26,6 +27,8 @@ export interface WatchSource {
   readonly mode: 'live' | 'replay';
   hello(): Hello;
   card(id: string): Card | null;
+  /** What the owner sees on clicking a place: who's there and what's inside. */
+  placeCard(id: string): PlaceCard | null;
   subscribe(fn: (u: Update) => void): () => void;
   /** Replay mode only. */
   control?(cmd: ReplayCommand): ReplayState;
@@ -201,7 +204,7 @@ export class LiveSource implements WatchSource {
   hello(): Hello {
     if (!this.layout || !this.frame) throw new Error('the town is not attached yet');
     return {
-      mode: 'live', label: this.opts.label, msPerMinute: this.opts.msPerMinute,
+      mode: 'live', label: this.opts.label, version: VERSION, msPerMinute: this.opts.msPerMinute,
       layout: this.layout, frame: this.frame, feed: [...this.feed], replay: null, notice: null,
       calendar: { ...this.world!.state.calendar },
     };
@@ -217,6 +220,10 @@ export class LiveSource implements WatchSource {
       ? { ...mind, noticed: mind.noticed.length ? mind.noticed : noticed }
       : { plan: null, thoughts: [], noticed, mindNote: FAKE_BRAIN_NOTE };
     return cardOf(this.frame, id, extras);
+  }
+
+  placeCard(id: string): PlaceCard | null {
+    return this.frame && this.layout ? placeCardOf(this.frame, this.layout, id) : null;
   }
 
   subscribe(fn: (u: Update) => void): () => void {
@@ -353,6 +360,7 @@ export class ReplaySource implements WatchSource {
     return {
       mode: 'replay',
       label: `Replay of ${info.label === 'a trial' ? basename(this.reader.path) : `${info.label} (${basename(this.reader.path)})`}`,
+      version: VERSION,
       msPerMinute: this.msPerMinute(),
       layout: this.layout,
       frame: this.reader.frameAt(t),
@@ -366,6 +374,10 @@ export class ReplaySource implements WatchSource {
   card(id: string): Card | null {
     const t = this.player.state().t;
     return cardOf(this.reader.frameAt(t), id, this.reader.extras(id, t));
+  }
+
+  placeCard(id: string): PlaceCard | null {
+    return placeCardOf(this.reader.frameAt(this.player.state().t), this.layout, id);
   }
 
   subscribe(fn: (u: Update) => void): () => void {

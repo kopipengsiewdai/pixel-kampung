@@ -114,6 +114,10 @@ describe('the watch server', () => {
     const card = await (await fetch(new URL('/api/resident/siti', server.url))).json() as { name: string };
     expect(card.name).toBe('Siti');
     expect((await fetch(new URL('/api/resident/nobody', server.url))).status).toBe(404);
+    const place = await (await fetch(new URL('/api/place/lorry-stop', server.url))).json() as { name: string; lorry: { sells: string[] } };
+    expect(place.name).toBe('the lorry stop');
+    expect(place.lorry.sells.length).toBeGreaterThan(0);
+    expect((await fetch(new URL('/api/place/the-moon', server.url))).status).toBe(404);
     const health = await (await fetch(new URL('/api/health', server.url))).json() as { rss: number; mode: string };
     expect(health.mode).toBe('live');
     expect(health.rss).toBeGreaterThan(0);

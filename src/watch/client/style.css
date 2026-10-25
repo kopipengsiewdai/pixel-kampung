@@ -38,6 +38,11 @@ body {
   border-bottom: 3px solid #121b1b;
 }
 
+/* The header's first line: on a desktop its parts sit in the header itself. */
+.line { display: contents; }
+.version { font-size: 12px; opacity: 0.75; }
+.clock .short { display: none; }
+
 .brand { font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--gold); }
 .clock { font-variant-numeric: tabular-nums; }
 .mode {
@@ -87,6 +92,9 @@ body {
   overflow: hidden;
 }
 .map canvas { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+.stage { width: 100%; height: 100%; }
+/* Only on a phone (below). */
+.zoom { display: none; }
 
 .side {
   min-height: 0;
@@ -174,7 +182,71 @@ body {
 .card footer { margin-top: 10px; font-size: 11px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 6px; }
 
 @media (max-width: 900px) {
-  .layout { grid-template-columns: 1fr; }
+  .layout { grid-template-columns: minmax(0, 1fr); }
   .map { min-height: 60vw; }
   .side { max-height: 60vh; }
+}
+
+/* A phone held upright (360–430px): one column that scrolls down, never sideways. */
+@media (max-width: 600px) {
+  html, body { height: auto; }
+  body { overflow-x: hidden; }
+  body.sheet { overflow: hidden; }
+
+  .top { padding: 6px 10px; gap: 6px 8px; font-size: 12px; }
+  .line { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; white-space: nowrap; }
+  .brand { display: none; }
+  .clock { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .clock .long { display: none; }
+  .clock .short { display: inline; }
+  .version { flex: none; }
+  .mode { flex: 0 1 auto; min-width: 0; max-width: 40%; overflow: hidden; text-overflow: ellipsis; font-size: 11px; padding: 1px 6px; }
+  .replay { width: 100%; margin-left: 0; }
+  .replay button, .replay select { min-height: 44px; min-width: 44px; }
+  .replay input[type=range] { flex: 1 1 100%; width: 100%; height: 44px; }
+
+  .layout { display: flex; flex-direction: column; gap: 8px; padding: 8px; }
+  .map-col { display: block; }
+  /* The map spans the width at its own shape; the page check holds it to the screen. */
+  .map { min-height: 0; aspect-ratio: var(--map-aspect, 44 / 30); }
+  .map.zoomed { overflow: auto; -webkit-overflow-scrolling: touch; }
+  .map canvas { touch-action: manipulation; }
+  .map.zoomed .stage { width: 200%; height: 200%; }
+  .zoom {
+    display: block;
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    width: 44px;
+    height: 44px;
+    font: 700 24px/1 ui-monospace, Consolas, monospace;
+    background: var(--panel);
+    color: var(--ink);
+    border: 3px solid #121b1b;
+    border-radius: 4px;
+    opacity: 0.9;
+  }
+
+  .side { max-height: none; }
+  .feed { overflow: visible; }
+  .feed li { overflow-wrap: anywhere; }
+  .roster { gap: 6px; }
+  .roster button { min-height: 44px; padding: 8px 12px; font-size: 14px; }
+
+  /* A card opens as a full-screen sheet. */
+  .card {
+    position: fixed;
+    inset: 0;
+    width: auto;
+    max-height: none;
+    z-index: 100;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 8px 16px 24px;
+    overscroll-behavior: contain;
+  }
+  .card header { position: sticky; top: -8px; background: var(--panel); padding: 8px 0; align-items: center; }
+  .card .close { min-width: 44px; min-height: 44px; font-size: 28px; border: 2px solid var(--line); border-radius: 4px; }
+  .card dd, .card li { overflow-wrap: anywhere; }
 }

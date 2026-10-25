@@ -54,6 +54,8 @@ export interface ResidentView {
   /** "Works at the kopitiam for Ah Huat, 7am to 11am, $1.20 a shift"; "Runs the kopitiam"; null. */
   job: string | null;
   carrying: Carried[];
+  /** Their own latest line, if they said something in the last couple of minutes (for a speech bubble). */
+  said?: { t: number; text: string } | null;
 }
 
 export interface ShopView {
@@ -66,9 +68,24 @@ export interface ShopView {
   /** "fish 20¢ (up to 5 more)" */
   buys: string[];
   staffed: boolean;
+  /** Who is serving right now: the owner if they're there, else a worker on shift. (Absent in frames recorded before place cards.) */
+  serving?: string | null;
+  /** Resident ids of everyone employed here. */
+  workers?: string[];
 }
 
-export interface BedView { n: number; planted: boolean; ready: boolean; wateredToday: boolean }
+export interface BedView {
+  n: number;
+  planted: boolean;
+  ready: boolean;
+  wateredToday: boolean;
+  /** Resident id of whoever planted it. (Absent in frames recorded before place cards.) */
+  planter?: string | null;
+  /** Days it has been watered since planting. */
+  wateredDays?: number;
+}
+
+export interface NoteView { authorId: string; text: string; t: number; stamp: string }
 
 export interface Frame {
   t: number;
@@ -83,6 +100,27 @@ export interface Frame {
   /** Wages owed, worker by employer. */
   owed: { employerId: string; workerId: string; cents: number }[];
   beds: BedView[];
+  /** The notes pinned on the notice board, oldest first. (Absent in frames recorded before place cards.) */
+  notes?: NoteView[];
+}
+
+/** Everything the card shows when the owner clicks a place. Owner's view only. */
+export interface PlaceCard {
+  id: string;
+  kind: string;
+  /** "the provision shop", "Siti's house". */
+  name: string;
+  /** Who's there right now. */
+  here: string[];
+  shop: { owner: string; serving: string | null; workers: string[]; stock: Carried[]; sells: string[]; buys: string[] } | null;
+  /** The notice board's notes, newest first. */
+  notes: { author: string; stamp: string; text: string }[] | null;
+  /** The farm plot's beds. */
+  beds: { n: number; who: string | null; growing: string | null; ready: boolean; status: string }[] | null;
+  /** Who's fishing off the jetty. */
+  fishing: string[] | null;
+  lorry: { here: boolean; next: string; sells: string[]; buys: string[] } | null;
+  home: { of: string | null } | null;
 }
 
 export interface Thought { t: number; stamp: string; kind: string; text: string }
@@ -132,6 +170,8 @@ export interface Hello {
   mode: 'live' | 'replay';
   /** "Live town", "Fake town at 60×", "Replay of trial-2026-...". */
   label: string;
+  /** The release the server is running ("0.9.4"). */
+  version: string;
   /** Real milliseconds one game minute takes right now. */
   msPerMinute: number;
   layout: Layout;

@@ -8,9 +8,12 @@
 </head>
 <body>
   <header class="top">
-    <div class="brand">Pixel Kampung</div>
-    <div class="clock" id="clock">Connecting…</div>
-    <div class="mode" id="mode"></div>
+    <div class="line">
+      <div class="brand">Pixel Kampung</div>
+      <div class="clock" id="clock">Connecting…</div>
+      <div class="version" id="version"></div>
+      <div class="mode" id="mode"></div>
+    </div>
     <div class="replay" id="replay" hidden>
       <button type="button" id="play" aria-label="Play or pause">❚❚</button>
       <label class="speed">Speed
@@ -29,7 +32,8 @@
   <div class="notice" id="notice" hidden></div>
   <main class="layout">
     <section class="map-col">
-      <div class="map" id="map"></div>
+      <div class="map" id="map"><div class="stage" id="stage"></div></div>
+      <button type="button" class="zoom" id="zoom" aria-pressed="false" aria-label="Zoom the map">+</button>
       <aside class="card" id="card" hidden aria-live="polite"></aside>
     </section>
     <section class="side">
