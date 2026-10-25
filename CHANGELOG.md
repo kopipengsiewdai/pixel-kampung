@@ -4,6 +4,15 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **Someone who's gone:** talking to or dealing with someone who isn't nearby now says who is ("Ah Seng isn't nearby. There's nobody here with you."), and the resident stops trying that minute. "Isn't nearby" was 22% of all action results (Raju tried Ah Seng 79 times). A name nobody in the kampung has is answered so.
+- **Nothing to do:** after half an hour of pottering about with nothing done, a resident who isn't busy or minding their own shop is reminded of places they could walk to (the farm plot and the jetty first, never where they are). The day's plan is read against how they feel now; hungry at home with nothing to eat, they see "There's no food in the house." Memories no longer bring back who was nearby then.
+- **The lorry's horn:** everyone awake hears the lorry come in, and learns where it stops.
+- **Shops by their owners:** in a shop, residents see whose it is ("Mdm Tan's provision shop") and can walk to it by that name. 41 lines had a rumour of Ah Seng running a shop.
+- **Said all there is to say:** two who go round in circles twice over (12 lines with nothing done) both see it, and lines to each other are held back until they do something together or 30 quiet minutes pass.
+- **Living town:** picks this up on restart; nothing in the save changes.
+
 ## 0.12.0 (2026-10-25): the Kampung wiki
 
 - Watch page: a **compact resident card**: the name, role, hunger and energy as coloured icons, and money in the header; one "Now" line (what they're doing, where, how hungry and tired); their work; what they carry as chips; an owner's shop folded away; then tabs for **Plan**, **Thoughts**, **Talk** and **Money**. Near-identical thoughts fold into one ("×3"), the model's own "*Ah Kow thinks:*" labels and asterisks are gone, and each list shows 3 with "more". The **Money** tab shows their income and spending by kind (sales, purchases, wages, gifts, trades, loans, repayments, the lorry), today and this week, and every entry (when, with whom, what, how much).

@@ -1,10 +1,10 @@
 import { isRipe, isStaffed, shiftLabel, shopHere } from './actions/everyone.ts';
 import type { DealKind } from './talk.ts';
 import { availableActions } from './actions/index.ts';
-import { LORRY_BUYS, LORRY_SELLS, quantityLabel, type ItemId } from './items.ts';
-import { PLACES, PLACE_BY_ID } from './map.ts';
+import { ITEMS, LORRY_BUYS, LORRY_SELLS, quantityLabel, type ItemId } from './items.ts';
+import { PLACES, PLACE_BY_ID, type Place } from './map.ts';
 import { formatMoney, type Cents } from './money.ts';
-import { CIRCLE_LINES, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, WORD_MINUTES, type Debt, type Goods, type Observation, type Resident, type TalkRecord, type World } from './state.ts';
+import { CIRCLE_LINES, SAID_ALL_LINES, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, WORD_MINUTES, type Debt, type Goods, type Observation, type Resident, type TalkRecord, type World } from './state.ts';
 import { nowLabel } from './calendar.ts';
 import { dayIndex, sgtHour, sgtMinute } from './time.ts';
 
@@ -57,7 +57,11 @@ export interface Perception {
   time: string;
   hour: number;
   minute: number;
+  /** Where they are, by the place's own name ("the provision shop", "your house"). */
   place: string;
+  placeId: string | null;
+  /** Where they are, as they'd say it: a shop by whose it is ("Mdm Tan's provision shop", "your kopitiam"). */
+  where: string;
   atHome: boolean;
   people: { name: string; doing: string }[];
   money: Cents;
@@ -100,12 +104,16 @@ export interface Perception {
   unbacked: { name: string; kind: DealKind; mine: boolean }[];
   /** People nearby you keep going round in circles with. */
   circles: string[];
+  /** People nearby you've gone round in circles with twice over: you've said all there is to say. */
+  saidAll: string[];
   /** What happened when they last tried something. */
   reply?: string;
   refused?: boolean;
   actions: { verb: string; says: string }[];
   placesYouKnow: string[];
 }
+
+const HUNGRY: ReadonlySet<HungerWord> = new Set(['hungry', 'very hungry', 'starving']);
 
 export function hungerWord(h: number): HungerWord {
   return h < 200 ? 'full' : h < 450 ? 'not hungry' : h < 700 ? 'hungry' : h < 1000 ? 'very hungry' : 'starving';
@@ -141,6 +149,15 @@ function buyTags(shop: { buyPrices: Partial<Record<ItemId, Cents>>; buyLimits: P
   });
 }
 
+/** Where they are, in their words: home, a shop by whose it is ("Mdm Tan's provision shop", "your kopitiam"), or the place. */
+function placeLabel(w: World, r: Resident, here: Place): string {
+  if (here.id === r.homeId) return 'your house';
+  const shop = w.shop(here.id);
+  if (!shop) return w.placeName(here);
+  const what = here.name.replace(/^the /, '');
+  return shop.ownerId === r.id ? `your ${what}` : `${w.resident(shop.ownerId).name}'s ${what}`;
+}
+
 export function perceive(w: World, r: Resident): Perception {
   const here = w.placeOf(r);
   const today = dayIndex(w.t);
@@ -153,6 +170,8 @@ export function perceive(w: World, r: Resident): Perception {
     hour: sgtHour(w.t),
     minute: sgtMinute(w.t),
     place: here ? (here.id === r.homeId ? 'your house' : w.placeName(here)) : 'out on the footpath',
+    placeId: here?.id ?? null,
+    where: here ? placeLabel(w, r, here) : 'out on the footpath',
     atHome: w.isAt(r, r.homeId),
     people: w.nearby(r).map((o) => ({ name: o.name, doing: doing(w, o) })),
     money: r.money,
@@ -215,7 +234,8 @@ export function perceive(w: World, r: Resident): Perception {
       .filter(({ o, rec }) => rec.word && w.t - rec.word.t >= WORD_MINUTES && w.isNear(r, o) && !w.isAsleep(o)
         && !(rec.word.kind === 'job' && w.workBetween(r.id, o.id)))
       .map(({ o, rec }) => ({ name: o.name, kind: rec.word!.kind, mine: rec.word!.by === r.id })),
-    circles: chatsOf(w, r).filter(({ o, rec }) => rec.idle >= CIRCLE_LINES && w.isNear(r, o) && !w.isAsleep(o)).map(({ o }) => o.name),
+    circles: chatsOf(w, r).filter(({ o, rec }) => rec.idle >= CIRCLE_LINES && rec.idle < SAID_ALL_LINES && w.isNear(r, o) && !w.isAsleep(o)).map(({ o }) => o.name),
+    saidAll: chatsOf(w, r).filter(({ o, rec }) => rec.idle >= SAID_ALL_LINES && w.isNear(r, o) && !w.isAsleep(o)).map(({ o }) => o.name),
     actions: availableActions(w, r),
     placesYouKnow: PLACES.filter((pl) => w.knowsPlace(r, pl.id)).flatMap((pl) => {
       if (pl.id === r.homeId) return ['home'];
@@ -278,10 +298,11 @@ function unbackedLine(u: { name: string; kind: DealKind; mine: boolean }): strin
 
 /** The perception as plain words, as the character would take it in. */
 export function describe(p: Perception): string {
-  const lines: string[] = [`It's ${p.time}. You're at ${p.place}.`];
+  const lines: string[] = [`It's ${p.time}. You're at ${p.where}.`];
   lines.push(p.people.length
     ? `Nearby: ${p.people.map((x) => `${x.name} (${x.doing})`).join(', ')}.`
     : "There's nobody else around.");
+  if (p.atHome && HUNGRY.has(p.hunger) && !p.carrying.some((c) => ITEMS[c.item].food)) lines.push("There's no food in the house.");
   lines.push(`You feel ${p.hunger} and ${p.energy}. You have ${formatMoney(p.money)}${p.carrying.length ? ` and you're carrying ${p.carrying.map((c) => quantityLabel(c.item, c.qty)).join(', ')}` : ''}.`);
   // What's owed, every moment, next to their money: so talk of debts meets what's true.
   const bracket = (what: string | null) => (what ? ` (${what})` : '');
@@ -331,6 +352,7 @@ export function describe(p: Perception): string {
   if (p.talk.length) lines.push(`The talk so far:\n${p.talk.map((l) => `- ${l}`).join('\n')}`);
   for (const n of p.longTalks) lines.push(`You've been talking with ${n} for a while.`);
   for (const n of p.circles) lines.push(`You and ${n} keep going round in circles.`);
+  for (const n of p.saidAll) lines.push(`You and ${n} have said all there is to say.`);
   for (const u of p.unbacked) lines.push(unbackedLine(u));
   for (const n of p.waiting) lines.push(`${n} is waiting for your answer.`);
   if (p.reply) lines.push(p.reply);

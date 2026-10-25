@@ -7,7 +7,7 @@ import { formatMoney } from '../money.ts';
 import { perceive } from '../perception.ts';
 import { PLACE_WORDS } from '../places.ts';
 import {
-  addGoods, CIRCLE_LINES, countGoods, type Resident, type Shop, type World, LORRY_ID, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey,
+  addGoods, CIRCLE_LINES, countGoods, type Resident, type Shop, type World, LORRY_ID, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, SAID_ALL_LINES,
 } from '../state.ts';
 import { atTimeOfDay, dayIndex, sgtHour } from '../time.ts';
 import {
@@ -78,6 +78,17 @@ export function resolveDestination(w: World, r: Resident, where: unknown): Desti
       if (!w.knowsPlace(r, id)) return unknown;
       const p = PLACE_BY_ID.get(id)!;
       return { point: p.spot, placeId: id, label: p.name };
+    }
+  }
+  // A shop by whose it is ("Mdm Tan's provision shop").
+  const owned = /^(.+?)['’]s\s+(.+)$/.exec(s);
+  if (owned) {
+    const shopId = Object.entries(PLACE_WORDS).find(([id, words]) => words.includes(owned[2]!) && w.shop(id))?.[0];
+    const owner = w.residentByName(owned[1]);
+    if (shopId && owner && w.shop(shopId)!.ownerId === owner.id) {
+      if (!w.knowsPlace(r, shopId)) return unknown;
+      const p = PLACE_BY_ID.get(shopId)!;
+      return { point: p.spot, placeId: shopId, label: p.name };
     }
   }
   const house = /^(.+?)['’]s\s+(house|home|place)$/.exec(s);
@@ -166,7 +177,7 @@ export function lookAround(w: World, r: Resident): ActionResult {
   const who = people.length === 0 ? 'Nobody else is about.'
     : people.length === 1 ? `${people[0]} is here.`
     : `${people.slice(0, -1).join(', ')} and ${people.at(-1)} are here.`;
-  return ok(`You look around ${p.place}. ${who}`);
+  return ok(`You look around ${p.where}. ${who}`);
 }
 
 export function say(w: World, r: Resident, i: Intent): ActionResult {
@@ -177,6 +188,8 @@ export function say(w: World, r: Resident, i: Intent): ActionResult {
   if (i.to !== undefined && i.to !== null && i.to !== '') {
     const o = personNearby(w, r, i.to);
     if (typeof o === 'string') return no(o);
+    const rec = w.state.talk[talkKey(r.id, o.id)];
+    if (rec && w.t - rec.lastT <= TALK_GAP_MINUTES && rec.idle >= SAID_ALL_LINES) return no(`You and ${o.name} have said all there is to say.`);
     to = o;
   }
   w.emit({ type: 'said', who: r.id, to: to?.id ?? null, text });

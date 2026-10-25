@@ -193,6 +193,8 @@ export const TALK_SOFT_LIMIT = 8;
 export const TALK_GAP_MINUTES = 30;
 /** After this many lines with nothing done between them, two people see they're going round in circles, and further lines stop waking the listener. */
 export const CIRCLE_LINES = 6;
+/** After going round in circles this many lines more (a second notice), two people have said all there is to say. */
+export const SAID_ALL_LINES = 2 * CIRCLE_LINES;
 /** A deal talked of as done shows as only words once this many minutes pass with nothing done. */
 export const WORD_MINUTES = 3;
 

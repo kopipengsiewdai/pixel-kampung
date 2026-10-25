@@ -49,12 +49,19 @@ export function quoted(v: unknown): string {
 
 export const SAY_NOTHING_SENSIBLE = "That's not a sensible amount.";
 
+/** Who is actually with them, for when the one they meant isn't. */
+export function whoIsHere(w: World, r: Resident): string {
+  const here = w.nearby(r).map((o) => o.name);
+  if (!here.length) return "There's nobody here with you.";
+  return `Here with you: ${here.length === 1 ? here[0] : `${here.slice(0, -1).join(', ')} and ${here.at(-1)}`}.`;
+}
+
 /** Someone the resident can deal with face to face, or the in-world reason they can't. */
 export function personNearby(w: World, r: Resident, name: unknown, opts: { awake?: boolean } = {}): Resident | string {
   const o = w.residentByName(name);
-  if (!o) return `You don't know anyone called ${quoted(name)}.`;
+  if (!o) return `You don't know anyone called ${quoted(name)}; there's nobody by that name in the kampung.`;
   if (o.id === r.id) return "That's you.";
-  if (!w.isNear(r, o)) return `${o.name} isn't nearby.`;
+  if (!w.isNear(r, o)) return `${o.name} isn't nearby. ${whoIsHere(w, r)}`;
   if (opts.awake !== false && w.isAsleep(o)) return `${o.name} is fast asleep.`;
   return o;
 }

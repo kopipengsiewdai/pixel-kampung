@@ -73,6 +73,14 @@ export function advance(w: World): void {
   if (lorry !== w.state.lorryHere) {
     w.state.lorryHere = lorry;
     w.emit({ type: lorry ? 'lorry_arrived' : 'lorry_left' });
+    // Everyone awake hears it come in, and learns where it stops.
+    if (lorry) {
+      for (const r of w.state.residents) {
+        if (r.activity?.kind === 'sleeping') continue;
+        w.learnPlace(r, 'lorry-stop');
+        w.notify(r.id, "You hear the lorry's horn from the lorry stop.");
+      }
+    }
   }
 
   for (const r of w.state.residents) {

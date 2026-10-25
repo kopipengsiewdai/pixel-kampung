@@ -88,7 +88,11 @@ export class MemoryStore {
   /** The few memories most worth having in mind right now, oldest first. */
   recall(resident: string, now: number, cue: string, k = RECALL_COUNT): Memory[] {
     const cueWords = words(cue);
-    const scored = this.all(resident).map((m) => {
+    // Who was nearby then isn't who is nearby now: those lines aren't recalled.
+    const kept = this.all(resident)
+      .map((m) => ({ ...m, text: m.text.split('\n').filter((l) => !/^\s*Nearby:/.test(l)).join('\n').trim() }))
+      .filter((m) => m.text);
+    const scored = kept.map((m) => {
       const hours = Math.max(0, now - m.t) / 60;
       const recency = Math.pow(0.99, hours);
       const mw = words(m.text);
