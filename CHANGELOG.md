@@ -4,6 +4,13 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **Farm beds no longer stay taken forever:** a bed left without water for three days withers (a papaya tree holds out a week), its planter is told, and anyone may plant there again.
+- A papaya tree's first fruit now needs watering every few days while it grows, not just once.
+- The story feed says what was planted (chilli, a papaya tree) instead of always "kangkong", and notes when a bed withers.
+- Living town: nothing to upgrade; no bed is planted right now.
+
 ## 0.18.0 (2026-10-25): what the skilled can do
 
 - **Skills, what the skilled and masters can do:**
