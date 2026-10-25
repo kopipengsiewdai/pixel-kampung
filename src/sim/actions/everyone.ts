@@ -112,7 +112,49 @@ export function walkTo(w: World, r: Resident, i: Intent): ActionResult {
   if (!path) return no("You can't see a way to get there.");
   r.activity = { kind: 'walking', path, dest: d.placeId, thenSleep: false };
   w.emit({ type: 'walked', who: r.id, to: d.label === 'home' ? w.placeName(w.home(r)) : d.label });
+  const where = d.label === 'home' ? ' for home' : d.personId ? ` to find ${d.label}` : d.placeId ? ` for ${d.label}` : ` ${d.label}`;
+  for (const o of w.nearby(r)) {
+    if (!w.isAsleep(o) && talkedLately(w, r, o)) w.notify(o.id, `${r.name} sets off${where}.`);
+  }
   return ok(`You set off for ${d.label === 'home' ? 'home' : d.label}.`);
+}
+
+/** How long after a word together someone setting off still catches your eye, and you can go along. */
+export const GO_WITH_MINUTES = 5;
+
+function talkedLately(w: World, a: Resident, b: Resident): boolean {
+  const rec = w.state.talk[talkKey(a.id, b.id)];
+  return !!rec && w.t - rec.lastT <= GO_WITH_MINUTES;
+}
+
+/** Someone you could go along with: on their way and nearby, or on their way after a word with you just now. */
+export function canGoWith(w: World, r: Resident, o: Resident): boolean {
+  return o.id !== r.id && o.activity?.kind === 'walking' && w.knowsPerson(r, o.id) && (w.isNear(r, o) || talkedLately(w, r, o));
+}
+
+export function goWith(w: World, r: Resident, i: Intent): ActionResult {
+  const o = w.residentByName(i.to);
+  if (!o || !w.knowsPerson(r, o.id)) return no(`You don't know anyone called ${quoted(i.to)}.`);
+  if (o.id === r.id) return no("That's you.");
+  let point: Point;
+  let dest: string | null = null;
+  let label: string | null = null;
+  if (canGoWith(w, r, o) && o.activity?.kind === 'walking') {
+    const place = o.activity.dest ? PLACE_BY_ID.get(o.activity.dest) ?? null : null;
+    point = place?.spot ?? o.activity.path.at(-1) ?? o.pos;
+    dest = place?.id ?? null;
+    label = place ? w.placeName(place) : null;
+    if (place && w.isAt(r, place.id)) return no(`You're already at ${label}.`);
+  } else if (talkedLately(w, r, o) && !w.isNear(r, o)) {
+    point = o.pos;
+  } else {
+    return no(`${o.name} isn't going anywhere.`);
+  }
+  const path = findPath(r.pos, point);
+  if (!path || path.length === 0) return no("You can't see a way to get there.");
+  r.activity = { kind: 'walking', path, dest, thenSleep: false };
+  w.emit({ type: 'went_with', who: r.id, with: o.id, to: label });
+  return ok(label ? `You go along with ${o.name} to ${label}.` : `You go after ${o.name}.`);
 }
 
 export function lookAround(w: World, r: Resident): ActionResult {

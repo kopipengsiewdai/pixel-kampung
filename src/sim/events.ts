@@ -5,6 +5,7 @@ import type { Bundle } from './state.ts';
 /** Everything that happens in town. Feeds the story feed; stored in the event log. */
 export type EventBody =
   | { type: 'walked'; who: string; to: string }
+  | { type: 'went_with'; who: string; with: string; to: string | null }
   | { type: 'arrived'; who: string; at: string }
   | { type: 'said'; who: string; to: string | null; text: string }
   | { type: 'bought'; who: string; from: string; shop: string; item: ItemId; qty: number; cents: Cents }

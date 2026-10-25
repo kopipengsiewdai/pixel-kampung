@@ -48,7 +48,7 @@ are in-world verbs; an impossible attempt gets an in-world reply.
 
 | Everyone | Owners also |
 |---|---|
-| walk to a place or person | set prices for their goods |
+| walk to a place or person, or go with someone | set prices for their goods |
 | look around | offer a job (wage, hours) |
 | say something to someone nearby | let a worker go |
 | buy, sell or offer a trade | pay wages |
