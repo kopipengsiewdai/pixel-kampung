@@ -167,11 +167,22 @@ export class LiveSource implements WatchSource {
     this.frame = this.frames.build(w);
   }
 
+  private lineOf(e: GameEvent): FeedLine | null {
+    const w = this.world!;
+    return feedLine(e, (id) => w.state.residents.find((r) => r.id === id)?.name ?? id);
+  }
+
   private onEvent(e: GameEvent): void {
     if (!this.world) return;
-    const w = this.world;
-    const line = feedLine(e, (id) => w.state.residents.find((r) => r.id === id)?.name ?? id);
+    const line = this.lineOf(e);
     if (line) this.fresh.push(line);
+  }
+
+  /** Refills the feed from saved events after a restart (call after `attach`). */
+  seed(events: readonly GameEvent[]): void {
+    if (!this.world) return;
+    const lines = events.map((e) => this.lineOf(e)).filter((l): l is FeedLine => l !== null);
+    this.feed = [...lines, ...this.feed].slice(-FEED_KEPT);
   }
 
   private onTick(w: World): void {
