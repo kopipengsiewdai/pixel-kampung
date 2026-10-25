@@ -99,6 +99,17 @@ function servingAt(w: World, s: Shop): string | null {
   return worker?.id ?? null;
 }
 
+/** How long a speech bubble stays up, in game minutes. */
+export const BUBBLE_MINUTES = 2;
+
+/** Their own latest line, from what they remember saying, if it was in the last couple of minutes. */
+function latestLine(w: World, r: Resident): { t: number; text: string } | null {
+  const o = r.recent.findLast((x) => x.talk && x.text.startsWith('You say'));
+  if (!o || w.t - o.t > BUBBLE_MINUTES) return null;
+  const m = /^You say(?: to [^:]+)?: "([\s\S]*)"$/.exec(o.text);
+  return m ? { t: o.t, text: m[1]! } : null;
+}
+
 /**
  * Builds a frame a minute. It remembers each walker's remaining path, so the
  * next frame can say which tiles they stepped through and the page can walk
@@ -138,6 +149,7 @@ export class FrameBuilder {
         energyWord: energyWord(r.energy),
         job: jobLine(w, r),
         carrying: carried(r.items),
+        said: latestLine(w, r),
       };
     });
     return {

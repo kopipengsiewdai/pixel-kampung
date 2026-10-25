@@ -33,6 +33,15 @@ resident's prompt; the page only reads the town.
   over the real time those minutes take, so they keep to the footpaths.
   Sleepers at home are inside (a "z" over the roof); someone who dozed off
   outside lies down where they are. Names stack when people share a tile.
+- **Idle life** (2026-10-25): nobody stands frozen between thoughts. Purely
+  on the page, from what they're doing and where: someone at the kopitiam
+  sits and turns to whoever's about; an owner minding the shop or a worker
+  on shift sweeps to and fro; a fisher faces the water and tugs the line now
+  and then; anyone else strolls a tile or so and back; someone at home looks
+  about. They never drift more than a tile and a half from where they really
+  are, and people stay out of step. When someone speaks, a short speech
+  bubble shows their line (the first few words if it's long) for a few
+  seconds. Nothing changes the town, the save or what residents perceive.
 - **Day and night** tint follows the Singapore clock: night from about 20:30
   to 05:00, warm at dawn and dusk. Windows glow at night when someone's home
   and awake; shop lamps glow while someone minds the shop.
