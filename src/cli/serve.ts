@@ -9,6 +9,7 @@
  *   npm start -- --minds         real thinking (needs ANTHROPIC_API_KEY in $KAMPUNG_HOME/.env),
  *                                within the per-resident budget and the town's daily cap
  *   [--port 8160]                the watch page, at http://127.0.0.1:8160/ (this PC only)
+ *   [--lan]                      also on this PC's home-Wi-Fi address, for a phone at home (read-only)
  */
 import { writeFileSync } from 'node:fs';
 import { dbPath, heartbeatPath, kampungHome } from '../config/paths.ts';
@@ -90,9 +91,10 @@ console.log(`Pixel Kampung is running. Saving to ${dbPath(home)}`);
 const port = numArg(args, 'port', DEFAULT_PORT);
 // Not awaited: the town's first minute never waits on the page.
 const page = buildClient()
-  .then((client) => startWatchServer({ source: live, client, assetsDir: ASSETS_DIR, port }))
+  .then((client) => startWatchServer({ source: live, client, assetsDir: ASSETS_DIR, port, lan: args.lan === true }))
   .then((server) => {
     console.log(`Watch the kampung at ${server.url}  (this PC only)`);
+    for (const u of server.lanUrls) console.log(`On a phone on the same Wi-Fi: ${u}`);
     return server;
   })
   .catch((err: unknown) => {

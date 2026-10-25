@@ -24,13 +24,23 @@ So:
 The save file is `$KAMPUNG_HOME/kampung.db` (`sim.db` for `npm run sim --
 --save`). Its `meta` table holds the save version (`schema`), and so does the
 saved world (`version`). When the save is opened, its version is first read
-without writing anything, and then:
+over a read-only connection, which never writes the save itself. SQLite may
+still create its empty `-wal`/`-shm` side files next to it, as it does on
+Windows. If the file can't be opened read-only, the town refuses to start
+with a plain message rather than risk a write. Then:
 
 - **Same version as the code:** it loads as it is.
 - **Older:** the code first copies the whole file beside it as
   `kampung.db.bak-v<old version>`. If that name is taken it uses `.2`, `.3`,
   …, and it never overwrites a backup. The copy is flushed to disk and checked
-  before anything else happens. Then it runs every step from the save's
+  before anything else happens. If an earlier try's upgrade failed, its
+  backup of this very save is reused rather than copied again. To count as
+  this very save, the backup must be a whole, checked copy with the same
+  versions, the same saved world and brains word for word, and the same row
+  count and newest row in every other table. So a town restarted after every
+  failure keeps one backup, not a pile of them, while a save that changed in
+  the meantime, even within the same minute, gets a fresh one. Then it runs
+  every step from the save's
   version up to the code's, **in one transaction**, writes the upgraded save
   and starts. If a step fails, nothing is changed: the save stays at its old
   version, the backup is there, and the command stops with the error. The
@@ -99,9 +109,19 @@ When a change touches anything saved:
 - Any fixture, upgraded to the current version, is missing a field a fresh
   town has, or can't be resumed and run for half a game hour.
 
-It also checks the backup, the refusal of a newer save (even one left
-mid-write), the rollback of a failed step, and that an upgraded save isn't
-upgraded a second time.
+Each fixture, upgraded to the current version, must also:
+
+- fit today's saved types at every depth, brains included: no missing field,
+  no field today's code dropped, no value of the wrong kind. The type
+  checker reads the types, so maps like items or talk are checked by their
+  key and value types, not by which keys a town happens to have;
+- have the same tables, column for column, as a fresh save. That catches a
+  step that forgets an `ALTER TABLE`, since today's `CREATE TABLE IF NOT
+  EXISTS` would otherwise leave the old-shaped table quietly in place.
+
+It also checks the backup (one per save, however many failed tries), the
+refusal of a newer save (even one left mid-write), the rollback of a failed
+step, and that an upgraded save isn't upgraded a second time.
 
 CI's `frozen-save-fixtures` job fails a pull request that changes or
 removes any fixture already on `main`. So the guard can't be satisfied by
