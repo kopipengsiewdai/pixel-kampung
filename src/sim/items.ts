@@ -2,7 +2,8 @@ import type { Cents } from './money.ts';
 
 export type ItemId =
   | 'fish' | 'vegetables' | 'rice' | 'coffee' | 'bread'
-  | 'kopi' | 'fish porridge' | 'vegetable rice' | 'water';
+  | 'kopi' | 'fish porridge' | 'vegetable rice' | 'water'
+  | 'red snapper' | 'chilli' | 'papaya' | 'sambal kangkong';
 
 export interface ItemDef {
   id: ItemId;
@@ -34,6 +35,16 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   water: {
     id: 'water', one: 'a pail of water', many: '{n} pails of water', aliases: ['pail', 'pails', 'pail of water', 'pails of water'],
     inedible: "You'd want to boil it first.",
+  },
+  'red snapper': { id: 'red snapper', one: 'a red snapper', many: '{n} red snappers', aliases: ['snapper', 'snappers', 'red snappers', 'ikan merah'], food: { hunger: 250 } },
+  chilli: {
+    id: 'chilli', one: 'a handful of chillies', many: '{n} handfuls of chillies', aliases: ['chillies', 'chili', 'chilies', 'cili'],
+    inedible: 'Chillies on their own? They would burn your mouth.',
+  },
+  papaya: { id: 'papaya', one: 'a papaya', many: '{n} papayas', aliases: ['papayas', 'betik'], food: { hunger: 150 } },
+  'sambal kangkong': {
+    id: 'sambal kangkong', one: 'a plate of sambal kangkong', many: '{n} plates of sambal kangkong',
+    aliases: ['sambal', 'kangkong belacan'], food: { hunger: 300 },
   },
   kopi: { id: 'kopi', one: 'a cup of kopi', many: '{n} cups of kopi', aliases: [], food: { hunger: 50, energy: 120 } },
   'fish porridge': {
@@ -79,6 +90,8 @@ export interface Recipe {
   makes: ItemId;
   needs: Partial<Record<ItemId, number>>;
   yields: number;
+  /** The cooking level it takes to know it (docs/design/skills.md); none means anyone. */
+  level?: number;
 }
 
 /** Kopitiam cooking: one batch turns ingredients into servings. */
@@ -86,4 +99,6 @@ export const RECIPES: Partial<Record<ItemId, Recipe>> = {
   kopi: { makes: 'kopi', needs: { coffee: 1, water: 1 }, yields: 5 },
   'fish porridge': { makes: 'fish porridge', needs: { fish: 1, rice: 1, water: 1 }, yields: 2 },
   'vegetable rice': { makes: 'vegetable rice', needs: { vegetables: 1, rice: 1 }, yields: 2 },
+  // A Skilled cook's dish: ties the kitchen to a Skilled grower's chilli.
+  'sambal kangkong': { makes: 'sambal kangkong', needs: { vegetables: 1, chilli: 1 }, yields: 3, level: 3 },
 };

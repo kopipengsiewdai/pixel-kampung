@@ -31,7 +31,9 @@ export type Activity =
   /** A chore (daily-life.md C): fetching water, mending nets (their own, or helping someone's), sweeping a shop. A worker on shift keeps the shift held in it. */
   | { kind: 'chore'; chore: ChoreKind; until: number; shopId: string | null; forId: string | null; shift: { jobId: number; until: number; worked: number } | null };
 
-export type ChoreKind = 'fetch_water' | 'mend_nets' | 'sweep';
+export type ChoreKind = 'fetch_water' | 'mend_nets' | 'sweep' | 'cast_net';
+/** What a bed grows: kangkong, or for the skilled chilli, and for a master a papaya tree. */
+export type Crop = 'kangkong' | 'chilli' | 'papaya';
 
 export interface Observation {
   t: number;
@@ -88,7 +90,7 @@ export interface Shop {
   /** Who is serving a traveller now, what, and until when. */
   serving: { by: string; item: ItemId; until: number }[];
   /** Today's travellers: served (and what they spent), left unserved, found nobody serving (and how many of those the owner has heard of), turned away by price, and served by whom. */
-  today: { day: number; served: number; cents: Cents; left: number; away: number; awayTold: number; tooDear: Partial<Record<ItemId, number>>; servedBy: Record<string, number> };
+  today: { day: number; served: number; cents: Cents; left: number; away: number; awayTold: number; tooDear: Partial<Record<ItemId, number>>; servedBy: Record<string, number>; masterCooked: boolean };
   /** This hour's travellers, for the hourly feed line. */
   hour: { served: number; cents: Cents; left: number };
   /** The day it was last swept: travellers wait longer in a swept shop. */
@@ -195,6 +197,9 @@ export interface Bed {
   lastWateredDay: number | null;
   /** The day it ripens, once it's had its waterings: harvested that day, it gives more. */
   readyDay: number | null;
+  crop: Crop;
+  /** A papaya tree: the day its fruit was last picked. */
+  pickedDay: number | null;
 }
 
 export interface Note { id: number; authorId: string; text: string; t: number }

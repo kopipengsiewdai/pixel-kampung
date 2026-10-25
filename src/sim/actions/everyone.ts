@@ -8,9 +8,9 @@ import { offerPrice } from './haggle.ts';
 import { formatMoney } from '../money.ts';
 import { perceive } from '../perception.ts';
 import { PLACE_WORDS } from '../places.ts';
-import { BEST_DAY_YIELD, effectiveLevel, HANDY_YIELD, practise } from '../skills.ts';
+import { BEST_DAY_YIELD, effectiveLevel, HANDY_YIELD, practise, skillLevel } from '../skills.ts';
 import {
-  addGoods, type Bed, CIRCLE_LINES, countGoods, type Resident, type Shop, type World, LORRY_ID, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, SAID_ALL_LINES,
+  addGoods, type Bed, type Crop, CIRCLE_LINES, countGoods, type Resident, type Shop, type World, LORRY_ID, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, SAID_ALL_LINES,
 } from '../state.ts';
 import { atTimeOfDay, dayIndex, sgtHour } from '../time.ts';
 import {
@@ -420,8 +420,23 @@ function myBeds(w: World, r: Resident) {
   return w.state.beds.filter((b) => b.planterId === r.id);
 }
 
-export function isRipe(w: World, b: { wateredDays: number; plantedDay: number }): boolean {
-  return b.wateredDays >= DAYS_TO_GROW && dayIndex(w.t) >= b.plantedDay + DAYS_TO_GROW;
+/** What each crop takes: days and waterings to ripen, what a bed gives, and the farming level to know it (skills.md S2). */
+export const CROPS: Record<Crop, { item: ItemId; days: number; yields: number; level: number; planted: string }> = {
+  kangkong: { item: 'vegetables', days: DAYS_TO_GROW, yields: HARVEST_YIELD, level: 1, planted: 'kangkong cuttings' },
+  chilli: { item: 'chilli', days: 4, yields: 4, level: 3, planted: 'chilli seedlings' },
+  // A tree: first fruit after PAPAYA_FIRST days, then more every PAPAYA_EVERY days while it's watered that often.
+  papaya: { item: 'papaya', days: 10, yields: 2, level: 5, planted: 'a papaya sapling' },
+};
+export const PAPAYA_EVERY = 3;
+
+export function isRipe(w: World, b: Bed): boolean {
+  const day = dayIndex(w.t);
+  const c = CROPS[b.crop ?? 'kangkong'];
+  if (b.crop === 'papaya') {
+    return day >= b.plantedDay + c.days && (b.pickedDay === null || day >= b.pickedDay + PAPAYA_EVERY)
+      && b.lastWateredDay !== null && day - b.lastWateredDay <= PAPAYA_EVERY;
+  }
+  return b.wateredDays >= c.days && day >= b.plantedDay + c.days;
 }
 
 /** A bed watered today: once it's had its waterings, it knows the day it's ready (today, or its growing days after planting). */
@@ -429,11 +444,25 @@ export function waterBed(w: World, b: Bed): void {
   const today = dayIndex(w.t);
   b.wateredDays += 1;
   b.lastWateredDay = today;
-  if (b.wateredDays === DAYS_TO_GROW) b.readyDay = Math.max(today, b.plantedDay + DAYS_TO_GROW);
+  const days = CROPS[b.crop ?? 'kangkong'].days;
+  if (b.crop !== 'papaya' && b.wateredDays === days) b.readyDay = Math.max(today, b.plantedDay + days);
 }
 
-export function plant(w: World, r: Resident): ActionResult {
+/** The crop someone named ("chilli", "a papaya tree"); kangkong if they named none. */
+function cropOf(v: unknown): Crop | null {
+  if (v === undefined || v === null || v === '') return 'kangkong';
+  const s = String(v).toLowerCase();
+  if (/chil/.test(s)) return 'chilli';
+  if (/papaya|betik/.test(s)) return 'papaya';
+  if (/kangkong|vegetable|veg/.test(s)) return 'kangkong';
+  return null;
+}
+
+export function plant(w: World, r: Resident, i: Intent = { verb: 'plant' }): ActionResult {
   if (!w.isAt(r, 'farm')) return no('You need to be at the farm plot to plant anything.');
+  const crop = cropOf(i.item ?? i.text);
+  if (!crop) return no(`You've nothing like ${quoted(i.item ?? i.text)} to plant.`);
+  if (skillLevel(r, 'farming') < CROPS[crop].level) return no(`You don't know how to grow ${crop === 'papaya' ? 'a papaya tree' : crop}.`);
   if (myBeds(w, r).length >= MAX_BEDS_EACH) return no('You already have two beds to look after.');
   const bed = w.state.beds.find((b) => b.planterId === null);
   if (!bed) return no('Every bed on the farm plot is taken.');
@@ -442,9 +471,13 @@ export function plant(w: World, r: Resident): ActionResult {
   bed.wateredDays = 0;
   bed.lastWateredDay = null;
   bed.readyDay = null;
+  bed.crop = crop;
+  bed.pickedDay = null;
   practise(w, r, 'farming');
   w.emit({ type: 'planted', who: r.id, bed: bed.n });
-  return ok(`You plant kangkong cuttings in bed ${bed.n}. They'll need water every day.`);
+  return ok(crop === 'papaya'
+    ? `You plant a papaya sapling in bed ${bed.n}. It will want water every few days.`
+    : `You plant ${CROPS[crop].planted} in bed ${bed.n}. They'll need water every day.`);
 }
 
 export function water(w: World, r: Resident): ActionResult {
@@ -465,21 +498,36 @@ export function harvest(w: World, r: Resident): ActionResult {
   const beds = myBeds(w, r);
   if (beds.length === 0) return no("You haven't planted anything here.");
   const ripe = beds.filter((b) => isRipe(w, b));
-  if (ripe.length === 0) return no("Your kangkong isn't ready yet.");
+  if (ripe.length === 0) {
+    if (beds.every((b) => b.crop === 'papaya')) return no('Nothing on your tree is ripe yet.');
+    return no(beds.every((b) => b.crop !== 'chilli') ? "Your kangkong isn't ready yet." : "Your beds aren't ready yet.");
+  }
   // A handy grower gets one more a bed; any bed harvested the day it's ready, two more.
   const today = dayIndex(w.t);
   const handy = effectiveLevel(r, 'farming') >= 2 ? HANDY_YIELD : 0;
-  const qty = ripe.reduce((n, b) => n + HARVEST_YIELD + handy + (b.readyDay === today ? BEST_DAY_YIELD : 0), 0);
+  const got: Partial<Record<ItemId, number>> = {};
   for (const b of ripe) {
+    const c = CROPS[b.crop ?? 'kangkong'];
+    if (b.crop === 'papaya') {
+      // A tree stays in its bed and fruits again.
+      got.papaya = (got.papaya ?? 0) + c.yields;
+      b.pickedDay = today;
+      continue;
+    }
+    got[c.item] = (got[c.item] ?? 0) + c.yields + handy + (b.readyDay === today ? BEST_DAY_YIELD : 0);
     b.planterId = null;
     b.wateredDays = 0;
     b.lastWateredDay = null;
     b.readyDay = null;
+    b.crop = 'kangkong';
   }
   practise(w, r, 'farming', ripe.length);
-  addGoods(r.items, 'vegetables', qty);
-  w.emit({ type: 'harvested', who: r.id, qty });
-  return ok(`You harvest ${quantityLabel('vegetables', qty)}.`);
+  const parts = (Object.entries(got) as [ItemId, number][]).map(([item, qty]) => {
+    addGoods(r.items, item, qty);
+    w.emit({ type: 'harvested', who: r.id, qty, item });
+    return quantityLabel(item, qty);
+  });
+  return ok(`You harvest ${parts.join(' and ')}.`);
 }
 
 export function eat(w: World, r: Resident, i: Intent): ActionResult {

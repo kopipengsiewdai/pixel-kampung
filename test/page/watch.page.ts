@@ -167,13 +167,14 @@ describe('the watch page in a browser', () => {
     type Point = { x: number; y: number } | null;
     const placePoint = () => page.evaluate(() => (window as unknown as { __kampung: { placePoint(id: string): Point } }).__kampung.placePoint('lorry-stop'));
     await expect.poll(placePoint, { timeout: 20_000 }).not.toBeNull();
-    // Someone walking can step onto the spot between finding it and clicking: try again until the place's card opens.
+    // Someone walking can step onto the spot between finding it and clicking (their card may say "walking to the
+    // lorry stop" too): try again until the place's own card, with its price list, opens.
     await expect.poll(async () => {
       const at = await placePoint();
       if (at) await page.mouse.click(at.x, at.y);
       return card.textContent();
-    }, { timeout: 20_000 }).toContain('the lorry stop');
-    expect(await card.textContent()).toMatch(/It sellsrice/);
+    }, { timeout: 20_000 }).toMatch(/It sellsrice/);
+    expect(await card.textContent()).toContain('the lorry stop');
     expect(await card.textContent()).toContain('Nothing on this card ever reaches a resident');
     if (shots) await page.screenshot({ path: join(shots, 'watch-place.png') });
 

@@ -7,7 +7,7 @@ import * as everyone from './everyone.ts';
 import { offersFor } from './haggle.ts';
 import * as owners from './owners.ts';
 import * as teach from './teach.ts';
-import { mastered } from '../skills.ts';
+import { mastered, skillLevel } from '../skills.ts';
 
 export type { ActionResult, Intent } from './common.ts';
 
@@ -16,8 +16,8 @@ type Handler = (w: World, r: Resident, i: Intent) => ActionResult;
 interface ActionDef {
   run: Handler;
   ownersOnly: boolean;
-  /** How the character thinks of it. Shown to brains; in-world words only. */
-  says: string;
+  /** How the character thinks of it. Shown to brains; in-world words only (some depend on who's doing it). */
+  says: string | ((w: World, r: Resident) => string);
   /** Whether it makes sense right where they are. */
   here?: (w: World, r: Resident) => boolean;
 }
@@ -95,7 +95,17 @@ export const ACTIONS: Record<string, ActionDef> = {
     run: chores.askErrand, ownersOnly: false, says: 'ask someone to run an errand for pay (person; words: "fetch water", or "take something to someone"; money)', here: withPeople,
   },
   fish: { run: everyone.fish, ownersOnly: false, says: 'fish', here: at('jetty') },
-  plant: { run: everyone.plant, ownersOnly: false, says: 'plant kangkong in a free bed', here: at('farm') },
+  cast_net: {
+    run: (w, r) => chores.castNet(w, r), ownersOnly: false, says: 'cast a net from the jetty',
+    here: (w, r) => w.isAt(r, 'jetty') && skillLevel(r, 'fishing') >= 3 && chores.netsMended(w, r),
+  },
+  plant: {
+    run: everyone.plant, ownersOnly: false, here: at('farm'),
+    says: (_w, r) => {
+      const more = (['chilli', 'papaya'] as const).filter((c) => skillLevel(r, 'farming') >= everyone.CROPS[c].level);
+      return more.length ? `plant a free bed (item: kangkong, ${more.map((c) => (c === 'papaya' ? 'or a papaya tree' : 'chilli')).join(', ')})` : 'plant kangkong in a free bed';
+    },
+  },
   water: { run: everyone.water, ownersOnly: false, says: 'water your beds', here: at('farm') },
   harvest: { run: everyone.harvest, ownersOnly: false, says: 'harvest your beds', here: at('farm') },
   eat: {
@@ -175,5 +185,5 @@ export function availableActions(w: World, r: Resident): { verb: string; says: s
   const working = r.activity?.kind === 'working';
   return Object.entries(ACTIONS)
     .filter(([verb, d]) => (!d.ownersOnly || r.role === 'owner') && (!d.here || d.here(w, r)) && (!working || ON_SHIFT.has(verb)) && (!r.stove || AT_STOVE.has(verb)))
-    .map(([verb, d]) => ({ verb: verb.replace(/_/g, ' '), says: d.says }));
+    .map(([verb, d]) => ({ verb: verb.replace(/_/g, ' '), says: typeof d.says === 'string' ? d.says : d.says(w, r) }));
 }
