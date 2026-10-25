@@ -126,3 +126,17 @@ owners' business decisions; the next trials need to measure both.
 
 Caching does work on Haiku (36% from cache), so the 512-token gap above is
 only partial.
+
+**Trial 2 (2026-10-25):** the whole town (10 residents, all on Haiku 5.5)
+from Monday 06:00, stopped by the owner after 54 game minutes. 469 calls,
+US$0.136, **US$0.0151 per waking resident-hour (109% of the ceiling)**, at 52
+thoughts per resident-hour. 307 of 434 events were talk, in ping-pong pairs
+(one pair swapped 101 lines). The cause: every successful action, `say`
+included, pulled the speaker's next thought to the next minute. Fixed in #12.
+
+**Trial 3 (2026-10-25), after the fix:** the whole town for one game hour
+(06:00–07:00), capped at US$1. 263 calls, US$0.082, **US$0.0082 per waking
+resident-hour (59% of the ceiling)**, at 26 thoughts per resident-hour. Talk
+fell to 40 of 253 events, and walking and exploring doubled. Projected over a
+full day (17 waking hours plus about $0.01 of reflection, *estimate*): about
+US$0.15 per resident a day, **about US$45/month for the town**.
