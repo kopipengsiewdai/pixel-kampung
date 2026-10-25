@@ -124,6 +124,13 @@ describe('the watch page in a browser', () => {
     expect(await card.textContent()).toContain('Nothing on this card ever reaches a resident');
     if (shots) await page.screenshot({ path: join(shots, 'watch-place.png') });
 
+    // Idle life: people waiting between thoughts have something to be doing, and speech bubbles come up as they talk.
+    type Lively = { idle: Record<string, number>; bubbles: number } | null;
+    const lively = () => page.evaluate(() => (window as unknown as { __kampung: { liveliness(): Lively } }).__kampung.liveliness());
+    await expect.poll(async () => Object.keys((await lively())?.idle ?? {}).some((k) => k !== 'none'), { timeout: 20_000 }).toBe(true);
+    await expect.poll(async () => (await lively())?.bubbles ?? 0, { timeout: 30_000 }).toBeGreaterThan(0);
+    if (shots) await page.screenshot({ path: join(shots, 'watch-idle.png') });
+
     const health = await (await fetch(new URL('/api/health', url))).json() as { rss: number };
     expect(health.rss).toBeLessThan(500 * 1024 * 1024);
     expect(foreign).toEqual([]);

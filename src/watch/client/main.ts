@@ -41,6 +41,8 @@ const probe = {
   openCard: (id: string) => pick(id),
   /** Where to click on the page to pick a place, clear of anyone in it. */
   placePoint: (id: string) => scene?.screenPointOf(id) ?? null,
+  /** What residents are idling at, and how many speech bubbles are showing. */
+  liveliness: () => scene?.liveliness() ?? null,
 };
 (window as unknown as { __kampung: typeof probe }).__kampung = probe;
 

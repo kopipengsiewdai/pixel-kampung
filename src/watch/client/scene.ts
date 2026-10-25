@@ -9,6 +9,7 @@ import * as Phaser from 'phaser';
 import { lightAt } from '../light.ts';
 import type { Frame, Layout, LayoutPlace, ResidentView, Update } from '../types.ts';
 import { BUILDINGS, PEOPLE_ORDER, PLANTS, PROPS, bedTile, type Prop } from './decor.ts';
+import { bubbleText, idleKindOf, idlePose, type IdleKind } from './idle.ts';
 
 const T = 16;
 const ZOOM = 2;
@@ -17,6 +18,8 @@ const DOWN = 0;
 const UP = 1;
 const LEFT = 2;
 const RIGHT = 3;
+/** Real milliseconds a speech bubble stays up. */
+const BUBBLE_MS = 4500;
 const OVERLAY_DEPTH = 9000;
 /** Residents draw above every building and prop (still under the night tint), so nobody is hidden inside a shop. */
 const PEOPLE_DEPTH = 5000;
@@ -28,6 +31,11 @@ interface Mover {
   sprite: Phaser.GameObjects.Sprite;
   label: Phaser.GameObjects.Text;
   zz: Phaser.GameObjects.Image;
+  bubble: Phaser.GameObjects.Text;
+  /** The game minute of the line in the bubble, and until when (page clock) it shows. */
+  saidT: number;
+  bubbleUntil: number;
+  idle: IdleKind;
   look: number;
   facing: number;
   pts: Pt[];
@@ -228,6 +236,12 @@ export class TownScene extends Phaser.Scene {
         this.movers.set(r.id, m);
       }
       m.view = r;
+      m.idle = idleKindOf(r, this.placeKindAt(r.x, r.y));
+      if (r.said && r.said.t !== m.saidT) {
+        m.saidT = r.said.t;
+        m.bubble.setText(bubbleText(r.said.text));
+        m.bubbleUntil = snap ? 0 : now + BUBBLE_MS;
+      }
       const off = spread.get(r.id) ?? { x: 0, y: 0 };
       const end = tileCentre(r);
       end.x += off.x;
@@ -284,7 +298,11 @@ export class TownScene extends Phaser.Scene {
       fontFamily: 'ui-monospace, Consolas, monospace', fontSize: '7px', color: '#fdf6e3', stroke: '#1d1d1d', strokeThickness: 2, resolution: 4,
     }).setOrigin(0.5, 1).setDepth(OVERLAY_DEPTH + 5);
     const zz = this.add.image(p.x + 6, p.y - 18, 'k', 'zz').setDepth(OVERLAY_DEPTH + 4).setVisible(false);
-    return { view: r, sprite, label, zz, look, facing: DOWN, pts: [p], start: 0, dur: 1 };
+    const bubble = this.add.text(p.x, p.y - 24, '', {
+      fontFamily: 'ui-monospace, Consolas, monospace', fontSize: '7px', color: '#1d1d1d', backgroundColor: '#fdf6e3',
+      padding: { x: 3, y: 2 }, resolution: 4, wordWrap: { width: 110 },
+    }).setOrigin(0.5, 1).setDepth(OVERLAY_DEPTH + 6).setVisible(false);
+    return { view: r, sprite, label, zz, bubble, saidT: r.said?.t ?? -1, bubbleUntil: 0, idle: 'none', look, facing: DOWN, pts: [p], start: 0, dur: 1 };
   }
 
   select(id: string | null): void {
@@ -339,6 +357,19 @@ export class TownScene extends Phaser.Scene {
     return { x: canvas.left + (best.x + 0.5) * T * k, y: canvas.top + (best.y + 0.5) * T * k };
   }
 
+  /** The kind of place a tile is in, or null out on the footpaths. */
+  private placeKindAt(x: number, y: number): string | null {
+    const p = this.layout.places.find((pl) => x >= pl.rect.x && x < pl.rect.x + pl.rect.w && y >= pl.rect.y && y < pl.rect.y + pl.rect.h);
+    return p?.kind ?? null;
+  }
+
+  /** What everyone is idling at, and how many speech bubbles are up (for the headless page check). */
+  liveliness(): { idle: Record<string, number>; bubbles: number } {
+    const idle: Record<string, number> = {};
+    for (const m of this.movers.values()) idle[m.idle] = (idle[m.idle] ?? 0) + 1;
+    return { idle, bubbles: [...this.movers.values()].filter((m) => m.bubble.visible).length };
+  }
+
   update(time: number): void {
     if (!this.frame) return;
     this.drawn++;
@@ -349,10 +380,18 @@ export class TownScene extends Phaser.Scene {
       const moving = f < 1 && m.pts.length > 1 && pos.dx * pos.dx + pos.dy * pos.dy > 0;
       if (moving) m.facing = Math.abs(pos.dx) > Math.abs(pos.dy) ? (pos.dx > 0 ? RIGHT : LEFT) : (pos.dy > 0 ? DOWN : UP);
       else if (r.activity === 'fishing') m.facing = DOWN;
-      const row = moving ? Math.floor(time / 140) % 4 : 0;
+      // Waiting between thoughts: a small, purely visual bit of life, never away from where they really are.
+      const idle = !moving && f >= 1 ? idlePose(m.idle, time, m.look + 1) : null;
+      if (idle) {
+        pos.x += idle.dx;
+        pos.y += idle.dy;
+        if (idle.facing !== null) m.facing = idle.facing;
+      }
+      const row = moving || idle?.stepping ? Math.floor(time / (moving ? 140 : 220)) % 4 : 0;
       const asleep = r.activity === 'sleeping';
       const inside = asleep && this.isInside(r, r.homeId);
       m.sprite.setPosition(pos.x, pos.y).setFrame(row * PEOPLE_COLS + m.look * 4 + m.facing);
+      m.bubble.setPosition(pos.x, pos.y - 27).setVisible(!inside && time < m.bubbleUntil);
       m.sprite.setVisible(!inside).setAngle(asleep && !inside ? 90 : 0).setDepth(PEOPLE_DEPTH + pos.y);
       m.label.setPosition(pos.x, pos.y - 16).setVisible(!inside || r.id === this.selected);
       const bob = Math.sin(time / 500 + m.look) * 1.5;
