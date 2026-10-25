@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.17.0 (2026-10-25): skills
 
 - **Skills:** residents get better at fishing, farming and cooking by doing them, a little each day, over a year or two to mastery. Better fishers' lines come up empty less often; a handy grower harvests one more a bed and a handy cook is quicker at the stove. An expert senses the tides, the crowds from the road, or a bed at its best. A master can show someone how, up to expert. Unused, a skill goes rusty after a few weeks and slips after a year. Residents meet all this in words, never numbers; the wiki shows each resident's skills. There's an evening tide now too (17:00–19:00), and a bed harvested on the day it's ready gives two more.
 - **Living town:** at upgrade (save v13) the old hands start at their levels (Rahim fishing, Ah Huat and Mak Esah cooking, masters; Fatimah farming, expert; Ah Kow farming and Hassan fishing, handy); everyone else is a novice; no lessons are on; a bed that's had its waterings knows the day it was ready.
