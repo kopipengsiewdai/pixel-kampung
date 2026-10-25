@@ -38,6 +38,14 @@ discover new features in-world. We never tell them about changes. So:
 - Never leak internals in prompts, tool/action names or error messages
   ("you can't do that here", never "feature not implemented").
 
+## HARD RULE: one world forever
+
+Owner, 2026-10-25: the live town is never reset without his yes. Every change
+to saved state ships with an upgrade step and a test fixture
+(`docs/design/upgrades.md`), so the living town upgrades in place and residents
+discover changes in-world. Releases get a version, a git tag and a
+`CHANGELOG.md` line saying how the living town picks the change up.
+
 ## HARD RULE: pseudonymity
 
 Commits and every public surface use **kopipengsiewdai** /
