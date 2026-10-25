@@ -31,7 +31,7 @@ import { fakeBrains, type TownOptions } from '../town.ts';
 import { ASSETS_DIR, buildClient } from '../watch/bundle.ts';
 import { extrasFrom } from '../watch/replay.ts';
 import { DEFAULT_PORT, startWatchServer } from '../watch/server.ts';
-import { LiveSource } from '../watch/source.ts';
+import { FEED_KEPT, LiveSource } from '../watch/source.ts';
 
 const args = parseArgs(process.argv.slice(2));
 const home = kampungHome();
@@ -81,6 +81,8 @@ const now = () => gameMinuteFromMs(clock.nowMs());
 town = Town.resume({ store, onEvent, onTick: hooks.onTick, ...mindOpts })
   ?? Town.create(numArg(args, 'seed', Date.now() % 2_147_483_647), now() - 1, { store, onEvent, onTick: hooks.onTick, ...mindOpts });
 live.attach(town.world);
+// The feed survives a restart: refill it from the save's latest events (enough for a full page).
+live.seed(store.recentEvents(FEED_KEPT * 10));
 console.log(`Pixel Kampung is running. Saving to ${dbPath(home)}`);
 
 const port = numArg(args, 'port', DEFAULT_PORT);
