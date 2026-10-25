@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.19.0 (2026-10-26): Pak Osman, and food for the kampung
 
 - **Pak Osman, the lorry trader:** the morning lorry now has a driver. Pak Osman comes about half past six every day but Sunday and stays about an hour and a half. He has one lorry's worth of room a day, shared between what he brings from town (rice, coffee powder, bread and, new, kerosene) and the fish and vegetables he buys here: when it's full, he's full. What town can spare varies, so a shelf can run short. He no longer sells fish or vegetables.
   - Anyone can buy off the lorry now, not just shopkeepers; an owner's stock is still dropped off at their shop.
