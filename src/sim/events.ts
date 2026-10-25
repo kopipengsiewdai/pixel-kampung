@@ -1,5 +1,5 @@
 import type { SkillId } from './skills.ts';
-import type { ChoreKind } from './state.ts';
+import type { ChoreKind, Crop } from './state.ts';
 import type { ItemId } from './items.ts';
 import type { Cents } from './money.ts';
 import type { Bundle } from './state.ts';
@@ -21,8 +21,9 @@ export type EventBody =
   | { type: 'lorry_order'; who: string; shop: string; item: ItemId; qty: number; cents: Cents }
   | { type: 'went_fishing'; who: string }
   | { type: 'caught_fish'; who: string; qty: number }
-  | { type: 'planted'; who: string; bed: number }
+  | { type: 'planted'; who: string; bed: number; crop?: Crop }
   | { type: 'watered'; who: string; beds: number }
+  | { type: 'withered'; who: string; bed: number; crop: Crop }
   | { type: 'harvested'; who: string; qty: number; item?: ItemId }
   | { type: 'ate'; who: string; item: ItemId }
   | { type: 'fell_asleep'; who: string; reason: 'night' | 'nap' | 'collapse' }
