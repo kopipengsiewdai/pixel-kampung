@@ -4,6 +4,12 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **More to do each day:** chores that take a while with no thinking meanwhile: fetch a pail of water at the well, mend your nets at the jetty (the next few catches bring one more fish), sweep the shop (travellers wait longer in a swept shop). Kopi and fish porridge now take a pail of water. Residents can ask each other to run errands for pay ("fetch water", "take a fish to Mdm Tan"), paid when it's done or owed if the asker can't pay (an errand not done by the day's end hands the thing back, or it's owed for), and help a neighbour water their beds or mend their nets. At the dawn tide a line comes up empty half as often.
+- **Looking around** is no longer offered (where you are and who's there is already in front of you), and doesn't bring the next thought on.
+- **Living town:** at upgrade (save v11) nobody's nets are mended, no shop is swept, no errands are pending, and the kopitiam gets 4 pails of water.
+
 ## 0.14.0 (2026-10-25): travellers on the coast road
 
 - **Travellers from the coast road:** labourers, hawkers and trishaw riders stop at the shops at set hours (busiest at the morning and evening rush), queue, and pay the shop's price if it's no more than they'll pay; serving each takes 2 minutes, by the owner there or a worker on shift. At the shop, owners see who's waiting, how many they served today and how many left unserved or turned away by price; away from it, they hear on coming back how many found nobody serving. Anyone at a busy shop sees someone serving alone. Money from travellers comes from outside the town, and each shop's travellers spend at most $6 a game day (once it's spent, nobody more comes that day).

@@ -5,7 +5,8 @@
  */
 import { quantityLabel } from '../items.ts';
 import { formatMoney, type Cents } from '../money.ts';
-import type { Debt, DebtOffer, Resident, World } from '../state.ts';
+import type { Debt, DebtOffer, Errand, Resident, World } from '../state.ts';
+import { describeErrand, errandFrom, refuseErrand, takeErrand } from './chores.ts';
 import { acceptPrice, priceOfferFrom, refusePrice } from './haggle.ts';
 import { type ActionResult, type Intent, moneyOf, no, ok, personNearby, quoted, textOf } from './common.ts';
 
@@ -65,7 +66,7 @@ export function writeIou(w: World, r: Resident, i: Intent): ActionResult {
 }
 
 /** Adds to what debtor owes creditor of this kind, keeping when it began. */
-function addDebt(w: World, debtor: string, creditor: string, kind: Debt['kind'], cents: Cents, what: string | null): void {
+export function addDebt(w: World, debtor: string, creditor: string, kind: Debt['kind'], cents: Cents, what: string | null): void {
   const d = w.state.debts.find((x) => x.debtor === debtor && x.creditor === creditor && x.kind === kind);
   if (!d) {
     w.state.debts.push({ id: w.nextId(), debtor, creditor, cents, since: w.t, kind, due: null, what });
@@ -87,19 +88,42 @@ function offerFrom(w: World, r: Resident, from: unknown): { o: Resident; offer: 
  * Which of someone's offers r means: a price at r's counter (when r names the
  * item, or it's the only one), a money offer, or neither (asked which).
  */
-function whichOffer(w: World, r: Resident, i: Intent): { price: ReturnType<typeof priceOfferFrom> } | { money: { o: Resident; offer: DebtOffer } } | string {
-  const money = offerFrom(w, r, i.from);
+function whichOffer(w: World, r: Resident, i: Intent):
+  { price: NonNullable<ReturnType<typeof priceOfferFrom>> } | { money: { o: Resident; offer: DebtOffer } } | { errand: Errand } | string {
+  const moneyOrWhy = offerFrom(w, r, i.from);
+  const money = typeof moneyOrWhy === 'string' ? null : moneyOrWhy;
   const price = priceOfferFrom(w, r, i.from);
-  if (typeof money === 'string') return price ? { price } : money;
-  if (!price) return { money };
-  if (i.item !== undefined && i.item !== null && i.item !== '') return { price };
-  return `${money.o.name} has asked you about money and offered ${formatMoney(price.offer.cents)} for ${quantityLabel(price.offer.item, price.offer.qty)}. Which do you mean?`;
+  const errand = errandFrom(w, r, i.from);
+  const found = [money && { money }, price && { price }, errand && { errand }].filter((x) => !!x);
+  if (found.length === 0) return moneyOrWhy as string;
+  if (found.length === 1) return found[0]!;
+  if (price && i.item !== undefined && i.item !== null && i.item !== '') return { price };
+  // Words choose between an errand (it, or what it's about) and money (a loan, an IOU).
+  const words = typeof i.text === 'string' ? i.text : '';
+  const aboutErrand = errand !== null && (/\berrand|\bfetch|\bwater\b/i.test(words) || errandWords(w, errand).some((x) => words.toLowerCase().includes(x)));
+  const aboutMoney = money !== null && /\b(money|loan|lend|borrow|owe|iou)/i.test(words);
+  if (aboutErrand && !aboutMoney) return { errand };
+  if (aboutMoney && !aboutErrand) return { money };
+  const name = w.residentByName(i.from)!.name;
+  const parts = [
+    money ? 'asked you about money' : null,
+    price ? `offered ${formatMoney(price.offer.cents)} for ${quantityLabel(price.offer.item, price.offer.qty)}` : null,
+    errand ? describeErrand(w, errand) : null,
+  ].filter((x): x is string => !!x);
+  const say = [money ? '"the loan"' : null, price ? `the ${price.offer.item}` : null, errand ? '"the errand"' : null].filter((x): x is string => !!x);
+  return `${name} has ${parts.length === 2 ? parts.join(' and ') : `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`}. Which do you mean? Say ${say.length === 2 ? say.join(' or ') : `${say.slice(0, -1).join(', ')} or ${say.at(-1)}`}.`;
+}
+
+/** What an errand is about, in words someone might use for it: its item and who it's for. */
+function errandWords(w: World, e: Errand): string[] {
+  return [e.item, e.toId ? w.resident(e.toId).name : null].filter((x): x is string => !!x).map((x) => x.toLowerCase());
 }
 
 export function agree(w: World, r: Resident, i: Intent): ActionResult {
   const which = whichOffer(w, r, i);
   if (typeof which === 'string') return no(which);
-  if ('price' in which) return acceptPrice(w, r, which.price!);
+  if ('price' in which) return acceptPrice(w, r, which.price);
+  if ('errand' in which) return takeErrand(w, r, which.errand);
   const found = which.money;
   const { o, offer: x } = found;
   const near = personNearby(w, r, o.name);
@@ -130,7 +154,8 @@ export function agree(w: World, r: Resident, i: Intent): ActionResult {
 export function refuse(w: World, r: Resident, i: Intent): ActionResult {
   const which = whichOffer(w, r, i);
   if (typeof which === 'string') return no(which);
-  if ('price' in which) return refusePrice(w, r, which.price!);
+  if ('price' in which) return refusePrice(w, r, which.price);
+  if ('errand' in which) return refuseErrand(w, r, which.errand);
   const found = which.money;
   const { o, offer: x } = found;
   const sum = formatMoney(x.cents);

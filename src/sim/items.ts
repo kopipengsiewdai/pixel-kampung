@@ -2,7 +2,7 @@ import type { Cents } from './money.ts';
 
 export type ItemId =
   | 'fish' | 'vegetables' | 'rice' | 'coffee' | 'bread'
-  | 'kopi' | 'fish porridge' | 'vegetable rice';
+  | 'kopi' | 'fish porridge' | 'vegetable rice' | 'water';
 
 export interface ItemDef {
   id: ItemId;
@@ -31,6 +31,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     aliases: ['coffee powder', 'kopi powder'], inedible: 'Dry coffee powder? It needs brewing first.',
   },
   bread: { id: 'bread', one: 'a loaf of bread', many: '{n} loaves of bread', aliases: ['loaf', 'loaves'], food: { hunger: 250 } },
+  water: {
+    id: 'water', one: 'a pail of water', many: '{n} pails of water', aliases: ['pail', 'pails', 'pail of water', 'pails of water'],
+    inedible: "You'd want to boil it first.",
+  },
   kopi: { id: 'kopi', one: 'a cup of kopi', many: '{n} cups of kopi', aliases: [], food: { hunger: 50, energy: 120 } },
   'fish porridge': {
     id: 'fish porridge', one: 'a bowl of fish porridge', many: '{n} bowls of fish porridge',
@@ -79,7 +83,7 @@ export interface Recipe {
 
 /** Kopitiam cooking: one batch turns ingredients into servings. */
 export const RECIPES: Partial<Record<ItemId, Recipe>> = {
-  kopi: { makes: 'kopi', needs: { coffee: 1 }, yields: 5 },
-  'fish porridge': { makes: 'fish porridge', needs: { fish: 1, rice: 1 }, yields: 2 },
+  kopi: { makes: 'kopi', needs: { coffee: 1, water: 1 }, yields: 5 },
+  'fish porridge': { makes: 'fish porridge', needs: { fish: 1, rice: 1, water: 1 }, yields: 2 },
   'vegetable rice': { makes: 'vegetable rice', needs: { vegetables: 1, rice: 1 }, yields: 2 },
 };

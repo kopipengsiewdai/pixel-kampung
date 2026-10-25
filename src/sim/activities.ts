@@ -1,5 +1,5 @@
 import { findPath } from './map.ts';
-import { dayIndex, isNight } from './time.ts';
+import { dayIndex, isNight, minuteOfDay } from './time.ts';
 import type { Resident, World } from './state.ts';
 import { addGoods } from './state.ts';
 
@@ -41,6 +41,9 @@ export function endShift(w: World, r: Resident): void {
 
 /** Stops whatever they're doing (not sleep). Fishing cut short catches nothing. */
 export function interrupt(w: World, r: Resident): void {
+  // A chore cut short gives nothing; a shift held in it ends as a shift does.
+  const c = r.activity;
+  if (c?.kind === 'chore') r.activity = c.shift ? { kind: 'working', jobId: c.shift.jobId, until: c.shift.until, worked: c.shift.worked } : null;
   if (r.activity?.kind === 'working') endShift(w, r);
   else if (r.activity?.kind === 'fishing' || r.activity?.kind === 'walking') r.activity = null;
 }
@@ -57,7 +60,16 @@ export function walkHomeToSleep(w: World, r: Resident): void {
 
 export function catchFish(w: World, r: Resident): void {
   const roll = w.rng.next();
-  const qty = roll < 0.3 ? 0 : roll < 0.75 ? 1 : roll < 0.95 ? 2 : 3;
+  // At the dawn tide (06:00–09:00) a line comes up empty half as often.
+  const mod = minuteOfDay(w.t);
+  const empty = mod >= 6 * 60 && mod < 9 * 60 ? 0.15 : 0.3;
+  let qty = roll < empty ? 0 : roll < 0.75 ? 1 : roll < 0.95 ? 2 : 3;
+  // Mended nets: one more fish on the next few catches today.
+  const m = r.mended;
+  if (m && m.day === dayIndex(w.t) && m.left > 0) {
+    qty += 1;
+    m.left -= 1;
+  }
   if (qty > 0) addGoods(r.items, 'fish', qty);
   r.activity = null;
   r.thinkAt = w.t;

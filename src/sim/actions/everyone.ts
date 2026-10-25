@@ -3,6 +3,7 @@ import { dealKind, settlesBy } from '../talk.ts';
 import { ITEMS, LORRY_BUYS, quantityLabel, type ItemId } from '../items.ts';
 import { MAP_H, MAP_W, PLACES, PLACE_BY_ID, findPath, isWalkable, type Point } from '../map.ts';
 import { learnFromWords } from '../discovery.ts';
+import { handedOver } from './chores.ts';
 import { offerPrice } from './haggle.ts';
 import { formatMoney } from '../money.ts';
 import { perceive } from '../perception.ts';
@@ -566,6 +567,7 @@ export function give(w: World, r: Resident, i: Intent): ActionResult {
   addGoods(o.items, item, qty);
   w.emit({ type: 'gave', who: r.id, to: o.id, item, qty, cents: 0 });
   w.notify(o.id, `${r.name} gave you ${quantityLabel(item, qty)}.`);
+  handedOver(w, r, o, item);
   return ok(`You give ${o.name} ${quantityLabel(item, qty)}.`);
 }
 

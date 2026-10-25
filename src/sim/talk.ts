@@ -62,6 +62,9 @@ export function settledBy(e: GameEvent): { a: string; b: string; kind: Settles }
     case 'traded': return pair(e.who, e.with, 'money');
     case 'trade_offered': return pair(e.who, e.to, 'money');
     case 'trade_declined': return pair(e.who, e.from, 'money');
+    case 'errand_asked': return pair(e.who, e.to, 'money');
+    case 'errand_taken': return pair(e.who, e.from, 'money');
+    case 'errand_done': return pair(e.who, e.for, 'money');
     case 'price_offered': return pair(e.who, e.owner, 'money');
     case 'price_refused': return pair(e.who, e.from, 'money');
     case 'debt_offered': return pair(e.who, e.to, 'money');

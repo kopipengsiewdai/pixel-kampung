@@ -1,4 +1,5 @@
 import { isRipe, isStaffed, shiftLabel, shopHere } from './actions/everyone.ts';
+import { CHORE_DOING, errandLines } from './actions/chores.ts';
 import { offersFor } from './actions/haggle.ts';
 import { servers } from './travellers.ts';
 import type { DealKind } from './talk.ts';
@@ -100,6 +101,10 @@ export interface Perception {
   busyShop: { server: string; owner: string; alone: boolean; waiting: number } | null;
   /** On shift: how many travellers they've served today. */
   servedToday: number | null;
+  /** Errands they're running, asked to run, or asked of someone. */
+  errands: string[];
+  /** Their nets are mended for today's next catches. */
+  netsMended: boolean;
   /** Prices offered at a counter they're minding, below what the shop asks. */
   priceOffers: { from: string; item: ItemId; qty: number; cents: Cents; asking: Cents }[];
   /** Loans offered or asked for, and IOUs written to them, waiting on their yes. */
@@ -142,6 +147,7 @@ function doing(w: World, o: Resident): string {
   switch (o.activity?.kind) {
     case 'walking': return 'walking by';
     case 'fishing': return 'fishing';
+    case 'chore': return o.activity.kind === 'chore' ? CHORE_DOING[o.activity.chore] : 'busy';
     case 'working': return 'working';
     case 'sleeping': return 'asleep';
     default: return w.shopOf(o.id) && w.isAt(o, w.shopOf(o.id)!.id) ? 'minding the shop' : 'standing about';
@@ -245,6 +251,8 @@ export function perceive(w: World, r: Resident): Perception {
     },
     busyShop: shop && shop.ownerId !== r.id && !(r.activity?.kind === 'working') ? busyShopOf(w, shop) : null,
     servedToday: r.activity?.kind === 'working' && jobRow ? (w.shop(jobRow.placeId)?.today.servedBy[r.id] ?? 0) : null,
+    errands: errandLines(w, r),
+    netsMended: !!r.mended && r.mended.day === today && r.mended.left > 0,
     priceOffers: offersFor(w, r).map((o) => ({
       from: w.resident(o.buyerId).name, item: o.item, qty: o.qty, cents: o.cents, asking: (w.shop(o.shopId)!.sellPrices[o.item] ?? 0) * o.qty,
     })),
@@ -390,6 +398,7 @@ export function describe(p: Perception): string {
     lines.push(b.alone ? `${b.server} is serving alone, and ${waiting}.` : `${count(b.waiting, true)} ${b.waiting === 1 ? 'traveller from the road is' : 'travellers from the road are'} waiting.`);
   }
   if (p.servedToday !== null && p.servedToday > 0) lines.push(`You've served ${p.servedToday} ${p.servedToday === 1 ? 'person' : 'people'} this shift.`);
+  lines.push(...p.errands);
   for (const o of p.priceOffers) lines.push(`${o.from} offers ${formatMoney(o.cents)} for ${quantityLabel(o.item, o.qty)}.`);
   for (const o of p.moneyOffers) {
     const sum = formatMoney(o.cents);

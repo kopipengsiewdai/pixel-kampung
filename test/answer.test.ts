@@ -36,8 +36,8 @@ function townWith(name: string, brain: Brain, place: string) {
 
 describe('doing the same thing over and over', () => {
   it("doing again what you've just done doesn't bring the next thought on", async () => {
-    const brain = new Repeater({ verb: 'look_around' });
-    const { town, start } = townWith('Siti', brain, 'well');
+    const brain = new Repeater({ verb: 'read_notice_board' });
+    const { town, start } = townWith('Siti', brain, 'notice-board');
     const a = start + 1 + AFTER_ACTION_MINUTES;
     await town.runUntil(a + 2 * QUIET_THINK_MINUTES);
     // The first look brings the next thought on; the same thing again doesn't, so after that only the quiet pace.
@@ -45,8 +45,8 @@ describe('doing the same thing over and over', () => {
   });
 
   it('they hear, in plain words, that they have just done that', async () => {
-    const brain = new Repeater({ verb: 'look_around' });
-    const { town, start } = townWith('Siti', brain, 'well');
+    const brain = new Repeater({ verb: 'read_notice_board' });
+    const { town, start } = townWith('Siti', brain, 'notice-board');
     await town.runUntil(start + 1 + AFTER_ACTION_MINUTES + QUIET_THINK_MINUTES);
     const nudge = brain.replies.at(-1)!;
     expect(nudge).toMatch(/just done that/);
@@ -71,10 +71,10 @@ describe('doing the same thing over and over', () => {
   });
 
   it('the same thing done again after a while brings the next thought on as usual', async () => {
-    const script: (Intent | null)[] = [{ verb: 'look_around' }, null, { verb: 'look_around' }, null];
+    const script: (Intent | null)[] = [{ verb: 'read_notice_board' }, null, { verb: 'read_notice_board' }, null];
     const thoughtAt: number[] = [];
     const brain: Brain = { decide: (_p, ctx) => { thoughtAt.push(ctx.t); return script.shift() ?? null; }, save: () => null, load: () => {} };
-    const { town, start } = townWith('Siti', brain, 'well');
+    const { town, start } = townWith('Siti', brain, 'notice-board');
     const a = start + 1 + AFTER_ACTION_MINUTES;
     await town.runUntil(a + QUIET_THINK_MINUTES + AFTER_ACTION_MINUTES);
     // Looked first, did nothing next; looking again a quiet spell later is more than REPEAT_MINUTES after the first, so it counts afresh.

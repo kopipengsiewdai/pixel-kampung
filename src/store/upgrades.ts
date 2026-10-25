@@ -188,6 +188,17 @@ export const UPGRADES: readonly Upgrade[] = [
       return { world: { ...world, shops, residents }, brains };
     },
   },
+  {
+    from: 10,
+    why: 'There are chores (fetching water, mending nets, sweeping), paid errands and help between neighbours, and the kopitiam needs a pail of water for kopi and porridge; the kopitiam starts with 4 pails.',
+    save: ({ world, brains }) => {
+      const shops = (world.shops as { id: string; stock: Record<string, number> }[]).map((s) => ({
+        ...s, sweptDay: null, stock: s.id === 'kopitiam' ? { ...s.stock, water: (s.stock.water ?? 0) + 4 } : s.stock,
+      }));
+      const residents = (world.residents as Record<string, unknown>[]).map((r) => ({ ...r, mended: null }));
+      return { world: { ...world, shops, residents, errands: [] }, brains };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

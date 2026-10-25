@@ -25,7 +25,7 @@ const KEY_TYPES: ReadonlySet<string> = new Set([
   'bought', 'sold', 'first_sale', 'lorry_arrived', 'lorry_sale', 'lorry_order',
   'job_offered', 'hired', 'quit', 'let_go', 'wages_paid',
   'gave', 'trade_offered', 'traded', 'trade_declined', 'note_pinned', 'price_set', 'found_place',
-  'travellers_hour', 'price_offered', 'price_refused', 'debt_offered', 'debt_agreed', 'debt_refused', 'repaid', 'let_off',
+  'travellers_hour', 'errand_taken', 'errand_done', 'helped', 'price_offered', 'price_refused', 'debt_offered', 'debt_agreed', 'debt_refused', 'repaid', 'let_off',
   'kampung_quiet', 'quiet_spell',
 ]);
 
@@ -102,6 +102,15 @@ export function feedText(e: GameEvent, n: Names): { text: string; notable: boole
     case 'traded': return line(`${n(e.who)} and ${n(e.with)} made a trade: ${bundleLabel(e.want)} for ${bundleLabel(e.give)}.`);
     case 'trade_declined': return line(`${n(e.who)} turned down ${n(e.from)}'s offer.`);
     case 'traveller_bought': return null;
+    case 'chore_done':
+      if (e.chore === 'fetch_water') return line(`${n(e.who)} fetched a pail of water from the well.`);
+      if (e.chore === 'mend_nets') return line(e.for ? `${n(e.who)} mended ${n(e.for)}'s nets.` : `${n(e.who)} mended their nets.`);
+      return line(`${n(e.who)} swept the shop.`);
+    case 'helped': return line(`${n(e.who)} watered ${n(e.to)}'s beds.`);
+    case 'errand_asked': return line(`${n(e.who)} asked ${n(e.to)} to ${e.what}, for ${formatMoney(e.cents)}.`);
+    case 'errand_taken': return line(`${n(e.who)} took on ${n(e.from)}'s errand.`);
+    case 'errand_refused': return line(`${n(e.who)} turned down ${n(e.from)}'s errand.`);
+    case 'errand_done': return line(`${n(e.who)} ran an errand for ${n(e.for)} (${formatMoney(e.cents)}${e.paid ? '' : ', owed'}).`);
     case 'travellers_hour': return line(`Travellers from the road bought ${e.served} ${e.served === 1 ? 'thing' : 'things'} at ${place(e.shop)} this past hour, for ${formatMoney(e.cents)}${e.left ? `; ${e.left} left without being served` : ''}.`);
     case 'price_offered': return line(`${n(e.who)} offers ${formatMoney(e.cents)} for ${quantityLabel(e.item, e.qty)} at ${place(e.shop)}.`);
     case 'price_refused': return line(`${n(e.who)} turns down ${n(e.from)}'s ${formatMoney(e.cents)} for ${quantityLabel(e.item, e.qty)}.`);

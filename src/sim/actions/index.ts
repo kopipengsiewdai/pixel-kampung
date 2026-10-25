@@ -1,6 +1,7 @@
 import type { Resident, World } from '../state.ts';
-import { isNight } from '../time.ts';
+import { dayIndex, isNight } from '../time.ts';
 import { type ActionResult, type Intent, no } from './common.ts';
+import * as chores from './chores.ts';
 import * as debts from './debts.ts';
 import * as everyone from './everyone.ts';
 import { offersFor } from './haggle.ts';
@@ -30,7 +31,8 @@ export const ACTIONS: Record<string, ActionDef> = {
     run: everyone.goWith, ownersOnly: false, says: 'go along with someone who is setting off (person)',
     here: (w, r) => w.state.residents.some((o) => everyone.canGoWith(w, r, o)),
   },
-  look_around: { run: everyone.lookAround, ownersOnly: false, says: 'look around' },
+  // Not offered: the notes already say where you are and who's there (a typed one still answers).
+  look_around: { run: everyone.lookAround, ownersOnly: false, says: 'look around', here: () => false },
   say: { run: everyone.say, ownersOnly: false, says: 'say something (words, and person if it is meant for someone)' },
   buy: { run: everyone.buy, ownersOnly: false, says: 'buy something here (item, amount, and money if you offer less than the price)', here: atShop },
   sell: {
@@ -52,12 +54,12 @@ export const ACTIONS: Record<string, ActionDef> = {
     run: debts.writeIou, ownersOnly: false, says: 'write someone an IOU saying you owe them (person, money, words: what for)', here: withPeople,
   },
   agree: {
-    run: debts.agree, ownersOnly: false, says: 'agree to what someone offered or asked about money, or a price offered at your counter (person, and item for a price at your counter)',
-    here: (w, r) => w.state.debtOffers.some((o) => o.toId === r.id) || offersFor(w, r).length > 0,
+    run: debts.agree, ownersOnly: false, says: 'agree to what someone offered or asked of you, or a price offered at your counter (person, and item for a price at your counter)',
+    here: (w, r) => w.state.debtOffers.some((o) => o.toId === r.id) || offersFor(w, r).length > 0 || w.state.errands.some((e) => !e.taken && e.runnerId === r.id),
   },
   refuse: {
-    run: debts.refuse, ownersOnly: false, says: 'turn down what someone offered or asked about money, or a price offered at your counter (person, and item for a price at your counter)',
-    here: (w, r) => w.state.debtOffers.some((o) => o.toId === r.id) || offersFor(w, r).length > 0,
+    run: debts.refuse, ownersOnly: false, says: 'turn down what someone offered or asked of you, or a price offered at your counter (person, and item for a price at your counter)',
+    here: (w, r) => w.state.debtOffers.some((o) => o.toId === r.id) || offersFor(w, r).length > 0 || w.state.errands.some((e) => !e.taken && e.runnerId === r.id),
   },
   repay: {
     run: debts.repay, ownersOnly: false, says: 'pay back money you owe (person, and money to pay only part)',
@@ -66,6 +68,22 @@ export const ACTIONS: Record<string, ActionDef> = {
   let_off: {
     run: debts.letOff, ownersOnly: false, says: 'let someone off what they owe you (person, and money for only part)',
     here: (w, r) => w.state.debts.some((d) => d.creditor === r.id),
+  },
+  fetch_water: { run: (w, r) => chores.fetchWater(w, r), ownersOnly: false, says: 'fetch a pail of water', here: at('well') },
+  mend_nets: {
+    run: (w, r) => chores.mendNets(w, r), ownersOnly: false, says: 'mend your nets',
+    here: (w, r) => w.isAt(r, 'jetty') && !(r.mended && r.mended.day === dayIndex(w.t) && r.mended.left > 0),
+  },
+  sweep: {
+    run: (w, r) => chores.sweep(w, r), ownersOnly: false, says: 'sweep the shop',
+    here: (w, r) => { const s = chores.sweepable(w, r); return !!s && w.shop(s)!.sweptDay !== dayIndex(w.t); },
+  },
+  help: {
+    run: chores.help, ownersOnly: false, says: 'help someone with their work here (person)',
+    here: (w, r) => w.state.residents.some((o) => o.id !== r.id && w.knowsPerson(r, o.id) && chores.canHelp(w, r, o) !== null),
+  },
+  ask_errand: {
+    run: chores.askErrand, ownersOnly: false, says: 'ask someone to run an errand for pay (person; words: "fetch water", or "take something to someone"; money)', here: withPeople,
   },
   fish: { run: everyone.fish, ownersOnly: false, says: 'fish', here: at('jetty') },
   plant: { run: everyone.plant, ownersOnly: false, says: 'plant kangkong in a free bed', here: at('farm') },
@@ -107,6 +125,7 @@ export const ACTIONS: Record<string, ActionDef> = {
 };
 
 const BUSY: Record<string, string> = {
+  chore: "You're busy.",
   walking: "You're on your way somewhere.",
   fishing: "You're busy fishing.",
   working: "You're in the middle of your shift.",
@@ -117,7 +136,7 @@ const BUSY: Record<string, string> = {
 export const AT_STOVE = new Set(['look_around', 'say']);
 
 /** What can still be done in the middle of a shift, without leaving it. */
-export const ON_SHIFT = new Set(['look_around', 'say', 'cook', 'agree', 'refuse']);
+export const ON_SHIFT = new Set(['look_around', 'say', 'cook', 'agree', 'refuse', 'sweep']);
 
 /** The action asked for, as written in ACTIONS ("Walk to" → walk_to); '' if none. */
 export function verbOf(intent: unknown): string {
@@ -129,6 +148,7 @@ export function verbOf(intent: unknown): string {
 export function act(w: World, residentId: string, intent: unknown): ActionResult {
   const r = w.resident(residentId);
   const verb = verbOf(intent);
+  if (r.activity?.kind === 'chore') return no(chores.busyAt(r.activity.chore));
   if (r.activity && !(r.activity.kind === 'working' && ON_SHIFT.has(verb))) return no(BUSY[r.activity.kind]!);
   if (r.stove && !AT_STOVE.has(verb)) return no("You're busy at the stove.");
   if (isNight(w.t)) return no("It's the middle of the night. You should be asleep.");

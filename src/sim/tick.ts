@@ -2,6 +2,7 @@ import {
   COLLAPSE_WAKE_ENERGY, RESTED, WALK_TILES_PER_MINUTE,
   catchFish, endShift, interrupt, startSleep, wake, walkHomeToSleep,
 } from './activities.ts';
+import { choreMinute, lapseErrands } from './actions/chores.ts';
 import { lapsePriceOffers } from './actions/haggle.ts';
 import { isServing, stoveMinute, travellersMinute } from './travellers.ts';
 import { PLACE_BY_ID } from './map.ts';
@@ -48,6 +49,9 @@ function progress(w: World, r: Resident): void {
     }
     case 'fishing':
       if (w.t >= a.until) catchFish(w, r);
+      return;
+    case 'chore':
+      choreMinute(w, r);
       return;
     case 'working':
       a.worked += 1;
@@ -112,6 +116,7 @@ export function advance(w: World): void {
   w.state.trades = w.state.trades.filter((o) => o.expires > t);
   w.state.debtOffers = w.state.debtOffers.filter((o) => o.expires > t);
   lapsePriceOffers(w);
+  lapseErrands(w);
 }
 
 export function advanceTo(w: World, t: number): void {

@@ -134,7 +134,7 @@ describe('after review', () => {
     rahim.money = 1000;
     accepted(act(w, seng.id, { verb: 'borrow', to: 'Rahim', money: '50¢' }));
     accepted(act(w, seng.id, { verb: 'buy', item: 'vegetables', money: '16¢' }));
-    refused(act(w, rahim.id, { verb: 'agree', from: 'Ah Seng' }), /^Ah Seng has asked you about money and offered 16¢ for a bunch of vegetables\. Which do you mean\?$/);
+    refused(act(w, rahim.id, { verb: 'agree', from: 'Ah Seng' }), /^Ah Seng has asked you about money and offered 16¢ for a bunch of vegetables\. Which do you mean\? Say "the loan" or the vegetables\.$/);
     accepted(act(w, rahim.id, { verb: 'agree', from: 'Ah Seng', item: 'vegetables' }));
     expect(seng.items.vegetables).toBe(1);
     expect(w.state.debts).toEqual([]);

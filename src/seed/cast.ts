@@ -38,7 +38,7 @@ export const CAST: readonly CastMember[] = [
  * the owner's own decision, made in play (owner decision, 2026-10-24).
  */
 export const SHOP_STOCK: Record<'kopitiam' | 'provision-shop' | 'market-stall', Goods> = {
-  kopitiam: { coffee: 3, rice: 4, fish: 2, vegetables: 2, kopi: 10, 'fish porridge': 4, 'vegetable rice': 4 },
+  kopitiam: { coffee: 3, rice: 4, fish: 2, vegetables: 2, water: 4, kopi: 10, 'fish porridge': 4, 'vegetable rice': 4 },
   'provision-shop': { rice: 20, coffee: 6, bread: 10 },
   'market-stall': { fish: 6, vegetables: 6 },
 };

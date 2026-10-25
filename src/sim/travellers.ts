@@ -16,6 +16,8 @@ export const SERVE_MINUTES = 2;
 export const QUEUE_MAX = 4;
 /** How long a customer waits to be served before giving up. */
 export const WAIT_MINUTES = 8;
+/** In a shop swept today, they'll wait longer. */
+export const SWEPT_WAIT_MINUTES = 12;
 /** Minutes at the stove a batch takes (kopi is quicker). */
 export const COOK_MINUTES: Partial<Record<ItemId, number>> = { kopi: 5, 'fish porridge': 10, 'vegetable rice': 10 };
 
@@ -104,9 +106,10 @@ export function travellersMinute(w: World): void {
     }
     shop.serving = shop.serving.filter((x) => x.until > w.t);
     // Tired of waiting.
-    const gaveUp = shop.queue.filter((c) => w.t - c.t > WAIT_MINUTES).length;
+    const wait = shop.sweptDay === day ? SWEPT_WAIT_MINUTES : WAIT_MINUTES;
+    const gaveUp = shop.queue.filter((c) => w.t - c.t > wait).length;
     if (gaveUp) {
-      shop.queue = shop.queue.filter((c) => w.t - c.t <= WAIT_MINUTES);
+      shop.queue = shop.queue.filter((c) => w.t - c.t <= wait);
       shop.today.left += gaveUp;
       shop.hour.left += gaveUp;
     }

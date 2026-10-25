@@ -36,6 +36,12 @@ export type EventBody =
   | { type: 'trade_offered'; who: string; to: string; give: Bundle; want: Bundle }
   | { type: 'traded'; who: string; with: string; give: Bundle; want: Bundle }
   | { type: 'trade_declined'; who: string; from: string }
+  | { type: 'chore_done'; who: string; chore: 'fetch_water' | 'mend_nets' | 'sweep'; for: string | null }
+  | { type: 'helped'; who: string; to: string; how: 'beds' }
+  | { type: 'errand_asked'; who: string; to: string; what: string; cents: Cents }
+  | { type: 'errand_taken'; who: string; from: string }
+  | { type: 'errand_refused'; who: string; from: string }
+  | { type: 'errand_done'; who: string; for: string; cents: Cents; paid: boolean }
   | { type: 'traveller_bought'; shop: string; owner: string; by: string; item: ItemId; cents: Cents }
   | { type: 'travellers_hour'; shop: string; served: number; cents: Cents; left: number }
   | { type: 'price_offered'; who: string; owner: string; shop: string; item: ItemId; qty: number; cents: Cents }
