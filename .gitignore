@@ -24,7 +24,7 @@ memories/
 .scratch/
 
 # Tooling
-node_modules/
+node_modules
 dist/
 build/
 coverage/
