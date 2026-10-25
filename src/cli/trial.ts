@@ -189,5 +189,7 @@ const wagesPaid = events.reduce((n, e) => n + (e.type === 'wages_paid' ? e.cents
 console.log('\n--- work ---');
 console.log(`jobs offered: ${count('job_offered')}, hired: ${count('hired')}, wages paid: ${formatMoney(wagesPaid)}`);
 console.log(`travellers served: ${[...byShop].map(([shop, r]) => `${shop} ${r.served} (${formatMoney(r.cents)}), ${r.left} unserved`).join('; ') || 'none'}`);
+console.log('\n--- day ---');
+console.log(`look-arounds: ${count('looked_around')}, chores done: ${count('chore_done')}, neighbours helped: ${count('helped')}, errands asked: ${count('errand_asked')}, done: ${count('errand_done')}; fish caught: ${events.reduce((n, e) => n + (e.type === 'caught_fish' ? e.qty : 0), 0)}`);
 if (!fake) console.log(`all trials so far: US$${spentOnTrials(costRoot).toFixed(4)} of US$${TRIAL_ALLOWANCE}`);
 console.log(`\nWatch it back: npm run watch -- --replay trial-${stamp}.db`);

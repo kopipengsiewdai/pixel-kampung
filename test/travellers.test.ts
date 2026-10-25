@@ -192,11 +192,11 @@ describe('cooking takes time', () => {
     const w = newWorld(9);
     const huat = put(w, 'Ah Huat', 'kopitiam');
     const shop = w.shop('kopitiam')!;
-    shop.stock = { fish: 2, rice: 2 };
+    shop.stock = { fish: 2, rice: 2, water: 2 };
     const res = accepted(act(w, huat.id, { verb: 'cook', item: 'fish porridge', batches: 2 }));
     expect(res.reply).toBe('You start cooking 2 batches of fish porridge.');
     expect(huat.stove).toMatchObject({ item: 'fish porridge', batches: 2, until: w.t + 20 });
-    expect([shop.stock.fish ?? 0, shop.stock.rice ?? 0]).toEqual([0, 0]);
+    expect([shop.stock.fish ?? 0, shop.stock.rice ?? 0, shop.stock.water ?? 0]).toEqual([0, 0, 0]);
     refused(act(w, huat.id, { verb: 'walk_to', where: 'the jetty' }), /busy at the stove/);
     accepted(act(w, huat.id, { verb: 'say', text: 'Almost ready!' }));
     for (let i = 0; i < 19; i++) advance(w);
@@ -218,6 +218,7 @@ describe('the free fake brain, with customers', () => {
     huat.money = 2000;
     w.remember(huat.id, 'Siti says to you: "Any work going, boss?"', true);
     const shop = w.shop('kopitiam')!;
+    shop.buyPrices.water = 8;
     shop.today.left = 4;
     const decide = () => {
       const b = new FakeBrain(3);

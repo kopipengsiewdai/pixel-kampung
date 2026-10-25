@@ -206,7 +206,7 @@ export class Town {
             if (before?.what === what && w.t - before.t <= REPEAT_MINUTES) {
               // The same again: it goes through, but the next thought comes at the quiet pace.
               r.reply = { ok: true, text: r.reply ? `${r.reply.text} ${REPEAT_NUDGE}` : REPEAT_NUDGE };
-            } else if (verbOf(intent) !== 'say') {
+            } else if (verbOf(intent) !== 'say' && verbOf(intent) !== 'look_around') {
               // A speaker waits for an answer: being spoken to wakes them (until the
               // chat has run long), so saying something never brings the next thought on.
               r.thinkAt = Math.min(r.thinkAt, w.t + AFTER_ACTION_MINUTES);

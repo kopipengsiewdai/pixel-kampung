@@ -1,9 +1,10 @@
-import { endShift, startSleep } from './activities.ts';
+import { endShift, interrupt, startSleep } from './activities.ts';
 import { RESTED } from './activities.ts';
 import type { World } from './state.ts';
 import { dayIndex, GAME_MINUTES_PER_REAL_MINUTE, isNight, minuteOfDay } from './time.ts';
 import { LORRY_ARRIVES, LORRY_LEAVES } from './tick.ts';
 import { stoveMinute } from './travellers.ts';
+import { finishChore } from './actions/chores.ts';
 
 /**
  * Gaps up to this long (ten real minutes) are simply replayed
@@ -28,6 +29,12 @@ export function skipQuietly(w: World, to: number): void {
   w.state.t = to;
   const longRest = gap >= 6 * 60 || dayIndex(from) !== dayIndex(to) || isNight(from) || isNight(to);
   for (const r of w.state.residents) {
+    // A chore done within a short pause is done; one caught by a long rest or the night is cut short.
+    const c = r.activity;
+    if (c?.kind === 'chore') {
+      if (c.until <= to && !longRest) finishChore(w, r);
+      else interrupt(w, r);
+    }
     const a = r.activity;
     if (a?.kind === 'walking') {
       const last = a.path[a.path.length - 1];

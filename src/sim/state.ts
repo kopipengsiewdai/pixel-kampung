@@ -19,7 +19,11 @@ export type Activity =
   | { kind: 'walking'; path: Point[]; dest: string | null; thenSleep: boolean }
   | { kind: 'fishing'; until: number }
   | { kind: 'working'; jobId: number; until: number; worked: number }
-  | { kind: 'sleeping'; reason: 'night' | 'nap' | 'collapse'; until: number | null };
+  | { kind: 'sleeping'; reason: 'night' | 'nap' | 'collapse'; until: number | null }
+  /** A chore (daily-life.md C): fetching water, mending nets (their own, or helping someone's), sweeping a shop. A worker on shift keeps the shift held in it. */
+  | { kind: 'chore'; chore: ChoreKind; until: number; shopId: string | null; forId: string | null; shift: { jobId: number; until: number; worked: number } | null };
+
+export type ChoreKind = 'fetch_water' | 'mend_nets' | 'sweep';
 
 export interface Observation {
   t: number;
@@ -49,6 +53,8 @@ export interface Resident {
   lastDone: { what: string; t: number } | null;
   /** A batch cooking at a shop's stove: busy until it's done (daily-life.md B). */
   stove: { item: ItemId; batches: number; qty: number; shopId: string; until: number } | null;
+  /** Nets mended today: the next few catches bring one more fish. */
+  mended: { day: number; left: number } | null;
   /** Place ids they know of: seen, or heard named. They start knowing only home. */
   knownPlaces: string[];
   /** Resident ids they've met. */
@@ -72,6 +78,23 @@ export interface Shop {
   today: { day: number; served: number; cents: Cents; left: number; away: number; awayTold: number; tooDear: Partial<Record<ItemId, number>>; servedBy: Record<string, number> };
   /** This hour's travellers, for the hourly feed line. */
   hour: { served: number; cents: Cents; left: number };
+  /** The day it was last swept: travellers wait longer in a swept shop. */
+  sweptDay: number | null;
+}
+
+/** A paid errand (daily-life.md C): asked, then taken up, then done when the runner hands the thing over. */
+export interface Errand {
+  id: number;
+  askerId: string;
+  runnerId: string;
+  kind: 'water' | 'take';
+  /** For "take": what, and to whom. */
+  item: ItemId | null;
+  toId: string | null;
+  cents: Cents;
+  taken: boolean;
+  /** Asked: lapses unanswered; taken: lapses at the day's end. */
+  expires: number;
 }
 
 export interface Job {
@@ -184,6 +207,7 @@ export interface WorldState {
   debts: Debt[];
   debtOffers: DebtOffer[];
   priceOffers: PriceOffer[];
+  errands: Errand[];
   beds: Bed[];
   notes: Note[];
   lorryHere: boolean;

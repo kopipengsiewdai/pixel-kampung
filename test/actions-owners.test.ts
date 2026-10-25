@@ -210,7 +210,7 @@ describe('cook, as a kopitiam worker on shift', () => {
     const { w, siti } = withWorker();
     accepted(act(w, siti.id, { verb: 'work_shift' }));
     const p = perceive(w, siti);
-    expect(p.actions.map((a) => a.verb).sort()).toEqual(['cook', 'look around', 'say']);
+    expect(p.actions.map((a) => a.verb).sort()).toEqual(['cook', 'say', 'sweep']);
     expect(p.job?.stock).toContainEqual({ item: 'fish', qty: 2 });
     accepted(act(w, siti.id, { verb: 'cook', item: 'fish porridge' }));
     for (let i = 0; i < 10; i++) advance(w);
@@ -260,9 +260,11 @@ describe('cook', () => {
 describe('the action space', () => {
   it('is exactly the v1 list, each with accept and refusal tests above', () => {
     expect(Object.keys(ACTIONS).sort()).toEqual([
-      'accept_job', 'accept_trade', 'agree', 'borrow', 'buy', 'cook', 'decline_trade', 'eat', 'fish', 'give', 'go_with', 'harvest',
-      'lend', 'let_go', 'let_off', 'look_around', 'offer_job', 'offer_trade', 'order_stock', 'pay_wages', 'pin_note', 'plant',
-      'quit_job', 'read_notice_board', 'refuse', 'repay', 'say', 'sell', 'set_price', 'sleep', 'walk_to', 'water', 'work_shift', 'write_iou',
+      'accept_job', 'accept_trade', 'agree', 'ask_errand', 'borrow', 'buy', 'cook', 'decline_trade', 'eat',
+      'fetch_water', 'fish', 'give', 'go_with', 'harvest', 'help', 'lend', 'let_go', 'let_off', 'look_around',
+      'mend_nets', 'offer_job', 'offer_trade', 'order_stock', 'pay_wages', 'pin_note', 'plant', 'quit_job',
+      'read_notice_board', 'refuse', 'repay', 'say', 'sell', 'set_price', 'sleep', 'sweep', 'walk_to', 'water',
+      'work_shift', 'write_iou',
     ]);
   });
 });

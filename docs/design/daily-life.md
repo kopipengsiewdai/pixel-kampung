@@ -266,6 +266,32 @@ less often; the fake brain does chores when it has nothing else to do.
 residents gain `mended: { day, left } | null`, shops `sweptDay`, the world
 `errands: []`; the living kopitiam gets 4 pails.
 
+**As built (C, save v11).**
+- A chore is an Activity `chore { chore, until, shopId, forId, shift }`.
+- A worker on shift who sweeps keeps the shift held in the chore, counts the
+  minutes as worked, and is back on shift when it's done. A chore cut short
+  (at night, or collapsing) gives nothing.
+- Helping mend someone's nets is the same 30-minute chore, for them. Helping
+  with beds waters their dry beds at once.
+- The pail goes into kopi and fish porridge batches; vegetable rice needs
+  none.
+- An errand asked lapses unanswered after 30 minutes; taken, at the day's
+  end ("The errand for Rahim came to nothing."). For "take", the thing goes
+  back to the asker, or, if the runner no longer has it, is owed for at what
+  travellers pay (an IOU "for the fish"). Handing it back to the asker calls
+  the errand off, unpaid.
+- `agree` / `refuse` answer an errand too. With more than one thing pending
+  from the same person, the item picks a price at the counter; words about
+  the errand (errand, fetch, water, its item or who it's for) pick the
+  errand, and words about money (money, loan, lend, borrow, owe, IOU) the
+  loan; otherwise they're asked which, and told what to say.
+- A worker sweeping across the end of a shift is paid only to the shift's
+  end. A chore still under way when the town rests overnight is cut short.
+- Pay that can't be made: "Rahim couldn't pay, so owes you 10¢." (no
+  pronoun), an `iou` "for the errand".
+- The fake brain mends its nets before fishing about half the time, fetches
+  and sells water to the kopitiam (which buys it), and sweeps now and then.
+
 ## D. Later: the village head's build list (held)
 
 Owner, 2026-10-25: new places arrive in-world, as Mr Lim developing the

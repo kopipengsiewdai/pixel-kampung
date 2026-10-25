@@ -39,6 +39,7 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
       reply: null,
       lastDone: null,
       stove: null,
+      mended: null,
       // Home first; a newcomer knows only a few places, everyone else the whole kampung.
       knownPlaces: [homeId, ...(c.places ?? PLACES.map((p) => p.id)).filter((id) => id !== homeId)],
       // Family and old friends are known from day one; everyone else is met in play.
@@ -49,7 +50,7 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
     if (c.role !== 'owner' || !c.business) return [];
     return [{
       id: c.business, ownerId: residents[i]!.id, stock: { ...SHOP_STOCK[c.business] }, sellPrices: {}, buyPrices: {}, buyLimits: {},
-      queue: [], serving: [], today: freshDay(dayIndex(t)), hour: { served: 0, cents: 0, left: 0 },
+      queue: [], serving: [], today: freshDay(dayIndex(t)), hour: { served: 0, cents: 0, left: 0 }, sweptDay: null,
     }];
   });
   return {
@@ -71,6 +72,7 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
     debts: [],
     debtOffers: [],
     priceOffers: [],
+    errands: [],
     beds: Array.from({ length: FARM_BEDS }, (_, n) => ({ n: n + 1, planterId: null, plantedDay: 0, wateredDays: 0, lastWateredDay: null })),
     notes: [],
     lorryHere: false,

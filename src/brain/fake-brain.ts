@@ -34,7 +34,7 @@ const FOOD_ROUND: readonly [string, number][] = [['the kopitiam', 35], ['the wet
 const HABITS: Record<string, { sell: Partial<Record<ItemId, [number, number]>>; buy: Partial<Record<ItemId, [number, number]>> }> = {
   'the kopitiam': {
     sell: { kopi: [8, 12], 'fish porridge': [30, 40], 'vegetable rice': [26, 34] },
-    buy: { fish: [18, 26], vegetables: [10, 16] },
+    buy: { fish: [18, 26], vegetables: [10, 16], water: [6, 10] },
   },
   'the provision shop': { sell: { rice: [25, 35], coffee: [60, 80], bread: [16, 24] }, buy: {} },
   'the wet-market stall': {
@@ -170,9 +170,9 @@ export class FakeBrain implements Brain {
 
   private kitchen(stock: { item: ItemId; qty: number }[]): Intent | null {
     const n = (i: ItemId) => stock.find((s) => s.item === i)?.qty ?? 0;
-    if (n('kopi') < 5 && n('coffee') > 0) return { verb: 'cook', item: 'kopi' };
+    if (n('kopi') < 5 && n('coffee') > 0 && n('water') > 0) return { verb: 'cook', item: 'kopi' };
     if (n('fish porridge') + n('vegetable rice') < 4) {
-      if (n('fish') > 0 && n('rice') > 0) return { verb: 'cook', item: 'fish porridge' };
+      if (n('fish') > 0 && n('rice') > 0 && n('water') > 0) return { verb: 'cook', item: 'fish porridge' };
       if (n('vegetables') > 0 && n('rice') > 0) return { verb: 'cook', item: 'vegetable rice' };
     }
     return null;
@@ -241,6 +241,7 @@ export class FakeBrain implements Brain {
       const w = b.workers.find((n) => here.includes(n));
       if (w) return { verb: 'let_go', who: w };
     }
+    if (p.actions.some((a) => a.verb === 'sweep') && this.rng.chance(0.1)) return { verb: 'sweep' };
     const soldOut = b.sells.find((s) => s.stock === 0 && this.rng.chance(0.02));
     if (soldOut) return { verb: 'set_price', item: soldOut.item, price: soldOut.price + 1 };
     if (here.length && this.rng.chance(0.05)) return { verb: 'say', text: this.rng.pick(CHATTER), to: this.rng.pick(here) };
@@ -253,6 +254,9 @@ export class FakeBrain implements Brain {
     if (!p.job && busy?.alone && !p.recent.slice(-6).some((t) => t.startsWith(`You say to ${busy.owner}: "You look busy`))) {
       return { verb: 'say', to: busy.owner, text: 'You look busy. Any work going, boss?' };
     }
+    const water = this.carrying(p, 'water');
+    if (water > 0 && p.shop?.staffed && p.shop.buys.some((b) => b.item === 'water')) return { verb: 'sell', item: 'water', qty: water };
+    if (water > 0 && p.place !== 'the kopitiam' && this.rng.chance(0.3)) return this.go(p, 'the kopitiam');
     const fish = this.carrying(p, 'fish');
     const veg = this.carrying(p, 'vegetables');
     const surplus = fish >= 2 || veg >= 3;
@@ -280,7 +284,11 @@ export class FakeBrain implements Brain {
       const boss = p.people.find((x) => x.doing === 'minding the shop');
       if (boss && this.rng.chance(0.3)) return { verb: 'say', text: 'Any work going, boss?', to: boss.name };
     }
+    // Nets first, once a day, then fishing.
+    if (p.place === 'the jetty' && !p.netsMended && this.rng.chance(0.5)) return { verb: 'mend_nets' };
     if (p.place === 'the jetty' && this.rng.chance(0.85)) return { verb: 'fish' };
+    // At the well: a pail to sell to the kopitiam.
+    if (p.place === 'the well' && this.carrying(p, 'water') === 0 && this.rng.chance(0.5)) return { verb: 'fetch_water' };
     if (p.place === 'the notice board') {
       if (this.rng.chance(0.2)) return { verb: 'pin_note', text: `${p.name} looking for work. Can fish, can farm.` };
       if (this.rng.chance(0.5)) return { verb: 'read_notice_board' };

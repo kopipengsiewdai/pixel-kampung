@@ -3,6 +3,7 @@
  * a frame each minute. Owner's view only (real numbers, ids, everyone at
  * once); nothing here ever goes into a resident's prompt.
  */
+import { CHORE_DOING } from '../sim/actions/chores.ts';
 import { DAYS_TO_GROW, isRipe, isStaffed, shiftLabel } from '../sim/actions/everyone.ts';
 import { LORRY_BUYS, LORRY_SELLS, quantityLabel, type ItemId } from '../sim/items.ts';
 import { MAP_H, MAP_W, PLACES, PLACE_BY_ID, tileAt, type Point, type Tile } from '../sim/map.ts';
@@ -47,6 +48,7 @@ function doing(w: World, r: Resident): string {
       if (a.thenSleep) return 'heading home to sleep';
       return a.dest ? `walking to ${placeName(a.dest, w)}` : 'walking';
     case 'fishing': return 'fishing off the jetty';
+    case 'chore': return CHORE_DOING[a.chore];
     case 'working': {
       const job = w.state.jobs.find((j) => j.id === a.jobId);
       return job ? `on shift at ${placeName(job.placeId, w)}` : 'working';
@@ -145,7 +147,7 @@ export class FrameBuilder {
         x: pos.x,
         y: pos.y,
         route,
-        activity: a?.kind ?? null,
+        activity: a?.kind === 'chore' ? 'working' : a?.kind ?? null,
         sleep: a?.kind === 'sleeping' ? a.reason : null,
         doing: doing(w, r),
         place: here ? w.placeName(here) : null,

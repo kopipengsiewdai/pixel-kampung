@@ -86,6 +86,12 @@ Ordered stock is dropped off at the owner's shop.
   5 kopi; 1 fish + 1 rice → 2 fish porridge; 1 vegetables + 1 rice → 2
   vegetable rice. A batch takes 10 minutes at the stove (kopi 5); the
   ingredients go in at the start and the servings come out at the end.
+- Chores (daily-life.md C), with no thinking while they run: fetch water at
+  the well (10 min, a pail), mend nets at the jetty (30 min; the next 3
+  catches today bring one more fish), sweep your shop or where you're on
+  shift (15 min; travellers wait 12 minutes there today, not 8). A batch of
+  kopi or fish porridge takes a pail of water. At the dawn tide (06:00–09:00)
+  a fishing line comes up empty 15% of the time, not 30%.
 - Travellers from the coast road (daily-life.md B) come to each shop at set
   hours, queue (4 at most, 8 minutes at most), and are served 2 minutes
   each by the owner there or a worker on shift there, neither cooking. They
