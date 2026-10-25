@@ -1,7 +1,7 @@
 import { FakeBrain } from '../brain/fake-brain.ts';
 import type { Intent } from '../sim/actions/index.ts';
 import type { Perception } from '../sim/perception.ts';
-import type { ModelClient, ThinkRequest, ThinkResponse } from './model.ts';
+import type { ModelClient, ThinkKind, ThinkRequest, ThinkResponse } from './model.ts';
 import { MODELS } from './anthropic-model.ts';
 import { fromIntent } from './tools.ts';
 
@@ -21,7 +21,7 @@ const NARRATED = [
   'I count it now, every cent. All paid.',
   'Agreed, three bags of rice for you.',
 ];
-const OUTPUT_TOKENS = { act: 60, business: 120, plan: 220, reflect: 320, trader: 60 } as const;
+const OUTPUT_TOKENS = { act: 60, business: 120, plan: 220, reflect: 320, trader: 60, translate: 400 } as const satisfies Record<ThinkKind, number>;
 
 /**
  * A free stand-in for the model. It decides with the fake-brain policy (from
@@ -112,7 +112,7 @@ export class FakeModel implements ModelClient {
     let text = '';
     let toolCall: ThinkResponse['toolCall'] = null;
     // A village character's call: the hint carries the answer his scripted ways would give, and the fake gives it back.
-    if (req.kind === 'trader') toolCall = { name: req.tools[0]?.name ?? 'answer', input: (req.hint as { fake?: unknown } | undefined)?.fake ?? {} };
+    if (req.kind === 'trader' || req.kind === 'translate') toolCall = { name: req.tools[0]?.name ?? 'answer', input: (req.hint as { fake?: unknown } | undefined)?.fake ?? {} };
     else if (req.kind === 'plan') text = 'Today: eat, earn a little, see who is about.';
     else if (req.kind === 'reflect') text = 'A long day. I should keep some money aside for tomorrow.';
     else {

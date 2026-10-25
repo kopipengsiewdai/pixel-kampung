@@ -37,6 +37,7 @@ const ASK: Record<ThinkKind, string> = {
   business: 'Think about your shop: what you sell and for how much, what you buy, your stock, any workers. Then do one thing.',
   plan: "A new day. In a few short lines, what do you mean to do today? (Just plan; don't act yet.)",
   trader: 'Answer briefly.',
+  translate: 'Translate.',
   reflect: 'The day is nearly over. In a few short lines to yourself: what happened today that matters, and what have you learned?',
 };
 

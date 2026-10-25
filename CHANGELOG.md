@@ -4,6 +4,10 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **English on the watch page:** an "English" button by the story feed shows lines residents say or think in Malay (or anything else) in English, with the original on hover. Speech itself is left as the residents choose. Translations come from the cheap model only while the button is on, a batch at a time, inside the town's daily cap (in the cost log as watch-page), and each line is translated once and kept privately under `$KAMPUNG_HOME`.
+
 ## 0.19.0 (2026-10-26): Pak Osman, and food for the kampung
 
 - **Pak Osman, the lorry trader:** the morning lorry now has a driver. Pak Osman comes about half past six every day but Sunday and stays about an hour and a half. He has one lorry's worth of room a day, shared between what he brings from town (rice, coffee powder, bread and, new, kerosene) and the fish and vegetables he buys here: when it's full, he's full. What town can spare varies, so a shelf can run short. He no longer sells fish or vegetables.

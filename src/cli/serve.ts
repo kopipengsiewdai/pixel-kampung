@@ -36,6 +36,7 @@ import { fakeBrains, type TownOptions } from '../town.ts';
 import { ASSETS_DIR, buildClient } from '../watch/bundle.ts';
 import { extrasFrom } from '../watch/replay.ts';
 import { DEFAULT_PORT, startWatchServer } from '../watch/server.ts';
+import { Translator } from '../watch/translate.ts';
 import { FEED_KEPT, LiveSource } from '../watch/source.ts';
 import { ECONOMY_EVENTS } from '../watch/wiki.ts';
 
@@ -58,6 +59,7 @@ const print = (e: GameEvent) => {
 let mindOpts: Partial<TownOptions> = { dials: settings.dials };
 let memory: MemoryStore | null = null;
 let costs: CostLog | null = null;
+let translator: Translator | null = null;
 if (args.minds === true) {
   const apiKey = readApiKey(home);
   if (!apiKey) {
@@ -75,6 +77,8 @@ if (args.minds === true) {
   });
   // Pak Osman thinks on the same model and the same cap: his calls are in the cost log as pak-osman.
   const osman = new ModelOsmanHead({ client: mind.client, costs, onError: mind.onError });
+  // The owner's watch page can ask for English, on the same model and the same cap (in the cost log as watch-page).
+  translator = new Translator({ client: mind.client, costs, file: join(home, 'translations.json'), onError: mind.onError });
   mindOpts = { ...mindOpts, brains: mindBrains(mind, fakeBrains), observer: mind.observe, osman };
 }
 
@@ -108,7 +112,7 @@ console.log(`Pixel Kampung is running. Saving to ${dbPath(home)}`);
 const port = numArg(args, 'port', DEFAULT_PORT);
 // Not awaited: the town's first minute never waits on the page.
 const page = buildClient()
-  .then((client) => startWatchServer({ source: live, client, assetsDir: ASSETS_DIR, port, lan: args.lan === true }))
+  .then((client) => startWatchServer({ source: live, client, assetsDir: ASSETS_DIR, port, lan: args.lan === true, ...(translator ? { translate: (t: string[]) => translator!.english(t) } : {}) }))
   .then((server) => {
     console.log(`Watch the kampung at ${server.url}  (this PC only)`);
     for (const u of server.lanUrls) console.log(`On a phone on the same Wi-Fi: ${u}`);

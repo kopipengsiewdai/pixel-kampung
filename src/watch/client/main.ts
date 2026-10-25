@@ -5,6 +5,7 @@
  */
 import type { Card, Economy, FeedLine, Hello, MoneyView, PlaceCard, ReplayState, TalkView, Thought, Update, Wiki } from '../types.ts';
 import { startGame, type TownScene } from './scene.ts';
+import { looksForeign } from '../foreign.ts';
 
 const FEED_KEPT = 200;
 
@@ -49,7 +50,70 @@ const probe = {
 // ---------------------------------------------------------------- feed
 
 function feedItem(l: FeedLine): HTMLLIElement {
-  return el('li', l.notable ? { class: 'notable' } : {}, el('span', { class: 'stamp' }, stampOf(l.t)), l.text);
+  return el('li', l.notable ? { class: 'notable' } : {}, el('span', { class: 'stamp' }, stampOf(l.t)), said(l.text));
+}
+
+// ---------------------------------------------------------------- English
+
+/** Lines in Malay (or anything else) shown in English, asked of the server a batch at a time. Remembered in this browser, if it lets us. */
+const ENGLISH_KEY = 'kampung.english';
+let english = false;
+try {
+  english = localStorage.getItem(ENGLISH_KEY) === 'on';
+} catch {
+  // Off, then.
+}
+/** English for a line; null when there's none to be had (already English, or not now). */
+const englishOf = new Map<string, string | null>();
+const asking = new Set<string>();
+let askTimer: number | null = null;
+
+/** A line as it should show: in English when that's on and it's to hand (the original on hover). */
+function said(text: string, wrap: (t: string) => string = (t) => t): Node | string {
+  if (!english || !looksForeign(text)) return wrap(text);
+  const got = englishOf.get(text);
+  if (got) return el('span', { class: 'english', title: wrap(text) }, wrap(got));
+  if (got === undefined && !asking.has(text)) {
+    asking.add(text);
+    askSoon();
+  }
+  return wrap(text);
+}
+
+function askSoon(): void {
+  if (askTimer !== null) return;
+  askTimer = window.setTimeout(() => void ask(), 400);
+}
+
+async function ask(): Promise<void> {
+  const texts = [...asking].slice(0, 60);
+  let out: unknown[] = [];
+  try {
+    const res = await fetch('/api/translate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ texts }) });
+    if (res.ok) out = ((await res.json()) as { english?: unknown[] }).english ?? [];
+  } catch {
+    // Shown as said, then.
+  }
+  texts.forEach((t, i) => {
+    asking.delete(t);
+    englishOf.set(t, typeof out[i] === 'string' ? out[i] as string : null);
+  });
+  askTimer = null;
+  drawFeed();
+  if (lastCard) renderCard(lastCard);
+  if (asking.size) askSoon();
+}
+
+function setEnglish(on: boolean): void {
+  english = on;
+  try {
+    localStorage.setItem(ENGLISH_KEY, on ? 'on' : 'off');
+  } catch {
+    // Not remembered, but still shown.
+  }
+  $('english').setAttribute('aria-pressed', String(on));
+  drawFeed();
+  if (lastCard) renderCard(lastCard);
 }
 
 /** The town's calendar: its 1 January, Year 0 (a Monday), from the server. */
@@ -127,6 +191,8 @@ function setFeedMode(mode: FeedMode): void {
 function wireFeed(): void {
   $('feed-key').addEventListener('click', () => setFeedMode('key'));
   $('feed-all').addEventListener('click', () => setFeedMode('all'));
+  $('english').addEventListener('click', () => setEnglish(!english));
+  $('english').setAttribute('aria-pressed', String(english));
   drawFeed();
 }
 
@@ -169,7 +235,7 @@ function some<T>(items: T[], n: number, key: string, show: (x: T) => Node): Node
 }
 
 function thoughtItem(t: Thought, quote: boolean): HTMLLIElement {
-  return el('li', {}, el('span', { class: 'stamp' }, t.stamp), quote ? el('span', { class: 'quote' }, `“${t.text}”`) : t.text,
+  return el('li', {}, el('span', { class: 'stamp' }, t.stamp), quote ? el('span', { class: 'quote' }, said(t.text, (x) => `“${x}”`)) : said(t.text),
     t.times ? el('span', { class: 'times' }, ` ×${t.times}`) : null);
 }
 
@@ -229,7 +295,7 @@ function talkSection(): (Node | null)[] {
     el('ul', { class: 'talk' }, ...g.lines.map((l) => el('li', l.mine ? { class: 'mine' } : {},
       el('span', { class: 'stamp' }, l.stamp),
       el('span', { class: 'who' }, `${l.speaker}${l.to ? ` to ${l.to}` : ''}:`),
-      el('span', { class: 'quote' }, `“${l.text}”`)))),
+      el('span', { class: 'quote' }, said(l.text, (x) => `“${x}”`))))),
   ]);
 }
 
@@ -299,7 +365,7 @@ function renderCard(c: Card): void {
   }
   parts.push(el('nav', { class: 'tabs', role: 'tablist' }, tab('plan', 'Plan'), tab('thoughts', 'Thoughts'), tab('talk', 'Talk'), tab('money', 'Money')));
   if (cardTab === 'plan') {
-    parts.push(c.plan ? el('p', { class: 'quote' }, `“${c.plan.text}”`) : el('p', { class: 'note' }, c.mindNote ?? 'No plan for today.'));
+    parts.push(c.plan ? el('p', { class: 'quote' }, said(c.plan.text, (x) => `“${x}”`)) : el('p', { class: 'note' }, c.mindNote ?? 'No plan for today.'));
   } else if (cardTab === 'thoughts') {
     const thoughts = c.thoughts.slice().reverse();
     if (thoughts.length) parts.push(...some(thoughts, 3, `thoughts:${c.id}`, (t) => thoughtItem(t, true)));
