@@ -45,7 +45,7 @@ export function feedText(e: GameEvent, n: Names): { text: string; notable: boole
     case 'ate': return line(`${n(e.who)} had ${quantityLabel(e.item, 1)}.`);
     case 'fell_asleep':
       if (e.reason === 'collapse') return line(`${n(e.who)} is so worn out they doze off on the spot.`, true);
-      if (e.rough) return line(`${n(e.who)} beds down ${e.rough} for the ${e.reason === 'nap' ? 'afternoon' : 'night'}.`);
+      if (e.rough) return line(`${n(e.who)} beds down ${e.rough} ${e.reason === 'nap' ? 'for a rest' : 'for the night'}.`);
       if (e.reason === 'nap') return line(`${n(e.who)} lies down for a nap.`);
       return null;
     case 'home_offered': return line(`${n(e.who)} tells ${n(e.to)} they can come and live in their house.`);

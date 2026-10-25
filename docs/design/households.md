@@ -343,11 +343,18 @@ away from his porch, about 6 action lines and a 1-line view at it.
 
   Close kin can't marry: Ah Huat and Ah Seng, Mdm Tan and Mei Ling, Muthu and
   Raju. `marry` moves nobody: either spouse can then `take_in` the other.
-- **Sleeping rough:** `sleep` with no home works only at a rough spot: the
-  jetty's landward end (31, 23), the kopitiam bench (6, 12), or under the
-  eaves at (0, 3). Rest is 2 a minute instead of 3, capped at 750. Elsewhere
-  the refusal is "You'd want somewhere sheltered to lie down." Waking after a
-  night out: "You slept rough on the jetty, and you're stiff all over."
+- **Sleeping rough:** `sleep` with no home works anywhere on the jetty or in
+  the kopitiam, or within a tile of the eaves at (0, 3); walking off to sleep
+  heads for the nearest of the jetty's landward end, the kopitiam bench or the
+  eaves. Rest is 2 a minute instead of 3, capped at 750, so a rough sleeper is
+  "not tired enough" from 700 (and `sleep` isn't listed then). Elsewhere the
+  refusal is "You'd want somewhere sheltered to lie down: the jetty, the
+  kopitiam or under the eaves by the houses." Waking after a night out: "You
+  slept rough on the jetty, and you're stiff all over."
+- **Names:** "X's house" is the house X heads, or failing that the one X
+  lives in; a head living elsewhere still calls theirs "your house". Empty
+  houses aren't listed among the places a resident knows. Close kin nearby are
+  named as kin ("Ah Seng, your son").
 - **Feed** (★ = notable): ★ moved in, ★ told to leave, ★ proposed,
   ★ married, ★ first night sleeping rough. 9b adds ★ rented, rent paid,
   ★ rent missed, ★ took the place back, and ★ the village head pins a notice.

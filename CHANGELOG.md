@@ -7,7 +7,7 @@ never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 ## Unreleased
 
 - **Families live together:** Ah Seng lives in his father Ah Huat's house and Mei Ling in her aunt Mdm Tan's; two houses stand empty.
-- **Homes:** a household head can offer someone a home or tell them to leave; someone with nowhere to live sleeps rough (the jetty, the kopitiam bench, under the eaves) and rests worse.
+- **Homes:** a household head can offer someone a home or tell them to leave; someone with nowhere to live sleeps rough (on the jetty, in the kopitiam, under the eaves) and rests worse.
 - **Marriage:** two people who have talked on enough different days grow close, and can propose and say yes (or no). Close family can't marry.
 - **Living town:** at upgrade (save v5) Ah Seng and Mei Ling move in with family and are told so, as are Ah Huat and Mdm Tan; nobody else moves or loses a cent, and the two empty houses stay shut up for now.
 

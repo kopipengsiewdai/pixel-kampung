@@ -111,7 +111,9 @@ export class FakeBrain implements Brain {
       if (!p.business) return this.goFish(p);
     }
     if (p.energy === 'exhausted' || (p.energy === 'tired' && p.hour >= 20)) {
-      return p.atHome ? { verb: 'sleep' } : { verb: 'walk_to', where: 'home' };
+      if (p.actions.some((a) => a.verb === 'sleep')) return { verb: 'sleep' };
+      // With nowhere of their own, the jetty will do.
+      return { verb: 'walk_to', where: p.placesYouKnow.includes('home') ? 'home' : 'the jetty' };
     }
     return null;
   }

@@ -43,7 +43,7 @@ function doing(w: World, r: Resident): string {
   const a = r.activity;
   switch (a?.kind) {
     case 'walking':
-      if (a.thenSleep) return 'heading home to sleep';
+      if (a.thenSleep) return r.homeId ? 'heading home to sleep' : 'looking for somewhere to sleep';
       return a.dest ? `walking to ${placeName(a.dest, w)}` : 'walking';
     case 'fishing': return 'fishing off the jetty';
     case 'working': {

@@ -4,7 +4,7 @@ import { type ActionResult, type Intent, no } from './common.ts';
 import * as everyone from './everyone.ts';
 import * as owners from './owners.ts';
 import * as households from './households.ts';
-import { canSleepHere } from '../households.ts';
+import { couldSleep } from '../activities.ts';
 
 export type { ActionResult, Intent } from './common.ts';
 
@@ -47,7 +47,7 @@ export const ACTIONS: Record<string, ActionDef> = {
   water: { run: everyone.water, ownersOnly: false, says: 'water your beds', here: at('farm') },
   harvest: { run: everyone.harvest, ownersOnly: false, says: 'harvest your beds', here: at('farm') },
   eat: { run: everyone.eat, ownersOnly: false, says: 'eat or drink something you carry (item)', here: (_w, r) => Object.keys(r.items).length > 0 },
-  sleep: { run: everyone.sleep, ownersOnly: false, says: 'sleep', here: canSleepHere },
+  sleep: { run: everyone.sleep, ownersOnly: false, says: 'sleep', here: couldSleep },
   accept_job: {
     run: everyone.acceptJob, ownersOnly: false, says: 'accept a job someone offered you (person)',
     here: (w, r) => w.state.jobOffers.some((o) => o.workerId === r.id),

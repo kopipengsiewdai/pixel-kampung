@@ -55,5 +55,7 @@ export function skipQuietly(w: World, to: number): void {
   w.state.lorryHere = mod >= LORRY_ARRIVES && mod < LORRY_LEAVES;
   w.state.jobOffers = w.state.jobOffers.filter((o) => o.expires > to);
   w.state.trades = w.state.trades.filter((o) => o.expires > to);
+  w.state.homeOffers = w.state.homeOffers.filter((o) => o.expires > to);
+  w.state.proposals = w.state.proposals.filter((o) => o.expires > to);
   w.emit({ type: 'quiet_spell', minutes: gap });
 }

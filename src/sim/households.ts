@@ -84,14 +84,14 @@ export function nearestRough(at: Point): (typeof ROUGH_SPOTS)[number] {
   return ROUGH_SPOTS.reduce((best, s) => (distance(at, s.at) < distance(at, best.at) ? s : best));
 }
 
-/** Whether they're at a spot to sleep rough (within a tile). */
-export function atRoughSpot(r: Resident): boolean {
-  return ROUGH_SPOTS.some((s) => distance(r.pos, s.at) <= 1);
+/** Whether they're somewhere to sleep rough: anywhere on the jetty or in the kopitiam, or under the eaves. */
+export function atRoughSpot(w: World, r: Resident): boolean {
+  return w.isAt(r, 'jetty') || w.isAt(r, 'kopitiam') || distance(r.pos, ROUGH_SPOTS[2]!.at) <= 1;
 }
 
-/** Where they'd lie down for the night: home, or with none, somewhere sheltered. */
+/** Where they'd lie down: home, or with none, somewhere sheltered. */
 export function canSleepHere(w: World, r: Resident): boolean {
-  return r.homeId ? w.isAt(r, r.homeId) : atRoughSpot(r);
+  return r.homeId ? w.isAt(r, r.homeId) : atRoughSpot(w, r);
 }
 
 /** Lines about their household, marriage and open offers, for what they perceive. Only what applies. */

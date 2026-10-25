@@ -2,13 +2,23 @@ import { findPath } from './map.ts';
 import { dayIndex, isNight } from './time.ts';
 import type { Resident, World } from './state.ts';
 import { addGoods } from './state.ts';
-import { canSleepHere, nearestRough } from './households.ts';
+import { canSleepHere, nearestRough, ROUGH_REST_CAP } from './households.ts';
 
 export const WALK_TILES_PER_MINUTE = 3;
 export const FISHING_MINUTES = 30;
 export const NAP_MAX_MINUTES = 180;
 export const RESTED = 950;
 export const COLLAPSE_WAKE_ENERGY = 400;
+
+/** Past this they're not tired enough to lie down (sleeping rough never rests them as far). */
+export function restedFor(r: Resident): number {
+  return (r.homeId ? RESTED : ROUGH_REST_CAP) - 50;
+}
+
+/** For the action list: somewhere they'd lie down, and tired enough to. */
+export function couldSleep(w: World, r: Resident): boolean {
+  return canSleepHere(w, r) && r.energy < restedFor(r);
+}
 
 export function startSleep(w: World, r: Resident, reason: 'night' | 'nap' | 'collapse'): void {
   // With no home, a night or a nap is rough sleeping; dozing off where you stand is just that.

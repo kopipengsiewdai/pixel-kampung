@@ -23,7 +23,8 @@ export function takeIn(w: World, r: Resident, i: Intent): ActionResult {
 export function moveIn(w: World, r: Resident, i: Intent): ActionResult {
   const from = w.residentByName(i.from);
   const offer = from ? w.state.homeOffers.find((x) => x.fromId === from.id && x.toId === r.id) : undefined;
-  if (!from || !offer) return no(`${from?.name ?? 'Nobody by that name'} hasn't offered you a home.`);
+  if (!from) return no("You don't know anyone by that name.");
+  if (!offer) return no(`${from.name} hasn't offered you a home.`);
   w.state.homeOffers = w.state.homeOffers.filter((x) => x !== offer);
   r.homeId = offer.houseId;
   w.learnPlace(r, offer.houseId);
@@ -40,7 +41,7 @@ export function tellToLeave(w: World, r: Resident, i: Intent): ActionResult {
   if (o.id === r.id) return no("That's you.");
   if (!house || o.homeId !== house.id) return no(`${o.name} doesn't live in your house.`);
   const there = personNearby(w, r, i.to);
-  if (typeof there === 'string') return no(`You'd have to tell ${o.name} in person.`);
+  if (typeof there === 'string') return no(w.isNear(r, o) ? there : `You'd have to tell ${o.name} in person.`);
   rehome(w, o);
   w.state.homeOffers = w.state.homeOffers.filter((x) => !(x.fromId === r.id && x.toId === o.id));
   w.notify(o.id, o.homeId
@@ -70,7 +71,8 @@ export function propose(w: World, r: Resident, i: Intent): ActionResult {
 export function marry(w: World, r: Resident, i: Intent): ActionResult {
   const o = w.residentByName(i.to);
   const p = o ? w.state.proposals.find((x) => x.fromId === o.id && x.toId === r.id) : undefined;
-  if (!o || !p) return no(`${o?.name ?? 'Nobody by that name'} hasn't asked you.`);
+  if (!o) return no("You don't know anyone by that name.");
+  if (!p) return no(`${o.name} hasn't asked you.`);
   if (r.spouseId || o.spouseId) return no('One of you is already married.');
   r.spouseId = o.id;
   o.spouseId = r.id;
@@ -84,7 +86,8 @@ export function marry(w: World, r: Resident, i: Intent): ActionResult {
 export function turnDown(w: World, r: Resident, i: Intent): ActionResult {
   const o = w.residentByName(i.to);
   const p = o ? w.state.proposals.find((x) => x.fromId === o.id && x.toId === r.id) : undefined;
-  if (!o || !p) return no(`${o?.name ?? 'Nobody by that name'} hasn't asked you.`);
+  if (!o) return no("You don't know anyone by that name.");
+  if (!p) return no(`${o.name} hasn't asked you.`);
   w.state.proposals = w.state.proposals.filter((x) => x !== p);
   w.notify(o.id, `${r.name} turned down your proposal.`);
   w.emit({ type: 'turned_down', who: r.id, to: o.id });
@@ -100,7 +103,7 @@ export function canTakeIn(w: World, r: Resident): boolean {
 /** For the action list: someone who heads a house with others living in it, one of them nearby. */
 export function canTellToLeave(w: World, r: Resident): boolean {
   const house = heldBy(w, r);
-  return !!house && livingIn(w, house.id, r.id).some((o) => w.isNear(r, o));
+  return !!house && livingIn(w, house.id, r.id).some((o) => w.isNear(r, o) && !w.isAsleep(o));
 }
 
 /** For the action list: unmarried, with someone close, unmarried and not kin, nearby. */

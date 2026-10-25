@@ -156,7 +156,7 @@ each changelog entry says how the living town picks the change up.
 **Family live together.** Ah Seng lives in his father Ah Huat's house and Mei
 Ling in her aunt Mdm Tan's, so two houses stand empty. **Residents are free:**
 a household head can tell someone to leave, anyone can offer someone a home,
-and someone with no home sleeps rough (the jetty, the kopitiam bench, under
+and someone with no home sleeps rough (on the jetty, in the kopitiam, under
 the eaves), resting worse. **Marriage** happens only if two unmarried adults
 who have grown close choose it (propose and accept); there is no
 matchmaking. Close kin can't marry. The houses people live in are family

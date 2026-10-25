@@ -244,3 +244,75 @@ describe('the v4 → v5 step on its own', () => {
     }
   });
 });
+
+describe('review fixes', () => {
+  it('someone with no home can lie down anywhere on the jetty or at the kopitiam, where the refusal sends them', () => {
+    const w = at9();
+    const seng = who(w, 'Ah Seng');
+    seng.homeId = null;
+    seng.energy = 300;
+    put(w, 'Ah Seng', 'well');
+    refused(act(w, seng.id, { verb: 'sleep' }), /jetty|kopitiam/);
+    accepted(act(w, seng.id, { verb: 'walk_to', where: 'the jetty' }));
+    put(w, 'Ah Seng', 'jetty');
+    expect(perceive(w, seng).actions.some((a) => a.verb === 'sleep')).toBe(true);
+    accepted(act(w, seng.id, { verb: 'sleep' }));
+    seng.activity = null;
+    put(w, 'Ah Seng', 'kopitiam');
+    accepted(act(w, seng.id, { verb: 'sleep' }));
+  });
+
+  it("a rough sleeper who isn't tired enough can't nap (no nap-and-wake loop)", () => {
+    const w = at9();
+    const seng = put(w, 'Ah Seng', 'jetty');
+    seng.homeId = null;
+    seng.energy = 800;
+    refused(act(w, seng.id, { verb: 'sleep' }), /not tired enough/);
+    expect(perceive(w, seng).actions.some((a) => a.verb === 'sleep')).toBe(false);
+  });
+
+  it('a downtime night puts someone with no home to sleep rough, rested only as rough sleeping allows', async () => {
+    const { skipQuietly } = await import('../src/sim/skip.ts');
+    const w = at9();
+    const seng = who(w, 'Ah Seng');
+    seng.homeId = null;
+    seng.energy = 100;
+    skipQuietly(w, sgt(2, 0, 1));
+    expect(seng.activity).toMatchObject({ kind: 'sleeping', rough: true });
+    expect(seng.energy).toBeLessThanOrEqual(ROUGH_REST_CAP);
+  });
+
+  it("empty houses aren't listed as places to go, and a head living elsewhere still finds and names their own house", () => {
+    const w = at9();
+    const rahim = who(w, 'Rahim');
+    expect(perceive(w, rahim).placesYouKnow).not.toContain('attap house 4');
+    // Ah Huat goes to live in Rahim's house; his own house is still his.
+    const huat = who(w, 'Ah Huat');
+    const own = huat.homeId!;
+    huat.homeId = rahim.homeId;
+    const siti = put(w, 'Siti', 'well');
+    w.learnPlace(siti, own);
+    const res = accepted(act(w, siti.id, { verb: 'walk_to', where: "Ah Huat's house" }));
+    expect(res.reply).toContain("Ah Huat's house");
+    expect(siti.activity).toMatchObject({ dest: own });
+    put(w, 'Ah Huat', own);
+    expect(perceive(w, huat).place).toBe('your house');
+  });
+
+  it('family nearby are named as family, and refusals read in plain words', () => {
+    const w = at9();
+    put(w, 'Ah Huat', 'kopitiam');
+    put(w, 'Ah Seng', 'kopitiam');
+    expect(describePerception(perceive(w, who(w, 'Ah Huat')))).toContain('Ah Seng, your son (');
+    for (const reply of [
+      act(w, who(w, 'Ah Seng').id, { verb: 'move_in', from: 'Nobody' }).reply!,
+      act(w, who(w, 'Ah Seng').id, { verb: 'marry', to: 'Nobody' }).reply!,
+      act(w, who(w, 'Ah Seng').id, { verb: 'turn_down', to: 'Nobody' }).reply!,
+    ]) {
+      expect(reply).not.toMatch(/Nobody by that name hasn't/);
+      expectInWorld(reply);
+    }
+    who(w, 'Ah Seng').activity = { kind: 'sleeping', reason: 'nap', until: null };
+    refused(act(w, who(w, 'Ah Huat').id, { verb: 'tell_to_leave', to: 'Ah Seng' }), /asleep/);
+  });
+});

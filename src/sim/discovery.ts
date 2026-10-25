@@ -1,6 +1,7 @@
 import { PLACES, type Place, type Point } from './map.ts';
 import { PLACE_WORDS } from './places.ts';
 import type { Resident, World } from './state.ts';
+import { heldBy } from './households.ts';
 
 /** How far a resident can make out a building or a stretch of the jetty. */
 export const SIGHT_TILES = 6;
@@ -36,6 +37,7 @@ export function learnFromWords(w: World, r: Resident, text: string): void {
     const name = o.name.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     if (!new RegExp(`\\b${name}\\b`).test(s)) continue;
     w.learnPerson(r, o.id);
-    if (o.homeId && new RegExp(`\\b${name}['’]s (house|home|place)\\b`).test(s)) w.learnPlace(r, o.homeId);
+    const house = heldBy(w, o)?.id ?? o.homeId;
+    if (house && new RegExp(`\\b${name}['’]s (house|home|place)\\b`).test(s)) w.learnPlace(r, house);
   }
 }
