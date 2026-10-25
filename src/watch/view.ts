@@ -3,16 +3,16 @@
  * a frame each minute. Owner's view only (real numbers, ids, everyone at
  * once); nothing here ever goes into a resident's prompt.
  */
-import { isRipe, isStaffed, shiftLabel } from '../sim/actions/everyone.ts';
-import { quantityLabel, type ItemId } from '../sim/items.ts';
+import { DAYS_TO_GROW, isRipe, isStaffed, shiftLabel } from '../sim/actions/everyone.ts';
+import { LORRY_BUYS, LORRY_SELLS, quantityLabel, type ItemId } from '../sim/items.ts';
 import { MAP_H, MAP_W, PLACES, PLACE_BY_ID, tileAt, type Point, type Tile } from '../sim/map.ts';
 import { formatMoney, type Cents } from '../sim/money.ts';
 import { energyWord, hungerWord } from '../sim/perception.ts';
 import type { Goods, Resident, Shop, World } from '../sim/state.ts';
-import { dateAt, MONTHS } from '../sim/calendar.ts';
-import { shortStamp } from '../sim/calendar.ts';
+import { dateAt, MONTHS, shortStamp } from '../sim/calendar.ts';
 import { dayIndex, minuteOfDay, sgtHour, sgtMinute } from '../sim/time.ts';
-import type { Card, Carried, Frame, Layout, ResidentView, ShopView, Thought } from './types.ts';
+import type { Card, Carried, Frame, Layout, PlaceCard, ResidentView, ShopView, Thought } from './types.ts';
+import { LORRY_ARRIVES, LORRY_LEAVES } from '../sim/tick.ts';
 
 export function layoutOf(w: World): Layout {
   const tiles: Tile[][] = Array.from({ length: MAP_H }, (_, y) => Array.from({ length: MAP_W }, (_, x) => tileAt(x, y)!));
@@ -83,7 +83,20 @@ function shopView(w: World, s: Shop): ShopView {
       return left === undefined ? tag(i, c) : `${tag(i, c)} (up to ${left} more)`;
     }),
     staffed: isStaffed(w, s),
+    serving: servingAt(w, s),
+    workers: w.state.jobs.filter((j) => j.placeId === s.id).map((j) => j.workerId),
   };
+}
+
+/** Who is serving at a shop right now: the owner if they're minding it, else a worker on shift there. */
+function servingAt(w: World, s: Shop): string | null {
+  const owner = w.resident(s.ownerId);
+  if (w.isAt(owner, s.id) && !w.isAsleep(owner) && owner.activity?.kind !== 'walking') return owner.id;
+  const worker = w.state.residents.find((x) => {
+    const a = x.activity;
+    return a?.kind === 'working' && w.state.jobs.some((j) => j.id === a.jobId && j.placeId === s.id);
+  });
+  return worker?.id ?? null;
 }
 
 /**
@@ -141,7 +154,10 @@ export class FrameBuilder {
         planted: b.planterId !== null,
         ready: b.planterId !== null && isRipe(w, b),
         wateredToday: b.lastWateredDay === today,
+        planter: b.planterId,
+        wateredDays: b.wateredDays,
       })),
+      notes: w.state.notes.map((n) => ({ authorId: n.authorId, text: n.text, t: n.t, stamp: shortStamp(w.state, n.t) })),
     };
   }
 }
@@ -163,4 +179,51 @@ export function cardOf(frame: Frame, id: string, extras: CardExtras): Card | nul
     ...frame.owed.filter((o) => o.workerId === id && o.cents > 0).map((o) => `Owed ${formatMoney(o.cents)} by ${name(o.employerId)}`),
   ];
   return { ...r, shop: frame.shops.find((s) => s.ownerId === id) ?? null, wages, ...extras };
+}
+
+const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+
+function priceList(prices: Partial<Record<ItemId, Cents>>): string[] {
+  return (Object.entries(prices) as [ItemId, Cents][]).map(([item, c]) => `${item} ${formatMoney(c)}`);
+}
+
+/**
+ * The card for one place, from a frame and the map: who's there, and what's
+ * inside (a shop's stock and prices, the board's notes, the farm's beds, who's
+ * fishing, when the lorry comes). Owner's view only.
+ */
+export function placeCardOf(frame: Frame, layout: Layout, id: string): PlaceCard | null {
+  const place = layout.places.find((p) => p.id === id);
+  if (!place) return null;
+  const name = (rid: string | null | undefined) => (rid ? frame.residents.find((r) => r.id === rid)?.name ?? rid : null);
+  const inside = (r: { x: number; y: number }) => r.x >= place.rect.x && r.x < place.rect.x + place.rect.w && r.y >= place.rect.y && r.y < place.rect.y + place.rect.h;
+  const people = frame.residents.filter(inside);
+  const card: PlaceCard = { id, kind: place.kind, name: place.name, here: people.map((r) => r.name), shop: null, notes: null, beds: null, fishing: null, lorry: null, home: null };
+  const shop = frame.shops.find((s) => s.id === id);
+  if (shop) {
+    card.shop = {
+      owner: name(shop.ownerId)!, serving: name(shop.serving ?? null), workers: (shop.workers ?? []).map((w) => name(w)!),
+      stock: shop.stock, sells: shop.sells, buys: shop.buys,
+    };
+  }
+  if (place.kind === 'notice_board') {
+    card.notes = (frame.notes ?? []).slice().reverse().map((n) => ({ author: name(n.authorId)!, stamp: n.stamp, text: n.text }));
+  }
+  if (place.kind === 'farm') {
+    card.beds = frame.beds.map((b) => {
+      const who = b.planted ? name(b.planter ?? null) : null;
+      const status = !b.planted ? 'free'
+        : b.ready ? 'ready to harvest'
+          : `growing (watered ${b.wateredDays ?? 0} of ${DAYS_TO_GROW} days${b.wateredToday ? ', today too' : ''})`;
+      return { n: b.n, who, growing: b.planted ? 'kangkong' : null, ready: b.ready, status };
+    });
+  }
+  if (place.kind === 'jetty') card.fishing = people.filter((r) => r.activity === 'fishing').map((r) => r.name);
+  if (place.kind === 'lorry_stop') {
+    const next = frame.lorryHere ? `Here now, until ${hhmm(LORRY_LEAVES)}.`
+      : `Comes at ${hhmm(LORRY_ARRIVES)} ${frame.minuteOfDay < LORRY_ARRIVES ? 'today' : 'tomorrow'}, leaves at ${hhmm(LORRY_LEAVES)}.`;
+    card.lorry = { here: frame.lorryHere, next, sells: priceList(LORRY_SELLS), buys: priceList(LORRY_BUYS) };
+  }
+  if (place.kind === 'house') card.home = { of: frame.residents.find((r) => r.homeId === id)?.name ?? null };
+  return card;
 }

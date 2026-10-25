@@ -37,6 +37,8 @@ interface Mover {
 
 export interface TownHooks {
   onPick(id: string): void;
+  /** A click on a place (not on anyone in it). */
+  onPickPlace(id: string): void;
 }
 
 function hash(x: number, y: number): number {
@@ -58,6 +60,7 @@ export class TownScene extends Phaser.Scene {
   private frame: Frame | null = null;
   private overlay!: Phaser.GameObjects.Rectangle;
   private ring!: Phaser.GameObjects.Ellipse;
+  private placeRing!: Phaser.GameObjects.Rectangle;
   private lorry!: Phaser.GameObjects.Image;
   private lorryHere = false;
   private beds: { tiles: Phaser.GameObjects.Image[]; crops: Phaser.GameObjects.Image[] }[] = [];
@@ -90,6 +93,7 @@ export class TownScene extends Phaser.Scene {
     this.placeLorryAndBoat();
     this.overlay = this.add.rectangle(0, 0, w * T, h * T, 0x000000, 0).setOrigin(0, 0).setDepth(OVERLAY_DEPTH);
     this.ring = this.add.ellipse(0, 0, 14, 6).setStrokeStyle(1, 0xf2c14e).setVisible(false);
+    this.placeZones();
     this.ready = true;
     if (this.pending) {
       this.apply(this.pending.u, this.pending.msPerMinute);
@@ -285,6 +289,54 @@ export class TownScene extends Phaser.Scene {
 
   select(id: string | null): void {
     this.selected = id;
+  }
+
+  /** Every place can be clicked; the zones sit under everyone, so a click on a person still picks the person. */
+  private placeZones(): void {
+    this.placeRing = this.add.rectangle(0, 0, 1, 1).setOrigin(0, 0).setStrokeStyle(1, 0xf2c14e).setDepth(OVERLAY_DEPTH + 2).setVisible(false);
+    for (const p of this.layout.places) {
+      const r = this.placeRect(p);
+      this.add.zone(r.x, r.y, r.w, r.h).setOrigin(0, 0).setDepth(-5)
+        .setInteractive({ useHandCursor: true })
+        .on('pointerdown', () => this.hooks.onPickPlace(p.id));
+    }
+  }
+
+  /** A place's clickable area in world pixels (a house takes in its roof). */
+  private placeRect(p: LayoutPlace): { x: number; y: number; w: number; h: number } {
+    const roof = p.kind === 'house' ? T : 0;
+    return { x: p.rect.x * T, y: p.rect.y * T - roof, w: p.rect.w * T, h: p.rect.h * T + roof };
+  }
+
+  selectPlace(id: string | null): void {
+    const p = id ? this.layout.places.find((x) => x.id === id) : undefined;
+    if (!p) {
+      this.placeRing.setVisible(false);
+      return;
+    }
+    const r = this.placeRect(p);
+    this.placeRing.setPosition(r.x, r.y).setSize(r.w, r.h).setVisible(true);
+  }
+
+  /**
+   * Where on the page to click to pick a place, at least `clearance` tiles
+   * from anyone (people drift as they idle), or null if there's no such spot
+   * right now (for the headless page check).
+   */
+  screenPointOf(id: string, clearance = 2): { x: number; y: number } | null {
+    const p = this.layout.places.find((x) => x.id === id);
+    if (!p) return null;
+    let best: { x: number; y: number; d: number } | null = null;
+    for (let y = p.rect.y; y < p.rect.y + p.rect.h; y++) {
+      for (let x = p.rect.x; x < p.rect.x + p.rect.w; x++) {
+        const d = Math.min(99, ...[...this.movers.values()].map((m) => Math.hypot(m.sprite.x / T - x - 0.5, m.sprite.y / T - y - 0.5)));
+        if (!best || d > best.d) best = { x, y, d };
+      }
+    }
+    if (!best || best.d < clearance) return null;
+    const canvas = this.game.canvas.getBoundingClientRect();
+    const k = canvas.width / (this.layout.w * T);
+    return { x: canvas.left + (best.x + 0.5) * T * k, y: canvas.top + (best.y + 0.5) * T * k };
   }
 
   update(time: number): void {

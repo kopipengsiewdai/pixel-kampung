@@ -14,8 +14,8 @@ import { shortStamp } from '../sim/calendar.ts';
 import type { TownOptions } from '../town.ts';
 import { ReplayPlayer } from './player.ts';
 import type { ReplayReader } from './replay.ts';
-import type { Card, Frame, Hello, Layout, ReplayState, Update } from './types.ts';
-import { FrameBuilder, cardOf, layoutOf, type CardExtras } from './view.ts';
+import type { Card, Frame, Hello, Layout, PlaceCard, ReplayState, Update } from './types.ts';
+import { FrameBuilder, cardOf, layoutOf, placeCardOf, type CardExtras } from './view.ts';
 
 export const FEED_KEPT = 200;
 export const ROUTE_KEPT = 64;
@@ -26,6 +26,8 @@ export interface WatchSource {
   readonly mode: 'live' | 'replay';
   hello(): Hello;
   card(id: string): Card | null;
+  /** What the owner sees on clicking a place: who's there and what's inside. */
+  placeCard(id: string): PlaceCard | null;
   subscribe(fn: (u: Update) => void): () => void;
   /** Replay mode only. */
   control?(cmd: ReplayCommand): ReplayState;
@@ -219,6 +221,10 @@ export class LiveSource implements WatchSource {
     return cardOf(this.frame, id, extras);
   }
 
+  placeCard(id: string): PlaceCard | null {
+    return this.frame && this.layout ? placeCardOf(this.frame, this.layout, id) : null;
+  }
+
   subscribe(fn: (u: Update) => void): () => void {
     return this.hub.subscribe(fn);
   }
@@ -366,6 +372,10 @@ export class ReplaySource implements WatchSource {
   card(id: string): Card | null {
     const t = this.player.state().t;
     return cardOf(this.reader.frameAt(t), id, this.reader.extras(id, t));
+  }
+
+  placeCard(id: string): PlaceCard | null {
+    return placeCardOf(this.reader.frameAt(this.player.state().t), this.layout, id);
   }
 
   subscribe(fn: (u: Update) => void): () => void {
