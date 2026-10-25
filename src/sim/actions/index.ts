@@ -87,7 +87,7 @@ export const ACTIONS: Record<string, ActionDef> = {
     here: (w, r) => w.state.jobs.some((j) => j.employerId === r.id),
   },
   pay_wages: {
-    run: owners.payWages, ownersOnly: true, says: 'pay a worker wages you owe (person, and money to pay only part)',
+    run: owners.payWages, ownersOnly: false, says: 'pay a worker wages you owe (person, and money to pay only part)',
     here: (w, r) => w.state.owed.some((o) => o.employerId === r.id),
   },
   order_stock: {

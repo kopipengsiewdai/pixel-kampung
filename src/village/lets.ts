@@ -80,7 +80,7 @@ function payIn(w: World, r: Resident, cents: Cents, placeId: string, what: strin
 export function takeHouse(w: World, r: Resident, placeId: string): void {
   const rent = rentOf(w, placeId);
   payIn(w, r, rent, placeId, 'rent');
-  w.state.leases.push({ placeId, tenantId: r.id, rent, deposit: 0, paidUntil: mondayAfter(w, dayIndex(w.t) + 4), owed: 0 });
+  w.state.leases.push({ placeId, tenantId: r.id, rent, deposit: 0, paidUntil: mondayAfter(w, dayIndex(w.t) + 4), owed: 0, excused: false });
   w.state.houses.find((h) => h.id === placeId)!.holderId = r.id;
   r.homeId = placeId;
   w.learnPlace(r, placeId);
@@ -93,9 +93,17 @@ export function takeStall(w: World, r: Resident, placeId: string): void {
   payIn(w, r, STALL_DEPOSIT, placeId, 'deposit');
   w.state.fund.depositsHeld += STALL_DEPOSIT;
   payIn(w, r, rent, placeId, 'rent');
-  w.state.leases.push({ placeId, tenantId: r.id, rent, deposit: STALL_DEPOSIT, paidUntil: mondayAfter(w, dayIndex(w.t) + 4), owed: 0 });
+  w.state.leases.push({ placeId, tenantId: r.id, rent, deposit: STALL_DEPOSIT, paidUntil: mondayAfter(w, dayIndex(w.t) + 4), owed: 0, excused: false });
   w.state.shops.push({ id: placeId, ownerId: r.id, stock: {}, sellPrices: {}, buyPrices: {}, buyLimits: {} });
   w.state.stallCalls = w.state.stallCalls.filter((c) => c.placeId !== placeId);
+  // One stall each: any other they asked for passes on.
+  for (const c of w.state.stallCalls) {
+    c.applicants = c.applicants.filter((id) => id !== r.id);
+    if (c.offeredTo === r.id) {
+      c.offeredTo = null;
+      c.offerUntil = null;
+    }
+  }
   r.role = 'owner';
   w.learnPlace(r, placeId);
   w.emit({ type: 'let', who: r.id, place: placeId, rent, deposit: STALL_DEPOSIT });
@@ -130,6 +138,7 @@ export function takeBack(w: World, lease: Lease, why: 'handed' | 'unpaid'): void
   } else {
     const house = w.state.houses.find((h) => h.id === lease.placeId)!;
     house.holderId = null;
+    w.state.homeOffers = w.state.homeOffers.filter((o) => o.houseId !== lease.placeId);
     for (const r of w.state.residents.filter((x) => x.homeId === lease.placeId)) {
       rehome(w, r);
       if (r.id !== tenant.id) w.notify(r.id, `${name} has gone back to Mr Lim. ${r.homeId ? `You go back to ${w.placeName(w.home(r)!)}.` : "You've nowhere to sleep tonight."}`);
@@ -160,14 +169,16 @@ export function rentRound(w: World, leases: readonly Lease[]): void {
       lease.paidUntil = today + 7;
       w.notify(r.id, `Mr Lim came by for the rent; you paid him ${formatMoney(due)} for ${name}.`);
       w.emit({ type: 'rent_paid', who: r.id, place: lease.placeId, cents: due });
-    } else if (lease.owed > 0) {
+    } else if (lease.owed > 0 && !lease.excused) {
       takeBack(w, lease, 'unpaid');
     } else {
-      lease.owed = lease.rent;
+      // A first miss; or a second when the grace week was lost to the town being stopped, which carries over.
+      lease.owed += lease.rent;
+      lease.excused = false;
       lease.paidUntil = today + 7;
       w.notify(r.id, here
-        ? `Mr Lim came by for the rent, and you couldn't pay. You owe him ${formatMoney(lease.rent)} for ${name} by next Monday.`
-        : `Mr Lim called for the rent and found you out. You owe him ${formatMoney(lease.rent)} for ${name} by next Monday.`);
+        ? `Mr Lim came by for the rent, and you couldn't pay. You owe him ${formatMoney(lease.owed)} for ${name} by next Monday.`
+        : `Mr Lim called for the rent and found you out. You owe him ${formatMoney(lease.owed)} for ${name} by next Monday.`);
       w.emit({ type: 'rent_missed', who: r.id, place: lease.placeId, cents: lease.rent });
     }
   }
@@ -176,9 +187,11 @@ export function rentRound(w: World, leases: readonly Lease[]): void {
 /** Paying at his door: anything owed first, then weeks ahead (up to four in hand). Null if paid, else why not. */
 export function payAtDoor(w: World, r: Resident, lease: Lease, weeks: number): string | null {
   const today = dayIndex(w.t);
+  // A round missed while the town was stopped is owed nothing: paying starts from this week.
+  if (lease.paidUntil <= today) lease.paidUntil = mondayAfter(w, today + 1) - 7;
   const ahead = Math.max(0, Math.round((lease.paidUntil - today) / 7));
   const take = lease.owed > 0 ? Math.max(0, weeks - 1) : weeks;
-  if (lease.owed === 0 && ahead + take > AHEAD_WEEKS) return `You've already paid up to ${dayLabel(w, lease.paidUntil)}. Mr Lim won't take more ahead than that.`;
+  if (ahead + take > AHEAD_WEEKS) return `You've already paid up to ${dayLabel(w, lease.paidUntil)}. Mr Lim won't take more ahead than that.`;
   const due = lease.owed + take * lease.rent;
   if (r.money < due) return `That would be ${formatMoney(due)}. You only have ${formatMoney(r.money)}.`;
   payIn(w, r, due, lease.placeId, 'rent');

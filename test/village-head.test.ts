@@ -374,3 +374,107 @@ describe('on the watch page', () => {
     expect(v.route.length).toBeGreaterThan(1);
   });
 });
+
+describe('review fixes', () => {
+  function rentedHouse() {
+    const w = newWorld(9);
+    const siti = atDoor(w, 'Siti');
+    accepted(act(w, siti.id, { verb: 'rent_place', where: 'attap house 4' }));
+    return { w, siti, lease: leaseOf(w, 'house-4')! };
+  }
+  const roundAt = (w: World, day: number) => { w.state.t = day * 1440 - 8 * 60 + 6 * 60 + 15; };
+
+  it('someone who gave up a stall can still pay the wages they owe, and is reminded', () => {
+    const w = newWorld(9);
+    const siti = atDoor(w, 'Siti');
+    siti.money = 5000;
+    w.state.stallCalls.find((c) => c.placeId === 'stall-1')!.offeredTo = siti.id;
+    w.state.stallCalls.find((c) => c.placeId === 'stall-1')!.offerUntil = dayIndex(w.t) + 2;
+    accepted(act(w, siti.id, { verb: 'rent_place', where: 'the stall under the tree' }));
+    w.state.owed.push({ employerId: siti.id, workerId: who(w, 'Raju').id, cents: 200 });
+    accepted(act(w, siti.id, { verb: 'hand_back', where: 'the stall under the tree' }));
+    expect(describePerception(perceive(w, siti))).toMatch(/You owe wages: Raju \$2\.00/);
+    put(w, 'Raju', DOOR);
+    expect(perceive(w, siti).actions.some((a) => a.verb === 'pay wages')).toBe(true);
+    accepted(act(w, siti.id, { verb: 'pay_wages', to: 'Raju' }));
+  });
+
+  it('a grace week lost to downtime never leads to the place being taken back', () => {
+    const { w, siti, lease } = rentedHouse();
+    const first = lease.paidUntil;
+    roundAt(w, first);
+    put(w, 'Siti', 'jetty');
+    rentRound(w, [lease]);
+    expect(lease.owed).toBe(HOUSE_RENT);
+    // The town is stopped from that morning until just before the next round.
+    skipQuietly(w, (first + 7) * 1440 - 8 * 60 + 5 * 60);
+    roundAt(w, first + 7);
+    put(w, 'Siti', 'jetty');
+    rentRound(w, [lease]);
+    expect(leaseOf(w, 'house-4')).not.toBeNull();
+    expect(lease.owed).toBe(2 * HOUSE_RENT);
+    expect(siti.homeId).toBe('house-4');
+    // A week missed again, with door hours to pay in, is the end of it.
+    roundAt(w, first + 14);
+    rentRound(w, [lease]);
+    expect(leaseOf(w, 'house-4')).toBeNull();
+  });
+
+  it('paying after a stopped spell starts from today, so nobody pays for weeks gone by', () => {
+    const { w, siti, lease } = rentedHouse();
+    skipQuietly(w, (lease.paidUntil + 14) * 1440 - 8 * 60 + 9 * 60);
+    atDoor(w, 'Siti');
+    accepted(act(w, siti.id, { verb: 'pay_rent' }));
+    expect(lease.paidUntil).toBeGreaterThan(dayIndex(w.t));
+    expect(lease.paidUntil - dayIndex(w.t)).toBeLessThanOrEqual(7);
+  });
+
+  it('a home offered in a house that goes back to Mr Lim can no longer be taken up', () => {
+    const { w, siti } = rentedHouse();
+    put(w, 'Siti', 'house-4');
+    put(w, 'Raju', 'house-4');
+    accepted(act(w, siti.id, { verb: 'take_in', to: 'Raju' }));
+    atDoor(w, 'Siti');
+    accepted(act(w, siti.id, { verb: 'hand_back', where: "Siti's house" }));
+    refused(act(w, who(w, 'Raju').id, { verb: 'move_in', from: 'Siti' }), /hasn't offered/);
+  });
+
+  it("rent can't be paid more than four weeks ahead, even with a week owed", () => {
+    const { w, siti, lease } = rentedHouse();
+    roundAt(w, lease.paidUntil);
+    put(w, 'Siti', 'jetty');
+    rentRound(w, [lease]);
+    w.state.t += 3 * 60;
+    atDoor(w, 'Siti');
+    siti.money = 100_000;
+    refused(act(w, siti.id, { verb: 'pay_rent', qty: 30 }), /won't take more ahead/);
+  });
+
+  it('someone who rents a second house can take people into the one they live in', () => {
+    const w = newWorld(9);
+    const huat = atDoor(w, 'Ah Huat');
+    accepted(act(w, huat.id, { verb: 'rent_place', where: 'attap house 4' }));
+    put(w, 'Ah Huat', 'house-4');
+    put(w, 'Raju', 'house-4');
+    accepted(act(w, huat.id, { verb: 'take_in', to: 'Raju' }));
+    accepted(act(w, who(w, 'Raju').id, { verb: 'move_in', from: 'Ah Huat' }));
+    accepted(act(w, huat.id, { verb: 'tell_to_leave', to: 'Raju' }));
+  });
+
+  it('taking one stall withdraws the other offer, so it passes on', () => {
+    const w = newWorld(9);
+    const raju = atDoor(w, 'Raju');
+    raju.money = 5000;
+    for (const c of w.state.stallCalls) { c.applicants = [raju.id, who(w, 'Siti').id]; c.offeredTo = raju.id; c.offerUntil = dayIndex(w.t) + 2; }
+    accepted(act(w, raju.id, { verb: 'rent_place', where: 'the corner stall' }));
+    const other = w.state.stallCalls.find((c) => c.placeId === 'stall-1')!;
+    expect(other.offeredTo).toBeNull();
+    expect(other.applicants).not.toContain(raju.id);
+  });
+
+  it("his door's actions are only offered while he's answering", () => {
+    const w = newWorld(20);
+    const siti = atDoor(w, 'Siti');
+    expect(perceive(w, siti).actions.some((a) => ['knock', 'rent place'].includes(a.verb))).toBe(false);
+  });
+});

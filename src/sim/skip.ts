@@ -58,6 +58,6 @@ export function skipQuietly(w: World, to: number): void {
   w.state.trades = w.state.trades.filter((o) => o.expires > to);
   w.state.homeOffers = w.state.homeOffers.filter((o) => o.expires > to);
   w.state.proposals = w.state.proposals.filter((o) => o.expires > to);
-  villageHeadSkip(w);
+  villageHeadSkip(w, from);
   w.emit({ type: 'quiet_spell', minutes: gap });
 }

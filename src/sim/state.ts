@@ -187,6 +187,8 @@ export interface Lease {
   paidUntil: number;
   /** Rent owed from a round they missed (due by the next Monday). */
   owed: Cents;
+  /** The town was stopped while rent was owed: the next round counts as a first miss, not a second. */
+  excused: boolean;
 }
 
 export interface StallCall {

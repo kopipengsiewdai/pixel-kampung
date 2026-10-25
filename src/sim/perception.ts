@@ -59,6 +59,8 @@ export interface Perception {
   household: string[];
   /** The village head: at his door, and what they rent from him. */
   village: string[];
+  /** Wages they owe, by worker: shown with their business, or on their own once it's gone. */
+  owesWages: { name: string; cents: Cents }[];
   money: Cents;
   carrying: { item: ItemId; qty: number }[];
   hunger: HungerWord;
@@ -151,6 +153,7 @@ export function perceive(w: World, r: Resident): Perception {
     }).concat(headNearby(w, r) ? [{ name: VILLAGE_HEAD.name, doing: headDoing(w) }] : []),
     household: householdLines(w, r),
     village: villageLines(w, r),
+    owesWages: w.state.owed.filter((o) => o.employerId === r.id).map((o) => ({ name: w.resident(o.workerId).name, cents: o.cents })),
     money: r.money,
     carrying: goodsList(r.items),
     hunger: hungerWord(r.hunger),
@@ -245,6 +248,7 @@ export function describe(p: Perception): string {
   lines.push(`You feel ${p.hunger} and ${p.energy}. You have ${formatMoney(p.money)}${p.carrying.length ? ` and you're carrying ${p.carrying.map((c) => quantityLabel(c.item, c.qty)).join(', ')}` : ''}.`);
   lines.push(...p.household);
   lines.push(...p.village);
+  if (!p.business && p.owesWages.length) lines.push(`You owe wages: ${p.owesWages.map((o) => `${o.name} ${formatMoney(o.cents)}`).join(', ')}.`);
   if (p.job) {
     lines.push(`You work for ${p.job.boss} at ${p.job.place}, ${p.job.shift}.${p.job.onShift ? " You're on shift now." : ''}`);
     if (p.job.onShift) lines.push(`In the shop: ${p.job.stock.map((s) => quantityLabel(s.item, s.qty)).join(', ') || 'nothing'}.`);

@@ -37,9 +37,10 @@ export function houseOf(w: World, id: string): House | null {
   return w.state.houses.find((h) => h.id === id) ?? null;
 }
 
-/** The house this resident heads, if any. */
+/** The house this resident heads, if any: the one they live in first, if they head more than one. */
 export function heldBy(w: World, r: Resident): House | null {
-  return w.state.houses.find((h) => h.holderId === r.id) ?? null;
+  const held = w.state.houses.filter((h) => h.holderId === r.id);
+  return held.find((h) => h.id === r.homeId) ?? held[0] ?? null;
 }
 
 /** Everyone else living in a house. */

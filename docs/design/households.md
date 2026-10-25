@@ -159,7 +159,12 @@ the house row, "at the top of the kampung":
 
 When `skipQuietly` covers a duty during downtime, the duty just doesn't
 happen. In particular, **rent is only owed for rounds he actually made**, so
-downtime never leads to an eviction.
+downtime never leads to an eviction. Two details (9b): paying at his door
+after a round was skipped starts from the current week, so nobody pays for
+weeks the town was stopped; and if a stopped spell takes at least half a day
+of his door hours while rent is owed (`excused` on the lease), the next round
+counts as a first miss again: the weeks owed add up, and the place is only
+taken back after a grace week with door hours in it.
 
 **Rent, with numbers.** House rent is **$1.50 a week**. A stall is **$3.00 a
 week plus a $5.00 deposit**, so opening a stall takes about $12 with stock.

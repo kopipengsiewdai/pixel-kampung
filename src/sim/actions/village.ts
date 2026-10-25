@@ -38,7 +38,7 @@ export function knock(w: World, r: Resident, i: Intent): ActionResult {
   if (!atHomeForCallers(w)) return no('Nobody answers. Mr Lim must be out.');
   const said = textOf(i.text);
   w.emit({ type: 'knocked', who: r.id, text: said ?? '' });
-  w.notify(r.id, 'Mr Lim says through the door: "Rent and lettings I can see to now. Anything else, come back another day."', true);
+  w.notify(r.id, 'Mr Lim says through the door: "Rent and lettings I can help with. For anything else, come back another day."', true);
   return ok('You knock on Mr Lim\'s door.');
 }
 
@@ -100,9 +100,9 @@ export function handBack(w: World, r: Resident, i: Intent): ActionResult {
 }
 
 /** For the action list: at his door. */
-export const atHisDoor = (w: World, r: Resident) => w.isAt(r, DOOR);
+export const atHisDoor = (w: World, r: Resident) => w.isAt(r, DOOR) && atHomeForCallers(w);
 export const canRentHere = (w: World, r: Resident) => {
   const { houses, stalls } = toLet(w);
-  return w.isAt(r, DOOR) && (houses.length > 0 || stalls.length > 0);
+  return atHisDoor(w, r) && (houses.length > 0 || stalls.length > 0);
 };
-export const rentsHere = (w: World, r: Resident) => w.isAt(r, DOOR) && leasesOf(w, r).length > 0;
+export const rentsHere = (w: World, r: Resident) => atHisDoor(w, r) && leasesOf(w, r).length > 0;

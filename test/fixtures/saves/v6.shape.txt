@@ -59,6 +59,7 @@ src/sim/state.ts WorldState {
   }[]
   leases: {
     deposit: number
+    excused: false | true
     owed: number
     paidUntil: number
     placeId: string

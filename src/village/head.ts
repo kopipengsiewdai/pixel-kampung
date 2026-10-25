@@ -9,8 +9,8 @@ import { learnFromWords } from '../sim/discovery.ts';
 import { distance, findPath, PLACE_BY_ID, type Point } from '../sim/map.ts';
 import { formatMoney } from '../sim/money.ts';
 import { NEARBY_TILES, type Resident, type World } from '../sim/state.ts';
-import { dayIndex, isNight, minuteOfDay } from '../sim/time.ts';
-import { chooseStallTenants, dayLabel, isRentDay, leasesOf, letNotice, rentRound, stopOf } from './lets.ts';
+import { dayIndex, isNight, MINUTES_PER_DAY, minuteOfDay, SGT_OFFSET_MIN } from '../sim/time.ts';
+import { chooseStallTenants, dayLabel, isRentDay, leasesOf, letNotice, mondayAfter, rentRound, stopOf } from './lets.ts';
 import { VILLAGE_HEAD, VILLAGE_HEAD_ID, type VillagerBody } from './village.ts';
 
 export const ROUND_AT = 6 * 60 + 15;
@@ -38,8 +38,11 @@ function same(a: Point, b: Point): boolean {
   return a.x === b.x && a.y === b.y;
 }
 
-function goTo(body: VillagerBody, to: Point): void {
-  body.path = findPath(body.pos, to) ?? [];
+/** Sets off for a point; false if there's no way there. */
+function goTo(body: VillagerBody, to: Point): boolean {
+  const path = findPath(body.pos, to);
+  body.path = path ?? [];
+  return path !== null;
 }
 
 /** The village head's minute. Called once a minute, after the residents move. */
@@ -71,21 +74,22 @@ export function villageHeadMinute(w: World): void {
     if (duty.kind === 'rent_round') rentRound(w, w.state.leases.filter((l) => same(stopOf(w, l), stop)));
     else pinNotice(w);
   }
-  if (duty && duty.stops.length) goTo(body, duty.stops[0]!);
-  else if (same(body.pos, porch())) {
+  // A stop he can't reach is passed over; if he can't get home, he's home anyway.
+  while (duty && duty.stops.length && !goTo(body, duty.stops[0]!)) duty.stops.shift();
+  if (duty && duty.stops.length) return;
+  if (same(body.pos, porch()) || !goTo(body, porch())) {
     body.indoors = true;
     body.duty = null;
-  } else {
-    if (duty) duty.stops = [];
-    goTo(body, porch());
-  }
+    body.pos = porch();
+    body.path = [];
+  } else if (duty) duty.stops = [];
 }
 
 function startDuty(w: World, body: VillagerBody, duty: NonNullable<VillagerBody['duty']>): void {
   body.indoors = false;
   body.pos = porch();
   body.duty = duty;
-  goTo(body, duty.stops[0]!);
+  while (duty.stops.length && !goTo(body, duty.stops[0]!)) duty.stops.shift();
   w.emit({ type: 'village_head_out', duty: duty.kind });
 }
 
@@ -100,8 +104,26 @@ export function pinNotice(w: World): void {
   }
 }
 
-/** After downtime: whatever he was about is done, and he's home. */
-export function villageHeadSkip(w: World): void {
+/** Door minutes (his hours for callers) in game minutes [from, to). */
+export function doorMinutes(from: number, to: number): number {
+  let n = 0;
+  for (let d = dayIndex(from); d <= dayIndex(to); d++) {
+    const start = d * MINUTES_PER_DAY - SGT_OFFSET_MIN + DOOR_FROM * 60;
+    n += Math.max(0, Math.min(to, start + (DOOR_UNTIL - DOOR_FROM) * 60) - Math.max(from, start));
+  }
+  return n;
+}
+
+/** A stopped spell that took at least this many of his door minutes excuses rent owed from the next round's reckoning. */
+export const EXCUSED_DOOR_MINUTES = (DOOR_UNTIL - DOOR_FROM) * 30;
+
+/**
+ * After downtime: whatever he was about is done, and he's home. Rent owed
+ * stays owed, but if the stopped spell took a good part of the time to pay
+ * it, the next round doesn't count as missing it twice.
+ */
+export function villageHeadSkip(w: World, from: number): void {
+  if (doorMinutes(from, w.t) >= EXCUSED_DOOR_MINUTES) for (const l of w.state.leases) if (l.owed > 0) l.excused = true;
   const body = headBody(w);
   body.indoors = true;
   body.duty = null;
@@ -134,7 +156,9 @@ export function villageLines(w: World, r: Resident): string[] {
   for (const l of leasesOf(w, r)) {
     lines.push(l.owed > 0
       ? `You owe Mr Lim ${formatMoney(l.owed)} for ${name(l.placeId)}. He calls again on ${dayLabel(w, l.paidUntil)}.`
-      : `Your rent for ${name(l.placeId)} is paid up to ${dayLabel(w, l.paidUntil)}.`);
+      : l.paidUntil > dayIndex(w.t)
+        ? `Your rent for ${name(l.placeId)} is paid up to ${dayLabel(w, l.paidUntil)}.`
+        : `Mr Lim will call for the rent for ${name(l.placeId)} on ${dayLabel(w, mondayAfter(w, dayIndex(w.t) + 1))}.`);
   }
   for (const c of w.state.stallCalls) {
     if (c.offeredTo === r.id && c.offerUntil !== null) lines.push(`Mr Lim has offered you ${name(c.placeId)}, if you pay at his house by ${dayLabel(w, c.offerUntil)}.`);
