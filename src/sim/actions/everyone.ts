@@ -3,7 +3,7 @@ import { ITEMS, LORRY_BUYS, quantityLabel, type ItemId } from '../items.ts';
 import { MAP_H, MAP_W, PLACES, PLACE_BY_ID, findPath, isWalkable, type Point } from '../map.ts';
 import { learnFromWords } from '../discovery.ts';
 import { formatMoney } from '../money.ts';
-import { describe, perceive } from '../perception.ts';
+import { perceive } from '../perception.ts';
 import { PLACE_WORDS } from '../places.ts';
 import {
   addGoods, countGoods, type Resident, type Shop, type World, LORRY_ID, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey,
@@ -116,7 +116,14 @@ export function walkTo(w: World, r: Resident, i: Intent): ActionResult {
 
 export function lookAround(w: World, r: Resident): ActionResult {
   w.emit({ type: 'looked_around', who: r.id });
-  return ok(describe(perceive(w, r)));
+  // Short on purpose: this reply becomes a memory, and the full view (time, money, prices) is
+  // already in front of them each time they think. Whole views once filled half of all memory.
+  const p = perceive(w, r);
+  const people = p.people.map((o) => o.name);
+  const who = people.length === 0 ? 'Nobody else is about.'
+    : people.length === 1 ? `${people[0]} is here.`
+    : `${people.slice(0, -1).join(', ')} and ${people.at(-1)} are here.`;
+  return ok(`You look around ${p.place}. ${who}`);
 }
 
 export function say(w: World, r: Resident, i: Intent): ActionResult {
