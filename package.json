@@ -1,6 +1,6 @@
 {
   "name": "pixel-kampung",
-  "version": "0.10.4",
+  "version": "0.10.5",
   "private": true,
   "description": "An AI-first pixel life-sim: a 1960s Singapore kampung run by AI residents.",
   "license": "AGPL-3.0-only",
