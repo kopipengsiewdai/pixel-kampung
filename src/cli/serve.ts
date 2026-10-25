@@ -30,6 +30,7 @@ import { CostLog } from '../mind/cost-log.ts';
 import { MemoryStore } from '../mind/memory.ts';
 import { Mind } from '../mind/mind.ts';
 import { mindBrains } from '../mind/setup.ts';
+import { ModelOsmanHead } from '../mind/osman-head.ts';
 import { CARDS } from '../seed/cards.ts';
 import { fakeBrains, type TownOptions } from '../town.ts';
 import { ASSETS_DIR, buildClient } from '../watch/bundle.ts';
@@ -72,7 +73,9 @@ if (args.minds === true) {
     cards: CARDS,
     onError: (err) => console.error(`A thinking call failed: ${err instanceof Error ? err.constructor.name : 'Error'}${err && typeof err === 'object' && 'status' in err ? ` (HTTP ${String(err.status)})` : ''}`),
   });
-  mindOpts = { ...mindOpts, brains: mindBrains(mind, fakeBrains), observer: mind.observe };
+  // Pak Osman thinks on the same model and the same cap: his calls are in the cost log as pak-osman.
+  const osman = new ModelOsmanHead({ client: mind.client, costs, onError: mind.onError });
+  mindOpts = { ...mindOpts, brains: mindBrains(mind, fakeBrains), observer: mind.observe, osman };
 }
 
 // The watch page: the owner's view only, read-only towards the town.

@@ -1,13 +1,14 @@
 import { effectiveLevel, HANDY_COOK, skillLevel } from '../skills.ts';
 import { endShift } from '../activities.ts';
-import { LORRY_SELLS, RECIPES, quantityLabel, type ItemId } from '../items.ts';
+import { RECIPES, quantityLabel, type ItemId } from '../items.ts';
+import { askToBring as osmanAsk, collect as osmanCollect, lorryBuy, payOsman } from '../osman.ts';
 import { PLACE_BY_ID } from '../map.ts';
 import { formatMoney } from '../money.ts';
 import { COOK_MINUTES } from '../travellers.ts';
-import { addGoods, countGoods, GROWN_AGE, LORRY_ID, type Resident, type Shop, type World } from '../state.ts';
+import { addGoods, countGoods, GROWN_AGE, type Resident, type Shop, type World } from '../state.ts';
 import {
   type ActionResult, type Intent, MAX_PRICE, SAY_NOTHING_SENSIBLE, goodsLabel, itemOf, moneyOf, no, ok,
-  personNearby, qtyOf, quoted,
+  personNearby, qtyOf, quoted, hasMoney, saysLater,
 } from './common.ts';
 import { shiftLabel } from './everyone.ts';
 
@@ -131,20 +132,31 @@ export function payWages(w: World, r: Resident, i: Intent): ActionResult {
 
 export function orderStock(w: World, r: Resident, i: Intent): ActionResult {
   const shop = ownShop(w, r);
-  if (typeof shop === 'string') return no('The lorry man only takes orders from shopkeepers.');
-  if (!w.isAt(r, 'lorry-stop')) return no("You'd have to meet the lorry to order stock.");
-  if (!w.state.lorryHere) return no("The lorry isn't here.");
-  const item = itemOf(i.item);
-  const price = item ? LORRY_SELLS[item] : undefined;
-  if (!item || !price) return no(`The lorry doesn't carry ${quoted(i.item)}.`);
+  if (typeof shop === 'string') return no(shop);
   const qty = qtyOf(i.qty);
   if (qty === null) return no(SAY_NOTHING_SENSIBLE);
-  const cost = price * qty;
-  if (r.money < cost) return no(`${quantityLabel(item, qty)} would cost ${formatMoney(cost)}. You have ${formatMoney(r.money)}.`);
-  w.transfer(r.id, LORRY_ID, cost, `ordered ${item}`);
-  addGoods(shop.stock, item, qty);
-  w.emit({ type: 'lorry_order', who: r.id, shop: shop.id, item, qty, cents: cost });
-  return ok(`You pay the lorry man ${formatMoney(cost)} for ${quantityLabel(item, qty)}. It'll be dropped off at your shop.`);
+  const money = hasMoney(i) ? moneyOf(i.money) : null;
+  if (hasMoney(i) && money === null) return no("That doesn't sound like money.");
+  return lorryBuy(w, r, itemOf(i.item), qty, { forShop: shop.id, money, later: saysLater(i.later) });
+}
+
+/** Asking the lorry man to bring something next time; an owner's goes onto their shelves when it comes. */
+export function askToBring(w: World, r: Resident, i: Intent): ActionResult {
+  const qty = qtyOf(i.qty);
+  if (qty === null) return no(SAY_NOTHING_SENSIBLE);
+  const deposit = hasMoney(i) ? moneyOf(i.money) : 0;
+  if (deposit === null) return no("That doesn't sound like money.");
+  return osmanAsk(w, r, itemOf(i.item), qty, deposit, w.shopOf(r.id)?.id ?? null);
+}
+
+export function collect(w: World, r: Resident, i: Intent): ActionResult {
+  return osmanCollect(w, r, saysLater(i.later));
+}
+
+export function payLorryMan(w: World, r: Resident, i: Intent): ActionResult {
+  const money = hasMoney(i) ? moneyOf(i.money) : null;
+  if (hasMoney(i) && money === null) return no("That doesn't sound like money.");
+  return payOsman(w, r, money);
 }
 
 /** Whose kitchen this resident may cook in: their own, or the one they're on shift in. */

@@ -12,8 +12,8 @@ export const MODELS: Record<Tier, string> = {
 const SERVER_FALLBACK = new Set(['claude-sonnet-5-5', 'claude-opus-5-5']);
 
 /** Thinking effort per kind of think: routine moves stay light. */
-const EFFORT = { act: 'low', business: 'high', plan: 'high', reflect: 'high' } as const;
-const MAX_TOKENS = { act: 2048, business: 4096, plan: 4096, reflect: 4096 } as const;
+const EFFORT = { act: 'low', business: 'high', plan: 'high', reflect: 'high', trader: 'low' } as const;
+const MAX_TOKENS = { act: 2048, business: 4096, plan: 4096, reflect: 4096, trader: 1024 } as const;
 
 export interface AnthropicModelOptions {
   apiKey: string;

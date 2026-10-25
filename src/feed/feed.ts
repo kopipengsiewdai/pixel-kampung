@@ -23,7 +23,7 @@ export interface FeedLine {
  * Walking, arriving, looking about and plain chat are left out.
  */
 const KEY_TYPES: ReadonlySet<string> = new Set([
-  'bought', 'sold', 'first_sale', 'lorry_arrived', 'lorry_sale', 'lorry_order',
+  'bought', 'sold', 'first_sale', 'lorry_arrived', 'lorry_sale', 'lorry_order', 'lorry_bought', 'lorry_haggled', 'lorry_asked', 'lorry_collected', 'lorry_paid',
   'job_offered', 'hired', 'quit', 'let_go', 'wages_paid',
   'gave', 'trade_offered', 'traded', 'trade_declined', 'note_pinned', 'price_set', 'found_place',
   'travellers_hour', 'errand_taken', 'errand_done', 'skill_up', 'lesson_agreed', 'helped', 'price_offered', 'price_refused', 'debt_offered', 'debt_agreed', 'debt_refused', 'repaid', 'let_off',
@@ -74,10 +74,21 @@ export function feedText(e: GameEvent, n: Names): { text: string; notable: boole
     case 'sold': return line(`${n(e.who)} sold ${quantityLabel(e.item, e.qty)} to ${n(e.to)} for ${formatMoney(e.cents)}.`);
     case 'stocked': return line(`${n(e.who)} put ${quantityLabel(e.item, e.qty)} on the shelves at ${place(e.shop)}.`);
     case 'first_sale': return line(`${n(e.who)} makes the first sale at ${place(e.shop)}!`, true);
-    case 'lorry_arrived': return line('The morning lorry rumbles in at the lorry stop.');
-    case 'lorry_left': return line('The lorry pulls away down the road.');
-    case 'lorry_sale': return line(`${n(e.who)} sold ${quantityLabel(e.item, e.qty)} to the lorry for ${formatMoney(e.cents)}.`);
-    case 'lorry_order': return line(`${n(e.who)} ordered ${quantityLabel(e.item, e.qty)} off the lorry for ${formatMoney(e.cents)}.`);
+    case 'lorry_arrived': return line("Pak Osman's lorry rumbles in at the lorry stop.");
+    case 'lorry_left': return line('Pak Osman pulls away down the road.');
+    case 'lorry_sale': return line(`${n(e.who)} sold ${quantityLabel(e.item, e.qty)} to Pak Osman for ${formatMoney(e.cents)}.`);
+    case 'lorry_order': return line(`${n(e.who)} bought ${quantityLabel(e.item, e.qty)} off the lorry for the shop, for ${formatMoney(e.cents)}.`);
+    case 'lorry_bought': return line(`${n(e.who)} bought ${quantityLabel(e.item, e.qty)} off the lorry for ${formatMoney(e.cents)}${e.later ? ', on credit' : ''}.`);
+    case 'lorry_haggled': {
+      const what = `${formatMoney(e.cents)} for ${quantityLabel(e.item, e.qty)}`;
+      const how = { took: 'takes', countered: `counters at ${formatMoney(e.counter ?? 0)} each to`, refused: 'turns down', flat: "won't haggle over" }[e.answer];
+      return line(`Pak Osman ${how} ${n(e.who)}'s ${what}.`);
+    }
+    case 'lorry_asked': return line(`${n(e.who)} asks Pak Osman to bring ${quantityLabel(e.item, e.qty)} next time${e.deposit ? `, ${formatMoney(e.deposit)} down` : ''}.`);
+    case 'lorry_collected': return line(`${n(e.who)} collects ${e.qty} of the ${e.asked} ${e.item} they asked Pak Osman for.`);
+    case 'lorry_paid': return line(`${n(e.who)} pays Pak Osman ${formatMoney(e.cents)} off their slate.`);
+    case 'lorry_gossip': return line(`Pak Osman, with news from town: "${e.text}"`);
+    case 'lorry_priced': return null;
     case 'went_fishing': return line(`${n(e.who)} casts a line off the jetty.`);
     case 'caught_fish': return line(e.qty === 0 ? `${n(e.who)} caught nothing.` : `${n(e.who)} landed ${quantityLabel('fish', e.qty)}.`);
     case 'planted': return line(`${n(e.who)} planted kangkong in bed ${e.bed}.`);

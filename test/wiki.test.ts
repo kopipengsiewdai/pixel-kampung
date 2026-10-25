@@ -144,7 +144,7 @@ describe('the wiki', () => {
 
   it('how the kampung works: written from the rules as they are in the code', () => {
     const text = howItWorks().map((s) => `${s.title}\n${s.paras.join('\n')}`).join('\n');
-    expect(text).toContain(`${String(LORRY_ARRIVES / 60).padStart(2, '0')}:00`);
+    expect(text).toContain(`${String(Math.floor(LORRY_ARRIVES / 60)).padStart(2, '0')}:${String(LORRY_ARRIVES % 60).padStart(2, '0')}`);
     for (const [item, c] of Object.entries(LORRY_SELLS)) expect(text).toContain(`${item} ${c}¢`);
     for (const [item, c] of Object.entries(LORRY_BUYS)) expect(text).toContain(`${item} ${c}¢`);
     expect(text).toContain(`${RECIPES.kopi!.yields} kopi`);

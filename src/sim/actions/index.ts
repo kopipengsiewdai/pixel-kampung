@@ -23,6 +23,7 @@ interface ActionDef {
 }
 
 const atShop = (w: World, r: Resident) => everyone.shopHere(w, r) !== null;
+const atLorry = (w: World, r: Resident) => w.isAt(r, 'lorry-stop') && w.state.lorryHere;
 const at = (id: string) => (w: World, r: Resident) => w.isAt(r, id);
 const withPeople = (w: World, r: Resident) => w.nearby(r).some((o) => !w.isAsleep(o));
 /** Something someone offered or asked r that waits on a yes or no. */
@@ -39,10 +40,25 @@ export const ACTIONS: Record<string, ActionDef> = {
   // Not offered: the notes already say where you are and who's there (a typed one still answers).
   look_around: { run: everyone.lookAround, ownersOnly: false, says: 'look around', here: () => false },
   say: { run: everyone.say, ownersOnly: false, says: 'say something (words, and person if it is meant for someone)' },
-  buy: { run: everyone.buy, ownersOnly: false, says: 'buy something here (item, amount, and money if you offer less than the price)', here: atShop },
+  buy: {
+    run: everyone.buy, ownersOnly: false, here: (w, r) => atShop(w, r) || atLorry(w, r),
+    says: (w, r) => (atLorry(w, r) ? 'buy something off the lorry (item, amount; money if you offer less than he asks; later: true to ask to pay him another day)'
+      : 'buy something here (item, amount, and money if you offer less than the price)'),
+  },
   sell: {
-    run: everyone.sell, ownersOnly: false, says: 'sell something here (item, amount)',
-    here: (w, r) => atShop(w, r) || (w.isAt(r, 'lorry-stop') && w.state.lorryHere),
+    run: everyone.sell, ownersOnly: false, here: (w, r) => atShop(w, r) || atLorry(w, r),
+    says: (w, r) => (atLorry(w, r) ? 'sell something to the lorry man (item, amount, and money if you ask more than he pays)' : 'sell something here (item, amount)'),
+  },
+  ask_to_bring: {
+    run: owners.askToBring, ownersOnly: false, says: 'ask the lorry man to bring something next time (item, amount, and money for a deposit)', here: (w, r) => atLorry(w, r),
+  },
+  collect: {
+    run: owners.collect, ownersOnly: false, says: 'collect what you asked the lorry man to bring (later: true to pay him another day)',
+    here: (w, r) => atLorry(w, r) && w.state.osman.orders.some((o) => o.who === r.id && o.brought !== null),
+  },
+  pay_lorry_man: {
+    run: owners.payLorryMan, ownersOnly: false, says: 'pay the lorry man what you owe him (money for only part)',
+    here: (w, r) => atLorry(w, r) && (w.state.osman.accounts[r.id]?.owes ?? 0) > 0,
   },
   offer_trade: { run: everyone.offerTrade, ownersOnly: false, says: 'offer someone a trade (person; details: give and want, each with items and money)', here: withPeople },
   accept_trade: {
@@ -136,8 +152,8 @@ export const ACTIONS: Record<string, ActionDef> = {
     here: (w, r) => w.state.owed.some((o) => o.employerId === r.id),
   },
   order_stock: {
-    run: owners.orderStock, ownersOnly: true, says: 'order stock from the lorry (item, amount)',
-    here: (w, r) => w.isAt(r, 'lorry-stop') && w.state.lorryHere,
+    run: owners.orderStock, ownersOnly: true, says: 'buy stock for your shop off the lorry (item, amount; money if you offer less than he asks; later: true to pay another day)',
+    here: (w, r) => atLorry(w, r),
   },
   cook: {
     run: owners.cook, ownersOnly: false, says: 'cook in the kitchen (item: the dish; details: batches)',

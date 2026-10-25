@@ -103,9 +103,10 @@ describe('buy', () => {
     put(w, 'Raju', 'well');
     refused(act(w, who(w, 'Raju').id, { verb: 'buy', item: 'kopi' }), /nothing for sale here/);
     put(w, 'Raju', 'lorry-stop');
-    refused(act(w, who(w, 'Raju').id, { verb: 'buy', item: 'fish' }), /only takes orders from shopkeepers/);
-    put(w, 'Mdm Tan', 'lorry-stop');
-    refused(act(w, who(w, 'Mdm Tan').id, { verb: 'buy', item: 'fish' }), /takes orders for your shop/);
+    refused(act(w, who(w, 'Raju').id, { verb: 'buy', item: 'fish' }), /lorry isn't here/);
+    const w2 = lorryMorning();
+    put(w2, 'Raju', 'lorry-stop');
+    refused(act(w2, who(w2, 'Raju').id, { verb: 'buy', item: 'fish' }), /doesn't bring fish from town/);
   });
 });
 

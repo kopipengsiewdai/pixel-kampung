@@ -4,6 +4,18 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **Pak Osman, the lorry trader:** the morning lorry now has a driver. Pak Osman comes about half past six every day but Sunday and stays about an hour and a half. He has one lorry's worth of room a day, shared between what he brings from town (rice, coffee powder, bread and, new, kerosene) and the fish and vegetables he buys here: when it's full, he's full. What town can spare varies, so a shelf can run short. He no longer sells fish or vegetables.
+  - Anyone can buy off the lorry now, not just shopkeepers; an owner's stock is still dropped off at their shop.
+  - He sets his prices once a visit, always between 110% and 160% of the town price when selling and 40% to 80% when buying. He pays a little more when trade is slow, and asks a little more when money is piling up.
+  - Name a price and he takes it, counters or says no; after about ten haggles a morning it's take it or leave it.
+  - He keeps a book: regulars get slightly better prices and credit (up to about a quarter of a typical purse), debts last a week, and anyone who lets one run pays more and gets no more credit. He never forgets.
+  - Ask him to bring something next time, with a deposit if you like. Nothing is promised: he brings what town can spare and hands back the deposit for the rest (or all of it, if nobody comes for it).
+  - He brings one line of news from town each visit.
+  - In a thinking town his prices, his haggling and his news come from the cheap model (a fraction of a cent a visit, counted in the town's daily cap); with the cap spent or a call failing he trades by his usual ways.
+- **Living town:** at upgrade (save v15) nobody has dealt with him yet. A lorry in at the stop carries on with the old lorry's goods and prices until eight; if the old lorry has already been today, he first comes tomorrow.
+
 ## 0.18.0 (2026-10-25): what the skilled can do
 
 - **Skills, what the skilled and masters can do:**

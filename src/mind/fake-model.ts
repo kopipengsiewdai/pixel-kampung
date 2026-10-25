@@ -21,7 +21,7 @@ const NARRATED = [
   'I count it now, every cent. All paid.',
   'Agreed, three bags of rice for you.',
 ];
-const OUTPUT_TOKENS = { act: 60, business: 120, plan: 220, reflect: 320 } as const;
+const OUTPUT_TOKENS = { act: 60, business: 120, plan: 220, reflect: 320, trader: 60 } as const;
 
 /**
  * A free stand-in for the model. It decides with the fake-brain policy (from
@@ -111,7 +111,9 @@ export class FakeModel implements ModelClient {
     this.lastCall.set(key, req.t);
     let text = '';
     let toolCall: ThinkResponse['toolCall'] = null;
-    if (req.kind === 'plan') text = 'Today: eat, earn a little, see who is about.';
+    // A village character's call: the hint carries the answer his scripted ways would give, and the fake gives it back.
+    if (req.kind === 'trader') toolCall = { name: req.tools[0]?.name ?? 'answer', input: (req.hint as { fake?: unknown } | undefined)?.fake ?? {} };
+    else if (req.kind === 'plan') text = 'Today: eat, earn a little, see who is about.';
     else if (req.kind === 'reflect') text = 'A long day. I should keep some money aside for tomorrow.';
     else {
       const p = req.hint as Perception;

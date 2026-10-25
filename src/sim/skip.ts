@@ -1,8 +1,8 @@
 import { endShift, interrupt, startSleep } from './activities.ts';
 import { RESTED } from './activities.ts';
 import type { World } from './state.ts';
-import { dayIndex, GAME_MINUTES_PER_REAL_MINUTE, isNight, minuteOfDay } from './time.ts';
-import { LORRY_ARRIVES, LORRY_LEAVES } from './tick.ts';
+import { dayIndex, GAME_MINUTES_PER_REAL_MINUTE, isNight } from './time.ts';
+import { osmanSkip } from './osman.ts';
 import { stoveMinute } from './travellers.ts';
 import { finishChore } from './actions/chores.ts';
 import { fadeSkills, lapseLessons } from './skills.ts';
@@ -58,8 +58,7 @@ export function skipQuietly(w: World, to: number): void {
     }
     r.thinkAt = to + 1;
   }
-  const mod = minuteOfDay(to);
-  w.state.lorryHere = mod >= LORRY_ARRIVES && mod < LORRY_LEAVES;
+  osmanSkip(w);
   w.state.jobOffers = w.state.jobOffers.filter((o) => o.expires > to);
   w.state.trades = w.state.trades.filter((o) => o.expires > to);
   w.state.debtOffers = w.state.debtOffers.filter((o) => o.expires > to);

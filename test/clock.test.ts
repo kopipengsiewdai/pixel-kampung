@@ -151,7 +151,8 @@ describe('game-time rules on the kampung clock', () => {
     const town = Town.create(5, start, { onEvent: (e) => types.push({ t: e.t, type: e.type }) });
     await town.runUntil(start + 1440);
     const lorry = types.find((e) => e.type === 'lorry_arrived')!;
-    expect(minuteOfDay(lorry.t)).toBe(7 * 60);
+    expect(minuteOfDay(lorry.t)).toBeGreaterThanOrEqual(6 * 60 + 20);
+    expect(minuteOfDay(lorry.t)).toBeLessThanOrEqual(6 * 60 + 40);
     // One game day took five real hours.
     expect(realMsAt(town.world.state.clock, start + 1440) - realMsAt(town.world.state.clock, start)).toBe(5 * 3_600_000);
   });

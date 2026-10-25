@@ -10,6 +10,7 @@ import { dateAt, type Calendar } from './calendar.ts';
 import { CAST } from '../seed/cast.ts';
 import type { Lesson, LessonOffer, SkillId, SkillState } from './skills.ts';
 import type { GameClock } from './time.ts';
+import type { OsmanState } from './osman.ts';
 
 /** An owner runs a business; a seeker looks for work; family live with family (Mak Esah, Aminah, Hassan). */
 export type Role = 'owner' | 'seeker' | 'family';
@@ -233,7 +234,10 @@ export interface WorldState {
   lessonOffers: LessonOffer[];
   beds: Bed[];
   notes: Note[];
+  /** Whether the lorry is at the stop (Pak Osman's visit, below, is the whole of it). */
   lorryHere: boolean;
+  /** Pak Osman the lorry trader: today's visit, his ledger of residents and what he's been asked to bring. */
+  osman: OsmanState;
   /** Keys of one-off notable things that already happened (e.g. a shop's first sale). */
   firsts: string[];
   /** Lines spoken between each pair lately ("a|b" sorted), for the talk soft limit. */

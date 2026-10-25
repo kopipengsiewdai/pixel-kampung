@@ -194,7 +194,7 @@ describe('the watch page in a browser', () => {
     await wiki.locator('[data-wiki=places]').click();
     await expect.poll(() => wiki.textContent()).toMatch(/the kopitiam.*Owner.*Ah Huat/);
     await wiki.locator('[data-wiki=how]').click();
-    await expect.poll(() => wiki.textContent()).toMatch(/The lorry.*07:00/);
+    await expect.poll(() => wiki.textContent()).toMatch(/The lorry.*Pak Osman.*06:30/);
     await wiki.locator('[data-wiki=economy]').click();
     await expect.poll(() => wiki.textContent()).toMatch(/GDP.*Money in town.*Money out/);
     expect(await wiki.textContent()).toMatch(/Money in hand/);

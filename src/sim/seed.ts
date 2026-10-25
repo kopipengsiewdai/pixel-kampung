@@ -7,6 +7,7 @@ import { FARM_BEDS, HOUSE_IDS, type WorldState } from './state.ts';
 import { dayIndex } from './time.ts';
 import { threshold, type SkillId } from './skills.ts';
 import { freshDay } from './travellers.ts';
+import { freshOsman } from './osman.ts';
 
 function slug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -88,6 +89,7 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
     beds: Array.from({ length: FARM_BEDS }, (_, n) => ({ n: n + 1, planterId: null, plantedDay: 0, wateredDays: 0, lastWateredDay: null, readyDay: null, crop: 'kangkong' as const, pickedDay: null })),
     notes: [],
     lorryHere: false,
+    osman: freshOsman(),
     firsts: [],
     talk: {},
   };

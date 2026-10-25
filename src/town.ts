@@ -10,6 +10,7 @@ import { createWorld } from './sim/seed.ts';
 import { MAX_REPLAY_MINUTES, skipQuietly } from './sim/skip.ts';
 import { World, type Resident, type WorldState } from './sim/state.ts';
 import { advance } from './sim/tick.ts';
+import { osmanThinks, type OsmanHead } from './sim/osman.ts';
 import { isNight, minuteOfDay, realMsAt } from './sim/time.ts';
 import type { SqliteStore } from './store/sqlite-store.ts';
 import { SCHEMA_VERSION } from './store/upgrades.ts';
@@ -118,6 +119,8 @@ export interface TownOptions {
   anchorMs?: number;
   /** The owner's dials (src/sim/dials.ts); any left out keep their defaults. */
   dials?: Partial<Dials>;
+  /** Pak Osman's bounded head (src/mind/osman-head.ts); without one he trades by his scripted ways. */
+  osman?: OsmanHead | null;
 }
 
 /** The running kampung: world + brains + optional store, advanced a minute at a time. */
@@ -127,6 +130,7 @@ export class Town {
   private store?: SqliteStore;
   private onEvent?: (e: GameEvent) => void;
   private onTick?: (world: World) => void;
+  private osman: OsmanHead | null;
 
   private constructor(state: WorldState, opts: TownOptions, savedBrains?: Record<string, unknown>) {
     this.world = new World(state);
@@ -135,6 +139,7 @@ export class Town {
     this.store = opts.store;
     this.onEvent = opts.onEvent;
     this.onTick = opts.onTick;
+    this.osman = opts.osman ?? null;
     const make = opts.brains ?? fakeBrains;
     this.brains = new Map(state.residents.map((r, i) => [r.id, make(r, i, state.seed, state)]));
     if (savedBrains) for (const [id, b] of this.brains) if (savedBrains[id] !== undefined) b.load(savedBrains[id]);
@@ -179,6 +184,8 @@ export class Town {
     const emit = (e: EventBody) => { w.emit(e); };
     const realMs = realMsAt(w.state.clock, w.t);
     const mod = minuteOfDay(w.t);
+    // The lorry man answers before anyone thinks: his prices, his news, and any offer from last minute.
+    await osmanThinks(w, this.osman, realMs);
     if (mod >= EVENING_FROM) {
       for (const r of w.state.residents) {
         const brain = this.brains.get(r.id)!;

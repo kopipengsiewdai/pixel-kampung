@@ -195,13 +195,14 @@ describe('order_stock', () => {
     const w = newWorld(9);
     const tan = put(w, 'Mdm Tan', 'lorry-stop');
     refused(act(w, tan.id, { verb: 'order_stock', item: 'rice', qty: 1 }), /lorry isn't here/);
-    w.state.t = sgt(7, 10);
-    w.state.lorryHere = true;
-    refused(act(w, tan.id, { verb: 'order_stock', item: 'durian', qty: 1 }), /doesn't carry "durian"/);
-    tan.money = 100;
-    refused(act(w, tan.id, { verb: 'order_stock', item: 'rice', qty: 10 }), /would cost \$2\.00/);
-    put(w, 'Mdm Tan', 'provision-shop');
-    refused(act(w, tan.id, { verb: 'order_stock', item: 'rice', qty: 1 }), /meet the lorry/);
+    const m = newWorld(6, 59);
+    advanceTo(m, sgt(7, 5));
+    const t2 = put(m, 'Mdm Tan', 'lorry-stop');
+    refused(act(m, t2.id, { verb: 'order_stock', item: 'durian', qty: 1 }), /doesn't bring that from town/);
+    t2.money = 100;
+    refused(act(m, t2.id, { verb: 'order_stock', item: 'rice', qty: 10 }), /is \$2\.00 and you have \$1\.00/);
+    put(m, 'Mdm Tan', 'provision-shop');
+    refused(act(m, t2.id, { verb: 'order_stock', item: 'rice', qty: 1 }), /meet the lorry/);
   });
 });
 
@@ -261,9 +262,9 @@ describe('cook', () => {
 describe('the action space', () => {
   it('is exactly the v1 list, each with accept and refusal tests above', () => {
     expect(Object.keys(ACTIONS).sort()).toEqual([
-      'accept_job', 'accept_trade', 'agree', 'ask_errand', 'borrow', 'buy', 'cast_net', 'cook', 'decline_trade', 'eat',
+      'accept_job', 'accept_trade', 'agree', 'ask_errand', 'ask_to_bring', 'borrow', 'buy', 'cast_net', 'collect', 'cook', 'decline_trade', 'eat',
       'fetch_water', 'fish', 'give', 'go_with', 'harvest', 'help', 'lend', 'let_go', 'let_off', 'look_around',
-      'mend_nets', 'offer_job', 'offer_trade', 'order_stock', 'pay_wages', 'pin_note', 'plant', 'quit_job',
+      'mend_nets', 'offer_job', 'offer_trade', 'order_stock', 'pay_lorry_man', 'pay_wages', 'pin_note', 'plant', 'quit_job',
       'read_notice_board', 'refuse', 'repay', 'say', 'sell', 'set_price', 'sleep', 'sweep', 'teach', 'walk_to', 'water',
       'work_shift', 'write_iou',
     ]);

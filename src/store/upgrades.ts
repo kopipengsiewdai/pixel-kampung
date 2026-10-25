@@ -69,6 +69,13 @@ const SKILLS_V13: Record<string, Record<string, [number, number]>> = {
 /** Who in the town already knows them, frozen for v11 → v12. */
 const KNOW_FAMILY_V12: Record<string, string[]> = { siti: ['mak-esah'], fatimah: ['aminah', 'hassan'], rahim: ['aminah', 'hassan'] };
 
+/** What the old lorry carried and charged, frozen for v14 → v15: a lorry caught mid-visit carries on with it. */
+const LORRY_V15 = {
+  goods: { rice: 24, coffee: 6, bread: 18, kerosene: 6 },
+  sells: { rice: 20, coffee: 50, bread: 15, kerosene: 38 },
+  buys: { fish: 15, vegetables: 10 },
+};
+
 export const UPGRADES: readonly Upgrade[] = [
   {
     from: 1,
@@ -274,6 +281,23 @@ export const UPGRADES: readonly Upgrade[] = [
       const beds = (world.beds as Record<string, unknown>[]).map((b) => ({ ...b, crop: 'kangkong', pickedDay: null }));
       const shops = (world.shops as { today: Record<string, unknown> }[]).map((s) => ({ ...s, today: { ...s.today, masterCooked: false } }));
       return { world: { ...world, beds, shops }, brains };
+    },
+  },
+  {
+    from: 14,
+    why: "Pak Osman the lorry trader comes most mornings about half past six (not on Sundays) for about an hour and a half, with one lorry's worth of room for what he brings and what he buys; he haggles, keeps a book of who owes him, gives regulars credit and takes orders for next time. Nobody has dealt with him yet; a lorry here now stays until eight with the old lorry's goods and prices.",
+    save: ({ world, brains }) => {
+      if (world.osman) return { world, brains };
+      // The day and minute of the day by the time code as it stood at v14 (frozen).
+      const t = world.t as number;
+      const day = Math.floor((t + 8 * 60) / 1440);
+      const mod = (((t + 8 * 60) % 1440) + 1440) % 1440;
+      const visit = world.lorryHere === true ? {
+        day, leaves: t - mod + 8 * 60, goods: { ...LORRY_V15.goods }, held: {}, produce: {},
+        sells: { ...LORRY_V15.sells }, buys: { ...LORRY_V15.buys }, priced: true, haggles: 0, deals: {}, offers: [], gossip: null, heard: [],
+      } : null;
+      // The old lorry came at seven: once it had come today, that was today's lorry.
+      return { world: { ...world, osman: { lastDay: mod >= 7 * 60 ? day : null, visit, accounts: {}, orders: [] } }, brains };
     },
   },
 ];

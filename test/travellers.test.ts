@@ -235,9 +235,9 @@ describe('the free fake brain, with customers', () => {
   });
 
   it('a hungry owner still meets the lorry and restocks first', () => {
-    const w = newWorld(6, 50);
+    const w = newWorld(6, 0);
+    while (!w.state.lorryHere) advance(w);
     const tan = put(w, 'Mdm Tan', 'lorry-stop');
-    w.state.lorryHere = true;
     tan.hunger = 800;
     tan.money = 5000;
     w.shop('provision-shop')!.stock = {};
