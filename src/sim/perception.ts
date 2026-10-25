@@ -68,7 +68,8 @@ export interface Perception {
   /** Where they are, as they'd say it: a shop by whose it is ("Mdm Tan's provision shop", "your kopitiam"). */
   where: string;
   atHome: boolean;
-  people: { name: string; doing: string }[];
+  /** looks: how hungry they look, if it shows. */
+  people: { name: string; doing: string; looks?: string }[];
   money: Cents;
   carrying: { item: ItemId; qty: number }[];
   /** Hunger that hurts, in words, from 800; null below. */
@@ -173,7 +174,7 @@ function goodsList(g: Goods): { item: ItemId; qty: number }[] {
 
 /** How hungry someone looks to anyone nearby. */
 function looks(o: Resident): string {
-  return o.activity?.kind === 'sleeping' ? '' : o.hunger >= FAINT_HUNGER ? ', looking faint with hunger' : o.hunger >= LOOKS_HUNGRY ? ', looking hungry' : '';
+  return o.activity?.kind === 'sleeping' ? '' : o.hunger >= FAINT_HUNGER ? 'looking faint with hunger' : o.hunger >= LOOKS_HUNGRY ? 'looking hungry' : '';
 }
 const LOOKS_HUNGRY = 700;
 
@@ -245,7 +246,7 @@ export function perceive(w: World, r: Resident): Perception {
     placeId: here?.id ?? null,
     where: here ? placeLabel(w, r, here) : 'out on the footpath',
     atHome: w.isAt(r, r.homeId),
-    people: w.nearby(r).map((o) => ({ name: o.name, doing: doing(w, o) + looks(o) })),
+    people: w.nearby(r).map((o) => { const l = looks(o); return l ? { name: o.name, doing: doing(w, o), looks: l } : { name: o.name, doing: doing(w, o) }; }),
     money: r.money,
     carrying: goodsList(r.items),
     hunger: hungerWord(r.hunger),
@@ -401,7 +402,7 @@ function unbackedLine(u: { name: string; kind: DealKind; mine: boolean }): strin
 export function describe(p: Perception): string {
   const lines: string[] = [`It's ${p.time}. You're at ${p.where}.`];
   lines.push(p.people.length
-    ? `Nearby: ${p.people.map((x) => `${x.name} (${x.doing})`).join(', ')}.`
+    ? `Nearby: ${p.people.map((x) => `${x.name} (${x.doing}${x.looks ? `, ${x.looks}` : ''})`).join(', ')}.`
     : "There's nobody else around.");
   if (p.atHome && HUNGRY.has(p.hunger) && !p.carrying.some((c) => ITEMS[c.item].food)) lines.push("There's no food in the house.");
   if (p.hungerPang) lines.push(p.hungerPang);
