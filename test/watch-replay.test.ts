@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { MemoryStore } from '../src/mind/memory.ts';
 import { Town } from '../src/town.ts';
 import { ReplayReader, ReplayRecorder, recordTown } from '../src/watch/replay.ts';
+import { ReplaySource } from '../src/watch/source.ts';
 import { sgt } from './helpers.ts';
 
 const START = sgt(6, 0) - 1;
@@ -145,6 +146,27 @@ describe('a reader opened early', () => {
     expect(r.info()).toMatchObject({ hasFrames: true, start: START, end: START + 10 });
     expect(r.frameAt(START + 5).t).toBe(START + 5);
     r.close();
+    recorder.close();
+    mem.close();
+  });
+});
+
+describe("a page opened before the trial's first minute", () => {
+  it('starts playing from the first minute once it lands, not from the beginning of time', async () => {
+    const path = join(tmp(), 'trial-empty-at-open.db');
+    const recorder = new ReplayRecorder(path, { seed: 42, label: 'running' });
+    const mem = new MemoryStore(path);
+    let now = 0;
+    const src = new ReplaySource(new ReplayReader(path), { now: () => now, everyMs: 0, growEveryMs: 0, speed: 60 });
+    const town = Town.create(42, START, recordTown(recorder));
+    await town.runUntil(START + 30);
+    src.control({ paused: false });
+    now += 5 * 60_000; // five real minutes at 60x
+    src.tick();
+    expect(src.state().start).toBe(START);
+    expect(src.state().t).toBeGreaterThanOrEqual(START);
+    expect(src.state().t).toBeLessThanOrEqual(START + 30);
+    src.close();
     recorder.close();
     mem.close();
   });
