@@ -34,9 +34,12 @@ under the agreed [M2 decisions](m2-decisions.md) and [v1 spec](v1-spec.md)
 
 ## Budget
 
-- Each resident's bucket fills at $0.0139 a game hour up to $0.06 (about 4
-  hours' worth). A call is checked against a high estimate first ($0.0015
-  routine, $0.04 big).
+- Each resident's bucket fills at $0.0139 a real hour (four game hours on the
+  4x clock, since 2026-10-25) up to $0.06 (about 4 real hours' worth). A call
+  is checked against a high estimate first ($0.0015 routine, $0.01 big; big
+  was $0.04 when it meant the bigger model). A plan, reflection or business
+  call that can't be afforded yet isn't lost for the day: it's made later,
+  once the money is there.
 - The town's $3.33 daily cap is counted from the day's cost log, so it holds
   across restarts. A bucket restarts from its saved level.
 - A cost-log line that can't be read (cut off by a power cut) counts as $0.04,
@@ -80,7 +83,7 @@ under the agreed [M2 decisions](m2-decisions.md) and [v1 spec](v1-spec.md)
 - After 8 lines between two people within 30 minutes, the listener still
   hears what's said but isn't woken to answer at once. That applies to
   everything said to the listener, whether or not they were named. From then
-  on both talk only at the quiet pace (every 5 minutes) until the chat has
+  on both talk only at the quiet pace (every 10 game minutes on the 4x clock) until the chat has
   been quiet for 30 minutes.
 - A speaker remembers their own words (`You say to Ah Seng: "..."`). The last
   6 lines of a resident's own conversations from the last 30 minutes (said to

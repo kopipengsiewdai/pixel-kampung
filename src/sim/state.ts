@@ -4,6 +4,8 @@ import type { Cents } from './money.ts';
 import type { EventBody, GameEvent, LedgerEntry } from './events.ts';
 import { PLACE_BY_ID, PLACES, inPlace, distance, placeAt, type Place } from './map.ts';
 import { Rng } from './rng.ts';
+import type { Calendar } from './calendar.ts';
+import type { GameClock } from './time.ts';
 
 export type Role = 'owner' | 'seeker';
 export type Goods = Partial<Record<ItemId, number>>;
@@ -108,6 +110,10 @@ export interface WorldState {
   seed: number;
   /** Last game minute simulated. */
   t: number;
+  /** Ties game minutes to real time (4 game minutes a real minute). */
+  clock: GameClock;
+  /** Where the kampung's calendar starts (1 January, Year 0). */
+  calendar: Calendar;
   rng: number;
   nextId: number;
   eventSeq: number;

@@ -82,7 +82,7 @@ describe('the live source', () => {
     const mind = new Mind({ client: new FakeModel(1), memory, costs: new CostLog(null), cards: CARDS, townCap: Infinity });
     const live = new LiveSource({
       label: 'x', msPerMinute: 1000, everyMs: 0,
-      extras: (id, t) => extrasFrom((r, k, up, n) => memory.latest(r, k, up, n), id, t),
+      extras: (id, t) => extrasFrom((r, k, up, n) => memory.latest(r, k, up, n), id, t, town.world.state),
     });
     const town = Town.create(42, START, { brains: mindBrains(mind, fakeBrains), observer: mind.observe, ...live.hooks() });
     await town.runUntil(START + 120);

@@ -74,7 +74,7 @@ if (args.replay !== undefined) {
   const live = new LiveSource({
     label: `Fake town at ${speed}×`,
     msPerMinute,
-    extras: (id, t) => extrasFrom((r, k, up, n) => memory.latest(r, k, up, n), id, t),
+    extras: (id, t) => extrasFrom((r, k, up, n) => memory.latest(r, k, up, n), id, t, town.world.state),
   });
   const town = Town.create(seed, SIM_START, { brains: mindBrains(mind, fakeBrains), observer: mind.observe, ...live.hooks() });
   source = live;

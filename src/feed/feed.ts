@@ -3,7 +3,7 @@ import type { GameEvent } from '../sim/events.ts';
 import { quantityLabel } from '../sim/items.ts';
 import { PLACE_BY_ID } from '../sim/map.ts';
 import { formatMoney } from '../sim/money.ts';
-import { shortStamp } from '../sim/time.ts';
+import { shortStamp, type Calendar } from '../sim/calendar.ts';
 
 export interface FeedLine {
   t: number;
@@ -68,7 +68,7 @@ export function feedText(e: GameEvent, n: Names): { text: string; notable: boole
     case 'cooked': return line(`${n(e.who)} cooked up ${quantityLabel(e.item, e.qty)}.`);
     case 'night_fell': return line('Night falls over the kampung. Everyone heads home to sleep.');
     case 'morning': return line('Dawn. The kampung stirs.');
-    case 'kampung_quiet': return line('The kampung is quiet this afternoon. People rest where they are.');
+    case 'kampung_quiet': return line('The kampung goes quiet for a good while. People rest where they are.');
     case 'found_place': return line(`${n(e.who)} comes across ${place(e.place)} for the first time.`);
     case 'quiet_spell': return line(`The kampung was quiet for a while (${Math.floor(e.minutes / 60)}h ${e.minutes % 60}m). Everyone rested or worked quietly.`);
     case 'arrived':
@@ -86,6 +86,6 @@ export function feedLine(e: GameEvent, n: Names): FeedLine | null {
 }
 
 /** "[Mon 07:05] ★ Siti is now working for Ah Huat ..." */
-export function formatFeedLine(l: FeedLine): string {
-  return `[${shortStamp(l.t)}] ${l.notable ? '★ ' : ''}${l.text}`;
+export function formatFeedLine(l: FeedLine, w: { calendar: Calendar }): string {
+  return `[${shortStamp(w, l.t)}] ${l.notable ? '★ ' : ''}${l.text}`;
 }

@@ -58,9 +58,9 @@ export class Mind {
     this.memory.add(residentId, t, 'noticed', text);
   };
 
-  /** True once the town has spent its daily cap; announces the quiet once. */
-  townSpent(t: number, emit: ThinkContext['emit']): boolean {
-    const day = this.costs.dayKey(t);
+  /** True once the town has spent its daily cap (per real day); announces the quiet once. */
+  townSpent(realMs: number, emit: ThinkContext['emit']): boolean {
+    const day = this.costs.dayKey(realMs);
     if (this.costs.spentOn(day) < this.townCap) return false;
     if (this.quietDay !== day) {
       this.quietDay = day;
@@ -125,7 +125,8 @@ export class MindBrain implements Brain {
     this.mind.fadeOnceADay(ctx.t);
     if (p.reply) this.remember(ctx.t, 'did', p.reply);
     const today = dayIndex(ctx.t);
-    if (this.s.planDay !== today && sgtHour(ctx.t) >= 6) {
+    // A plan they can't afford yet waits for the thinking money, later the same day.
+    if (this.s.planDay !== today && sgtHour(ctx.t) >= 6 && this.canThink('big', ctx)) {
       this.s.planDay = today;
       const res = await this.call('plan', 'big', p, ctx);
       if (res?.text) {
@@ -133,7 +134,7 @@ export class MindBrain implements Brain {
         this.remember(ctx.t, 'plan', `My plan for today: ${res.text}`);
       }
     }
-    const kind = this.businessMoment(p, today) ? 'business' : 'act';
+    const kind = this.canThink('big', ctx) && this.businessMoment(p, today) ? 'business' : 'act';
     const res = await this.call(kind, kind === 'business' ? 'big' : 'routine', p, ctx);
     if (!res) return needsOnly(p);
     if (res.text) this.remember(ctx.t, 'thought', res.text);
@@ -142,7 +143,7 @@ export class MindBrain implements Brain {
 
   async reflect(p: Perception, ctx: ThinkContext): Promise<void> {
     const today = dayIndex(ctx.t);
-    if (this.s.reflectedDay === today) return;
+    if (this.s.reflectedDay === today || !this.canThink('big', ctx)) return;
     this.s.reflectedDay = today;
     const res = await this.call('reflect', 'big', p, ctx);
     if (res?.text) this.remember(ctx.t, 'reflection', res.text);
@@ -167,10 +168,16 @@ export class MindBrain implements Brain {
     return true;
   }
 
+  /** Whether a think of this tier is within the resident's money and the town's cap right now. */
+  private canThink(tier: Tier, ctx: ThinkContext): boolean {
+    this.budget.refill(ctx.t);
+    return this.budget.canSpend(ESTIMATE[tier]) && !this.mind.townSpent(ctx.realMs, ctx.emit);
+  }
+
   /** One model call within budget; null if the resident can't think right now. */
   private async call(kind: ThinkKind, tier: Tier, p: Perception, ctx: ThinkContext): Promise<ThinkResponse | null> {
     this.budget.refill(ctx.t);
-    if (!this.budget.canSpend(ESTIMATE[tier]) || this.mind.townSpent(ctx.t, ctx.emit)) return null;
+    if (!this.budget.canSpend(ESTIMATE[tier]) || this.mind.townSpent(ctx.realMs, ctx.emit)) return null;
     const cue = [p.place, ...p.people.map((x) => x.name), ...p.recent.slice(-3), p.reply ?? ''].join(' ');
     // Leave out only what the notes already show, so older things heard can still come back.
     const seen = new Set([...latelyLines(p), ...p.talk]);
@@ -192,13 +199,13 @@ export class MindBrain implements Brain {
       // request may still be billed, so its estimate is charged and logged to be safe.
       this.mind.onError(err);
       const usd = this.mind.costs.add({
-        t: ctx.t, resident: this.id, kind, model: 'failed', usage: { input_tokens: 0, output_tokens: 0 }, estimatedUsd: ESTIMATE[tier],
+        t: ctx.t, realMs: ctx.realMs, resident: this.id, kind, model: 'failed', usage: { input_tokens: 0, output_tokens: 0 }, estimatedUsd: ESTIMATE[tier],
       });
       this.budget.spend(usd);
       return null;
     }
     for (const a of res.attempts) {
-      this.budget.spend(this.mind.costs.add({ t: ctx.t, resident: this.id, kind, model: a.model, usage: a.usage }));
+      this.budget.spend(this.mind.costs.add({ t: ctx.t, realMs: ctx.realMs, resident: this.id, kind, model: a.model, usage: a.usage }));
     }
     return res.refused ? null : res;
   }

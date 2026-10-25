@@ -1,11 +1,15 @@
 import { endShift, startSleep } from './activities.ts';
 import { RESTED } from './activities.ts';
 import type { World } from './state.ts';
-import { dayIndex, isNight, minuteOfDay } from './time.ts';
+import { dayIndex, GAME_SPEED, isNight, minuteOfDay } from './time.ts';
 import { LORRY_ARRIVES, LORRY_LEAVES } from './tick.ts';
 
-/** Gaps up to this long are simply replayed minute by minute. */
-export const MAX_REPLAY_MINUTES = 10;
+/**
+ * Gaps up to this long (ten real minutes on the 4x clock) are simply replayed
+ * minute by minute, so a town that falls behind while its residents think
+ * catches up instead of skipping ahead; longer ones are downtime.
+ */
+export const MAX_REPLAY_MINUTES = 10 * GAME_SPEED;
 /** A quiet spell never leaves anyone hungrier than this. */
 export const QUIET_HUNGER_CAP = 800;
 

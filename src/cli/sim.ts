@@ -28,7 +28,7 @@ let town: Town;
 const store = args.save ? openSave(join(typeof args.home === 'string' ? args.home : kampungHome(), 'sim.db')) : undefined;
 const print = (e: GameEvent) => {
   const line = feedLine(e, (id) => town.world.resident(id).name);
-  if (line && (!notableOnly || line.notable)) console.log(formatFeedLine(line));
+  if (line && (!notableOnly || line.notable)) console.log(formatFeedLine(line, town.world.state));
 };
 const resumed = store ? Town.resume({ store, onEvent: print }) : null;
 town = resumed ?? Town.create(seed, SIM_START, { store, onEvent: print });

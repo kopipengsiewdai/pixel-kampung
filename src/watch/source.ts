@@ -10,7 +10,7 @@ import type { GameEvent } from '../sim/events.ts';
 import type { Point } from '../sim/map.ts';
 import { createWorld } from '../sim/seed.ts';
 import { World } from '../sim/state.ts';
-import { shortStamp } from '../sim/time.ts';
+import { shortStamp } from '../sim/calendar.ts';
 import type { TownOptions } from '../town.ts';
 import { ReplayPlayer } from './player.ts';
 import type { ReplayReader } from './replay.ts';
@@ -110,7 +110,7 @@ export class Hub {
 
 export interface LiveOptions {
   label: string;
-  /** Real milliseconds one game minute takes (60 000 in real time). */
+  /** Real milliseconds one game minute takes (15 000 for the live town on the 4x clock). */
   msPerMinute: number;
   /** What a resident's mind has been thinking (null when they run on the fake brain). */
   extras?: (id: string, t: number) => CardExtras | null;
@@ -203,6 +203,7 @@ export class LiveSource implements WatchSource {
     return {
       mode: 'live', label: this.opts.label, msPerMinute: this.opts.msPerMinute,
       layout: this.layout, frame: this.frame, feed: [...this.feed], replay: null, notice: null,
+      calendar: { ...this.world!.state.calendar },
     };
   }
 
@@ -210,7 +211,7 @@ export class LiveSource implements WatchSource {
     if (!this.frame || !this.world) return null;
     const t = this.frame.t;
     const r = this.world.state.residents.find((x) => x.id === id);
-    const noticed = (r?.recent ?? []).slice(-6).map((o) => ({ t: o.t, stamp: shortStamp(o.t), kind: 'noticed', text: o.text }));
+    const noticed = (r?.recent ?? []).slice(-6).map((o) => ({ t: o.t, stamp: shortStamp(this.world!.state, o.t), kind: 'noticed', text: o.text }));
     const mind = this.opts.extras?.(id, t) ?? null;
     const extras: CardExtras = mind
       ? { ...mind, noticed: mind.noticed.length ? mind.noticed : noticed }
@@ -358,6 +359,7 @@ export class ReplaySource implements WatchSource {
       feed: this.reader.feedUpTo(t, FEED_KEPT),
       replay: this.state(),
       notice: this.hasFrames ? null : THOUGHTS_ONLY_NOTICE,
+      calendar: this.reader.calendar().calendar,
     };
   }
 

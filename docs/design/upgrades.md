@@ -135,3 +135,4 @@ used differently). That still needs a step, and the reviewer checks for it.
 | Step | Why |
 |---|---|
 | v1 → v2 | Family and old friends know each other, as the cast was written (#13 seeded the ties only in new towns). They're merged into `knownPeople` alongside anyone already met. |
+| v2 → v3 | The 4x clock and the kampung calendar. The clock is anchored where the town stands (`anchorT = t`, `anchorMs = t × 60 000`, since a v2 town's minutes were real minutes), so nothing jumps. Today becomes Monday, 1 January, Year 0: the time of day carries on, and the weekday jumps once to Monday (the free fake brain's "done today" weekday labels follow it). |

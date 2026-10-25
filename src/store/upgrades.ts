@@ -61,6 +61,31 @@ export const UPGRADES: readonly Upgrade[] = [
       };
     },
   },
+  {
+    from: 2,
+    why: 'The kampung keeps its own time, four times as fast as the real clock, and its own calendar: today becomes Monday, 1 January, Year 0.',
+    save: ({ world, brains }) => {
+      // A v2 town's minutes were real minutes (since 1970, Singapore time), so its clock is anchored
+      // where it stands: nothing jumps, and the time of day carries on. Day index as time.ts had it at v2.
+      const t = world.t as number;
+      const day = Math.floor((t + 8 * 60) / 1440);
+      // Today becomes Monday, 1 January (owner, 2026-10-25). The free fake brain notes the weekday it last did
+      // its lorry run and topped up buying limits: today's old weekday becomes Monday, and an old "Monday"
+      // (a week back, or more) is long past.
+      const oldToday = ['Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday'][((day % 7) + 7) % 7]!;
+      const relabel = (d: unknown) => (d === oldToday ? 'Monday' : d === 'Monday' ? '' : d);
+      const fresh = Object.fromEntries(Object.entries(brains).map(([id, b]) => {
+        if (!b || typeof b !== 'object' || !('lorryDay' in b)) return [id, b];
+        const fb = b as { lorryDay: unknown; buyDays?: Record<string, unknown> };
+        const buyDays = Object.fromEntries(Object.entries(fb.buyDays ?? {}).map(([k, v]) => [k, relabel(v)]));
+        return [id, { ...fb, lorryDay: relabel(fb.lorryDay), buyDays }];
+      }));
+      return {
+        world: { ...world, clock: { anchorT: t, anchorMs: t * 60_000 }, calendar: { firstDay: day } },
+        brains: fresh,
+      };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

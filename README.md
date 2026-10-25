@@ -31,7 +31,7 @@ npm run sim -- --days 3            # 3 game days on seed 42, printing the story 
 npm run sim -- --days 3 --notable  # only the highlights
 npm test                           # Vitest
 npm run typecheck
-npm start                          # the live town, in real time (Singapore time)
+npm start                          # the live town, on its own 4x clock (a game day is six real hours)
 ```
 
 Real thinking (milestone 2) needs an Anthropic API key in
@@ -67,7 +67,7 @@ by default **http://127.0.0.1:8160/**, in any browser on the same PC.
 ![The watch page: the kampung map, a resident's card and the story feed](docs/images/watch-page.png)
 
 ```bash
-npm start                                   # the live town in real time, with its page
+npm start                                   # the live town on its 4x clock, with its page
 npm start -- --minds                        # the same, thinking for real (within budget)
 npm run watch -- --fake --speed 60          # a fresh fake town, 60× fast (a game hour a minute), $0
 npm run trial -- --fake                     # make a free fake trial to replay

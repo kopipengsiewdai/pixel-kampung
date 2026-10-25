@@ -11,6 +11,7 @@ import { mindBrains } from '../src/mind/setup.ts';
 import { fromIntent, toIntent } from '../src/mind/tools.ts';
 import { CARDS } from '../src/seed/cards.ts';
 import { Town, fakeBrains } from '../src/town.ts';
+import { realMsAt } from '../src/sim/time.ts';
 import type { GameEvent } from '../src/sim/events.ts';
 import { perceive } from '../src/sim/perception.ts';
 import { act, accepted, newWorld, put, sgt, who } from './helpers.ts';
@@ -38,9 +39,9 @@ function mindTown(seed: number, opts: { costDir?: string | null; townCap?: numbe
 }
 
 describe('thinking budget', () => {
-  it('fills at $0.0139 a game hour up to a cap, and empties with each call', () => {
+  it('fills at $0.0139 a real hour (four game hours) up to a cap, and empties with each call', () => {
     const b = new Budget(0, 0);
-    b.refill(60);
+    b.refill(4 * 60);
     expect(b.level).toBeCloseTo(HOURLY_ALLOWANCE, 10);
     b.refill(60 * 100);
     expect(b.level).toBe(BUCKET_CAP);
@@ -125,7 +126,7 @@ describe('failures and odd saves', () => {
     const town = Town.create(1, START, { brains: mindBrains(mind, fakeBrains, ['siti']), observer: mind.observe });
     await town.runUntil(START + 2);
     expect(errors.length).toBeGreaterThan(0);
-    const day = mind.costs.dayKey(START + 1);
+    const day = mind.costs.dayKey(realMsAt(town.world.state.clock, START + 1));
     expect(mind.costs.spentOn(day)).toBeGreaterThan(0);
     const b = town.brains.get('siti')!.save() as { budget: { level: number } };
     expect(b.budget.level).toBeLessThan(0.06);
@@ -172,9 +173,9 @@ describe('a town of minds, on the fake model ($0)', () => {
     expect(business).toBeLessThanOrEqual(3 * BUSINESS_CALLS_PER_DAY * 2);
     // Nobody thinks at night.
     expect(events.filter((e) => e.type === 'said' && (e.t % 1440 + 480) % 1440 >= 23 * 60)).toEqual([]);
-    // The cost log is written per day, under the cap, and every line priced.
+    // The cost log is written per real day (two game days are twelve real hours), under the cap, and every line priced.
     const files = readdirSync(costDir);
-    expect(files.length).toBeGreaterThanOrEqual(2);
+    expect(files.length).toBeGreaterThanOrEqual(1);
     let total = 0;
     for (const f of files) {
       for (const line of readFileSync(join(costDir, f), 'utf8').trim().split('\n')) {
@@ -199,7 +200,7 @@ describe('a town of minds, on the fake model ($0)', () => {
     const { town, mind, events } = mindTown(6, { townCap: 0.05 });
     await town.runUntil(START + 8 * 60);
     expect(events.filter((e) => e.type === 'kampung_quiet')).toHaveLength(1);
-    const day = mind.costs.dayKey(town.t);
+    const day = mind.costs.dayKey(realMsAt(town.world.state.clock, town.t));
     expect(mind.costs.spentOn(day)).toBeLessThan(0.05 + 0.05);
   });
 

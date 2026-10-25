@@ -140,4 +140,6 @@ export interface Hello {
   replay: ReplayState | null;
   /** Shown above the map, e.g. for a thoughts-only replay. */
   notice: string | null;
+  /** The town's calendar (its 1 January, Year 0, a Monday), so the page can stamp feed lines with the kampung's weekday. */
+  calendar: { firstDay: number };
 }

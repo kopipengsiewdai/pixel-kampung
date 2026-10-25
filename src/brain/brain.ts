@@ -5,6 +5,8 @@ import type { Perception } from '../sim/perception.ts';
 /** Harness facts a brain may need that are not part of what the resident perceives. */
 export interface ThinkContext {
   t: number;
+  /** The real moment of game minute t, by the town's clock (thinking money runs in real time). */
+  realMs: number;
   residentId: string;
   /** Adds an event to the town's log (e.g. "the kampung is quiet"). */
   emit: (e: EventBody) => void;

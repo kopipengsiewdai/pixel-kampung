@@ -3,13 +3,21 @@ import { CAST, SHOP_STOCK, START_MONEY, type CastMember } from '../seed/cast.ts'
 import { PLACE_BY_ID } from './map.ts';
 import { Rng } from './rng.ts';
 import { FARM_BEDS, HOUSE_IDS, type WorldState } from './state.ts';
+import { dayIndex } from './time.ts';
 
 function slug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-/** A fresh kampung at game minute t, everyone at home and awake. */
-export function createWorld(seed: number, t: number, cast: readonly CastMember[] = CAST): WorldState {
+export interface NewWorldOptions {
+  cast?: readonly CastMember[];
+  /** The real moment of game minute t (default: as if t were real minutes, which suits fast sims). */
+  anchorMs?: number;
+}
+
+/** A fresh kampung at game minute t, everyone at home and awake. Its calendar starts on its first day. */
+export function createWorld(seed: number, t: number, opts: NewWorldOptions = {}): WorldState {
+  const cast = opts.cast ?? CAST;
   const rng = new Rng(seed);
   const residents = cast.map((c, i) => {
     const homeId = HOUSE_IDS[i]!;
@@ -41,6 +49,8 @@ export function createWorld(seed: number, t: number, cast: readonly CastMember[]
     version: SCHEMA_VERSION,
     seed,
     t,
+    clock: { anchorT: t, anchorMs: opts.anchorMs ?? t * 60_000 },
+    calendar: { firstDay: dayIndex(t) },
     rng: rng.state,
     nextId: 0,
     eventSeq: 0,

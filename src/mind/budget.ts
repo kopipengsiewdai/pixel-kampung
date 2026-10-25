@@ -1,16 +1,25 @@
-/** Spec §5: each resident earns US$0.0139 of thinking an hour, saved up while asleep or idle, with a cap. */
+import { GAME_SPEED } from '../sim/time.ts';
+
+/**
+ * Spec §5: each resident earns US$0.0139 of thinking a REAL hour (four game
+ * hours on the 4x clock), saved up while asleep or idle, with a cap.
+ */
 export const HOURLY_ALLOWANCE = 0.0139;
-/** About 4 hours' worth: enough for a plan, a reflection or a run of quick thinks. */
+/** About 4 real hours' worth: enough for a plan, a reflection or a run of quick thinks. */
 export const BUCKET_CAP = 0.06;
-/** Spec §5: past this many dollars in a day, the whole town rests until midnight. */
+/** Spec §5: past this many dollars in a real day, the whole town rests until real midnight. */
 export const TOWN_DAILY_CAP = 3.33;
 
-/** What a think is expected to cost, checked before the call. Kept on the high side. */
-export const ESTIMATE = { routine: 0.0015, big: 0.04 } as const;
+/**
+ * What a think is expected to cost, checked before the call. Kept on the high
+ * side: big thinking is Haiku at high effort (about a fifth of a cent a call),
+ * not the bigger model the first estimate assumed.
+ */
+export const ESTIMATE = { routine: 0.0015, big: 0.01 } as const;
 
 export interface BudgetState { level: number; lastT: number }
 
-/** One resident's thinking money: a bucket that fills with game time and empties with each call. */
+/** One resident's thinking money: a bucket that fills with real time (counted in game minutes) and empties with each call. */
 export class Budget {
   level: number;
   lastT: number;
@@ -21,7 +30,7 @@ export class Budget {
   }
 
   refill(t: number): void {
-    if (t > this.lastT) this.level = Math.min(BUCKET_CAP, this.level + (HOURLY_ALLOWANCE * (t - this.lastT)) / 60);
+    if (t > this.lastT) this.level = Math.min(BUCKET_CAP, this.level + (HOURLY_ALLOWANCE * (t - this.lastT)) / 60 / GAME_SPEED);
     this.lastT = Math.max(this.lastT, t);
   }
 

@@ -6,7 +6,7 @@ as such, and the owner confirmed all of them.
 
 ## 1. What v1 is
 
-A 1960s Singapore kampung running 24/7 on the owner's PC, in real time.
+A 1960s Singapore kampung running 24/7 on the owner's PC, on its own clock (4 game days per real day since 2026-10-25).
 Ten AI residents live there: 3 own businesses (kopitiam, provision shop,
 wet-market stall) and 7 start out looking for work. Anyone can fish at the
 jetty or grow vegetables on the farm plot. The owner watches through a
@@ -21,8 +21,11 @@ scripted (a hire, a quarrel, a price war, someone saving up for something).
 
 - **One map**, about 40×30 tiles. It has the five places, an attap house for
   each resident, footpaths, a well, a notice board and the jetty over the sea.
-- **Time:** 1 game minute = 1 real minute, in Singapore time. Night runs
-  23:00–06:00, when residents sleep and think nothing (no AI cost).
+- **Time:** 4 game minutes per real minute, so a game day is six real hours
+  (revised 2026-10-25; it was 1 game minute = 1 real minute). The kampung
+  keeps its own calendar from 1 January, Year 0. Night runs 23:00–06:00
+  game time, when residents sleep and think nothing (no AI cost). See
+  principles.md.
 - **Money:** dollars and cents. Each resident starts with $5–$20 and each
   owner with $60–$100 (owners also start with stock). *Claude's call.*
 - **Needs:** hunger (eat at least twice a day) and energy (sleep). Needs keep
@@ -111,12 +114,12 @@ roughly 18% headroom under $100.
    eat into ARC's share. The key lives only in `~/.kampung/.env`, never in the
    repo or in chat.
 2. **Per-resident throttle.** Each resident gets a budget of $0.0139 of AI per
-   hour, which builds up while they sleep or stay idle and has a cap. A
+   real hour (four game hours on the 4x clock), which builds up while they sleep or stay idle and has a cap. A
    resident who has spent it waits (in-world, they "potter about") until it
    refills. Owners' business decisions draw from the same budget.
 3. **Town daily cap.** If the whole town reaches its daily allowance
-   ($3.33/day), every resident falls back to resting (no AI calls) until
-   midnight, and the feed says so in-world ("the kampung is quiet this
+   ($3.33 per real day, which is four game days), every resident falls back to
+   resting (no AI calls) until real midnight, and the feed says so in-world ("the kampung is quiet this
    afternoon").
 
 **Cost log:** a daily file in `~/.kampung/costs/` records each call's model,
