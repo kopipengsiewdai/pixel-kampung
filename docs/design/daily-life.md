@@ -74,8 +74,22 @@ talk-circles (a)):
 and `cast.md`) can stay: now there are real debts to remember, shown every
 moment. It's an owner-approved card, so it's his call.
 
-**Save step:** `debts: []`, `debtOffers: []`. Nobody owes anyone at upgrade,
-which is true; Rahim's payment stays a gift.
+**The money ledger reconciles from zero** (owner, 2026-10-25). `World.transfer`
+stays the single door for money. On top of the debts:
+- **Opening balances:** A's save step records each resident's money at the
+  upgrade as an opening entry from a `kampung opening` account, and a fresh
+  town records its residents' starting money the same way at creation. Then
+  replaying the ledger from nothing gives every purse.
+- **A nightly audit** in the live server, once a game day: replay the ledger
+  and check every account's balance against the money in the world, writing
+  a plain `ledger OK` or `ledger MISMATCH: …` line to the town log (and the
+  owner's wiki later). Nothing a resident sees.
+- **Separate accounts** for the outside: `lorry`, `travellers` (B), and
+  later the village fund, the village head's purse and the lorry trader, as
+  village-characters.md says.
+
+**Save step:** `debts: []`, `debtOffers: []`, plus the opening entries.
+Nobody owes anyone at upgrade, which is true; Rahim's payment stays a gift.
 
 **Fake brain:** a broke, hungry job-seeker asks someone nearby to lend 50¢.
 An owner with over $30 agrees half the time. Anyone with over $2 repays.
