@@ -15,6 +15,9 @@ never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
   - He brings one line of news from town each visit.
   - In a thinking town his prices, his haggling and his news come from the cheap model (a fraction of a cent a visit, counted in the town's daily cap); with the cap spent or a call failing he trades by his usual ways.
 - **Living town:** at upgrade (save v15) nobody has dealt with him yet. A lorry in at the stop carries on with the old lorry's goods and prices until eight; if the old lorry has already been today, he first comes tomorrow.
+- **Farm beds no longer stay taken forever:** a bed left without water for three days withers (a papaya tree holds out a week), its planter is told, and anyone may plant there again.
+- A papaya tree's first fruit now needs watering every few days while it grows, not just once.
+- The story feed says what was planted (chilli, a papaya tree) instead of always "kangkong", and notes when a bed withers.
 
 ## 0.18.0 (2026-10-25): what the skilled can do
 

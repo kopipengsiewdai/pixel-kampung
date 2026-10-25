@@ -427,12 +427,16 @@ export const CROPS: Record<Crop, { item: ItemId; days: number; yields: number; l
   papaya: { item: 'papaya', days: 10, yields: 2, level: 5, planted: 'a papaya sapling' },
 };
 export const PAPAYA_EVERY = 3;
+/** Days without water before a bed withers and is free again: a tree holds out longer. */
+export const WITHERS_AFTER: Record<Crop, number> = { kangkong: 3, chilli: 3, papaya: 7 };
 
 export function isRipe(w: World, b: Bed): boolean {
   const day = dayIndex(w.t);
   const c = CROPS[b.crop ?? 'kangkong'];
   if (b.crop === 'papaya') {
-    return day >= b.plantedDay + c.days && (b.pickedDay === null || day >= b.pickedDay + PAPAYA_EVERY)
+    // The first fruit wants watering every few days while it grows.
+    return day >= b.plantedDay + c.days && (b.pickedDay !== null || b.wateredDays >= Math.ceil(c.days / PAPAYA_EVERY))
+      && (b.pickedDay === null || day >= b.pickedDay + PAPAYA_EVERY)
       && b.lastWateredDay !== null && day - b.lastWateredDay <= PAPAYA_EVERY;
   }
   return b.wateredDays >= c.days && day >= b.plantedDay + c.days;
@@ -473,7 +477,7 @@ export function plant(w: World, r: Resident, i: Intent = { verb: 'plant' }): Act
   bed.crop = crop;
   bed.pickedDay = null;
   practise(w, r, 'farming');
-  w.emit({ type: 'planted', who: r.id, bed: bed.n });
+  w.emit({ type: 'planted', who: r.id, bed: bed.n, crop });
   return ok(crop === 'papaya'
     ? `You plant a papaya sapling in bed ${bed.n}. It will want water every few days.`
     : `You plant ${CROPS[crop].planted} in bed ${bed.n}. They'll need water every day.`);
@@ -514,11 +518,7 @@ export function harvest(w: World, r: Resident): ActionResult {
       continue;
     }
     got[c.item] = (got[c.item] ?? 0) + c.yields + handy + (b.readyDay === today ? BEST_DAY_YIELD : 0);
-    b.planterId = null;
-    b.wateredDays = 0;
-    b.lastWateredDay = null;
-    b.readyDay = null;
-    b.crop = 'kangkong';
+    clearBed(b);
   }
   practise(w, r, 'farming', ripe.length);
   const parts = (Object.entries(got) as [ItemId, number][]).map(([item, qty]) => {
@@ -527,6 +527,31 @@ export function harvest(w: World, r: Resident): ActionResult {
     return quantityLabel(item, qty);
   });
   return ok(`You harvest ${parts.join(' and ')}.`);
+}
+
+function clearBed(b: Bed): void {
+  b.planterId = null;
+  b.wateredDays = 0;
+  b.lastWateredDay = null;
+  b.readyDay = null;
+  b.crop = 'kangkong';
+  b.pickedDay = null;
+}
+
+/** Beds left dry too long wither, and anyone may plant there again (checked once a day). */
+export function witherBeds(w: World): void {
+  const today = dayIndex(w.t);
+  for (const b of w.state.beds) {
+    if (b.planterId === null) continue;
+    const crop = b.crop ?? 'kangkong';
+    if (today - (b.lastWateredDay ?? b.plantedDay) < WITHERS_AFTER[crop]) continue;
+    const who = b.planterId;
+    clearBed(b);
+    w.emit({ type: 'withered', who, bed: b.n, crop });
+    w.remember(who, crop === 'papaya'
+      ? `Your papaya tree in bed ${b.n} has withered for want of water.`
+      : `Your ${crop} in bed ${b.n} has withered for want of water.`);
+  }
 }
 
 export function eat(w: World, r: Resident, i: Intent): ActionResult {

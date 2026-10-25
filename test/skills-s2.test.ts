@@ -73,7 +73,10 @@ describe('farming: chilli, and a papaya tree', () => {
     accepted(act(w, fat.id, { verb: 'plant', item: 'a papaya tree' }));
     const bed = w.state.beds.find((b) => b.planterId === fat.id)!;
     expect(bed.crop).toBe('papaya');
-    w.state.t += 9 * 1440;
+    for (let d = 0; d < 9; d += 3) {
+      accepted(act(w, fat.id, { verb: 'water' }));
+      w.state.t += 3 * 1440;
+    }
     accepted(act(w, fat.id, { verb: 'water' }));
     refused(act(w, fat.id, { verb: 'harvest' }), /Nothing on your tree is ripe yet/);
     w.state.t += 1440;

@@ -5,6 +5,7 @@ import {
 import { choreMinute, lapseErrands } from './actions/chores.ts';
 import { fadeSkills, lapseLessons } from './skills.ts';
 import { lapsePriceOffers } from './actions/haggle.ts';
+import { witherBeds } from './actions/everyone.ts';
 import { isServing, stoveMinute, travellersMinute } from './travellers.ts';
 import { PLACE_BY_ID } from './map.ts';
 import { addGoods, NEED_MAX, OLD_AGE, type Resident, type World } from './state.ts';
@@ -129,6 +130,7 @@ export function advance(w: World): void {
   lapseLessons(w);
   // Skills unused fade, checked once a day.
   if (mod === 0) fadeSkills(w);
+  if (mod === 0) witherBeds(w);
 }
 
 export function advanceTo(w: World, t: number): void {
