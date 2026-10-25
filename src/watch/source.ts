@@ -233,7 +233,7 @@ export const THOUGHTS_ONLY_NOTICE = 'This trial was recorded before movements we
 export class ReplaySource implements WatchSource {
   readonly mode = 'replay' as const;
   readonly reader: ReplayReader;
-  private readonly player: ReplayPlayer;
+  private player: ReplayPlayer;
   private readonly hub: Hub;
   private readonly layout: Layout;
   private hasFrames: boolean;
@@ -266,9 +266,10 @@ export class ReplaySource implements WatchSource {
   tick(): void {
     if (this.now() - this.lastGrowCheck >= this.growEveryMs) {
       this.lastGrowCheck = this.now();
-      const info = this.reader.info();
-      this.hasFrames = info.hasFrames;
-      this.player.extend(info.end);
+      if (this.grow()) {
+        this.hub.publish(this.jump(this.player.state().t));
+        return;
+      }
     }
     const step = this.player.tick();
     if (!step) return;
@@ -288,6 +289,25 @@ export class ReplaySource implements WatchSource {
     this.hub.publish(u);
   }
 
+  /**
+   * Follows a trial that is still being written. Returns true when its first
+   * minute has only just landed: the player is then set up afresh on the real
+   * range, since the one guessed at opening started at 0.
+   */
+  private grow(): boolean {
+    const info = this.reader.info();
+    const firstFrames = info.hasFrames && !this.hasFrames;
+    this.hasFrames = info.hasFrames;
+    if (!firstFrames) {
+      this.player.extend(info.end);
+      return false;
+    }
+    const was = this.player.state();
+    this.player = new ReplayPlayer(info, { now: this.now, speed: was.speed });
+    if (was.paused) this.player.pause();
+    return true;
+  }
+
   private jump(t: number): Update {
     return {
       frame: this.reader.frameAt(t), feed: this.reader.feedUpTo(t, FEED_KEPT),
@@ -301,7 +321,7 @@ export class ReplaySource implements WatchSource {
     if (cmd.paused === true) this.player.pause();
     if (cmd.paused === false) {
       // A trial still being written may have grown since we caught up with it: follow it on.
-      this.player.extend(this.reader.info().end);
+      this.grow();
       this.player.play();
     }
     const state = this.state();
