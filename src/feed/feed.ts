@@ -62,6 +62,24 @@ export function feedText(e: GameEvent, n: Names): { text: string; notable: boole
     case 'trade_offered': return line(`${n(e.who)} offered ${n(e.to)} ${bundleLabel(e.give)} for ${bundleLabel(e.want)}.`);
     case 'traded': return line(`${n(e.who)} and ${n(e.with)} made a trade: ${bundleLabel(e.want)} for ${bundleLabel(e.give)}.`);
     case 'trade_declined': return line(`${n(e.who)} turned down ${n(e.from)}'s offer.`);
+    case 'debt_offered': {
+      const sum = formatMoney(e.cents);
+      if (e.kind === 'lend') return line(`${n(e.who)} offers to lend ${n(e.to)} ${sum}.`);
+      if (e.kind === 'borrow') return line(`${n(e.who)} asks to borrow ${sum} from ${n(e.to)}.`);
+      return line(`${n(e.who)} writes ${n(e.to)} an IOU for ${sum}${e.what ? ` (${e.what})` : ''}.`);
+    }
+    case 'debt_agreed': {
+      const sum = formatMoney(e.cents);
+      if (e.kind === 'lend') return line(`${n(e.who)} borrows ${sum} from ${n(e.from)}.`, true);
+      if (e.kind === 'borrow') return line(`${n(e.who)} lends ${n(e.from)} ${sum}.`, true);
+      return line(`${n(e.who)} takes ${n(e.from)}'s IOU for ${sum}.`, true);
+    }
+    case 'debt_refused':
+      if (e.kind === 'lend') return line(`${n(e.who)} turns down ${n(e.from)}'s loan.`);
+      if (e.kind === 'borrow') return line(`${n(e.who)} won't lend to ${n(e.from)}.`);
+      return line(`${n(e.who)} turns down ${n(e.from)}'s IOU.`);
+    case 'repaid': return line(`${n(e.who)} pays ${n(e.to)} back ${formatMoney(e.cents)}.`);
+    case 'let_off': return line(`${n(e.who)} lets ${n(e.debtor)} off ${formatMoney(e.cents)}.`);
     case 'note_pinned': return line(`${n(e.who)} pinned a note on the board: "${e.text}"`);
     case 'price_set':
       if (e.cents === 0) return line(`${n(e.who)} stopped ${e.side === 'sell' ? 'selling' : 'buying'} ${e.item} at ${place(e.shop)}.`);

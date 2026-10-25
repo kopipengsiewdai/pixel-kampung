@@ -62,6 +62,8 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
     jobOffers: [],
     trades: [],
     owed: [],
+    debts: [],
+    debtOffers: [],
     beds: Array.from({ length: FARM_BEDS }, (_, n) => ({ n: n + 1, planterId: null, plantedDay: 0, wateredDays: 0, lastWateredDay: null })),
     notes: [],
     lorryHere: false,

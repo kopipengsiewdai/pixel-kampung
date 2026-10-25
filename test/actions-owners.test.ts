@@ -244,9 +244,9 @@ describe('cook', () => {
 describe('the action space', () => {
   it('is exactly the v1 list, each with accept and refusal tests above', () => {
     expect(Object.keys(ACTIONS).sort()).toEqual([
-      'accept_job', 'accept_trade', 'buy', 'cook', 'decline_trade', 'eat', 'fish', 'give', 'go_with', 'harvest',
-      'let_go', 'look_around', 'offer_job', 'offer_trade', 'order_stock', 'pay_wages', 'pin_note', 'plant',
-      'quit_job', 'read_notice_board', 'say', 'sell', 'set_price', 'sleep', 'walk_to', 'water', 'work_shift',
+      'accept_job', 'accept_trade', 'agree', 'borrow', 'buy', 'cook', 'decline_trade', 'eat', 'fish', 'give', 'go_with', 'harvest',
+      'lend', 'let_go', 'let_off', 'look_around', 'offer_job', 'offer_trade', 'order_stock', 'pay_wages', 'pin_note', 'plant',
+      'quit_job', 'read_notice_board', 'refuse', 'repay', 'say', 'sell', 'set_price', 'sleep', 'walk_to', 'water', 'work_shift', 'write_iou',
     ]);
   });
 });

@@ -94,6 +94,15 @@ Nobody owes anyone at upgrade, which is true; Rahim's payment stays a gift.
 **Fake brain:** a broke, hungry job-seeker asks someone nearby to lend 50¢.
 An owner with over $30 agrees half the time. Anyone with over $2 repays.
 
+**As built (A, save v7).** The opening account is `kampung-opening`. The
+upgrade's opening entries are each purse as it stood, and the nightly check
+replays from the first opening entry, so a living town's earlier ledger rows
+are history rather than double counted. A debt keeps an IOU's words in
+`what`. `let_off` takes off the newest debt first; `repay`, the oldest.
+`agree` / `refuse` answer money offers only for now (haggling may share them).
+In the fake economy seekers are rarely broke, so fake trials show few debts;
+the fake brain's lending is covered by tests.
+
 ## B. Reasons to hire
 
 **Today** a sale goes through whenever the owner stands in the shop

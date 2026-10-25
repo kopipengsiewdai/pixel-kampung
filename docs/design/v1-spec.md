@@ -57,6 +57,7 @@ are in-world verbs; an impossible attempt gets an in-world reply.
 | eat, sleep | |
 | accept or quit a job; work a shift | |
 | give an item or money | |
+| lend, borrow or write an IOU (once the other agrees); repay, or let someone off | |
 | read the notice board / pin a note on it | |
 
 "Start a business" is **not** an action in v1. A resident can save money and

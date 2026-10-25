@@ -152,6 +152,8 @@ describe('the do tool round trip', () => {
       { verb: 'buy', item: 'kopi', qty: 2 }, { verb: 'set_price', item: 'fish', price: 20, side: 'buy', limit: 5 },
       { verb: 'offer_job', to: 'Siti', wage: 200, startHour: 9, hours: 4 }, { verb: 'pay_wages', to: 'Siti', money: 50 },
       { verb: 'cook', item: 'kopi' }, { verb: 'accept_job', from: 'Ah Huat' }, { verb: 'let_go', who: 'Siti' },
+      { verb: 'borrow', to: 'Mdm Tan', money: '50¢' }, { verb: 'agree', from: 'Rahim' }, { verb: 'refuse', from: 'Rahim' },
+      { verb: 'repay', to: 'Mdm Tan', money: 50 }, { verb: 'write_iou', to: 'Mdm Tan', money: '$5.00', text: 'for the fish' },
     ];
     for (const i of intents) {
       const back = toIntent(fromIntent(i))!;

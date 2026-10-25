@@ -30,7 +30,7 @@ export function importanceOf(kind: MemoryKind, text: string): number {
   if (kind === 'plan') return 5;
   const s = text.toLowerCase();
   if (/let you go|quit|accepted your job|now work for|offers you work|you no longer work/.test(s)) return 8;
-  if (/wages|still owes|paid you|owe/.test(s)) return 7;
+  if (/wages|still owes|paid you|owe|lend|borrow|\biou\b|pays you back|lets you off/.test(s)) return 7;
   if (/trade|gave you|turned down|^you pin your note/.test(s)) return 6;
   if (kind === 'thought') return 4;
   if (/says to you|^you say/.test(s)) return 5;

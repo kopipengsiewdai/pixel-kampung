@@ -130,6 +130,25 @@ export const UPGRADES: readonly Upgrade[] = [
       return { world: { ...world, talk }, brains };
     },
   },
+  {
+    from: 6,
+    why: 'People can lend, borrow and write IOUs, and what anyone owes is written down; nobody owes anybody yet. The money ledger opens with every purse as it stands.',
+    // Nobody owes anyone at the upgrade, which is true (a payment for a debt that never was stays a gift).
+    // The opening entries go into the ledger table below, numbered on from the world's ledgerSeq.
+    save: ({ world, brains }) => {
+      const opened = (world.residents as { money: number }[]).filter((r) => r.money > 0).length;
+      return { world: { ...world, debts: [], debtOffers: [], ledgerSeq: (world.ledgerSeq as number) + opened }, brains };
+    },
+    tables: (db) => {
+      // The world as saved at v6 (the snapshot is only rewritten after the steps): money as it stands.
+      const row = db.prepare('SELECT world FROM snapshot WHERE id = 1').get() as { world: string } | undefined;
+      if (!row) return;
+      const world = JSON.parse(row.world) as { t: number; ledgerSeq: number; residents: { id: string; money: number }[] };
+      const put = db.prepare('INSERT INTO ledger (seq, t, from_id, to_id, cents, reason) VALUES (?, ?, ?, ?, ?, ?)');
+      let seq = world.ledgerSeq;
+      for (const r of world.residents) if (r.money > 0) put.run(++seq, world.t, 'kampung-opening', r.id, r.money, 'opening');
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

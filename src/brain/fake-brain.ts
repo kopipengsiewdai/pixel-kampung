@@ -108,6 +108,12 @@ export class FakeBrain implements Brain {
       if (p.money >= 35 && p.place !== 'the kopitiam') return this.go(p, 'the kopitiam');
       if (p.money >= 30 && p.place !== 'the wet-market stall') return this.go(p, 'the wet-market stall');
       if (p.money >= 20 && p.place !== 'the provision shop') return this.go(p, 'the provision shop');
+      if (!p.business && !p.job && p.money < 20) {
+        // Broke and hungry: ask someone nearby to lend a little, now and then, unless they've just said no.
+        const near = p.people.filter((x) => x.doing !== 'asleep');
+        const turnedDown = p.recent.slice(-4).some((t) => / won't lend you /.test(t));
+        if (near.length && !turnedDown && this.rng.chance(0.3)) return { verb: 'borrow', to: this.rng.pick(near).name, money: '50¢' };
+      }
       if (!p.business) return this.goFish(p);
     }
     if (p.energy === 'exhausted' || (p.energy === 'tired' && p.hour >= 20)) {
@@ -119,6 +125,14 @@ export class FakeBrain implements Brain {
   private offers(p: Perception): Intent | null {
     const trade = p.trades[0];
     if (trade) return { verb: this.rng.chance(0.6) ? 'accept_trade' : 'decline_trade', from: trade.from };
+    const ask = p.moneyOffers[0];
+    if (ask) {
+      // A loan asked for: an owner with over $30 says yes half the time. Offered a loan or an IOU: yes when short.
+      if (ask.kind === 'borrow') return { verb: p.business && p.money > 3000 && this.rng.chance(0.5) ? 'agree' : 'refuse', from: ask.from };
+      return { verb: ask.kind === 'iou' || p.money < 50 ? 'agree' : 'refuse', from: ask.from };
+    }
+    const owe = p.debts.owe.find((d) => p.people.some((x) => x.name === d.name));
+    if (owe && p.money > 200) return { verb: 'repay', to: owe.name, money: Math.min(owe.cents, p.money) };
     const job = p.jobOffers[0];
     if (job && !p.job && p.people.some((x) => x.name === job.from)) return { verb: 'accept_job', from: job.from };
     return null;

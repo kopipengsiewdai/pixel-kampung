@@ -97,6 +97,37 @@ export interface TradeOffer {
 
 export interface Owed { employerId: string; workerId: string; cents: Cents }
 
+/**
+ * Money one account owes another (daily-life.md A). Accounts are residents'
+ * ids for now; later also outside accounts. One per debtor, creditor and kind:
+ * a new debt adds to it, keeping when it began.
+ */
+export interface Debt {
+  id: number;
+  debtor: string;
+  creditor: string;
+  cents: Cents;
+  since: number;
+  kind: 'loan' | 'iou';
+  /** No due dates yet (owner, 2026-10-25). */
+  due: number | null;
+  /** An IOU's words: what it's for. */
+  what: string | null;
+}
+
+/** Money offered or asked about, waiting on the other one's yes: a loan offered, a loan asked for, or an IOU. */
+export interface DebtOffer {
+  id: number;
+  kind: 'lend' | 'borrow' | 'iou';
+  /** Who offered or asked. */
+  fromId: string;
+  /** Who it waits on. */
+  toId: string;
+  cents: Cents;
+  what: string | null;
+  expires: number;
+}
+
 export interface Bed {
   n: number;
   planterId: string | null;
@@ -127,6 +158,8 @@ export interface WorldState {
   jobOffers: JobOffer[];
   trades: TradeOffer[];
   owed: Owed[];
+  debts: Debt[];
+  debtOffers: DebtOffer[];
   beds: Bed[];
   notes: Note[];
   lorryHere: boolean;
@@ -147,6 +180,10 @@ export interface TalkRecord {
 }
 
 export const LORRY_ID = 'lorry';
+/** Where each purse's money stood when the ledger began: a town's start, or the upgrade that began it. */
+export const OPENING_ID = 'kampung-opening';
+/** Accounts outside the town: money appears from or vanishes into them. */
+export const OUTSIDE: ReadonlySet<string> = new Set([LORRY_ID, OPENING_ID]);
 export const FARM_BEDS = 8;
 export const MAX_RECENT = 12;
 export const NEARBY_TILES = 3;
@@ -211,16 +248,23 @@ export class World {
     }
   }
 
-  /** Moves money. 'lorry' is outside the town: money appears from or vanishes into it. */
+  /** Moves money. Outside accounts (the lorry...) aren't purses: money appears from or vanishes into them. */
   transfer(fromId: string, toId: string, cents: Cents, reason: string): void {
     if (!Number.isInteger(cents) || cents <= 0) throw new Error(`bad transfer amount ${cents}`);
-    if (fromId !== LORRY_ID) {
+    if (!OUTSIDE.has(fromId)) {
       const from = this.resident(fromId);
       if (from.money < cents) throw new Error(`${fromId} cannot cover ${cents}`);
       from.money -= cents;
     }
-    if (toId !== LORRY_ID) this.resident(toId).money += cents;
+    if (!OUTSIDE.has(toId)) this.resident(toId).money += cents;
     this.ledger.push({ seq: ++this.state.ledgerSeq, t: this.state.t, from: fromId, to: toId, cents, reason });
+  }
+
+  /** Writes down everyone's money as it stands as the ledger's opening entries (a new town), moving none. */
+  openBalances(): void {
+    for (const r of this.state.residents) {
+      if (r.money > 0) this.ledger.push({ seq: ++this.state.ledgerSeq, t: this.state.t, from: OPENING_ID, to: r.id, cents: r.money, reason: 'opening' });
+    }
   }
 
   takeEvents(): GameEvent[] {
