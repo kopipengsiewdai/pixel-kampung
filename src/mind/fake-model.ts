@@ -11,6 +11,16 @@ export function roughTokens(text: string): number {
 }
 
 const CACHE_MINUTES = 5;
+
+/** Deals done only in words, as the living town talked them (for the circles mode). */
+const NARRATED = [
+  'I put the money on the counter. Count it in front of me.',
+  "Here's your 30¢ for the kopi, count it.",
+  "You're hired. Come tomorrow at eight.",
+  'Deal! Two fish for your bread.',
+  'I count it now, every cent. All paid.',
+  'Agreed, three bags of rice for you.',
+];
 const OUTPUT_TOKENS = { act: 60, business: 120, plan: 220, reflect: 320 } as const;
 
 /**
@@ -24,14 +34,16 @@ export class FakeModel implements ModelClient {
   private lastCall = new Map<string, number>();
   private readonly seed: number;
   private readonly chatty: boolean;
+  private readonly circles: boolean;
 
   /**
    * chatty: always answer whoever last spoke to you, as the residents in paid
    * trial 2 did, so a free trial shows what talk costs.
    */
-  constructor(seed: number, opts: { chatty?: boolean } = {}) {
+  constructor(seed: number, opts: { chatty?: boolean; circles?: boolean } = {}) {
     this.seed = seed;
     this.chatty = opts.chatty ?? false;
+    this.circles = opts.circles ?? false;
   }
 
   /** An answer to the last line someone said to you, if they're still here. */
@@ -39,6 +51,24 @@ export class FakeModel implements ModelClient {
     const who = /^(.+?) says(?: to you)?: "/.exec(p.talk.at(-1) ?? '')?.[1];
     if (!who || !p.people.some((x) => x.name === who && x.doing !== 'asleep')) return null;
     return { verb: 'say', text: 'Morning! Yes, about that deal...', to: who };
+  }
+
+  /**
+   * circles: talk deals instead of doing them, as the living town did, answering
+   * whoever spoke last with a deal narrated in words. Told that the words have
+   * nothing behind them, or that the talk goes round in circles, half the time
+   * (by seed, minute and resident; nothing saved) it pays 20¢ if it can, or walks off.
+   */
+  private narrate(p: Perception, id: string, t: number): Intent | null {
+    const stuck = p.unbacked[0]?.name ?? p.circles[0];
+    if (stuck) {
+      let h = (this.seed ^ t) >>> 0;
+      for (const c of id) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
+      if (h % 2 === 0) return p.money >= 20 ? { verb: 'give', to: stuck, money: 20 } : { verb: 'walk_to', where: 'home' };
+    }
+    const who = /^(.+?) says(?: to you)?: "/.exec(p.talk.at(-1) ?? '')?.[1];
+    if (!who || !p.people.some((x) => x.name === who && x.doing !== 'asleep')) return null;
+    return { verb: 'say', text: NARRATED[(t + id.length) % NARRATED.length]!, to: who };
   }
 
   /** Someone is waiting for your answer: give them one, as a resident told so plainly would. */
@@ -85,7 +115,7 @@ export class FakeModel implements ModelClient {
     else if (req.kind === 'reflect') text = 'A long day. I should keep some money aside for tomorrow.';
     else {
       const p = req.hint as Perception;
-      const intent = (this.chatty ? this.answer(p) : null) ?? this.answerWaiting(p) ?? this.brain(req.residentId).decide(p);
+      const intent = (this.circles ? this.narrate(p, req.residentId, req.t) : null) ?? (this.chatty ? this.answer(p) : null) ?? this.answerWaiting(p) ?? this.brain(req.residentId).decide(p);
       toolCall = { name: 'do', input: intent ? fromIntent(intent) : { action: 'potter about' } };
       // Now and then a passing thought, as a real model would write before acting.
       if (req.kind === 'business' || req.t % 7 === 0) text = intent ? `Better ${intent.verb.replace(/_/g, ' ')}.` : 'Nothing to do just now.';

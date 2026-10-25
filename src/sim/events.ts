@@ -44,7 +44,9 @@ export type EventBody =
   | { type: 'morning' }
   | { type: 'quiet_spell'; minutes: number }
   | { type: 'found_place'; who: string; place: string }
-  | { type: 'kampung_quiet' };
+  | { type: 'kampung_quiet' }
+  /** Two people have swapped several lines with nothing done between them (talk-circles.md). */
+  | { type: 'circles'; a: string; b: string };
 
 export type EventType = EventBody['type'];
 export type GameEvent = EventBody & { seq: number; t: number };

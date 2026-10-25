@@ -120,6 +120,16 @@ export const UPGRADES: readonly Upgrade[] = [
       return { world: { ...world, clock: { anchorT: t, anchorMs: old.anchorMs + (t - old.anchorT) * 15_000 } }, brains };
     },
   },
+  {
+    from: 5,
+    why: 'Two people talking keep count of how long it has been since they last did something together, and of any deal still only in words.',
+    save: ({ world, brains }) => {
+      // Gentle: nobody is told they're going round in circles because of lines from before the change.
+      const talk = Object.fromEntries(Object.entries(world.talk as Record<string, Record<string, unknown>>)
+        .map(([k, rec]) => [k, 'idle' in rec ? rec : { ...rec, idle: 0, word: null }]));
+      return { world: { ...world, talk }, brains };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

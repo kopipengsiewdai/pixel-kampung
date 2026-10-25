@@ -1,4 +1,5 @@
 import { FISHING_MINUTES, RESTED, startSleep } from '../activities.ts';
+import { dealKind, settlesBy } from '../talk.ts';
 import { ITEMS, LORRY_BUYS, quantityLabel, type ItemId } from '../items.ts';
 import { MAP_H, MAP_W, PLACES, PLACE_BY_ID, findPath, isWalkable, type Point } from '../map.ts';
 import { learnFromWords } from '../discovery.ts';
@@ -6,7 +7,7 @@ import { formatMoney } from '../money.ts';
 import { perceive } from '../perception.ts';
 import { PLACE_WORDS } from '../places.ts';
 import {
-  addGoods, countGoods, type Resident, type Shop, type World, LORRY_ID, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey,
+  addGoods, CIRCLE_LINES, countGoods, type Resident, type Shop, type World, LORRY_ID, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey,
 } from '../state.ts';
 import { atTimeOfDay, dayIndex, sgtHour } from '../time.ts';
 import {
@@ -137,13 +138,23 @@ export function say(w: World, r: Resident, i: Intent): ActionResult {
     to = o;
   }
   w.emit({ type: 'said', who: r.id, to: to?.id ?? null, text });
-  /** Counts a line between speaker and listener; true once their chat has run long. */
+  const said = to ? dealKind(text) : null;
+  // Thanks for a job already given, or one just offered, isn't an empty promise of one.
+  const claim = said === 'job' && to && w.workBetween(r.id, to.id) ? null : said;
+  /**
+   * Counts a line between speaker and listener, and notes a deal talked of as
+   * done; true once their chat has run long, or gone round in circles.
+   */
   const runsLong = (o: Resident): boolean => {
     const key = talkKey(r.id, o.id);
     const prev = w.state.talk[key];
-    const lines = prev && w.t - prev.lastT <= TALK_GAP_MINUTES ? prev.lines + 1 : 1;
-    w.state.talk[key] = { lines, lastT: w.t };
-    return lines > TALK_SOFT_LIMIT;
+    const going = prev && w.t - prev.lastT <= TALK_GAP_MINUTES ? prev : null;
+    const rec = { lines: (going?.lines ?? 0) + 1, lastT: w.t, idle: (going?.idle ?? 0) + 1, word: going?.word ?? null };
+    // Narrating on and on doesn't put the notice off: talk settled the same way (money, or a job) keeps its first minute.
+    if (claim && to?.id === o.id && (!rec.word || settlesBy(rec.word.kind) !== settlesBy(claim))) rec.word = { by: r.id, kind: claim, t: w.t };
+    w.state.talk[key] = rec;
+    if (rec.idle === CIRCLE_LINES) w.emit({ type: 'circles', a: r.id, b: o.id });
+    return rec.lines > TALK_SOFT_LIMIT || rec.idle > CIRCLE_LINES;
   };
   for (const o of w.nearby(r)) {
     if (w.isAsleep(o)) continue;

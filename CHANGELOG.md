@@ -4,6 +4,13 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **Going round in circles:** after six lines with nothing done between them, two people see they keep going round in circles, and the chat stops waking them; doing something together starts the count again.
+- **Words don't move money:** talk of paying, a deal or a job as if done, with nothing done within a few minutes, is noticed by both, in plain words ("You and Rahim have talked of paying, but no money has changed hands.").
+- **Knowing what you are:** everyone sees whether they run a stall or shop ("You run the provision shop. It's yours alone." for an owner).
+- **Living town:** at upgrade (save v6) chats already going start with nothing counted and no deal pending; the stale "no work" line leaves job-seekers' thoughts at once.
+
 ## 0.10.4 (2026-10-25): a day every five hours
 
 - Watch page: a card's name and close button stay in view while you scroll it, on any screen size.

@@ -12,6 +12,7 @@ import { fromIntent, toIntent } from '../src/mind/tools.ts';
 import { CARDS } from '../src/seed/cards.ts';
 import { Town, fakeBrains } from '../src/town.ts';
 import { realMsAt } from '../src/sim/time.ts';
+import { CIRCLE_LINES } from '../src/sim/state.ts';
 import type { GameEvent } from '../src/sim/events.ts';
 import { perceive } from '../src/sim/perception.ts';
 import { act, accepted, newWorld, put, sgt, who } from './helpers.ts';
@@ -88,7 +89,7 @@ describe('needs only', () => {
 });
 
 describe('talk is line by line, with a soft limit', () => {
-  it('after about 8 lines the listener hears but is not woken to answer at once', () => {
+  it('after about 8 lines the listener hears but is not woken to answer at once (even with something done midway)', () => {
     const w = newWorld();
     const siti = put(w, 'Siti', 'well');
     const raju = put(w, 'Raju', 'well');
@@ -96,6 +97,8 @@ describe('talk is line by line, with a soft limit', () => {
       raju.thinkAt = w.t + 99;
       accepted(act(w, siti.id, { verb: 'say', text: `Line ${i}`, to: 'Raju' }));
       expect(raju.thinkAt).toBe(w.t + 1);
+      // Something done together keeps the chat from going round in circles; the 8-line limit still holds.
+      if (i === 3) accepted(act(w, siti.id, { verb: 'give', to: 'Raju', money: 10 }));
     }
     raju.thinkAt = w.t + 99;
     accepted(act(w, siti.id, { verb: 'say', text: 'Line 9', to: 'Raju' }));
@@ -113,7 +116,7 @@ describe('talk is line by line, with a soft limit', () => {
       accepted(act(w, siti.id, { verb: 'say', text: `Line ${i}` }));
       if (raju.thinkAt === w.t + 1) woken++;
     }
-    expect(woken).toBe(8);
+    expect(woken).toBe(CIRCLE_LINES); // with nothing done between them, it goes round in circles first
   });
 });
 

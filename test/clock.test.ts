@@ -117,9 +117,9 @@ describe('thinking money stays in real time', () => {
     expect(b.level).toBeCloseTo(HOURLY_ALLOWANCE * (1 + 1 / 4.8), 10);
   });
 
-  it("the town's daily cap is per real day: four game days share one US$3.33", async () => {
+  it("the town's daily cap is per real day: 4.8 game days share one US$3.33", async () => {
     expect(TOWN_DAILY_CAP).toBe(3.33);
-    // A town anchored at real midnight in Singapore: its first four game days fall on one real day.
+    // A town anchored at real midnight in Singapore: its first game days fall on one real day.
     const start = sgt(6, 0) - 1;
     const midnight = Date.parse('2026-11-01T16:00:00Z');
     const memory = new MemoryStore(':memory:');

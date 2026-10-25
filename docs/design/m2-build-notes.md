@@ -85,6 +85,20 @@ under the agreed [M2 decisions](m2-decisions.md) and [v1 spec](v1-spec.md)
   everything said to the listener, whether or not they were named. From then
   on both talk only at the quiet pace (every 10 game minutes on the kampung clock) until the chat has
   been quiet for 30 minutes.
+- **Going round in circles** (2026-10-25, [talk-circles.md](talk-circles.md)):
+  after 6 lines with nothing done between the two (no trade, gift, sale,
+  hire, or either walking off), both see "You and Rahim keep going round in
+  circles." and from the next line the listener isn't woken. Something done
+  together starts the count again; the 8-line limit above still holds.
+- **Words don't move money:** a line said to someone that talks of paying, a
+  deal or a job as done ("I put my $64.56 on the counter", "You're hired") is
+  noted, and if nothing matching is done within 3 minutes both see it, in
+  plain words ("You and Rahim have talked of paying, but no money has changed hands.").
+  Cheap patterns in `src/sim/talk.ts`; no AI.
+- **Knowing what you are:** every moment an owner is told "You run the
+  provision shop. It's yours alone.", and anyone else that they don't run a
+  stall or shop (with "You have no work just now" for a job-seeker). The
+  job-seeker's stale card line "You don't have work at the moment." is gone.
 - A speaker remembers their own words (`You say to Ah Seng: "..."`). The last
   6 lines of a resident's own conversations from the last 30 minutes (said to
   them, to everyone, or by them) are shown together, oldest first, under "The

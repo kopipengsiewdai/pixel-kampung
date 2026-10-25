@@ -1,11 +1,12 @@
 /**
  * Measure what real thinking costs (M2). Runs a fast game from Monday 06:00
  * with a few residents on the model and the rest on the free fake brain, then
- * reports thoughts per waking game hour and cost per REAL resident-hour (four
+ * reports thoughts per waking game hour and cost per REAL resident-hour (4.8
  * game hours on the kampung clock) against the $0.0139 ceiling.
  *
  *   npm run trial -- --fake [--minds 10] [--hours 24]       free dry run
  *   npm run trial -- --fake --chatty                        ...where everyone answers talk
+ *   npm run trial -- --fake --circles                       ...where talk narrates deals instead of doing them
  *   npm run trial -- --minds 3 --hours 4 --budget 1.00      real calls (owner's PC)
  *
  * Real trials need ANTHROPIC_API_KEY in $KAMPUNG_HOME/.env. All trials
@@ -33,6 +34,7 @@ import { Town, fakeBrains } from '../town.ts';
 import { ReplayRecorder, recordTown } from '../watch/replay.ts';
 import { numArg, parseArgs } from './args.ts';
 import { SIM_START } from './start.ts';
+import { talkMeasures } from '../sim/talk.ts';
 import { GAME_MINUTES_PER_REAL_MINUTE, isNight } from '../sim/time.ts';
 
 /** M2 decision 4: the most all paid trials may spend together. */
@@ -64,7 +66,7 @@ function spentOnTrials(dir: string): number {
 let client: ModelClient;
 let budget = numArg(args, 'budget', 1);
 if (fake) {
-  client = new FakeModel(seed, { chatty: args.chatty === true });
+  client = new FakeModel(seed, { chatty: args.chatty === true, circles: args.circles === true });
   budget = Infinity;
 } else {
   const apiKey = readApiKey(home);
@@ -119,8 +121,10 @@ const mind = new Mind({ client: counting, memory, costs: new CostLog(costDir), c
 const order = ['ah-huat', 'siti', 'raju', 'mei-ling', 'ah-kow', 'muthu', 'ah-seng', 'fatimah', 'mdm-tan', 'rahim'];
 const chosen = order.slice(0, minds);
 let town: Town;
+const events: GameEvent[] = [];
 const print = (e: GameEvent) => {
   record.onEvent!(e);
+  events.push(e);
   const line = feedLine(e, (id) => town.world.resident(id).name);
   if (line && (args.feed === true || line.notable || e.type === 'kampung_quiet')) console.log(formatFeedLine(line, town.world.state));
 };
@@ -149,5 +153,14 @@ console.log(`calls per real resident-hour: ${(stats.calls / residentHours).toFix
 console.log(`tokens: ${inputAll} in (${Math.round((100 * stats.cacheRead) / Math.max(1, inputAll))}% from cache), ${stats.output} out`);
 console.log(`spent: US$${stats.usd.toFixed(4)}${fake ? ' (estimated from fake token counts)' : ''}`);
 console.log(`per real resident-hour: US$${perHour.toFixed(5)} against a ceiling of US$${HOURLY_ALLOWANCE} (${Math.round((100 * perHour) / HOURLY_ALLOWANCE)}%)`);
+const talk = talkMeasures(events);
+const count = (type: GameEvent['type']) => events.filter((e) => e.type === type).length;
+const pct = (x: number) => `${Math.round(100 * x)}%`;
+console.log('\n--- talk ---');
+console.log(`chats: ${talk.chats}, lines: ${talk.lines}, lines per chat: ${talk.meanLines.toFixed(1)} (longest ${talk.longest})`);
+console.log(`talk that led to something: ${pct(talk.ledChatShare)} of chats, ${pct(talk.ledLineShare)} of lines`);
+console.log(`lines per resident per waking game hour: ${(talk.lines / (minds * (wakingMinutes / 60))).toFixed(1)}`);
+console.log(`deals in words: ${talk.wordDeals} (${talk.wordDealsBacked} done within 5 minutes); going round in circles: ${talk.circles}`);
+console.log(`done: ${(['bought', 'sold', 'gave', 'traded', 'trade_offered', 'job_offered', 'hired'] as const).map((t) => `${t} ${count(t)}`).join(', ')}`);
 if (!fake) console.log(`all trials so far: US$${spentOnTrials(costRoot).toFixed(4)} of US$${TRIAL_ALLOWANCE}`);
 console.log(`\nWatch it back: npm run watch -- --replay trial-${stamp}.db`);

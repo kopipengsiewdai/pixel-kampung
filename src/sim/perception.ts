@@ -1,9 +1,10 @@
 import { isRipe, isStaffed, shiftLabel, shopHere } from './actions/everyone.ts';
+import type { DealKind } from './talk.ts';
 import { availableActions } from './actions/index.ts';
 import { LORRY_BUYS, LORRY_SELLS, quantityLabel, type ItemId } from './items.ts';
 import { PLACES, PLACE_BY_ID } from './map.ts';
 import { formatMoney, type Cents } from './money.ts';
-import { TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, type Goods, type Observation, type Resident, type World } from './state.ts';
+import { CIRCLE_LINES, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, WORD_MINUTES, type Goods, type Observation, type Resident, type TalkRecord, type World } from './state.ts';
 import { nowLabel } from './calendar.ts';
 import { dayIndex, sgtHour, sgtMinute } from './time.ts';
 
@@ -24,14 +25,21 @@ export function waitingOn(w: World, r: Resident): Resident[] {
   return w.nearby(r).filter((o) => {
     if (w.isAsleep(o)) return false;
     const chat = w.state.talk[talkKey(r.id, o.id)];
-    // Once the chat has run long ("you've been talking for a while"), nobody is kept waiting.
-    if (chat && chat.lines >= TALK_SOFT_LIMIT && w.t - chat.lastT <= TALK_GAP_MINUTES) return false;
+    // Once the chat has run long ("you've been talking for a while") or gone round in circles, nobody is kept waiting.
+    if (chat && (chat.lines >= TALK_SOFT_LIMIT || chat.idle >= CIRCLE_LINES) && w.t - chat.lastT <= TALK_GAP_MINUTES) return false;
     const asked = r.recent.findLastIndex((x) => x.talk && w.t - x.t <= WAIT_MINUTES && x.text.startsWith(`${o.name} says to you: "`));
     if (asked < 0) return false;
     const toThem = (x: Observation) => x.talk === true && (x.text.startsWith(`You say to ${o.name}: "`) || x.text.startsWith('You say: "'));
     const spokeFirst = !r.recent.slice(0, asked).some((x) => toThem(x) && r.recent[asked]!.t - x.t <= WAIT_MINUTES);
     return spokeFirst && !r.recent.slice(asked + 1).some(toThem);
   });
+}
+
+/** The chats r is in that are still going (not quiet for the gap), with whom. */
+function chatsOf(w: World, r: Resident): { o: Resident; rec: TalkRecord }[] {
+  return Object.entries(w.state.talk)
+    .filter(([k, rec]) => k.split('|').includes(r.id) && w.t - rec.lastT <= TALK_GAP_MINUTES)
+    .map(([k, rec]) => ({ o: w.resident(k.split('|').find((id) => id !== r.id)!), rec }));
 }
 
 export type HungerWord = 'full' | 'not hungry' | 'hungry' | 'very hungry' | 'starving';
@@ -84,6 +92,10 @@ export interface Perception {
   longTalks: string[];
   /** People nearby who said something to them and haven't had an answer yet. */
   waiting: string[];
+  /** Deals talked of with someone nearby that nothing has backed yet: who, what about, and whether you said it. */
+  unbacked: { name: string; kind: DealKind; mine: boolean }[];
+  /** People nearby you keep going round in circles with. */
+  circles: string[];
   /** What happened when they last tried something. */
   reply?: string;
   refused?: boolean;
@@ -186,10 +198,13 @@ export function perceive(w: World, r: Resident): Perception {
     })),
     recent: r.recent.map((o) => o.text),
     talk: r.recent.filter((o) => o.talk && w.t - o.t <= TALK_GAP_MINUTES).slice(-TALK_LINES).map((o) => o.text),
-    longTalks: Object.entries(w.state.talk)
-      .filter(([k, v]) => v.lines >= TALK_SOFT_LIMIT && w.t - v.lastT <= TALK_GAP_MINUTES && k.split('|').includes(r.id))
-      .map(([k]) => w.resident(k.split('|').find((id) => id !== r.id)!).name),
+    longTalks: chatsOf(w, r).filter(({ rec }) => rec.lines >= TALK_SOFT_LIMIT && rec.idle < CIRCLE_LINES).map(({ o }) => o.name),
     waiting: waitingOn(w, r).map((o) => o.name),
+    unbacked: chatsOf(w, r)
+      .filter(({ o, rec }) => rec.word && w.t - rec.word.t >= WORD_MINUTES && w.isNear(r, o) && !w.isAsleep(o)
+        && !(rec.word.kind === 'job' && w.workBetween(r.id, o.id)))
+      .map(({ o, rec }) => ({ name: o.name, kind: rec.word!.kind, mine: rec.word!.by === r.id })),
+    circles: chatsOf(w, r).filter(({ o, rec }) => rec.idle >= CIRCLE_LINES && w.isNear(r, o) && !w.isAsleep(o)).map(({ o }) => o.name),
     actions: availableActions(w, r),
     placesYouKnow: PLACES.filter((pl) => w.knowsPlace(r, pl.id)).flatMap((pl) => {
       if (pl.id === r.homeId) return ['home'];
@@ -223,6 +238,19 @@ export function latelyLines(p: Perception): string[] {
   return p.recent.filter((l) => !talk.has(l)).slice(-5);
 }
 
+/**
+ * A deal talked of as done with nothing done yet, as either of the two sees
+ * it. Talk of paying or a deal is worded for both alike (the one who said it
+ * may be the one paid, "all paid"); talk of a job names who talked of it.
+ */
+function unbackedLine(u: { name: string; kind: DealKind; mine: boolean }): string {
+  if (u.kind === 'paying') return `You and ${u.name} have talked of paying, but no money has changed hands.`;
+  if (u.kind === 'deal') return `You and ${u.name} have talked of a deal, but nothing has changed hands.`;
+  return u.mine
+    ? `You've talked with ${u.name} about a job, but no job has been offered.`
+    : `${u.name} talks about a job, but no job has been offered.`;
+}
+
 /** The perception as plain words, as the character would take it in. */
 export function describe(p: Perception): string {
   const lines: string[] = [`It's ${p.time}. You're at ${p.place}.`];
@@ -230,12 +258,15 @@ export function describe(p: Perception): string {
     ? `Nearby: ${p.people.map((x) => `${x.name} (${x.doing})`).join(', ')}.`
     : "There's nobody else around.");
   lines.push(`You feel ${p.hunger} and ${p.energy}. You have ${formatMoney(p.money)}${p.carrying.length ? ` and you're carrying ${p.carrying.map((c) => quantityLabel(c.item, c.qty)).join(', ')}` : ''}.`);
+  // What they are, every moment, so nobody talks as if they ran a shop they don't (or shared one that's theirs).
+  if (!p.job && !p.business) lines.push("You have no work just now, and you don't run a stall or shop.");
   if (p.job) {
     lines.push(`You work for ${p.job.boss} at ${p.job.place}, ${p.job.shift}.${p.job.onShift ? " You're on shift now." : ''}`);
+    if (!p.business) lines.push("You don't run a stall or shop.");
     if (p.job.onShift) lines.push(`In the shop: ${p.job.stock.map((s) => quantityLabel(s.item, s.qty)).join(', ') || 'nothing'}.`);
   }
   if (p.business) {
-    lines.push(`You run ${p.business.place}. In stock: ${p.business.stock.map((s) => quantityLabel(s.item, s.qty)).join(', ') || 'nothing'}.`);
+    lines.push(`You run ${p.business.place}. It's yours alone. In stock: ${p.business.stock.map((s) => quantityLabel(s.item, s.qty)).join(', ') || 'nothing'}.`);
     lines.push(`Your prices: ${p.business.sells.map(priceLine).join(', ') || 'none set'}.`);
     if (p.business.buys.length) lines.push(`You're buying: ${p.business.buys.map(priceLine).join(', ')}.`);
     if (p.business.workers.length) lines.push(`Working for you: ${p.business.workers.join(', ')}.`);
@@ -260,6 +291,8 @@ export function describe(p: Perception): string {
   if (lately.length) lines.push(`Lately: ${lately.join(' ')}`);
   if (p.talk.length) lines.push(`The talk so far:\n${p.talk.map((l) => `- ${l}`).join('\n')}`);
   for (const n of p.longTalks) lines.push(`You've been talking with ${n} for a while.`);
+  for (const n of p.circles) lines.push(`You and ${n} keep going round in circles.`);
+  for (const u of p.unbacked) lines.push(unbackedLine(u));
   for (const n of p.waiting) lines.push(`${n} is waiting for your answer.`);
   if (p.reply) lines.push(p.reply);
   return lines.join('\n');

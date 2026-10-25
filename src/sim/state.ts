@@ -1,4 +1,5 @@
 import type { ItemId } from './items.ts';
+import { settledBy, settles, type DealKind, type Settles } from './talk.ts';
 import type { Point } from './map.ts';
 import type { Cents } from './money.ts';
 import type { EventBody, GameEvent, LedgerEntry } from './events.ts';
@@ -112,7 +113,7 @@ export interface WorldState {
   seed: number;
   /** Last game minute simulated. */
   t: number;
-  /** Ties game minutes to real time (4 game minutes a real minute). */
+  /** Ties game minutes to real time (a game day every five real hours). */
   clock: GameClock;
   /** Where the kampung's calendar starts (1 January, Year 0). */
   calendar: Calendar;
@@ -132,7 +133,17 @@ export interface WorldState {
   /** Keys of one-off notable things that already happened (e.g. a shop's first sale). */
   firsts: string[];
   /** Lines spoken between each pair lately ("a|b" sorted), for the talk soft limit. */
-  talk: Record<string, { lines: number; lastT: number }>;
+  talk: Record<string, TalkRecord>;
+}
+
+/** A pair's chat lately (talk-circles.md). */
+export interface TalkRecord {
+  lines: number;
+  lastT: number;
+  /** Lines since the two last did something together (a trade, a gift, a hire...) or one walked off. */
+  idle: number;
+  /** A deal one of them talked of as done, with nothing done yet: who said it, what kind, and when first. */
+  word: { by: string; kind: DealKind; t: number } | null;
 }
 
 export const LORRY_ID = 'lorry';
@@ -143,6 +154,10 @@ export const NEARBY_TILES = 3;
 export const TALK_SOFT_LIMIT = 8;
 /** A conversation counts as over after this many quiet minutes. */
 export const TALK_GAP_MINUTES = 30;
+/** After this many lines with nothing done between them, two people see they're going round in circles, and further lines stop waking the listener. */
+export const CIRCLE_LINES = 6;
+/** A deal talked of as done shows as only words once this many minutes pass with nothing done. */
+export const WORD_MINUTES = 3;
 
 export function talkKey(a: string, b: string): string {
   return a < b ? `${a}|${b}` : `${b}|${a}`;
@@ -170,7 +185,30 @@ export class World {
   emit(body: EventBody): GameEvent {
     const e = { seq: ++this.state.eventSeq, t: this.state.t, ...body } as GameEvent;
     this.events.push(e);
+    this.settleTalk(e);
     return e;
+  }
+
+  /** Something done between two people settles their talk of it; anyone walking off starts their chats' count again. */
+  private settleTalk(e: GameEvent): void {
+    const settle = (a: string, b: string, kind: Settles) => {
+      const rec = this.state.talk[talkKey(a, b)];
+      if (!rec) return;
+      rec.idle = 0;
+      if (rec.word && settles(rec.word.kind, kind)) rec.word = null;
+    };
+    const s = settledBy(e);
+    if (s) settle(s.a, s.b, s.kind);
+    // A sale across the counter is with whoever served it, too: a worker on shift there.
+    if ((e.type === 'bought' || e.type === 'sold') && e.shop) {
+      for (const r of this.state.residents) {
+        const a = r.activity;
+        if (a?.kind === 'working' && this.state.jobs.some((j) => j.id === a.jobId && j.placeId === e.shop)) settle(e.who, r.id, 'money');
+      }
+    }
+    if (e.type === 'walked') {
+      for (const [k, rec] of Object.entries(this.state.talk)) if (k.split('|').includes(e.who)) rec.idle = 0;
+    }
   }
 
   /** Moves money. 'lorry' is outside the town: money appears from or vanishes into it. */
@@ -249,6 +287,12 @@ export class World {
 
   nearby(r: Resident): Resident[] {
     return this.state.residents.filter((o) => o.id !== r.id && this.isNear(r, o));
+  }
+
+  /** Whether two people already have work between them: a job, or an offer of one not yet taken up. */
+  workBetween(a: string, b: string): boolean {
+    const pair = (x: { employerId: string; workerId: string }) => (x.employerId === a && x.workerId === b) || (x.employerId === b && x.workerId === a);
+    return this.state.jobs.some(pair) || this.state.jobOffers.some(pair);
   }
 
   isAsleep(r: Resident): boolean {
