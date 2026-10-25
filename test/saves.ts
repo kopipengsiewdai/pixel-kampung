@@ -6,6 +6,7 @@
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { DatabaseSync, type SQLInputValue } from 'node:sqlite';
 import ts from 'typescript';
 import { SIM_START } from '../src/cli/start.ts';
@@ -75,7 +76,7 @@ const SAVED_TYPES: readonly [file: string, type: string][] = [
  * change to what gets saved.
  */
 export function saveShape(): string {
-  const files = SAVED_TYPES.map(([f]) => new URL(`../${f}`, import.meta.url).pathname);
+  const files = SAVED_TYPES.map(([f]) => fileURLToPath(new URL(`../${f}`, import.meta.url)));
   const program = ts.createProgram(files, { strict: true, noEmit: true, allowImportingTsExtensions: true, module: ts.ModuleKind.NodeNext, moduleResolution: ts.ModuleResolutionKind.NodeNext, target: ts.ScriptTarget.ES2023 });
   const checker = program.getTypeChecker();
 

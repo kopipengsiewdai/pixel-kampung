@@ -26,13 +26,14 @@ const dir = mkdtempSync(join(tmpdir(), 'kampung-fixture-'));
 try {
   const path = join(dir, 'kampung.db');
   await makeFixtureSave(path);
-  writeFileSync(fixtureSql(v), dumpSql(path, fixtureHeader(v)));
-  writeFileSync(fixtureShape(v), saveShape());
+  // Build every file before writing any, so a failure never leaves half a frozen set behind.
+  const out: [URL, string][] = [[fixtureSql(v), dumpSql(path, fixtureHeader(v))], [fixtureShape(v), saveShape()]];
   if (v > 1) {
     const up = join(dir, 'upgraded.db');
     upgradeOneStep(v - 1, up, UPGRADES);
-    writeFileSync(fixtureUpgraded(v - 1), dumpSql(up, upgradedHeader(v - 1)));
+    out.push([fixtureUpgraded(v - 1), dumpSql(up, upgradedHeader(v - 1))]);
   }
+  for (const [f, text] of out) writeFileSync(f, text);
   console.log(`Wrote ${files.map((f) => f.pathname.split('/test/')[1]).join(', ')}`);
 } finally {
   rmSync(dir, { recursive: true, force: true });
