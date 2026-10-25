@@ -233,6 +233,7 @@ export function peopleOf(frame: Frame, layout: Layout): WikiPerson[] {
       job: r.job,
       money: r.money,
       ties: card ? tiesOf(card.knows, names) : [],
+      skills: r.skills,
     };
   });
 }

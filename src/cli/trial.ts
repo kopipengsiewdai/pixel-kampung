@@ -34,6 +34,8 @@ import type { GameEvent } from '../sim/events.ts';
 import { Town, fakeBrains } from '../town.ts';
 import { ReplayRecorder, recordTown } from '../watch/replay.ts';
 import { numArg, parseArgs } from './args.ts';
+import { CAST } from '../seed/cast.ts';
+import { oneWho, SKILL_IDS, threshold } from '../sim/skills.ts';
 import { SIM_START } from './start.ts';
 import { formatMoney } from '../sim/money.ts';
 import { talkMeasures } from '../sim/talk.ts';
@@ -192,5 +194,11 @@ console.log(`jobs offered: ${count('job_offered')}, hired: ${count('hired')}, wa
 console.log(`travellers served: ${[...byShop].map(([shop, r]) => `${shop} ${r.served} (${formatMoney(r.cents)}), ${r.left} unserved`).join('; ') || 'none'}`);
 console.log('\n--- day ---');
 console.log(`look-arounds: ${count('looked_around')}, chores done: ${count('chore_done')}, neighbours helped: ${count('helped')}, errands asked: ${count('errand_asked')}, done: ${count('errand_done')}; fish caught: ${events.reduce((n, e) => n + (e.type === 'caught_fish' ? e.qty : 0), 0)}`);
+console.log('\n--- skills ---');
+// Experience gained against each resident's start (the old hands begin at their levels).
+const started = new Map(CAST.map((c) => [c.name, c.skills ?? {}]));
+const gained = SKILL_IDS.map((sk) => `${sk} ${town.world.state.residents.reduce((n, r) => n + (r.skills[sk]?.xp ?? 0) - threshold(sk, started.get(r.name)?.[sk] ?? 1), 0)}`);
+const ups = events.filter((e) => e.type === 'skill_up').map((e) => `${town.world.resident(e.who).name} ${oneWho(e.skill, e.level)}`);
+console.log(`experience gained: ${gained.join(', ')}; level-ups: ${ups.length ? ups.join(', ') : 'none'}; lessons offered: ${count('lesson_offered')}, taken: ${count('lesson_agreed')}`);
 if (!fake) console.log(`all trials so far: US$${spentOnTrials(costRoot).toFixed(4)} of US$${TRIAL_ALLOWANCE}`);
 console.log(`\nWatch it back: npm run watch -- --replay trial-${stamp}.db`);

@@ -263,7 +263,7 @@ describe('the action space', () => {
       'accept_job', 'accept_trade', 'agree', 'ask_errand', 'borrow', 'buy', 'cook', 'decline_trade', 'eat',
       'fetch_water', 'fish', 'give', 'go_with', 'harvest', 'help', 'lend', 'let_go', 'let_off', 'look_around',
       'mend_nets', 'offer_job', 'offer_trade', 'order_stock', 'pay_wages', 'pin_note', 'plant', 'quit_job',
-      'read_notice_board', 'refuse', 'repay', 'say', 'sell', 'set_price', 'sleep', 'sweep', 'walk_to', 'water',
+      'read_notice_board', 'refuse', 'repay', 'say', 'sell', 'set_price', 'sleep', 'sweep', 'teach', 'walk_to', 'water',
       'work_shift', 'write_iou',
     ]);
   });

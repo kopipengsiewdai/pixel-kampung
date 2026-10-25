@@ -556,6 +556,9 @@ function wikiView(w: Wiki): Node[] {
           el('dt', {}, 'Work'), el('dd', {}, p.job ?? 'none yet'),
           el('dt', {}, 'Money'), el('dd', {}, money(p.money)),
           el('dt', {}, 'Family and old friends'), el('dd', {}, p.ties.length ? p.ties.map((t) => `${t.name} (${t.how})`).join(', ') : 'nobody here, at first'),
+          el('dt', {}, 'Skills'), el('dd', {}, p.skills.length
+            ? p.skills.map((s) => `${s.skill}: ${s.level}${s.toNext !== null ? ` (${s.toNext}% to the next)` : ''}${s.rusty ? ', rusty' : ''}`).join('; ')
+            : 'a novice at everything, so far'),
         ),
         p.personality ? el('p', { class: 'quote' }, `${p.personality} Wants ${p.want}; worries ${p.worry}.`) : null)),
       el('p', { class: 'note' }, 'Households and marriages will show here once the kampung has them.'),

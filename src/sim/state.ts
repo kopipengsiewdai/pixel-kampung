@@ -8,6 +8,7 @@ import { PLACE_BY_ID, PLACES, inPlace, distance, placeAt, type Place } from './m
 import { Rng } from './rng.ts';
 import { dateAt, type Calendar } from './calendar.ts';
 import { CAST } from '../seed/cast.ts';
+import type { Lesson, LessonOffer, SkillId, SkillState } from './skills.ts';
 import type { GameClock } from './time.ts';
 
 /** An owner runs a business; a seeker looks for work; family live with family (Mak Esah, Aminah, Hassan). */
@@ -69,6 +70,8 @@ export interface Resident {
   knownPlaces: string[];
   /** Resident ids they've met. */
   knownPeople: string[];
+  /** What they've got better at by doing it (docs/design/skills.md); none yet means a novice. */
+  skills: Partial<Record<SkillId, SkillState>>;
 }
 
 export interface Shop {
@@ -190,6 +193,8 @@ export interface Bed {
   plantedDay: number;
   wateredDays: number;
   lastWateredDay: number | null;
+  /** The day it ripens, once it's had its waterings: harvested that day, it gives more. */
+  readyDay: number | null;
 }
 
 export interface Note { id: number; authorId: string; text: string; t: number }
@@ -218,6 +223,9 @@ export interface WorldState {
   debtOffers: DebtOffer[];
   priceOffers: PriceOffer[];
   errands: Errand[];
+  /** Masters showing someone how, today; and offers to, waiting. */
+  lessons: Lesson[];
+  lessonOffers: LessonOffer[];
   beds: Bed[];
   notes: Note[];
   lorryHere: boolean;

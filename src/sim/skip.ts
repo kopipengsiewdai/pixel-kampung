@@ -5,6 +5,7 @@ import { dayIndex, GAME_MINUTES_PER_REAL_MINUTE, isNight, minuteOfDay } from './
 import { LORRY_ARRIVES, LORRY_LEAVES } from './tick.ts';
 import { stoveMinute } from './travellers.ts';
 import { finishChore } from './actions/chores.ts';
+import { fadeSkills, lapseLessons } from './skills.ts';
 
 /**
  * Gaps up to this long (ten real minutes) are simply replayed
@@ -69,5 +70,8 @@ export function skipQuietly(w: World, to: number): void {
     s.serving = [];
   }
   for (const r of w.state.residents) stoveMinute(w, r);
+  // Lessons and offers to teach run out with their time; skills unused over the gap fade.
+  lapseLessons(w);
+  fadeSkills(w);
   w.emit({ type: 'quiet_spell', minutes: gap });
 }

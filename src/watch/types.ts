@@ -35,6 +35,8 @@ export interface ResidentView {
   /** Their age this kampung year; a child (under 14) is drawn smaller. */
   age: number;
   child: boolean;
+  /** What they've got better at: level name, % of the way to the next (null at Master), rusty. For watchers only. */
+  skills: { skill: string; level: string; toNext: number | null; rusty: boolean }[];
   homeId: string;
   x: number;
   y: number;
@@ -219,6 +221,7 @@ export interface WikiPerson {
   money: number;
   /** Family and old friends, from their card: "son", "aunt", "friend". */
   ties: { name: string; how: string }[];
+  skills: ResidentView['skills'];
 }
 
 export interface WikiPlace { id: string; name: string; kind: string; use: string; owner: string | null; workers: string[]; home: string | null }

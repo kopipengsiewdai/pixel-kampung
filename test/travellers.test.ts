@@ -188,9 +188,10 @@ describe('travellers from the coast road', () => {
 });
 
 describe('cooking takes time', () => {
-  it('a batch takes 10 minutes at the stove (kopi 5); nothing else meanwhile, and no serving', () => {
+  it('a batch takes 10 minutes at the stove (kopi 5) for a novice cook; nothing else meanwhile, and no serving', () => {
     const w = newWorld(9);
     const huat = put(w, 'Ah Huat', 'kopitiam');
+    huat.skills = {};
     const shop = w.shop('kopitiam')!;
     shop.stock = { fish: 2, rice: 2, water: 2 };
     const res = accepted(act(w, huat.id, { verb: 'cook', item: 'fish porridge', batches: 2 }));

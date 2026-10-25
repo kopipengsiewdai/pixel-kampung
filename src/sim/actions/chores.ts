@@ -10,6 +10,8 @@ import { addGoods, countGoods, type ChoreKind, type Errand, type Resident, type 
 import { dayIndex, MINUTES_PER_DAY, SGT_OFFSET_MIN } from '../time.ts';
 import { type ActionResult, type Intent, itemOf, moneyOf, no, ok, personNearby, quoted, textOf } from './common.ts';
 import { addDebt } from './debts.ts';
+import { waterBed } from './everyone.ts';
+import { practise } from '../skills.ts';
 import { TRAVELLER_PAYS } from '../travellers.ts';
 
 /** How long each chore takes, in game minutes. */
@@ -88,10 +90,8 @@ export function help(w: World, r: Resident, i: Intent): ActionResult {
   }
   const today = dayIndex(w.t);
   const dry = w.state.beds.filter((b) => b.planterId === o.id && b.lastWateredDay !== today);
-  for (const b of dry) {
-    b.wateredDays += 1;
-    b.lastWateredDay = today;
-  }
+  for (const b of dry) waterBed(w, b);
+  practise(w, r, 'farming', dry.length);
   w.emit({ type: 'helped', who: r.id, to: o.id, how: 'beds' });
   w.notify(o.id, `${r.name} waters your beds for you.`);
   return ok(`You water ${o.name}'s beds.`);

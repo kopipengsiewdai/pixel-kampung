@@ -8,8 +8,9 @@ import { offerPrice } from './haggle.ts';
 import { formatMoney } from '../money.ts';
 import { perceive } from '../perception.ts';
 import { PLACE_WORDS } from '../places.ts';
+import { BEST_DAY_YIELD, effectiveLevel, HANDY_YIELD, practise } from '../skills.ts';
 import {
-  addGoods, CIRCLE_LINES, countGoods, type Resident, type Shop, type World, LORRY_ID, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, SAID_ALL_LINES,
+  addGoods, type Bed, CIRCLE_LINES, countGoods, type Resident, type Shop, type World, LORRY_ID, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, SAID_ALL_LINES,
 } from '../state.ts';
 import { atTimeOfDay, dayIndex, sgtHour } from '../time.ts';
 import {
@@ -423,6 +424,14 @@ export function isRipe(w: World, b: { wateredDays: number; plantedDay: number })
   return b.wateredDays >= DAYS_TO_GROW && dayIndex(w.t) >= b.plantedDay + DAYS_TO_GROW;
 }
 
+/** A bed watered today: once it's had its waterings, it knows the day it's ready (today, or its growing days after planting). */
+export function waterBed(w: World, b: Bed): void {
+  const today = dayIndex(w.t);
+  b.wateredDays += 1;
+  b.lastWateredDay = today;
+  if (b.wateredDays === DAYS_TO_GROW) b.readyDay = Math.max(today, b.plantedDay + DAYS_TO_GROW);
+}
+
 export function plant(w: World, r: Resident): ActionResult {
   if (!w.isAt(r, 'farm')) return no('You need to be at the farm plot to plant anything.');
   if (myBeds(w, r).length >= MAX_BEDS_EACH) return no('You already have two beds to look after.');
@@ -432,6 +441,8 @@ export function plant(w: World, r: Resident): ActionResult {
   bed.plantedDay = dayIndex(w.t);
   bed.wateredDays = 0;
   bed.lastWateredDay = null;
+  bed.readyDay = null;
+  practise(w, r, 'farming');
   w.emit({ type: 'planted', who: r.id, bed: bed.n });
   return ok(`You plant kangkong cuttings in bed ${bed.n}. They'll need water every day.`);
 }
@@ -443,10 +454,8 @@ export function water(w: World, r: Resident): ActionResult {
   const today = dayIndex(w.t);
   const dry = beds.filter((b) => b.lastWateredDay !== today);
   if (dry.length === 0) return no("You've already watered your beds today.");
-  for (const b of dry) {
-    b.wateredDays += 1;
-    b.lastWateredDay = today;
-  }
+  for (const b of dry) waterBed(w, b);
+  practise(w, r, 'farming', dry.length);
   w.emit({ type: 'watered', who: r.id, beds: dry.length });
   return ok(dry.length === 1 ? 'You water your bed.' : `You water your ${dry.length} beds.`);
 }
@@ -457,12 +466,17 @@ export function harvest(w: World, r: Resident): ActionResult {
   if (beds.length === 0) return no("You haven't planted anything here.");
   const ripe = beds.filter((b) => isRipe(w, b));
   if (ripe.length === 0) return no("Your kangkong isn't ready yet.");
-  const qty = ripe.length * HARVEST_YIELD;
+  // A handy grower gets one more a bed; any bed harvested the day it's ready, two more.
+  const today = dayIndex(w.t);
+  const handy = effectiveLevel(r, 'farming') >= 2 ? HANDY_YIELD : 0;
+  const qty = ripe.reduce((n, b) => n + HARVEST_YIELD + handy + (b.readyDay === today ? BEST_DAY_YIELD : 0), 0);
   for (const b of ripe) {
     b.planterId = null;
     b.wateredDays = 0;
     b.lastWateredDay = null;
+    b.readyDay = null;
   }
+  practise(w, r, 'farming', ripe.length);
   addGoods(r.items, 'vegetables', qty);
   w.emit({ type: 'harvested', who: r.id, qty });
   return ok(`You harvest ${quantityLabel('vegetables', qty)}.`);

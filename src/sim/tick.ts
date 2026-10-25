@@ -3,6 +3,7 @@ import {
   catchFish, endShift, interrupt, startSleep, wake, walkHomeToSleep,
 } from './activities.ts';
 import { choreMinute, lapseErrands } from './actions/chores.ts';
+import { fadeSkills, lapseLessons } from './skills.ts';
 import { lapsePriceOffers } from './actions/haggle.ts';
 import { isServing, stoveMinute, travellersMinute } from './travellers.ts';
 import { PLACE_BY_ID } from './map.ts';
@@ -136,6 +137,9 @@ export function advance(w: World): void {
   w.state.debtOffers = w.state.debtOffers.filter((o) => o.expires > t);
   lapsePriceOffers(w);
   lapseErrands(w);
+  lapseLessons(w);
+  // Skills unused fade, checked once a day.
+  if (mod === 0) fadeSkills(w);
 }
 
 export function advanceTo(w: World, t: number): void {

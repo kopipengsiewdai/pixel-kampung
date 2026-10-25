@@ -1,3 +1,4 @@
+import type { SkillId } from '../sim/skills.ts';
 import { ITEMS, type ItemId } from '../sim/items.ts';
 import type { Intent } from '../sim/actions/index.ts';
 import type { Perception } from '../sim/perception.ts';
@@ -49,7 +50,16 @@ interface Memory {
   lorryDay: string | null;
   /** Item → day label on which the buying limit was last topped up. */
   buyDays: Record<string, string>;
+  /** Day label on which they last offered to show someone how. */
+  taughtDay?: string | null;
 }
+
+/** Where each skill is done, and what someone doing it there looks like. */
+const TEACH_AT: Record<SkillId, { place: string; doing: RegExp }> = {
+  fishing: { place: 'the jetty', doing: /fishing/ },
+  farming: { place: 'the farm plot', doing: /./ },
+  cooking: { place: 'the kopitiam', doing: /working|cooking/ },
+};
 
 /** The weekday ("Monday"), from "Monday, 1 January, Year 0, 7:05 in the morning". */
 function day(p: Perception): string {
@@ -89,12 +99,34 @@ export class FakeBrain implements Brain {
       if (p.refused) return null;
       const haggle = p.priceOffers[0];
       if (haggle) return { verb: haggle.cents >= 0.8 * haggle.asking ? 'agree' : 'refuse', from: haggle.from, item: haggle.item };
+      const lesson = p.lessonOffers[0];
+      if (lesson) return { verb: 'agree', from: lesson.from, text: 'Yes, please show me.' };
       return this.onShift(p);
     }
     if (p.refused) return this.rng.chance(0.5) ? null : this.wander(p);
     // An owner meets the lorry even when hungry: an empty shop feeds nobody.
-    return (p.business ? this.lorry(p) : null) ?? this.needs(p) ?? this.offers(p) ?? this.shift(p)
+    return (p.business ? this.lorry(p) : null) ?? this.needs(p) ?? this.offers(p) ?? this.shift(p) ?? this.teach(p)
       ?? (p.business ? this.owner(p) : this.seeker(p));
+  }
+
+  /** A master, once a day, offers to show someone beside them at the work how it's done, and stays while it's on. */
+  private teach(p: Perception): Intent | null {
+    if (!p.canTeach.length) return null;
+    if (this.mem.taughtDay === day(p)) {
+      const on = p.skills.some((l) => /^You've offered to show |^You're showing /.test(l));
+      if (!on) return null;
+      // Stay with them at the work: fishing alongside, or just being there.
+      return p.actions.some((a) => a.verb === 'fish') && p.hour < 18 ? { verb: 'fish' } : null;
+    }
+    for (const s of p.canTeach) {
+      const at = TEACH_AT[s];
+      if (p.place !== at.place) continue;
+      const learner = p.people.find((x) => x.doing !== 'asleep' && at.doing.test(x.doing));
+      if (!learner || !this.rng.chance(0.3)) continue;
+      this.mem.taughtDay = day(p);
+      return { verb: 'teach', to: learner.name, item: s };
+    }
+    return null;
   }
 
   private carrying(p: Perception, item: ItemId): number {
@@ -137,6 +169,9 @@ export class FakeBrain implements Brain {
     // A price offered at the counter: taken if it's within a fifth of the asking price.
     const haggle = p.priceOffers[0];
     if (haggle) return { verb: haggle.cents >= 0.8 * haggle.asking ? 'agree' : 'refuse', from: haggle.from, item: haggle.item };
+    // Offered a lesson: yes, gladly.
+    const lesson = p.lessonOffers[0];
+    if (lesson) return { verb: 'agree', from: lesson.from, text: 'Yes, please show me.' };
     const trade = p.trades[0];
     if (trade) return { verb: this.rng.chance(0.6) ? 'accept_trade' : 'decline_trade', from: trade.from };
     const ask = p.moneyOffers[0];
@@ -165,13 +200,15 @@ export class FakeBrain implements Brain {
   /** Mid-shift: kopitiam hands keep the dishes coming; elsewhere just mind the shop. */
   private onShift(p: Perception): Intent | null {
     if (p.job!.place !== 'the kopitiam') return null;
-    return this.kitchen(p.job!.stock);
+    return this.kitchen(p.job!.stock, p.crowdSoon);
   }
 
-  private kitchen(stock: { item: ItemId; qty: number }[]): Intent | null {
+  /** Cooks when the dishes run low; ahead of a crowd it can sense coming, keeps twice as much ready. */
+  private kitchen(stock: { item: ItemId; qty: number }[], crowd = false): Intent | null {
     const n = (i: ItemId) => stock.find((s) => s.item === i)?.qty ?? 0;
-    if (n('kopi') < 5 && n('coffee') > 0 && n('water') > 0) return { verb: 'cook', item: 'kopi' };
-    if (n('fish porridge') + n('vegetable rice') < 4) {
+    const more = crowd ? 2 : 1;
+    if (n('kopi') < 5 * more && n('coffee') > 0 && n('water') > 0) return { verb: 'cook', item: 'kopi' };
+    if (n('fish porridge') + n('vegetable rice') < 4 * more) {
       if (n('fish') > 0 && n('rice') > 0 && n('water') > 0) return { verb: 'cook', item: 'fish porridge' };
       if (n('vegetables') > 0 && n('rice') > 0) return { verb: 'cook', item: 'vegetable rice' };
     }
@@ -227,7 +264,7 @@ export class FakeBrain implements Brain {
       if (p.money >= 2) return { verb: 'pay_wages', to: o.name, money: Math.floor(p.money / 2) };
     }
     if (b.place === 'the kopitiam') {
-      const cooking = this.kitchen(b.stock);
+      const cooking = this.kitchen(b.stock, p.crowdSoon);
       if (cooking) return cooking;
     }
     const asked = p.recent.slice(-4).map((t) => /^(.+) says to you: "Any work going/.exec(t)?.[1]).find(Boolean);

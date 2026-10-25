@@ -1,3 +1,4 @@
+import { effectiveLevel, emptyChance, practise } from './skills.ts';
 import { findPath } from './map.ts';
 import { dayIndex, isNight, minuteOfDay } from './time.ts';
 import type { Resident, World } from './state.ts';
@@ -60,9 +61,8 @@ export function walkHomeToSleep(w: World, r: Resident): void {
 
 export function catchFish(w: World, r: Resident): void {
   const roll = w.rng.next();
-  // At the dawn tide (06:00–09:00) a line comes up empty half as often.
-  const mod = minuteOfDay(w.t);
-  const empty = mod >= 6 * 60 && mod < 9 * 60 ? 0.15 : 0.3;
+  // The better the fisher, the less often a line comes up empty; at the tides, half as often.
+  const empty = emptyChance(effectiveLevel(r, 'fishing'), minuteOfDay(w.t));
   let qty = roll < empty ? 0 : roll < 0.75 ? 1 : roll < 0.95 ? 2 : 3;
   // Mended nets: one more fish on the next few catches today.
   const m = r.mended;
@@ -71,6 +71,7 @@ export function catchFish(w: World, r: Resident): void {
     m.left -= 1;
   }
   if (qty > 0) addGoods(r.items, 'fish', qty);
+  practise(w, r, 'fishing');
   r.activity = null;
   r.thinkAt = w.t;
   w.emit({ type: 'caught_fish', who: r.id, qty });

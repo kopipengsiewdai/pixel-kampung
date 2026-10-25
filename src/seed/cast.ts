@@ -1,3 +1,4 @@
+import type { SkillId } from '../sim/skills.ts';
 import type { Goods } from '../sim/state.ts';
 import type { Cents } from '../sim/money.ts';
 
@@ -29,22 +30,24 @@ export interface CastMember {
   allowance?: number;
   /** What they call someone in their family, as families do ("Mak"). */
   calls?: Readonly<Record<string, string>>;
+  /** What they're already good at, by level 2–5 (owner, 2026-10-25; docs/design/skills.md). */
+  skills?: Readonly<Partial<Record<SkillId, number>>>;
 }
 
 export const CAST: readonly CastMember[] = [
-  { name: 'Ah Huat', role: 'owner', business: 'kopitiam', knows: ['Ah Seng', 'Rahim'] },
+  { name: 'Ah Huat', role: 'owner', business: 'kopitiam', knows: ['Ah Seng', 'Rahim'], skills: { cooking: 5 } },
   { name: 'Mdm Tan', role: 'owner', business: 'provision-shop', knows: ['Mei Ling'] },
-  { name: 'Rahim', role: 'owner', business: 'market-stall', knows: ['Fatimah', 'Ah Huat', 'Aminah', 'Hassan'] },
+  { name: 'Rahim', role: 'owner', business: 'market-stall', knows: ['Fatimah', 'Ah Huat', 'Aminah', 'Hassan'], skills: { fishing: 5 } },
   { name: 'Mei Ling', role: 'seeker', knows: ['Mdm Tan'] },
-  { name: 'Ah Kow', role: 'seeker', knows: [], places: ['well', 'kopitiam'] },
+  { name: 'Ah Kow', role: 'seeker', knows: [], places: ['well', 'kopitiam'], skills: { farming: 2 } },
   { name: 'Siti', role: 'seeker', knows: ['Fatimah', 'Mak Esah'], calls: { Mak: 'Mak Esah' } },
   { name: 'Muthu', role: 'seeker', knows: ['Raju'] },
   { name: 'Ah Seng', role: 'seeker', knows: ['Ah Huat'] },
-  { name: 'Fatimah', role: 'seeker', knows: ['Rahim', 'Siti', 'Aminah', 'Hassan'] },
+  { name: 'Fatimah', role: 'seeker', knows: ['Rahim', 'Siti', 'Aminah', 'Hassan'], skills: { farming: 4 } },
   { name: 'Raju', role: 'seeker', knows: ['Muthu'] },
-  { name: 'Mak Esah', role: 'family', knows: ['Siti'], livesWith: 'Siti', allowance: 0.5 },
+  { name: 'Mak Esah', role: 'family', knows: ['Siti'], livesWith: 'Siti', allowance: 0.5, skills: { cooking: 5 } },
   { name: 'Aminah', role: 'family', knows: ['Fatimah', 'Hassan', 'Rahim'], livesWith: 'Fatimah', allowance: 0.5, calls: { Mak: 'Fatimah' } },
-  { name: 'Hassan', role: 'family', knows: ['Fatimah', 'Aminah', 'Rahim'], livesWith: 'Fatimah', allowance: 0.5, calls: { Mak: 'Fatimah' } },
+  { name: 'Hassan', role: 'family', knows: ['Fatimah', 'Aminah', 'Rahim'], livesWith: 'Fatimah', allowance: 0.5, calls: { Mak: 'Fatimah' }, skills: { fishing: 2 } },
 ];
 
 /**
