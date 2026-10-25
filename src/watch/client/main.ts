@@ -3,7 +3,7 @@
  * owner clicks, and replay controls. Read-only: it only listens to the town.
  * Everything residents said or thought is shown as text, never as HTML.
  */
-import type { Card, FeedLine, Hello, ReplayState, Thought, Update } from '../types.ts';
+import type { Card, FeedLine, Hello, PlaceCard, ReplayState, Thought, Update } from '../types.ts';
 import { startGame, type TownScene } from './scene.ts';
 
 const FEED_KEPT = 200;
@@ -26,6 +26,8 @@ let scene: TownScene | null = null;
 let msPerMinute = 15_000; // the live town's pace until the server says otherwise
 let latest: Update | null = null;
 let selected: string | null = null;
+/** The place whose card is open, if a place was clicked rather than a person. */
+let selectedPlace: string | null = null;
 let replay: ReplayState | null = null;
 let seeking = false;
 let cardTimer: ReturnType<typeof setTimeout> | null = null;
@@ -37,6 +39,8 @@ const probe = {
   get updates() { return updates; },
   get drawn() { return scene?.drawn ?? 0; },
   openCard: (id: string) => pick(id),
+  /** Where to click on the page to pick a place, clear of anyone in it. */
+  placePoint: (id: string) => scene?.screenPointOf(id) ?? null,
 };
 (window as unknown as { __kampung: typeof probe }).__kampung = probe;
 
@@ -132,9 +136,65 @@ function renderCard(c: Card): void {
   card.hidden = false;
 }
 
+function placeCardView(c: PlaceCard): void {
+  const card = $('card');
+  const close = el('button', { class: 'close', type: 'button', 'aria-label': 'Close' }, '×');
+  close.addEventListener('click', () => pickPlace(null));
+  const list = (items: string[], none: string) => (items.length ? items.join(', ') : none);
+  const parts: (Node | null)[] = [
+    el('header', {}, el('h3', {}, c.name), close),
+    el('dl', {}, el('dt', {}, 'Here now'), el('dd', {}, list(c.here, 'nobody'))),
+  ];
+  if (c.home) parts.push(el('dl', {}, el('dt', {}, 'Home of'), el('dd', {}, c.home.of ?? 'nobody')));
+  if (c.shop) {
+    parts.push(el('dl', {},
+      el('dt', {}, 'Owner'), el('dd', {}, c.shop.owner),
+      el('dt', {}, 'Serving'), el('dd', {}, c.shop.serving ?? 'nobody minding it'),
+      el('dt', {}, 'Workers'), el('dd', {}, list(c.shop.workers, 'none')),
+      el('dt', {}, 'Stock'), el('dd', {}, list(c.shop.stock.map((x) => x.label), 'empty')),
+      el('dt', {}, 'Sells'), el('dd', {}, list(c.shop.sells, 'no prices yet')),
+      el('dt', {}, 'Buys'), el('dd', {}, list(c.shop.buys, 'nothing')),
+    ));
+  }
+  if (c.notes) {
+    parts.push(el('h4', {}, 'Notes pinned'));
+    parts.push(c.notes.length
+      ? el('ul', {}, ...c.notes.map((n) => el('li', {}, el('span', { class: 'stamp' }, n.stamp), `${n.author}: `, el('span', { class: 'quote' }, `“${n.text}”`))))
+      : el('p', { class: 'note' }, 'The board is bare.'));
+  }
+  if (c.beds) {
+    parts.push(el('h4', {}, 'Beds'));
+    parts.push(el('ul', {}, ...c.beds.map((b) => el('li', {}, `Bed ${b.n}: `, b.who ? `${b.who}'s ${b.growing}, ${b.status}` : b.status))));
+  }
+  if (c.fishing) parts.push(el('dl', {}, el('dt', {}, 'Fishing'), el('dd', {}, list(c.fishing, 'nobody'))));
+  if (c.lorry) {
+    parts.push(el('dl', {},
+      el('dt', {}, 'The lorry'), el('dd', {}, c.lorry.next),
+      el('dt', {}, 'It sells'), el('dd', {}, list(c.lorry.sells, 'nothing')),
+      el('dt', {}, 'It buys'), el('dd', {}, list(c.lorry.buys, 'nothing')),
+    ));
+  }
+  parts.push(el('footer', {}, "Owner's view. Nothing on this card ever reaches a resident."));
+  card.replaceChildren(...parts.filter((p): p is Node => p !== null));
+  card.hidden = false;
+}
+
 let cardAsked = 0;
 
 async function refreshCard(): Promise<void> {
+  if (selectedPlace) {
+    const id = selectedPlace;
+    const ask = ++cardAsked;
+    lastCardFetch = Date.now();
+    try {
+      const res = await fetch(`/api/place/${encodeURIComponent(id)}`);
+      const card = res.ok ? await res.json() as PlaceCard : null;
+      if (card && ask === cardAsked && selectedPlace === id) placeCardView(card);
+    } catch {
+      // As for a resident's card: the next update asks again.
+    }
+    return;
+  }
   if (!selected) return;
   const id = selected;
   const ask = ++cardAsked;
@@ -151,7 +211,7 @@ async function refreshCard(): Promise<void> {
 
 /** Card refreshes at most once a second while the town moves. */
 function scheduleCard(): void {
-  if (!selected || cardTimer) return;
+  if ((!selected && !selectedPlace) || cardTimer) return;
   const wait = Math.max(0, 1000 - (Date.now() - lastCardFetch));
   cardTimer = setTimeout(() => {
     cardTimer = null;
@@ -161,12 +221,23 @@ function scheduleCard(): void {
 
 function pick(id: string | null): void {
   selected = id;
+  selectedPlace = null;
+  scene?.selectPlace(null);
   scene?.select(id);
   for (const b of $('roster').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.id === id));
   if (!id) {
     $('card').hidden = true;
     return;
   }
+  void refreshCard();
+}
+
+/** Opens a place's card (and closes any resident's). */
+function pickPlace(id: string | null): void {
+  pick(null);
+  selectedPlace = id;
+  scene?.selectPlace(id);
+  if (!id) return;
   void refreshCard();
 }
 
@@ -233,7 +304,7 @@ function onHello(h: Hello): void {
   }
   setFeed(h.feed);
   const first: Update = { frame: h.frame, feed: [], snap: true };
-  if (!scene) scene = startGame($('map'), h.layout, { onPick: (id) => pick(id) });
+  if (!scene) scene = startGame($('map'), h.layout, { onPick: (id) => pick(id), onPickPlace: (id) => pickPlace(id) });
   onUpdate(first);
 }
 

@@ -112,6 +112,18 @@ describe('the watch page in a browser', () => {
     expect(await card.textContent()).toContain('Nothing on this card ever reaches a resident');
     if (shots) await page.screenshot({ path: join(shots, 'watch-live.png') });
 
+    // Click a place on the map itself, at least 2 tiles from anyone: its card opens, with what's inside.
+    type Point = { x: number; y: number } | null;
+    const placePoint = () => page.evaluate(() => (window as unknown as { __kampung: { placePoint(id: string): Point } }).__kampung.placePoint('lorry-stop'));
+    await expect.poll(placePoint, { timeout: 20_000 }).not.toBeNull();
+    const at = (await placePoint())!;
+    expect(at).not.toBeNull();
+    await page.mouse.click(at.x, at.y);
+    await expect.poll(() => card.textContent()).toContain('the lorry stop');
+    expect(await card.textContent()).toMatch(/It sellsrice/);
+    expect(await card.textContent()).toContain('Nothing on this card ever reaches a resident');
+    if (shots) await page.screenshot({ path: join(shots, 'watch-place.png') });
+
     const health = await (await fetch(new URL('/api/health', url))).json() as { rss: number };
     expect(health.rss).toBeLessThan(500 * 1024 * 1024);
     expect(foreign).toEqual([]);

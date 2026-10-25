@@ -43,6 +43,16 @@ resident's prompt; the page only reads the town.
   wages owed either way; today's plan, the last few thoughts and evening
   reflections, and what they noticed lately. Fake-brain residents have no
   thoughts, and the card says so. The card is marked as the owner's view.
+- **Place card** (click a place on the map; 2026-10-25): who's there now,
+  and what's inside. A shop shows its owner, who's serving (the owner if
+  minding it, else a worker on shift), its workers, stock and both price
+  lists. The notice board shows every note, newest first, with who wrote it
+  and when. The farm plot shows each bed: whose kangkong, ready or how far
+  along. The jetty shows who's fishing. The lorry stop shows when the lorry
+  comes next and its buying and selling prices. A house shows whose it is.
+  Clicks on a person still open their card; the picked place is outlined.
+  Same owner's-view rule: nothing on it reaches a resident. Replays of
+  trials recorded before place cards show what their frames have.
 
 ## Speeds and replay
 
