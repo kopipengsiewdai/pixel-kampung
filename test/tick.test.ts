@@ -76,7 +76,7 @@ describe('the day', () => {
     advanceTo(w, sgt(23, 59));
     for (const r of w.state.residents) {
       expect(r.activity?.kind, r.name).toBe('sleeping');
-      expect(w.isAt(r, r.homeId), r.name).toBe(true);
+      expect(w.isAt(r, r.homeId!), r.name).toBe(true);
     }
     expect(w.takeEvents().some((e) => e.type === 'night_fell')).toBe(true);
     advanceTo(w, sgt(6, 0, 1));

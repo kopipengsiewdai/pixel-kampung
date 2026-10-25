@@ -183,8 +183,8 @@ export class TownScene extends Phaser.Scene {
     this.tweens.add({ targets: boat, y: boat.y + 1, duration: 1400, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
   }
 
-  private isInside(r: ResidentView, homeId: string): boolean {
-    const home = this.homes.get(homeId);
+  private isInside(r: ResidentView, homeId: string | null): boolean {
+    const home = homeId ? this.homes.get(homeId) : undefined;
     if (!home) return false;
     return r.x >= home.rect.x && r.x < home.rect.x + home.rect.w && r.y >= home.rect.y && r.y < home.rect.y + home.rect.h;
   }
@@ -305,7 +305,7 @@ export class TownScene extends Phaser.Scene {
       m.label.setPosition(pos.x, pos.y - 16).setVisible(!inside || r.id === this.selected);
       const bob = Math.sin(time / 500 + m.look) * 1.5;
       if (inside) {
-        const home = this.homes.get(r.homeId)!;
+        const home = this.homes.get(r.homeId!)!;
         m.zz.setPosition(home.rect.x * T + 18 + (m.look % 3) * 6, home.rect.y * T - 6 + bob);
       } else m.zz.setPosition(pos.x + 6, pos.y - 18 + bob);
       m.zz.setVisible(asleep);

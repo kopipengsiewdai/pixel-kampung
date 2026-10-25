@@ -3,6 +3,8 @@ import { isNight } from '../time.ts';
 import { type ActionResult, type Intent, no } from './common.ts';
 import * as everyone from './everyone.ts';
 import * as owners from './owners.ts';
+import * as households from './households.ts';
+import { couldSleep } from '../activities.ts';
 
 export type { ActionResult, Intent } from './common.ts';
 
@@ -45,7 +47,7 @@ export const ACTIONS: Record<string, ActionDef> = {
   water: { run: everyone.water, ownersOnly: false, says: 'water your beds', here: at('farm') },
   harvest: { run: everyone.harvest, ownersOnly: false, says: 'harvest your beds', here: at('farm') },
   eat: { run: everyone.eat, ownersOnly: false, says: 'eat or drink something you carry (item)', here: (_w, r) => Object.keys(r.items).length > 0 },
-  sleep: { run: everyone.sleep, ownersOnly: false, says: 'sleep', here: (w, r) => w.isAt(r, r.homeId) },
+  sleep: { run: everyone.sleep, ownersOnly: false, says: 'sleep', here: couldSleep },
   accept_job: {
     run: everyone.acceptJob, ownersOnly: false, says: 'accept a job someone offered you (person)',
     here: (w, r) => w.state.jobOffers.some((o) => o.workerId === r.id),
@@ -53,6 +55,21 @@ export const ACTIONS: Record<string, ActionDef> = {
   quit_job: { run: everyone.quitJob, ownersOnly: false, says: 'quit your job', here: (w, r) => w.jobOf(r.id) !== null },
   work_shift: { run: everyone.workShift, ownersOnly: false, says: 'work your shift', here: (w, r) => w.jobOf(r.id) !== null },
   give: { run: everyone.give, ownersOnly: false, says: 'give someone money or something you carry (person, and item and amount, or money)', here: withPeople },
+  take_in: { run: households.takeIn, ownersOnly: false, says: 'offer someone a home in your house (person)', here: households.canTakeIn },
+  move_in: {
+    run: households.moveIn, ownersOnly: false, says: 'move into the house someone offered you (person)',
+    here: (w, r) => w.state.homeOffers.some((o) => o.toId === r.id),
+  },
+  tell_to_leave: { run: households.tellToLeave, ownersOnly: false, says: 'tell someone who lives in your house to leave (person)', here: households.canTellToLeave },
+  propose: { run: households.propose, ownersOnly: false, says: 'ask someone to marry you (person)', here: households.canPropose },
+  marry: {
+    run: households.marry, ownersOnly: false, says: 'say yes to someone who asked to marry you (person)',
+    here: (w, r) => w.state.proposals.some((p) => p.toId === r.id),
+  },
+  turn_down: {
+    run: households.turnDown, ownersOnly: false, says: 'turn down someone who asked to marry you (person)',
+    here: (w, r) => w.state.proposals.some((p) => p.toId === r.id),
+  },
   read_notice_board: { run: everyone.readNoticeBoard, ownersOnly: false, says: 'read the notice board', here: at('notice-board') },
   pin_note: { run: everyone.pinNote, ownersOnly: false, says: 'pin a note on the board (words)', here: at('notice-board') },
   set_price: {

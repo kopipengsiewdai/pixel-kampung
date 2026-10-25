@@ -12,17 +12,19 @@ export interface CastMember {
   business?: 'kopitiam' | 'provision-shop' | 'market-stall';
   /** People they already know when the town starts (family and old friends). */
   knows: readonly string[];
+  /** Whose house they live in, if not their own (owner decision, 2026-10-25: family live together). */
+  livesWith?: string;
 }
 
 export const CAST: readonly CastMember[] = [
   { name: 'Ah Huat', role: 'owner', business: 'kopitiam', knows: ['Ah Seng', 'Rahim'] },
   { name: 'Mdm Tan', role: 'owner', business: 'provision-shop', knows: ['Mei Ling'] },
   { name: 'Rahim', role: 'owner', business: 'market-stall', knows: ['Fatimah', 'Ah Huat'] },
-  { name: 'Mei Ling', role: 'seeker', knows: ['Mdm Tan'] },
+  { name: 'Mei Ling', role: 'seeker', knows: ['Mdm Tan'], livesWith: 'Mdm Tan' },
   { name: 'Ah Kow', role: 'seeker', knows: [] },
   { name: 'Siti', role: 'seeker', knows: ['Fatimah'] },
   { name: 'Muthu', role: 'seeker', knows: ['Raju'] },
-  { name: 'Ah Seng', role: 'seeker', knows: ['Ah Huat'] },
+  { name: 'Ah Seng', role: 'seeker', knows: ['Ah Huat'], livesWith: 'Ah Huat' },
   { name: 'Fatimah', role: 'seeker', knows: ['Rahim', 'Siti'] },
   { name: 'Raju', role: 'seeker', knows: ['Muthu'] },
 ];

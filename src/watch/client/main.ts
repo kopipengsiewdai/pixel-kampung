@@ -107,6 +107,8 @@ function renderCard(c: Card): void {
       el('dt', {}, 'Where'), el('dd', {}, c.place ?? 'on the footpath'),
       el('dt', {}, 'Money'), el('dd', {}, money(c.money)),
       el('dt', {}, 'Job'), el('dd', {}, c.job ?? 'none yet'),
+      el('dt', {}, 'Home'), el('dd', {}, c.home === undefined ? '—' : c.home ?? 'nowhere: sleeps rough'),
+      ...(c.spouse ? [el('dt', {}, 'Married to'), el('dd', {}, c.spouse)] : []),
       el('dt', {}, 'Hunger'), el('dd', {}, bar(c.hunger, 'hunger'), c.hungerWord),
       el('dt', {}, 'Energy'), el('dd', {}, bar(c.energy, 'energy'), c.energyWord),
       el('dt', {}, 'Carrying'), el('dd', {}, c.carrying.length ? c.carrying.map((x) => x.label).join(', ') : 'nothing'),

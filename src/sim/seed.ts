@@ -19,14 +19,17 @@ export interface NewWorldOptions {
 export function createWorld(seed: number, t: number, opts: NewWorldOptions = {}): WorldState {
   const cast = opts.cast ?? CAST;
   const rng = new Rng(seed);
+  // One house each, in cast order; someone living with family moves into theirs, and their own stands empty.
+  const hostIndex = (c: CastMember, i: number) => (c.livesWith ? cast.findIndex((x) => x.name === c.livesWith) : i);
   const residents = cast.map((c, i) => {
-    const homeId = HOUSE_IDS[i]!;
+    const homeId = HOUSE_IDS[hostIndex(c, i) >= 0 ? hostIndex(c, i) : i]!;
     const [lo, hi] = START_MONEY[c.role];
     return {
       id: slug(c.name),
       name: c.name,
       role: c.role,
       homeId,
+      spouseId: null,
       pos: { ...PLACE_BY_ID.get(homeId)!.spot },
       money: rng.int(lo, hi),
       items: {},
@@ -67,5 +70,10 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
     lorryHere: false,
     firsts: [],
     talk: {},
+    houses: HOUSE_IDS.map((id, i) => ({ id, holderId: residents[i] && !cast[i]!.livesWith ? residents[i]!.id : null })),
+    homeOffers: [],
+    proposals: [],
+    bonds: {},
+    news: [],
   };
 }

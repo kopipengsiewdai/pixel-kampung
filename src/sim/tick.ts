@@ -5,6 +5,7 @@ import {
 import { PLACE_BY_ID } from './map.ts';
 import { NEED_MAX, type Resident, type World } from './state.ts';
 import { lookAbout } from './discovery.ts';
+import { canSleepHere, ROUGH_REST, ROUGH_REST_CAP } from './households.ts';
 import { isNight, minuteOfDay } from './time.ts';
 
 export const LORRY_ARRIVES = 7 * 60;
@@ -18,7 +19,9 @@ function updateNeeds(w: World, r: Resident): void {
   const kind = r.activity?.kind;
   if (kind === 'sleeping') {
     if (w.t % 3 === 0) r.hunger += 1;
-    r.energy += 3;
+    // Sleeping rough rests less, and never fully.
+    if (r.activity?.kind === 'sleeping' && r.activity.rough) r.energy = Math.max(r.energy, Math.min(ROUGH_REST_CAP, r.energy + ROUGH_REST));
+    else r.energy += 3;
   } else {
     r.hunger += 1;
     r.energy -= kind === 'working' || kind === 'fishing' ? 1 : w.t % 3 === 0 ? 0 : 1;
@@ -40,7 +43,7 @@ function progress(w: World, r: Resident): void {
         r.thinkAt = w.t;
         const dest = a.dest ? PLACE_BY_ID.get(a.dest) : null;
         if (dest) w.emit({ type: 'arrived', who: r.id, at: dest.id });
-        if (a.thenSleep && w.isAt(r, r.homeId)) startSleep(w, r, isNight(w.t) ? 'night' : 'nap');
+        if (a.thenSleep && canSleepHere(w, r)) startSleep(w, r, isNight(w.t) ? 'night' : 'nap');
       }
       return;
     }
@@ -53,7 +56,7 @@ function progress(w: World, r: Resident): void {
       return;
     case 'sleeping':
       if (a.reason === 'night' && !isNight(w.t)) wake(w, r);
-      else if (a.reason === 'nap' && (r.energy >= RESTED || (a.until !== null && w.t >= a.until))) wake(w, r);
+      else if (a.reason === 'nap' && (r.energy >= (a.rough ? ROUGH_REST_CAP : RESTED) || (a.until !== null && w.t >= a.until))) wake(w, r);
       else if (a.reason === 'collapse' && r.energy >= COLLAPSE_WAKE_ENERGY) wake(w, r);
       return;
   }
@@ -66,6 +69,11 @@ export function advance(w: World): void {
   const mod = minuteOfDay(t);
   const night = isNight(t);
 
+  // Anything the town is due to hear of (an upgrade's moves, say), once.
+  for (const n of w.state.news.splice(0)) {
+    w.emit(n.event);
+    for (const tell of n.tell) w.notify(tell.id, tell.text);
+  }
   if (mod === 23 * 60) w.emit({ type: 'night_fell' });
   if (mod === 6 * 60) w.emit({ type: 'morning' });
 
@@ -97,6 +105,8 @@ export function advance(w: World): void {
 
   w.state.jobOffers = w.state.jobOffers.filter((o) => o.expires > t);
   w.state.trades = w.state.trades.filter((o) => o.expires > t);
+  w.state.homeOffers = w.state.homeOffers.filter((o) => o.expires > t);
+  w.state.proposals = w.state.proposals.filter((o) => o.expires > t);
 }
 
 export function advanceTo(w: World, t: number): void {

@@ -6,6 +6,11 @@ never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
 ## Unreleased
 
+- **Families live together:** Ah Seng lives in his father Ah Huat's house and Mei Ling in her aunt Mdm Tan's; two houses stand empty.
+- **Homes:** a household head can offer someone a home or tell them to leave; someone with nowhere to live sleeps rough (on the jetty, in the kopitiam, under the eaves) and rests worse.
+- **Marriage:** two people who have talked on enough different days grow close, and can propose and say yes (or no). Close family can't marry.
+- **Living town:** at upgrade (save v5) Ah Seng and Mei Ling move in with family and are told so, as are Ah Huat and Mdm Tan; nobody else moves or loses a cent, and the two empty houses stay shut up for now.
+
 - **The 4x clock:** the kampung keeps its own time, four game minutes to a real minute, so a game day is six real hours. Night, the morning lorry, shifts, crops and the days residents plan around all run in game time, and walking is four times faster to watch.
 - **The kampung calendar:** the town has its own dates (12 months, 365 days, a leap day every fourth year from Year 4), beginning on Monday, 1 January, Year 0, and residents know today's date. The watch page shows the same date.
 - **Thinking stays within the real budget:** each resident still has US$0.0139 of thinking per real hour and the town US$3.33 per real day, so residents think about half as often per game hour (every 10 game minutes when nothing happens, 2 minutes after doing something).

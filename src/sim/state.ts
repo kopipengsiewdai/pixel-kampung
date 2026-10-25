@@ -4,6 +4,7 @@ import type { Cents } from './money.ts';
 import type { EventBody, GameEvent, LedgerEntry } from './events.ts';
 import { PLACE_BY_ID, PLACES, inPlace, distance, placeAt, type Place } from './map.ts';
 import { Rng } from './rng.ts';
+import type { EventBody as Body } from './events.ts';
 import type { Calendar } from './calendar.ts';
 import type { GameClock } from './time.ts';
 
@@ -17,7 +18,7 @@ export type Activity =
   | { kind: 'walking'; path: Point[]; dest: string | null; thenSleep: boolean }
   | { kind: 'fishing'; until: number }
   | { kind: 'working'; jobId: number; until: number; worked: number }
-  | { kind: 'sleeping'; reason: 'night' | 'nap' | 'collapse'; until: number | null };
+  | { kind: 'sleeping'; reason: 'night' | 'nap' | 'collapse'; until: number | null; rough?: true };
 
 export interface Observation {
   t: number;
@@ -30,7 +31,10 @@ export interface Resident {
   id: string;
   name: string;
   role: Role;
-  homeId: string;
+  /** The house they live in; null for nobody's, so they sleep rough. */
+  homeId: string | null;
+  /** Who they're married to, if anyone. */
+  spouseId: string | null;
   pos: Point;
   money: Cents;
   items: Goods;
@@ -106,6 +110,24 @@ export interface Bed {
 
 export interface Note { id: number; authorId: string; text: string; t: number }
 
+/** A house and who heads it (holds it); null when nobody does. */
+export interface House { id: string; holderId: string | null }
+
+/** Someone offered someone a home in the house they head. */
+export interface HomeOffer { id: number; fromId: string; toId: string; houseId: string; expires: number }
+
+/** Someone asked someone to marry them. */
+export interface Proposal { id: number; fromId: string; toId: string; expires: number }
+
+/** How close two people have grown: game days on which both spoke to the other (keyed by talkKey). */
+export interface Bond { days: number; day: number; a: boolean; b: boolean }
+
+/** The kinds of event news can carry (kept narrow, so a new kind of event elsewhere doesn't change what's saved). */
+export type NewsEvent = Extract<Body, { type: 'moved_in' }>;
+
+/** Something the town hears of on the next minute (an upgrade's moves, say): an event, and who is told what. */
+export interface NewsItem { event: NewsEvent; tell: { id: string; text: string }[] }
+
 export interface WorldState {
   /** The save version (SCHEMA_VERSION); older saves are upgraded on load (docs/design/upgrades.md). */
   version: number;
@@ -133,6 +155,14 @@ export interface WorldState {
   firsts: string[];
   /** Lines spoken between each pair lately ("a|b" sorted), for the talk soft limit. */
   talk: Record<string, { lines: number; lastT: number }>;
+  /** Every house and who heads it. */
+  houses: House[];
+  homeOffers: HomeOffer[];
+  proposals: Proposal[];
+  /** How close each pair has grown ("a|b" sorted). */
+  bonds: Record<string, Bond>;
+  /** Told on the next minute, then cleared. */
+  news: NewsItem[];
 }
 
 export const LORRY_ID = 'lorry';
@@ -231,8 +261,14 @@ export class World {
     return placeAt(r.pos.x, r.pos.y);
   }
 
-  home(r: Resident): Place {
-    return PLACE_BY_ID.get(r.homeId)!;
+  /** Where they live, or null if nowhere. */
+  home(r: Resident): Place | null {
+    return r.homeId ? PLACE_BY_ID.get(r.homeId)! : null;
+  }
+
+  /** Whether they're in their own home (never, with none). */
+  atHome(r: Resident): boolean {
+    return r.homeId !== null && this.isAt(r, r.homeId);
   }
 
   isAt(r: Resident, placeId: string): boolean {
@@ -255,10 +291,11 @@ export class World {
     return r.activity?.kind === 'sleeping';
   }
 
-  /** In-world name of a place; houses are named after who lives there. */
+  /** In-world name of a place; a house is named after whoever heads it ("Ah Huat's house"), an empty one by its number. */
   placeName(p: Place): string {
     if (p.kind !== 'house') return p.name;
-    const owner = this.state.residents.find((r) => r.homeId === p.id);
+    const holder = this.state.houses.find((h) => h.id === p.id)?.holderId;
+    const owner = holder ? this.state.residents.find((r) => r.id === holder) : undefined;
     return owner ? `${owner.name}'s house` : p.name;
   }
 
