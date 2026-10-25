@@ -1,6 +1,6 @@
 import { SCHEMA_VERSION } from '../store/upgrades.ts';
 import { CAST, SHOP_STOCK, START_MONEY, type CastMember } from '../seed/cast.ts';
-import { PLACE_BY_ID } from './map.ts';
+import { PLACE_BY_ID, PLACES } from './map.ts';
 import { Rng } from './rng.ts';
 import { FARM_BEDS, HOUSE_IDS, type WorldState } from './state.ts';
 import { dayIndex } from './time.ts';
@@ -37,7 +37,8 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
       recent: [],
       reply: null,
       lastDone: null,
-      knownPlaces: c.business ? [homeId, c.business] : [homeId],
+      // Home first; a newcomer knows only a few places, everyone else the whole kampung.
+      knownPlaces: [homeId, ...(c.places ?? PLACES.map((p) => p.id)).filter((id) => id !== homeId)],
       // Family and old friends are known from day one; everyone else is met in play.
       knownPeople: c.knows.map(slug),
     };

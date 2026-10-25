@@ -141,6 +141,8 @@ AI residents are players *inside* the world, not developers of it.
   summaries, design notes or descriptions of how the game works.
 - **Discovery goes through the world.** Residents learn new things from NPC
   talk, signs, notices, trying things out, and other residents.
+  Residents know the places of their own kampung (owner, 2026-10-25); what
+  they discover is how things work, and anything new.
 - **Internals never leak**, whether in prompts, tool or action names, or
   error messages. A resident who tries something impossible gets an in-world
   answer ("you can't do that here"), never a system one ("feature not

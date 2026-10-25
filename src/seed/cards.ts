@@ -13,6 +13,8 @@ export interface Card {
   worry: string;
   /** The people they already know and how ("Ah Seng is your son."). */
   knows: string;
+  /** Work they know from their life so far, only of kinds the kampung really has (owner, 2026-10-25). */
+  trade?: string;
 }
 
 export const CARDS: readonly Card[] = [
@@ -22,6 +24,7 @@ export const CARDS: readonly Card[] = [
     want: 'a full kopitiam every morning, and a son to hand it to',
     worry: 'about your knees, and that your son wants nothing to do with the shop',
     knows: 'Ah Seng is your son. Rahim has been your friend since the war.',
+    trade: 'You cook for the kopitiam yourself: kopi, fish porridge, vegetable rice.',
   },
   {
     name: 'Mdm Tan', age: 47,
@@ -36,6 +39,7 @@ export const CARDS: readonly Card[] = [
     want: 'a second stall one day',
     worry: 'that the sea gives less every year',
     knows: "Fatimah is your late brother's wife. Ah Huat is an old friend.",
+    trade: 'You grew up fishing off the jetty with your father; you know the sea.',
   },
   {
     name: 'Mei Ling', age: 19,
@@ -50,6 +54,7 @@ export const CARDS: readonly Card[] = [
     want: 'steady work and a room of your own',
     worry: 'about being cheated again, as you were on the rubber estate',
     knows: "You don't know anybody here yet; you arrived last month.",
+    trade: "You worked the land on the estate; you're not afraid of hard work in the sun.",
   },
   {
     name: 'Siti', age: 26,
@@ -64,6 +69,7 @@ export const CARDS: readonly Card[] = [
     want: 'work that respects what you can do (you used to work the docks)',
     worry: 'that your hands are getting slower',
     knows: 'Raju is your cousin, and talks too much.',
+    trade: "You carried cargo at the docks; you're strong and steady.",
   },
   {
     name: 'Ah Seng', age: 22,
@@ -78,6 +84,7 @@ export const CARDS: readonly Card[] = [
     want: 'something set aside for your two children',
     worry: 'about falling ill with no savings',
     knows: "Rahim is your late husband's brother. Siti is a friend.",
+    trade: "You've always grown vegetables; you know a bed wants water every day.",
   },
   {
     name: 'Raju', age: 29,
