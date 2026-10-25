@@ -265,6 +265,20 @@ describe('plant / water / harvest', () => {
 });
 
 describe('eat', () => {
+  it('a shopkeeper can eat straight from their own stock (live: owners starved at their own counters)', () => {
+    const w = newWorld();
+    const tan = put(w, 'Mdm Tan', 'provision-shop');
+    tan.hunger = 1000;
+    const shop = w.shop('provision-shop')!;
+    const loaves = shop.stock.bread ?? 0;
+    accepted(act(w, tan.id, { verb: 'eat', item: 'bread' }));
+    expect(tan.hunger).toBeLessThan(1000);
+    expect(shop.stock.bread ?? 0).toBe(loaves - 1);
+    // Not someone else's shop, and not raw goods.
+    const siti = put(w, 'Siti', 'provision-shop');
+    refused(act(w, siti.id, { verb: 'eat', item: 'bread' }), /don't have any/);
+    refused(act(w, tan.id, { verb: 'eat', item: 'rice' }), /cook|eat/i);
+  });
   it('eating takes the edge off hunger', () => {
     const w = newWorld();
     const siti = who(w, 'Siti');
