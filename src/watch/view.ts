@@ -125,6 +125,8 @@ export class FrameBuilder {
         energyWord: energyWord(r.energy),
         job: jobLine(w, r),
         carrying: carried(r.items),
+        home: r.homeId ? w.placeName(w.home(r)!) : null,
+        spouse: r.spouseId ? w.resident(r.spouseId).name : null,
       };
     });
     return {

@@ -54,6 +54,10 @@ export interface ResidentView {
   /** "Works at the kopitiam for Ah Huat, 7am to 11am, $1.20 a shift"; "Runs the kopitiam"; null. */
   job: string | null;
   carrying: Carried[];
+  /** "Ah Huat's house", or null with nowhere of their own. (Absent in frames recorded before households.) */
+  home?: string | null;
+  /** Who they're married to, by name. */
+  spouse?: string | null;
 }
 
 export interface ShopView {

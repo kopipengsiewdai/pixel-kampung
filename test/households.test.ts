@@ -184,3 +184,17 @@ describe('v4 → v5: a living town moves into households', () => {
     }
   });
 });
+
+describe('the watch page', () => {
+  it("a resident's card says where they live and who they're married to", async () => {
+    const { FrameBuilder } = await import('../src/watch/view.ts');
+    const w = at9();
+    who(w, 'Siti').spouseId = who(w, 'Raju').id;
+    who(w, 'Ah Kow').homeId = null;
+    const f = new FrameBuilder().build(w);
+    const v = (n: string) => f.residents.find((r) => r.name === n)!;
+    expect(v('Ah Seng').home).toBe("Ah Huat's house");
+    expect(v('Siti').spouse).toBe('Raju');
+    expect(v('Ah Kow').home).toBeNull();
+  });
+});
