@@ -76,8 +76,8 @@ function frame(t: number, residents: ResidentView[]): Frame {
 
 describe('merging updates the page has not seen yet', () => {
   it('keeps the newest frame, joins routes and feed lines', () => {
-    const a: Update = { frame: frame(1, [resident('s', 2, 0, [{ x: 1, y: 0 }, { x: 2, y: 0 }])]), feed: [{ t: 1, seq: 1, text: 'a', notable: false }] };
-    const b: Update = { frame: frame(2, [resident('s', 4, 0, [{ x: 3, y: 0 }, { x: 4, y: 0 }])]), feed: [{ t: 2, seq: 2, text: 'b', notable: true }] };
+    const a: Update = { frame: frame(1, [resident('s', 2, 0, [{ x: 1, y: 0 }, { x: 2, y: 0 }])]), feed: [{ t: 1, seq: 1, text: 'a', notable: false, key: false }] };
+    const b: Update = { frame: frame(2, [resident('s', 4, 0, [{ x: 3, y: 0 }, { x: 4, y: 0 }])]), feed: [{ t: 2, seq: 2, text: 'b', notable: true, key: true }] };
     const m = mergeUpdates(a, b);
     expect(m.frame.t).toBe(2);
     expect(m.frame.residents[0]!.route).toEqual([{ x: 1, y: 0 }, { x: 2, y: 0 }, { x: 3, y: 0 }, { x: 4, y: 0 }]);

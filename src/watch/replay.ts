@@ -8,7 +8,7 @@ import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { gunzipSync, gzipSync } from 'node:zlib';
-import { feedLine, type FeedLine } from '../feed/feed.ts';
+import { feedLine, keepFeed, type FeedLine } from '../feed/feed.ts';
 import type { MemoryKind } from '../mind/memory.ts';
 import type { GameEvent } from '../sim/events.ts';
 import { createWorld } from '../sim/seed.ts';
@@ -196,16 +196,28 @@ export class ReplayReader {
     return rows.map((r) => feedLine(JSON.parse(r.data) as GameEvent, this.name)).filter((l): l is FeedLine => l !== null);
   }
 
-  /** The last n feed lines at or before t. */
+  /** The last n feed lines at or before t, and enough key moments before them to fill n (keepFeed). */
   feedUpTo(t: number, n: number): FeedLine[] {
-    const out: FeedLine[] = [];
-    // Events outnumber feed lines (arrivals, wakings): read back in growing windows.
-    for (let span = 120; out.length < n; span *= 4) {
-      const lines = this.feedBetween(t - span, t);
-      out.splice(0, out.length, ...lines.slice(-n));
+    let out: FeedLine[] = [];
+    // Events outnumber feed lines (arrivals, wakings), and lines outnumber key moments: read back in growing windows.
+    for (let span = 120; out.length < n || out.filter((l) => l.key).length < n; span *= 4) {
+      out = keepFeed(this.feedBetween(t - span, t), n);
       if (t - span < this.info().start) break;
     }
     return out;
+  }
+
+  /** The last n lines a resident said or had said to them, at or before t, newest first. */
+  saidBy(id: string, t: number, n: number): GameEvent[] {
+    if (!this.frames) return [];
+    const rows = this.db.prepare(
+      "SELECT data FROM replay_events WHERE t <= ? AND json_extract(data, '$.type') = 'said' AND (json_extract(data, '$.who') = ? OR json_extract(data, '$.to') = ?) ORDER BY seq DESC LIMIT ?",
+    ).all(t, id, id, n) as { data: string }[];
+    return rows.map((r) => JSON.parse(r.data) as GameEvent);
+  }
+
+  nameOf(id: string): string {
+    return this.name(id);
   }
 
   /** The trial's calendar: a trial is a new town, so its 1 January is the day it started. */
@@ -229,7 +241,7 @@ export class ReplayReader {
       const text = m.kind === 'plan' ? `${who} plans: "${m.text.replace(PLAN_PREFIX, '')}"`
         : m.kind === 'reflection' ? `${who} looks back on the day: "${m.text}"`
           : `${who} thinks: "${m.text}"`;
-      return { t: m.t, seq: m.id, text, notable: m.kind === 'reflection' };
+      return { t: m.t, seq: m.id, text, notable: m.kind === 'reflection', key: m.kind === 'reflection' };
     });
   }
 

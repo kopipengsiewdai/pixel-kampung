@@ -3,6 +3,7 @@ import type { GameEvent } from '../sim/events.ts';
 import { quantityLabel } from '../sim/items.ts';
 import { PLACE_BY_ID } from '../sim/map.ts';
 import { formatMoney } from '../sim/money.ts';
+import { dealKind } from '../sim/talk.ts';
 import { shortStamp, type Calendar } from '../sim/calendar.ts';
 
 export interface FeedLine {
@@ -11,6 +12,44 @@ export interface FeedLine {
   text: string;
   /** A hire, a firing, a first sale, someone collapsing: worth highlighting. */
   notable: boolean;
+  /** A key moment: shown when the page shows key moments only (sales, hires, money, notes, first visits...). */
+  key: boolean;
+}
+
+/**
+ * What the feed's "Key moments" view keeps: money and goods changing hands,
+ * work, notes, first visits, the lorry and prices (and debts, as they come).
+ * Walking, arriving, looking about and plain chat are left out.
+ */
+const KEY_TYPES: ReadonlySet<string> = new Set([
+  'bought', 'sold', 'first_sale', 'lorry_arrived', 'lorry_sale', 'lorry_order',
+  'job_offered', 'hired', 'quit', 'let_go', 'wages_paid',
+  'gave', 'trade_offered', 'traded', 'trade_declined', 'note_pinned', 'price_set', 'found_place',
+  'debt_offered', 'debt_agreed', 'debt_refused', 'repaid', 'let_off',
+  'kampung_quiet', 'quiet_spell',
+]);
+
+/** Whether an event is a key moment: a key kind, anything notable, or talk claiming a deal done in words. */
+export function isKeyMoment(e: GameEvent, notable: boolean): boolean {
+  return notable || KEY_TYPES.has(e.type) || (e.type === 'said' && dealKind(e.text) !== null);
+}
+
+/**
+ * The last n lines, and before them as many key moments again as fill n, in
+ * order: so the key-moments view isn't left with a handful when the town is
+ * busy with walking and chat.
+ */
+export function keepFeed<T extends FeedLine>(lines: readonly T[], n: number): T[] {
+  const out: T[] = [];
+  let keys = 0;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const l = lines[i]!;
+    const recent = lines.length - i <= n;
+    if (recent || (l.key && keys < n)) out.push(l);
+    if (l.key) keys++;
+    if (!recent && keys >= n) break;
+  }
+  return out.reverse();
 }
 
 type Names = (id: string) => string;
@@ -102,7 +141,7 @@ export function feedText(e: GameEvent, n: Names): { text: string; notable: boole
 
 export function feedLine(e: GameEvent, n: Names): FeedLine | null {
   const f = feedText(e, n);
-  return f ? { t: e.t, seq: e.seq, ...f } : null;
+  return f ? { t: e.t, seq: e.seq, ...f, key: isKeyMoment(e, f.notable) } : null;
 }
 
 /** "[Mon 07:05] ★ Siti is now working for Ah Huat ..." */

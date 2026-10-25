@@ -4,6 +4,12 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- Watch page: the story feed shows **key moments** by default (sales and purchases, hires and firings, wages, gifts and trades, notes pinned, first visits to places, the lorry, price changes, and talk that claims a deal done), with a "Key moments | All" switch in its header that this browser remembers. Walking, arriving, looking around and plain chat show under All.
+- Watch page: a resident's card has a **Talk** tab: their conversations, newest first, grouped by who they talked with (a new person, or 10 quiet minutes, starts a new one), each line stamped, the last 50 lines. It is read from the saved talk when the tab opens.
+- Living town: watch-page changes only; nothing in the town or its save changes.
+
 ## 0.11.1 (2026-10-25): hiring and eating work
 
 - **Hiring works:** a job offer understands wages and hours the way people say them ("$1.50 a shift", "7am", "17:00", "4 hours"), and takes the wage from any money field. Every one of Ah Huat's 35 offers since launch had been refused as "That doesn't sound like a wage."

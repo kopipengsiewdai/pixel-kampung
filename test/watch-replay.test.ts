@@ -1,3 +1,4 @@
+import { keepFeed } from '../src/feed/feed.ts';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -54,7 +55,9 @@ describe('recording a trial', () => {
     const a = r.feedBetween(START, START + 60);
     const b = r.feedBetween(START + 60, START + 120);
     expect([...a, ...b]).toEqual(lines);
-    expect(r.feedUpTo(START + 120, 3)).toEqual(lines.slice(-3));
+    // The last 3 lines, and key moments from before them up to 3 in all.
+    expect(r.feedUpTo(START + 120, 3)).toEqual(keepFeed(lines, 3));
+    expect(r.feedUpTo(START + 120, 3).slice(-3)).toEqual(lines.slice(-3));
     r.close();
   });
 

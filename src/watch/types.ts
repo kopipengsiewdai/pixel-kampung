@@ -185,3 +185,12 @@ export interface Hello {
   /** The town's calendar (its 1 January, Year 0, a Monday), so the page can stamp feed lines with the kampung's weekday. */
   calendar: { firstDay: number };
 }
+
+/** One line of a resident's talk, for the card's Talk tab. */
+export interface TalkLine { t: number; stamp: string; speaker: string; to: string | null; text: string; mine: boolean }
+
+/** A resident's conversations, newest first, each newest line first. */
+export interface TalkView {
+  name: string;
+  talks: { with: string; lines: TalkLine[] }[];
+}

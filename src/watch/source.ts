@@ -6,7 +6,7 @@
  */
 import { VERSION } from '../version.ts';
 import { basename } from 'node:path';
-import { feedLine, type FeedLine } from '../feed/feed.ts';
+import { feedLine, keepFeed, type FeedLine } from '../feed/feed.ts';
 import type { GameEvent } from '../sim/events.ts';
 import type { Point } from '../sim/map.ts';
 import { createWorld } from '../sim/seed.ts';
@@ -15,8 +15,8 @@ import { shortStamp } from '../sim/calendar.ts';
 import type { TownOptions } from '../town.ts';
 import { ReplayPlayer } from './player.ts';
 import type { ReplayReader } from './replay.ts';
-import type { Card, Frame, Hello, Layout, PlaceCard, ReplayState, Update } from './types.ts';
-import { FrameBuilder, cardOf, layoutOf, placeCardOf, type CardExtras } from './view.ts';
+import type { Card, Frame, Hello, Layout, PlaceCard, ReplayState, TalkView, Update } from './types.ts';
+import { FrameBuilder, TALK_LINES, cardOf, layoutOf, placeCardOf, talkOf, type CardExtras } from './view.ts';
 
 export const FEED_KEPT = 200;
 export const ROUTE_KEPT = 64;
@@ -29,6 +29,8 @@ export interface WatchSource {
   card(id: string): Card | null;
   /** What the owner sees on clicking a place: who's there and what's inside. */
   placeCard(id: string): PlaceCard | null;
+  /** A resident's conversations, for the card's Talk tab; null for nobody. */
+  talk(id: string): TalkView | null;
   subscribe(fn: (u: Update) => void): () => void;
   /** Replay mode only. */
   control?(cmd: ReplayCommand): ReplayState;
@@ -54,7 +56,7 @@ export function mergeUpdates(a: Update, b: Update): Update {
     ...b.frame,
     residents: b.frame.residents.map((r) => ({ ...r, route: b.snap ? r.route : joinRoutes(before.get(r.id) ?? [], r.route) })),
   };
-  const out: Update = { frame, feed: (b.resetFeed ? b.feed : [...a.feed, ...b.feed]).slice(-FEED_KEPT) };
+  const out: Update = { frame, feed: keepFeed(b.resetFeed ? b.feed : [...a.feed, ...b.feed], FEED_KEPT) };
   if (a.snap || b.snap) out.snap = true;
   if (a.resetFeed || b.resetFeed) out.resetFeed = true;
   const ms = b.msPerMinute ?? a.msPerMinute;
@@ -119,7 +121,12 @@ export interface LiveOptions {
   extras?: (id: string, t: number) => CardExtras | null;
   /** Merge window for updates to the page. */
   everyMs?: number;
+  /** A resident's last n lines of talk from the saved events, newest first; without it, what the page has seen. */
+  said?: (id: string, n: number) => GameEvent[];
 }
+
+/** Lines of talk a live page keeps in hand when there's no save to read from. */
+const SAID_KEPT = 2000;
 
 const FAKE_BRAIN_NOTE = 'Runs on the free fake brain, so there are no thoughts to show.';
 
@@ -137,6 +144,7 @@ export class LiveSource implements WatchSource {
   private frame: Frame | null = null;
   private feed: FeedLine[] = [];
   private fresh: FeedLine[] = [];
+  private said: GameEvent[] = [];
 
   constructor(opts: LiveOptions) {
     this.opts = opts;
@@ -179,13 +187,17 @@ export class LiveSource implements WatchSource {
     if (!this.world) return;
     const line = this.lineOf(e);
     if (line) this.fresh.push(line);
+    if (e.type === 'said' && !this.opts.said) {
+      this.said.push(e);
+      if (this.said.length > SAID_KEPT) this.said.splice(0, this.said.length - SAID_KEPT);
+    }
   }
 
   /** Refills the feed from saved events after a restart (call after `attach`). */
   seed(events: readonly GameEvent[]): void {
     if (!this.world) return;
     const lines = events.map((e) => this.lineOf(e)).filter((l): l is FeedLine => l !== null);
-    this.feed = [...lines, ...this.feed].slice(-FEED_KEPT);
+    this.feed = keepFeed([...lines, ...this.feed], FEED_KEPT);
   }
 
   private onTick(w: World): void {
@@ -197,7 +209,7 @@ export class LiveSource implements WatchSource {
     this.frame = this.frames.build(w);
     const feed = this.fresh;
     this.fresh = [];
-    this.feed = [...this.feed, ...feed].slice(-FEED_KEPT);
+    this.feed = keepFeed([...this.feed, ...feed], FEED_KEPT);
     this.hub.publish({ frame: this.frame, feed });
   }
 
@@ -224,6 +236,15 @@ export class LiveSource implements WatchSource {
 
   placeCard(id: string): PlaceCard | null {
     return this.frame && this.layout ? placeCardOf(this.frame, this.layout, id) : null;
+  }
+
+  talk(id: string): TalkView | null {
+    const w = this.world;
+    const r = w?.state.residents.find((x) => x.id === id);
+    if (!w || !r) return null;
+    const events = this.opts.said ? this.opts.said(id, TALK_LINES) : this.said;
+    const name = (x: string) => w.state.residents.find((o) => o.id === x)?.name ?? x;
+    return { name: r.name, talks: talkOf(events, id, name, w.state) };
   }
 
   subscribe(fn: (u: Update) => void): () => void {
@@ -303,7 +324,7 @@ export class ReplaySource implements WatchSource {
       u = u ? mergeUpdates(u, next) : next;
     }
     if (!u) return;
-    u.feed = this.reader.feedBetween(from, to).slice(-FEED_KEPT);
+    u.feed = keepFeed(this.reader.feedBetween(from, to), FEED_KEPT);
     u.replay = this.state();
     this.hub.publish(u);
   }
@@ -378,6 +399,13 @@ export class ReplaySource implements WatchSource {
 
   placeCard(id: string): PlaceCard | null {
     return placeCardOf(this.reader.frameAt(this.player.state().t), this.layout, id);
+  }
+
+  talk(id: string): TalkView | null {
+    const t = this.player.state().t;
+    const r = this.reader.frameAt(t).residents.find((x) => x.id === id);
+    if (!r) return null;
+    return { name: r.name, talks: talkOf(this.reader.saidBy(id, t, TALK_LINES), id, (x) => this.reader.nameOf(x), this.reader.calendar()) };
   }
 
   subscribe(fn: (u: Update) => void): () => void {
