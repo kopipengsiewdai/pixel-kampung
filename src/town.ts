@@ -7,14 +7,21 @@ import { createWorld } from './sim/seed.ts';
 import { MAX_REPLAY_MINUTES, skipQuietly } from './sim/skip.ts';
 import { World, type Resident, type WorldState } from './sim/state.ts';
 import { advance } from './sim/tick.ts';
-import { isNight, minuteOfDay } from './sim/time.ts';
+import { isNight, minuteOfDay, realMsAt } from './sim/time.ts';
 import type { SqliteStore } from './store/sqlite-store.ts';
 import { SCHEMA_VERSION } from './store/upgrades.ts';
 
 /** A refused resident may try something else this many times in the same minute. */
 export const TRIES_PER_THOUGHT = 3;
-/** With nothing happening, a resident thinks again after this many minutes. */
-export const QUIET_THINK_MINUTES = 5;
+/**
+ * With nothing happening, a resident thinks again after this many game
+ * minutes (2.5 real minutes). On the 4x clock residents think about half as
+ * often per game hour as they did at real time, to stay within the same real
+ * budget (owner: "4x clock, think less").
+ */
+export const QUIET_THINK_MINUTES = 10;
+/** After something they did goes through, the next thought comes this many game minutes later (being spoken to still wakes them the next minute). */
+export const AFTER_ACTION_MINUTES = 2;
 
 export type BrainFactory = (resident: Resident, index: number, seed: number, state: WorldState) => Brain;
 
@@ -36,6 +43,8 @@ export interface TownOptions {
   observer?: (residentId: string, t: number, text: string) => void;
   /** Called after each saved minute, once its events are out (the watch page takes a frame here). */
   onTick?: (world: World) => void;
+  /** For a new town: the real moment its first minute (t) stands for (default: t as real minutes). */
+  anchorMs?: number;
 }
 
 /** The running kampung: world + brains + optional store, advanced a minute at a time. */
@@ -59,7 +68,7 @@ export class Town {
 
   /** A brand-new kampung whose first simulated minute is t + 1. */
   static create(seed: number, t: number, opts: TownOptions = {}): Town {
-    const town = new Town(createWorld(seed, t), opts);
+    const town = new Town(createWorld(seed, t, { anchorMs: opts.anchorMs }), opts);
     town.flush();
     return town;
   }
@@ -93,12 +102,13 @@ export class Town {
     const w = this.world;
     advance(w);
     const emit = (e: EventBody) => { w.emit(e); };
+    const realMs = realMsAt(w.state.clock, w.t);
     const mod = minuteOfDay(w.t);
     if (mod >= EVENING_FROM) {
       for (const r of w.state.residents) {
         const brain = this.brains.get(r.id)!;
         if (brain.reflect && (r.activity?.kind === 'sleeping' || mod >= REFLECT_AT)) {
-          await brain.reflect(perceive(w, r), { t: w.t, residentId: r.id, emit });
+          await brain.reflect(perceive(w, r), { t: w.t, realMs, residentId: r.id, emit });
         }
       }
     }
@@ -108,7 +118,7 @@ export class Town {
         const brain = this.brains.get(r.id)!;
         r.thinkAt = w.t + QUIET_THINK_MINUTES;
         for (let i = 0; i < TRIES_PER_THOUGHT; i++) {
-          const intent = await brain.decide(perceive(w, r), { t: w.t, residentId: r.id, emit });
+          const intent = await brain.decide(perceive(w, r), { t: w.t, realMs, residentId: r.id, emit });
           r.reply = null;
           if (!intent) break;
           const res = act(w, r.id, intent);
@@ -116,7 +126,7 @@ export class Town {
           if (res.ok) {
             // A speaker waits for an answer: being spoken to wakes them (until the
             // chat has run long), so saying something never brings the next thought on.
-            if (verbOf(intent) !== 'say') r.thinkAt = Math.min(r.thinkAt, w.t + 1);
+            if (verbOf(intent) !== 'say') r.thinkAt = Math.min(r.thinkAt, w.t + AFTER_ACTION_MINUTES);
             break;
           }
         }

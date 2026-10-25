@@ -4,7 +4,8 @@ import { LORRY_BUYS, LORRY_SELLS, quantityLabel, type ItemId } from './items.ts'
 import { PLACES, PLACE_BY_ID } from './map.ts';
 import { formatMoney, type Cents } from './money.ts';
 import { TALK_GAP_MINUTES, TALK_SOFT_LIMIT, type Goods, type Resident, type World } from './state.ts';
-import { dayIndex, sgtHour, sgtMinute, timeLabel } from './time.ts';
+import { nowLabel } from './calendar.ts';
+import { dayIndex, sgtHour, sgtMinute } from './time.ts';
 
 /** How many lines of their own ongoing conversation a resident has in mind. */
 export const TALK_LINES = 6;
@@ -106,7 +107,7 @@ export function perceive(w: World, r: Resident): Perception {
   const shop = shopHere(w, r);
   const p: Perception = {
     name: r.name,
-    time: timeLabel(w.t),
+    time: nowLabel(w.state, w.t),
     hour: sgtHour(w.t),
     minute: sgtMinute(w.t),
     place: here ? (here.id === r.homeId ? 'your house' : w.placeName(here)) : 'out on the footpath',

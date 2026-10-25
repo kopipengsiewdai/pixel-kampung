@@ -29,7 +29,8 @@ of this goes into any resident's prompt.
 
 ## Time and needs
 
-- 1 game minute = 1 real minute, Singapore time. Night is 23:00–06:00.
+- 4 game minutes per real minute since 2026-10-25 (it was 1 game minute = 1
+  real minute); the rules below are all in game time. Night is 23:00–06:00.
 - Needs run 0–1000. Hunger rises 1 a minute awake and 1 every 3 minutes
   asleep, so a resident needs about 2–3 meals a day. Energy falls about 2
   every 3 minutes awake (1 a minute while fishing or working) and recovers 3 a

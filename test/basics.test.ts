@@ -43,7 +43,7 @@ describe('rng', () => {
   });
 });
 
-describe('time (Asia/Singapore, 1 game minute = 1 real minute)', () => {
+describe('time of day (the hour and weekday run on from the old Singapore-time counter)', () => {
   // 2026-11-02T06:00:00+08:00
   const sixAm = gameMinuteFromMs(Date.parse('2026-11-01T22:00:00Z'));
   it('maps real time to Singapore hours', () => {
@@ -63,10 +63,10 @@ describe('time (Asia/Singapore, 1 game minute = 1 real minute)', () => {
     expect(dayIndex(sixAm + 17 * 60)).toBe(dayIndex(sixAm));
   });
   it('labels time in words', () => {
-    expect(timeLabel(sixAm + 65)).toBe('Monday 7:05 in the morning');
-    expect(timeLabel(sixAm + 8 * 60)).toBe('Monday 2:00 in the afternoon');
-    expect(timeLabel(sixAm + 14 * 60 + 30)).toBe('Monday 8:30 at night');
-    expect(timeLabel(sixAm + 6 * 60)).toBe('Monday 12:00 noon');
+    expect(timeLabel(sixAm + 65)).toBe('7:05 in the morning');
+    expect(timeLabel(sixAm + 8 * 60)).toBe('2:00 in the afternoon');
+    expect(timeLabel(sixAm + 14 * 60 + 30)).toBe('8:30 at night');
+    expect(timeLabel(sixAm + 6 * 60)).toBe('12:00 noon');
   });
 });
 

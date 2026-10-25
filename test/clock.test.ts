@@ -1,0 +1,143 @@
+import { describe, expect, it } from 'vitest';
+import { Budget, HOURLY_ALLOWANCE, TOWN_DAILY_CAP } from '../src/mind/budget.ts';
+import { CostLog } from '../src/mind/cost-log.ts';
+import { FakeModel } from '../src/mind/fake-model.ts';
+import { MemoryStore } from '../src/mind/memory.ts';
+import { Mind } from '../src/mind/mind.ts';
+import { mindBrains } from '../src/mind/setup.ts';
+import { CARDS } from '../src/seed/cards.ts';
+import { dateAt, dateLabel, dateOfDay, dayOfDate, isLeapYear, MONTHS, nowLabel } from '../src/sim/calendar.ts';
+import { perceive } from '../src/sim/perception.ts';
+import { createWorld } from '../src/sim/seed.ts';
+import { World } from '../src/sim/state.ts';
+import { dayIndex, GAME_SPEED, gameMinuteAt, minuteOfDay, REAL_MS_PER_GAME_MINUTE, realMsAt, weekday } from '../src/sim/time.ts';
+import { Town, fakeBrains } from '../src/town.ts';
+import { clockLabel } from '../src/watch/view.ts';
+import { sgt } from './helpers.ts';
+
+describe('the 4x clock', () => {
+  const clock = { anchorT: 1000, anchorMs: 5_000_000 };
+
+  it('runs four game minutes to a real minute: a game day is six real hours', () => {
+    expect(GAME_SPEED).toBe(4);
+    expect(REAL_MS_PER_GAME_MINUTE).toBe(15_000);
+    expect(gameMinuteAt(clock, clock.anchorMs)).toBe(1000);
+    expect(gameMinuteAt(clock, clock.anchorMs + 14_999)).toBe(1000);
+    expect(gameMinuteAt(clock, clock.anchorMs + 15_000)).toBe(1001);
+    expect(gameMinuteAt(clock, clock.anchorMs + 60_000)).toBe(1004);
+    expect(gameMinuteAt(clock, clock.anchorMs + 6 * 3_600_000)).toBe(1000 + 1440);
+  });
+
+  it('turns a game minute back into the real moment it starts', () => {
+    for (const t of [1000, 1001, 2440, 999_999]) expect(gameMinuteAt(clock, realMsAt(clock, t))).toBe(t);
+    expect(realMsAt(clock, 1004) - realMsAt(clock, 1000)).toBe(60_000);
+  });
+
+  it('a new town keeps its clock in the save', () => {
+    const w = createWorld(1, 2000, { anchorMs: 7_000_000 });
+    expect(w.clock).toEqual({ anchorT: 2000, anchorMs: 7_000_000 });
+    expect(createWorld(1, 2000).clock).toEqual({ anchorT: 2000, anchorMs: 2000 * 60_000 });
+  });
+});
+
+describe('the kampung calendar', () => {
+  it('starts on 1 January, Year 0, with 12 months and 365 days', () => {
+    expect(MONTHS).toHaveLength(12);
+    expect(dateOfDay(0)).toMatchObject({ year: 0, month: 1, day: 1 });
+    expect(dateOfDay(30)).toMatchObject({ year: 0, month: 1, day: 31 });
+    expect(dateOfDay(31)).toMatchObject({ year: 0, month: 2, day: 1 });
+    expect(dateOfDay(58)).toMatchObject({ year: 0, month: 2, day: 28 });
+    expect(dateOfDay(59)).toMatchObject({ year: 0, month: 3, day: 1 }); // Year 0 has no leap day
+    expect(dateOfDay(364)).toMatchObject({ year: 0, month: 12, day: 31 });
+    expect(dateOfDay(365)).toMatchObject({ year: 1, month: 1, day: 1 });
+  });
+
+  it('has a leap day every fourth year, Year 0 aside', () => {
+    expect([0, 1, 2, 3, 4, 5, 8, 12, 100].map(isLeapYear)).toEqual([false, false, false, false, true, false, true, true, true]);
+    const feb29 = dayOfDate({ year: 4, month: 2, day: 29 });
+    expect(dateOfDay(feb29)).toMatchObject({ year: 4, month: 2, day: 29 });
+    expect(dateOfDay(feb29 + 1)).toMatchObject({ year: 4, month: 3, day: 1 });
+    expect(dayOfDate({ year: 5, month: 1, day: 1 }) - dayOfDate({ year: 4, month: 1, day: 1 })).toBe(366);
+  });
+
+  it('every day has exactly one date, in order', () => {
+    for (let n = 0; n < 4000; n++) {
+      const d = dateOfDay(n);
+      expect(dayOfDate(d), `day ${n}`).toBe(n);
+      expect(d.day).toBeGreaterThanOrEqual(1);
+      expect(d.day).toBeLessThanOrEqual(31);
+    }
+  });
+
+  it('a town knows its date; the weekday carries on from the clock', () => {
+    const w = createWorld(1, sgt(9)); // a Monday
+    expect(w.calendar).toEqual({ firstDay: dayIndex(sgt(9)) });
+    const d = dateAt(w, sgt(9, 30, 2));
+    expect(d).toEqual({ year: 0, month: 1, day: 3, weekday: 'Wednesday' });
+    expect(d.weekday).toBe(weekday(sgt(9, 30, 2)));
+    expect(dateLabel(d)).toBe('Wednesday, 3 January, Year 0');
+    expect(nowLabel(w, sgt(7, 15, 1))).toBe('Tuesday, 2 January, Year 0, 7:15 in the morning');
+    expect(nowLabel(w, sgt(12, 0, 0))).toBe('Monday, 1 January, Year 0, 12:00 noon');
+  });
+
+  it('residents perceive the date, in the kampung\'s own words', () => {
+    const w = new World(createWorld(1, sgt(7, 15, 1)));
+    w.state.calendar.firstDay = dayIndex(sgt(0, 0, 0));
+    const p = perceive(w, w.state.residents[0]!);
+    expect(p.time).toBe('Tuesday, 2 January, Year 0, 7:15 in the morning');
+  });
+
+  it('the watch page shows the same date', () => {
+    const w = new World(createWorld(1, sgt(7, 5)));
+    expect(clockLabel(w)).toBe('Monday 1 January, Year 0, 07:05');
+  });
+});
+
+describe('thinking money stays in real time', () => {
+  it('a resident earns US$0.0139 of thinking per real hour, which is four game hours', () => {
+    const b = new Budget(0, 0);
+    b.refill(60);
+    expect(b.level).toBeCloseTo(HOURLY_ALLOWANCE / GAME_SPEED, 10);
+    b.refill(60 * (1 + GAME_SPEED));
+    expect(b.level).toBeCloseTo(HOURLY_ALLOWANCE * 1.25, 10);
+  });
+
+  it("the town's daily cap is per real day: four game days share one US$3.33", async () => {
+    expect(TOWN_DAILY_CAP).toBe(3.33);
+    // A town anchored at real midnight in Singapore: its first four game days fall on one real day.
+    const start = sgt(6, 0) - 1;
+    const midnight = Date.parse('2026-11-01T16:00:00Z');
+    const memory = new MemoryStore(':memory:');
+    const costs = new CostLog(null);
+    const mind = new Mind({ client: new FakeModel(3), memory, costs, cards: CARDS, townCap: 0.05 });
+    const quiet: number[] = [];
+    const town = Town.create(3, start, { anchorMs: midnight + 90 * 60_000, brains: mindBrains(mind, fakeBrains), observer: mind.observe, onEvent: (e) => { if (e.type === 'kampung_quiet') quiet.push(e.t); } });
+    expect(new Date(realMsAt(town.world.state.clock, start)).toISOString()).toBe('2026-11-01T17:30:00.000Z'); // 01:30 in Singapore
+    await town.runUntil(start + 2 * 1440);
+    // Spent by game day 1, and still spent all through game day 2: the same real day.
+    expect(quiet).toHaveLength(1);
+    expect(dayIndex(quiet[0]!)).toBe(dayIndex(start + 1));
+    expect(costs.spentOn(costs.dayKey(realMsAt(town.world.state.clock, start + 1)))).toBeGreaterThanOrEqual(0.05);
+    expect(costs.dayKey(realMsAt(town.world.state.clock, start + 2 * 1440))).toBe('2026-11-02');
+    memory.close();
+  });
+
+  it('the cost log is kept by real Singapore date', () => {
+    const log = new CostLog(null);
+    expect(log.dayKey(Date.parse('2026-11-01T15:59:59Z'))).toBe('2026-11-01');
+    expect(log.dayKey(Date.parse('2026-11-01T16:00:00Z'))).toBe('2026-11-02');
+  });
+});
+
+describe('game-time rules on the 4x clock', () => {
+  it('night, the lorry and the days all follow game time', async () => {
+    const start = sgt(6, 0) - 1;
+    const types: { t: number; type: string }[] = [];
+    const town = Town.create(5, start, { onEvent: (e) => types.push({ t: e.t, type: e.type }) });
+    await town.runUntil(start + 1440);
+    const lorry = types.find((e) => e.type === 'lorry_arrived')!;
+    expect(minuteOfDay(lorry.t)).toBe(7 * 60);
+    // One game day took six real hours.
+    expect(realMsAt(town.world.state.clock, start + 1440) - realMsAt(town.world.state.clock, start)).toBe(6 * 3_600_000);
+  });
+});

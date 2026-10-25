@@ -46,8 +46,9 @@ resident's prompt; the page only reads the town.
 
 ## Speeds and replay
 
-- `--speed` is **game minutes per real minute**: 1 is real time, 60 is a
-  game hour a minute. Replays offer 1×, 10×, 60×, 300× and 1440× on the page.
+- `--speed` is **game minutes per real minute**: 4 is the live town's pace
+  on the 4x clock (1 was real time before 2026-10-25), and 60 is a game hour
+  a minute. Replays offer 1×, 10×, 60×, 300× and 1440× on the page.
 - **`npm run watch -- --fake`** starts a fresh town from Monday 06:00 with
   every resident on the free fake *model* (not the bare fake brain), so the
   cards show plans and thoughts. Nothing is saved and nothing costs money.

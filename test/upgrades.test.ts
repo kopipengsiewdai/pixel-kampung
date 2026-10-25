@@ -10,6 +10,8 @@ import type { WorldState } from '../src/sim/state.ts';
 import { SaveTooNewError, SqliteStore } from '../src/store/sqlite-store.ts';
 import { SCHEMA_VERSION, UPGRADES, type SaveData, type Upgrade } from '../src/store/upgrades.ts';
 import { Town } from '../src/town.ts';
+import { dateAt, nowLabel } from '../src/sim/calendar.ts';
+import { gameMinuteAt, weekday } from '../src/sim/time.ts';
 import { dumpSql, FIXTURE_DIR, fixtureShape, fixtureSql, fixtureUpgraded, loadSql, peek, saveShape, upgradedHeader, upgradeOneStep } from './saves.ts';
 
 const dirs: string[] = [];
@@ -311,6 +313,36 @@ describe('v1 → v2: the cast know their family and old friends', () => {
     world.residents = world.residents.filter((r) => r.id !== 'ah-seng');
     for (const r of world.residents) r.knownPeople = [];
     expect(people(run(save), 'ah-huat')).toEqual(['rahim']);
+  });
+});
+
+describe('v2 → v3: the 4x clock and the kampung calendar', () => {
+  const v2 = () => {
+    const path = savePath();
+    loadSql(fixtureSql(2), path);
+    return savedOf(path);
+  };
+
+  it('anchors the clock where the town stands, so nothing jumps', () => {
+    const old = v2();
+    const t = old.world.t as number;
+    const copy = structuredClone(old);
+    const up = step(2).save!(old).world as unknown as WorldState;
+    expect(old).toEqual(copy);
+    expect(up.t).toBe(t);
+    expect(up.clock).toEqual({ anchorT: t, anchorMs: t * 60_000 });
+    // At the real moment the town was saved, it's the same game minute; from then on, four a real minute.
+    expect(gameMinuteAt(up.clock, t * 60_000)).toBe(t);
+    expect(gameMinuteAt(up.clock, t * 60_000 + 60_000)).toBe(t + 4);
+  });
+
+  it('today becomes 1 January, Year 0; the hour and the weekday carry on', () => {
+    const old = v2();
+    const t = old.world.t as number;
+    const up = step(2).save!(old).world as unknown as WorldState;
+    expect(dateAt(up, t)).toEqual({ year: 0, month: 1, day: 1, weekday: weekday(t) });
+    expect(nowLabel(up, t)).toMatch(/^Monday, 1 January, Year 0, 6:\d\d in the morning$/);
+    expect(dateAt(up, t + 1440).day).toBe(2);
   });
 });
 

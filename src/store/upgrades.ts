@@ -61,6 +61,19 @@ export const UPGRADES: readonly Upgrade[] = [
       };
     },
   },
+  {
+    from: 2,
+    why: 'The kampung keeps its own time, four times as fast as the real clock, and its own calendar: today becomes 1 January, Year 0.',
+    save: ({ world, brains }) => {
+      // A v2 town's minutes were real minutes (since 1970, Singapore time), so its clock is anchored
+      // where it stands: nothing jumps, and the hour and weekday carry on. Day index as time.ts had it at v2.
+      const t = world.t as number;
+      return {
+        world: { ...world, clock: { anchorT: t, anchorMs: t * 60_000 }, calendar: { firstDay: Math.floor((t + 8 * 60) / 1440) } },
+        brains,
+      };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

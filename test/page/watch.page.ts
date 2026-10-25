@@ -101,7 +101,7 @@ describe('the watch page in a browser', () => {
     const { page, foreign, errors } = await visit(url);
     expect(await colours(page)).toBeGreaterThan(40);
     await expect.poll(() => page.locator('#feed li').count()).toBeGreaterThan(3);
-    await expect.poll(() => page.locator('#clock').textContent()).toMatch(/Monday 2 Nov, \d\d:\d\d/);
+    await expect.poll(() => page.locator('#clock').textContent()).toMatch(/Monday 1 January, Year 0, \d\d:\d\d/);
     expect(await page.locator('#replay').isVisible()).toBe(false);
 
     await page.locator('#roster button', { hasText: 'Siti' }).click();

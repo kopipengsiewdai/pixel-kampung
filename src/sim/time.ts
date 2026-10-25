@@ -1,11 +1,36 @@
 /**
- * Game time is real time: one game minute is one real minute, in Singapore time
- * (UTC+8, no daylight saving). A "game minute" is minutes since the Unix epoch.
+ * Game time runs four times as fast as real time (owner decision, 2026-10-25):
+ * a game minute is 15 real seconds and a game day is six real hours. A "game
+ * minute" t is a plain counter that only ever goes up; each town's clock
+ * (saved with it) ties it to real time. Time of day and weekday come from t
+ * as they always have (the old counter was minutes since the Unix epoch in
+ * Singapore time, so a town upgraded from it carries on at the same hour);
+ * the date comes from the kampung's own calendar (calendar.ts).
  */
 export const SGT_OFFSET_MIN = 8 * 60;
 export const MINUTES_PER_DAY = 24 * 60;
 export const NIGHT_START_HOUR = 23;
 export const NIGHT_END_HOUR = 6;
+
+/** Game minutes per real minute. */
+export const GAME_SPEED = 4;
+export const REAL_MS_PER_GAME_MINUTE = 60_000 / GAME_SPEED;
+
+/** Ties a town's game minutes to real time: at real moment anchorMs, it was game minute anchorT. */
+export interface GameClock {
+  anchorT: number;
+  anchorMs: number;
+}
+
+/** The game minute under way at a real moment. */
+export function gameMinuteAt(c: GameClock, ms: number): number {
+  return c.anchorT + Math.floor((ms - c.anchorMs) / REAL_MS_PER_GAME_MINUTE);
+}
+
+/** The real moment a game minute starts. */
+export function realMsAt(c: GameClock, t: number): number {
+  return c.anchorMs + (t - c.anchorT) * REAL_MS_PER_GAME_MINUTE;
+}
 
 export function gameMinuteFromMs(ms: number): number {
   return Math.floor(ms / 60_000);
@@ -43,25 +68,27 @@ export function isNight(t: number): boolean {
   return h >= NIGHT_START_HOUR || h < NIGHT_END_HOUR;
 }
 
-const WEEKDAYS = ['Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday'];
+export type Weekday = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
 
-export function weekday(t: number): string {
+const WEEKDAYS: readonly Weekday[] = ['Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday'];
+
+export function weekday(t: number): Weekday {
   // Day 0 (1970-01-01) was a Thursday.
   return WEEKDAYS[((dayIndex(t) % 7) + 7) % 7]!;
 }
 
-/** "Monday 7:05 in the morning": how a resident would say the time. */
+/** "7:05 in the morning": how a resident would say the time of day. */
 export function timeLabel(t: number): string {
   const h = sgtHour(t);
   const m = sgtMinute(t);
-  if (h === 12 && m === 0) return `${weekday(t)} 12:00 noon`;
-  if (h === 0 && m === 0) return `${weekday(t)} midnight`;
+  if (h === 12 && m === 0) return '12:00 noon';
+  if (h === 0 && m === 0) return 'midnight';
   const h12 = h % 12 === 0 ? 12 : h % 12;
   const part = h < 12 ? (h < 5 ? 'in the small hours' : 'in the morning')
     : h < 18 ? 'in the afternoon'
       : h < 20 ? 'in the evening'
         : 'at night';
-  return `${weekday(t)} ${h12}:${String(m).padStart(2, '0')} ${part}`;
+  return `${h12}:${String(m).padStart(2, '0')} ${part}`;
 }
 
 /** "Mon 07:05", for the story feed. */

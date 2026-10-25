@@ -58,9 +58,9 @@ export class Mind {
     this.memory.add(residentId, t, 'noticed', text);
   };
 
-  /** True once the town has spent its daily cap; announces the quiet once. */
-  townSpent(t: number, emit: ThinkContext['emit']): boolean {
-    const day = this.costs.dayKey(t);
+  /** True once the town has spent its daily cap (per real day); announces the quiet once. */
+  townSpent(realMs: number, emit: ThinkContext['emit']): boolean {
+    const day = this.costs.dayKey(realMs);
     if (this.costs.spentOn(day) < this.townCap) return false;
     if (this.quietDay !== day) {
       this.quietDay = day;
@@ -170,7 +170,7 @@ export class MindBrain implements Brain {
   /** One model call within budget; null if the resident can't think right now. */
   private async call(kind: ThinkKind, tier: Tier, p: Perception, ctx: ThinkContext): Promise<ThinkResponse | null> {
     this.budget.refill(ctx.t);
-    if (!this.budget.canSpend(ESTIMATE[tier]) || this.mind.townSpent(ctx.t, ctx.emit)) return null;
+    if (!this.budget.canSpend(ESTIMATE[tier]) || this.mind.townSpent(ctx.realMs, ctx.emit)) return null;
     const cue = [p.place, ...p.people.map((x) => x.name), ...p.recent.slice(-3), p.reply ?? ''].join(' ');
     // Leave out only what the notes already show, so older things heard can still come back.
     const seen = new Set([...latelyLines(p), ...p.talk]);
@@ -192,13 +192,13 @@ export class MindBrain implements Brain {
       // request may still be billed, so its estimate is charged and logged to be safe.
       this.mind.onError(err);
       const usd = this.mind.costs.add({
-        t: ctx.t, resident: this.id, kind, model: 'failed', usage: { input_tokens: 0, output_tokens: 0 }, estimatedUsd: ESTIMATE[tier],
+        t: ctx.t, realMs: ctx.realMs, resident: this.id, kind, model: 'failed', usage: { input_tokens: 0, output_tokens: 0 }, estimatedUsd: ESTIMATE[tier],
       });
       this.budget.spend(usd);
       return null;
     }
     for (const a of res.attempts) {
-      this.budget.spend(this.mind.costs.add({ t: ctx.t, resident: this.id, kind, model: a.model, usage: a.usage }));
+      this.budget.spend(this.mind.costs.add({ t: ctx.t, realMs: ctx.realMs, resident: this.id, kind, model: a.model, usage: a.usage }));
     }
     return res.refused ? null : res;
   }

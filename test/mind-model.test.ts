@@ -8,6 +8,7 @@ import { AnthropicModel, MODELS } from '../src/mind/anthropic-model.ts';
 import { DO_TOOL, toIntent } from '../src/mind/tools.ts';
 import { readApiKey } from '../src/config/env.ts';
 import { writeFileSync } from 'node:fs';
+import { realMsAt } from '../src/sim/time.ts';
 
 describe('pricing', () => {
   it('prices a call from its usage, cache reads and writes included', () => {
@@ -28,9 +29,9 @@ describe('cost log', () => {
     try {
       const log = new CostLog(dir);
       const t = 29_000_000;
-      log.add({ t, resident: 'siti', kind: 'act', model: 'claude-haiku-5-5', usage: { input_tokens: 2000, output_tokens: 100 } });
-      log.add({ t: t + 1, resident: 'raju', kind: 'plan', model: 'claude-sonnet-5-5', usage: { input_tokens: 4000, output_tokens: 500 } });
-      const day = log.dayKey(t);
+      log.add({ t, realMs: t * 60_000, resident: 'siti', kind: 'act', model: 'claude-haiku-5-5', usage: { input_tokens: 2000, output_tokens: 100 } });
+      log.add({ t: t + 1, realMs: t * 60_000 + 15_000, resident: 'raju', kind: 'plan', model: 'claude-sonnet-5-5', usage: { input_tokens: 4000, output_tokens: 500 } });
+      const day = log.dayKey(t * 60_000);
       const lines = readFileSync(join(dir, `${day}.jsonl`), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
       expect(lines).toHaveLength(2);
       expect(lines[0]).toMatchObject({ resident: 'siti', model: 'claude-haiku-5-5', input: 2000, output: 100 });
@@ -199,7 +200,7 @@ describe('the real path end to end, against a stubbed network', () => {
       expect(bodies[0].output_config).toEqual({ effort: 'high' }); // the morning plan
       expect(bodies.every((b) => b.model === 'claude-haiku-5-5')).toBe(true);
       expect(events.some((e) => e.type === 'walked' && e.who === 'siti')).toBe(true);
-      const logged = readFileSync(join(dir, `${mind.costs.dayKey(SIM_START + 1)}.jsonl`), 'utf8').trim().split('\n');
+      const logged = readFileSync(join(dir, `${mind.costs.dayKey(realMsAt(town.world.state.clock, SIM_START + 1))}.jsonl`), 'utf8').trim().split('\n');
       expect(logged).toHaveLength(bodies.length);
     } finally {
       rmSync(dir, { recursive: true, force: true });

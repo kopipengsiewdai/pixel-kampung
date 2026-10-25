@@ -234,7 +234,8 @@ export class ReplayReader {
       for (const r of f.residents) r.doing = 'not recorded in this trial (shown as the town started)';
       this.fallback = f;
     }
-    const w = new World(createWorld(42, t));
+    // The trial's own calendar, from its first day, so the date moves on as it plays.
+    const w = new World({ ...createWorld(42, t), calendar: createWorld(42, this.info().start).calendar });
     const clock = new FrameBuilder().build(w);
     return { ...this.fallback, t, stamp: clock.stamp, clock: clock.clock, minuteOfDay: clock.minuteOfDay, lorryHere: false };
   }

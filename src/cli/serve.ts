@@ -1,6 +1,6 @@
 /**
- * The live kampung, in real time (1 game minute = 1 real minute, Singapore
- * time), with fake brains for now. Saves every minute to
+ * The live kampung on its own clock (4 game minutes a real minute: a game day
+ * is six real hours), with fake brains unless --minds. Saves every minute to
  * $KAMPUNG_HOME/kampung.db, writes a heartbeat file, and prints the feed.
  * After downtime it resumes cleanly without replaying the missed hours. A save
  * from an older release is upgraded in place first (docs/design/upgrades.md).
@@ -15,7 +15,7 @@ import { dbPath, heartbeatPath, kampungHome } from '../config/paths.ts';
 import { feedLine, formatFeedLine } from '../feed/feed.ts';
 import type { GameEvent } from '../sim/events.ts';
 import { SystemClock } from '../sim/clock.ts';
-import { gameMinuteFromMs } from '../sim/time.ts';
+import { gameMinuteAt, gameMinuteFromMs, REAL_MS_PER_GAME_MINUTE } from '../sim/time.ts';
 import { Town } from '../town.ts';
 import { numArg, parseArgs } from './args.ts';
 import { openSave } from './open-save.ts';
@@ -68,7 +68,7 @@ if (args.minds === true) {
 const mem = memory;
 const live = new LiveSource({
   label: mem ? 'Live town (thinking for real)' : 'Live town',
-  msPerMinute: 60_000,
+  msPerMinute: REAL_MS_PER_GAME_MINUTE,
   extras: mem ? (id, t) => extrasFrom((r, k, up, n) => mem.latest(r, k, up, n), id, t) : undefined,
 });
 const hooks = live.hooks();
@@ -77,9 +77,11 @@ const onEvent = (e: GameEvent) => {
   hooks.onEvent(e);
 };
 
-const now = () => gameMinuteFromMs(clock.nowMs());
+// A new town starts at the real hour, then runs on its own clock (saved with it): 4 game minutes a real minute.
+const startMs = clock.nowMs();
 town = Town.resume({ store, onEvent, onTick: hooks.onTick, ...mindOpts })
-  ?? Town.create(numArg(args, 'seed', Date.now() % 2_147_483_647), now() - 1, { store, onEvent, onTick: hooks.onTick, ...mindOpts });
+  ?? Town.create(numArg(args, 'seed', Date.now() % 2_147_483_647), gameMinuteFromMs(startMs) - 1, { anchorMs: startMs - REAL_MS_PER_GAME_MINUTE, store, onEvent, onTick: hooks.onTick, ...mindOpts });
+const now = () => gameMinuteAt(town.world.state.clock, clock.nowMs());
 live.attach(town.world);
 // The feed survives a restart: refill it from the save's latest events (enough for a full page).
 live.seed(store.recentEvents(FEED_KEPT * 10));

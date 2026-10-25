@@ -23,7 +23,7 @@ function money(cents: number): string {
 }
 
 let scene: TownScene | null = null;
-let msPerMinute = 60_000;
+let msPerMinute = 15_000; // the live town's pace until the server says otherwise
 let latest: Update | null = null;
 let selected: string | null = null;
 let replay: ReplayState | null = null;

@@ -1,11 +1,13 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { dayIndex, msFromGameMinute } from '../sim/time.ts';
+import { SGT_OFFSET_MIN } from '../sim/time.ts';
 import type { ThinkKind, TokenUsage } from './model.ts';
 import { costUsd } from './pricing.ts';
 
 export interface CostEntry {
   t: number;
+  /** The real moment of the call, by the town's clock: the cost counts towards that real day. */
+  realMs: number;
   resident: string;
   kind: ThinkKind;
   model: string;
@@ -46,19 +48,19 @@ export class CostLog {
     this.dir = dir;
   }
 
-  /** Singapore calendar date of a game minute, e.g. "2026-11-02". */
-  dayKey(t: number): string {
-    return new Date(msFromGameMinute(dayIndex(t) * 1440)).toISOString().slice(0, 10);
+  /** The real Singapore date of a real moment, e.g. "2026-11-02": the town's cap is per real day. */
+  dayKey(realMs: number): string {
+    return new Date(realMs + SGT_OFFSET_MIN * 60_000).toISOString().slice(0, 10);
   }
 
   add(e: CostEntry): number {
     const usd = e.estimatedUsd ?? costUsd(e.model, e.usage);
-    const day = this.dayKey(e.t);
+    const day = this.dayKey(e.realMs);
     this.totals.set(day, this.spentOn(day) + usd);
     if (this.dir) {
       mkdirSync(this.dir, { recursive: true });
       appendFileSync(join(this.dir, `${day}.jsonl`), JSON.stringify({
-        t: e.t, at: new Date(msFromGameMinute(e.t)).toISOString(), resident: e.resident, kind: e.kind, model: e.model,
+        t: e.t, at: new Date(e.realMs).toISOString(), resident: e.resident, kind: e.kind, model: e.model,
         input: e.usage.input_tokens, output: e.usage.output_tokens,
         cacheRead: e.usage.cache_read_input_tokens ?? 0, cacheWrite: e.usage.cache_creation_input_tokens ?? 0, usd,
         ...(e.estimatedUsd !== undefined ? { estimated: true } : {}),

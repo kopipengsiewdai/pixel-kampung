@@ -46,12 +46,38 @@ find work.
   has a slow, honest way to earn and the town can't stall. A boss's wage
   should still beat it, so a job is worth having.
 
-## Clock speed (agreed 2026-10-24)
+## Clock speed (agreed 2026-10-24, revised 2026-10-25)
 
-**1 game day = 1 real day.** The town runs in real time. Each resident gets
-about $0.33 of AI thinking per game day ($10 ÷ 720 h × 24 h), so residents
-are as deliberate as the budget allows. Stories unfold slowly: going from
-worker to boss could take weeks of real time.
+**The 4x clock (revised 2026-10-25; owner: "4x clock, think less").** One game
+day is six real hours: a game minute is 15 real seconds, and there are four
+game days in every real day. The town keeps its own clock, saved with it
+(game minute = anchor + real time elapsed × 4), so nothing jumps when it
+restarts. Night (23:00–06:00), the 07:00 lorry, shifts, crops and the days
+residents plan and reflect on all run in game time. Walking stays 3 tiles a
+game minute, which is four times faster to watch.
+
+**Thinking money stays in real time:** US$0.0139 per resident per real hour
+and US$3.33 for the town per real day, which is four game days. To fit,
+residents think about half as often per game hour as before (aiming for at
+most about 13 thoughts per waking game hour). With nothing happening they
+think every 10 game minutes, and 2 game minutes after something they did goes
+through. Being spoken to still wakes them the next minute.
+
+*Replaced:* the original decision (2026-10-24) was 1 game day = 1 real day,
+with the town running in real time.
+
+## The kampung calendar (agreed 2026-10-25)
+
+**The kampung has its own calendar, not the real date.** When the town moved
+to the 4x clock, its date became **1 January, Year 0**. The time of day and
+the weekday carried on unchanged. From then on it has 12 months and 365 days,
+with a leap day (29 February) every fourth year: Year 4, 8, 12 and so on.
+Year 0 has none. That's 4 game days per real day.
+
+**Residents know the date.** It's part of what they perceive, in in-world
+words ("Tuesday, 3 January, Year 0, 7:15 in the morning"). The watch page shows
+the same date. Festivals will be pinned to this calendar later, so all date
+handling lives in one module (`src/sim/calendar.ts`).
 
 ## Hosting (agreed 2026-10-24)
 

@@ -4,6 +4,13 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **The 4x clock:** the kampung keeps its own time, four game minutes to a real minute, so a game day is six real hours. Night, the morning lorry, shifts, crops and the days residents plan around all run in game time, and walking is four times faster to watch.
+- **The kampung calendar:** the town has its own dates (12 months, 365 days, a leap day every fourth year from Year 4), and residents know today's date. The watch page shows the same date.
+- **Thinking stays within the real budget:** each resident still has US$0.0139 of thinking per real hour and the town US$3.33 per real day, so residents think about half as often per game hour (every 10 game minutes when nothing happens, 2 minutes after doing something).
+- **Living town:** at upgrade (save v3) the clock is anchored where the town stands, so nothing jumps: the date becomes 1 January, Year 0, and the time of day and weekday carry on. Time missed while the town was stopped for the upgrade passes quietly, four times as fast as before.
+
 ## 0.9.2 (2026-10-25)
 
 - Watch page: the story feed survives a restart; the page refills it with the latest stories from the saved town.

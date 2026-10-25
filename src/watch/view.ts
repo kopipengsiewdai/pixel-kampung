@@ -9,7 +9,8 @@ import { MAP_H, MAP_W, PLACES, PLACE_BY_ID, tileAt, type Point, type Tile } from
 import { formatMoney, type Cents } from '../sim/money.ts';
 import { energyWord, hungerWord } from '../sim/perception.ts';
 import type { Goods, Resident, Shop, World } from '../sim/state.ts';
-import { dayIndex, minuteOfDay, msFromGameMinute, sgtHour, sgtMinute, shortStamp, weekday } from '../sim/time.ts';
+import { dateAt, MONTHS } from '../sim/calendar.ts';
+import { dayIndex, minuteOfDay, sgtHour, sgtMinute, shortStamp } from '../sim/time.ts';
 import type { Card, Carried, Frame, Layout, ResidentView, ShopView, Thought } from './types.ts';
 
 export function layoutOf(w: World): Layout {
@@ -18,13 +19,12 @@ export function layoutOf(w: World): Layout {
   return { w: MAP_W, h: MAP_H, tiles, places };
 }
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-/** "Monday 2 Nov, 07:05" in Singapore time. */
-export function clockLabel(t: number): string {
-  const d = new Date(msFromGameMinute(dayIndex(t) * 1440));
+/** "Monday 1 January, Year 0, 07:05": the kampung's date and time, as residents know it. */
+export function clockLabel(w: World): string {
+  const t = w.t;
+  const d = dateAt(w.state, t);
   const hhmm = `${String(sgtHour(t)).padStart(2, '0')}:${String(sgtMinute(t)).padStart(2, '0')}`;
-  return `${weekday(t)} ${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}, ${hhmm}`;
+  return `${d.weekday} ${d.day} ${MONTHS[d.month - 1]}, Year ${d.year}, ${hhmm}`;
 }
 
 function carried(g: Goods): Carried[] {
@@ -129,7 +129,7 @@ export class FrameBuilder {
     return {
       t,
       stamp: shortStamp(t),
-      clock: clockLabel(t),
+      clock: clockLabel(w),
       minuteOfDay: minuteOfDay(t),
       lorryHere: w.state.lorryHere,
       residents,
