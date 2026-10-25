@@ -1,6 +1,7 @@
 # Daily life: debts, reasons to hire, more to do
 
-Status: **proposal, for the owner to agree before it's built.** It's folded
+Status: **agreed with the owner, 2026-10-25** (answers at the end; build
+order A → B → C, then D with the village head). It's folded
 together with [talk-circles.md](talk-circles.md) (PR 13) and comes before
 households, the village head and the lorry trader
 ([village-characters.md](village-characters.md)). Everything a resident meets
@@ -85,11 +86,21 @@ An owner with over $30 agrees half the time. Anyone with over $2 repays.
 (`isStaffed`), cooking is instant, and the only customers are the ten
 residents. One person does it all, so nobody hires.
 
-**1. Customers from the rest of the kampung.** These are unnamed folk with
-no AI and no cost, who come to each shop at set hours. They join a queue and
-pay the posted price if it's at or under what they'll pay. The money comes
-from outside town, through a `customers` account like `lorry`. Each one
+**1. Travellers from the coast road** (owner: nameless customers yes, but
+not "the rest of the kampung": the town has only ten people). The road to
+town that the lorry uses runs past the kampung, and labourers, hawkers and
+trishaw riders stop for kopi and food, or buy fish and vegetables to take
+home, busiest at the morning and evening rush. They're unnamed, with no AI
+and no cost, and come to each shop at set hours. They join a queue and pay
+the posted price if it's at or under what they'll pay. Residents perceive
+them as travellers ("Two travellers from the road are waiting."). Their
+money comes from outside, through a separate `travellers` ledger account
+like `lorry`, and the economy knobs (9d) can tune how many come. Each one
 wants one thing the shop sells and has in stock, picked by fixed weights.
+**Later, a second delivery:** boats at the jetty, with fishermen from other
+villages buying supplies and eating at dawn and dusk (an account of their
+own). Leave room for a frequent traveller to become a named regular one day
+(later perhaps a village character with an AI head), but don't build it now.
 
 | Shop | Busy hours: one customer every | Other open hours (07–21): one every | About a day |
 |---|---|---|---|
@@ -217,7 +228,7 @@ Art: our own, drawn in `scripts/art/build_art.py` (CC BY-NC-SA, per
 
 - **No rule lists or feature news in prompts.** New verbs appear only in
   "Things you could do right now", worded as the character would.
-- **No numbers that give the machinery away.** Customers are people waiting,
+- **No numbers that give the machinery away.** Customers are travellers waiting,
   not a "demand rate". Debts are what someone owes, not a "ledger".
 - **No refunds or rewrites of history** (Rahim's loss stands).
 - **No AI for customers, chores or errands.** All scripted, all $0.
@@ -256,16 +267,14 @@ Art: our own, drawn in `scripts/art/build_art.py` (CC BY-NC-SA, per
 - Owners pricing above what customers pay lose sales; "turned away" teaches.
 - Water in recipes could stall a kopitiam nobody fetches for.
 
-## Questions for the owner
+## The owner's answers (2026-10-25)
 
-1. **Unnamed customers** from the rest of the kampung, paying with money
-   from outside: is that all right? Proposed: yes; it's the only way hiring
-   can pay in a town of ten.
-2. **Mdm Tan's card** ("you remember every debt"): keep it (proposed), or
-   reword it?
-3. **Interest:** none on loans for now (proposed), and no due dates until
-   the lorry trader?
-4. **Order:** A, B, C, then D with the village head. Agreed?
-5. **Water in recipes** (C): in, or leave cooking as it is?
-6. **"Pray"** as quiet time with no game effect, when D comes: is that the
-   right touch?
+1. **Nameless customers: yes, but not "the rest of the kampung".** They're
+   travellers on the coast road first (an outside `travellers` account,
+   tunable by the economy knobs), and boats at the jetty later; see B.1. A
+   frequent customer may one day become a named regular, but not now.
+2. **Mdm Tan's card** ("you remember every debt"): keep it.
+3. **Loans:** no interest and no due dates for now.
+4. **Order:** A → B → C, then D after the village head.
+5. **Cooking needs pails of water**, as a light chore: yes.
+6. **"Pray"** is quiet time with no game effect, when D comes.
