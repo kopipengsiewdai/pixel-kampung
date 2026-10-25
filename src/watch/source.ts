@@ -4,6 +4,7 @@
  * current frame, recent feed) and then updates, merged so a slow page or a
  * fast clock never floods it.
  */
+import { VERSION } from '../version.ts';
 import { basename } from 'node:path';
 import { feedLine, type FeedLine } from '../feed/feed.ts';
 import type { GameEvent } from '../sim/events.ts';
@@ -203,7 +204,7 @@ export class LiveSource implements WatchSource {
   hello(): Hello {
     if (!this.layout || !this.frame) throw new Error('the town is not attached yet');
     return {
-      mode: 'live', label: this.opts.label, msPerMinute: this.opts.msPerMinute,
+      mode: 'live', label: this.opts.label, version: VERSION, msPerMinute: this.opts.msPerMinute,
       layout: this.layout, frame: this.frame, feed: [...this.feed], replay: null, notice: null,
       calendar: { ...this.world!.state.calendar },
     };
@@ -359,6 +360,7 @@ export class ReplaySource implements WatchSource {
     return {
       mode: 'replay',
       label: `Replay of ${info.label === 'a trial' ? basename(this.reader.path) : `${info.label} (${basename(this.reader.path)})`}`,
+      version: VERSION,
       msPerMinute: this.msPerMinute(),
       layout: this.layout,
       frame: this.reader.frameAt(t),

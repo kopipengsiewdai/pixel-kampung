@@ -63,6 +63,11 @@ function stampOf(t: number): string {
   return `${name} ${String(Math.floor(mod / 60)).padStart(2, '0')}:${String(mod % 60).padStart(2, '0')}`;
 }
 
+/** "Monday 1 January, Year 0, 07:05" → "Mon 1 Jan, 07:05". */
+function shortClock(clock: string): string {
+  return clock.replace(/^(\w{3})\w* (\d+) (\w{3})\w*, Year \d+, /, '$1 $2 $3, ');
+}
+
 function setFeed(lines: FeedLine[]): void {
   const feed = $('feed');
   feed.replaceChildren(...lines.slice(-FEED_KEPT).reverse().map(feedItem));
@@ -103,7 +108,6 @@ function thoughtItem(t: Thought, quote: boolean): HTMLLIElement {
 }
 
 function renderCard(c: Card): void {
-  const card = $('card');
   const close = el('button', { class: 'close', type: 'button', 'aria-label': 'Close' }, '×');
   close.addEventListener('click', () => pick(null));
   const parts: (Node | null)[] = [
@@ -134,12 +138,18 @@ function renderCard(c: Card): void {
   else parts.push(el('p', { class: 'note' }, c.mindNote ?? 'Nothing yet.'));
   if (c.noticed.length) parts.push(el('h4', {}, 'Lately noticed'), el('ul', {}, ...c.noticed.slice().reverse().map((t) => thoughtItem(t, false))));
   parts.push(el('footer', {}, "Owner's view. Nothing on this card ever reaches a resident."));
+  showCard(parts);
+}
+
+/** Shows the card (on a phone, a full-screen sheet over the page). */
+function showCard(parts: (Node | null)[]): void {
+  const card = $('card');
   card.replaceChildren(...parts.filter((p): p is Node => p !== null));
   card.hidden = false;
+  document.body.classList.add('sheet');
 }
 
 function placeCardView(c: PlaceCard): void {
-  const card = $('card');
   const close = el('button', { class: 'close', type: 'button', 'aria-label': 'Close' }, '×');
   close.addEventListener('click', () => pickPlace(null));
   const list = (items: string[], none: string) => (items.length ? items.join(', ') : none);
@@ -177,8 +187,7 @@ function placeCardView(c: PlaceCard): void {
     ));
   }
   parts.push(el('footer', {}, "Owner's view. Nothing on this card ever reaches a resident."));
-  card.replaceChildren(...parts.filter((p): p is Node => p !== null));
-  card.hidden = false;
+  showCard(parts);
 }
 
 let cardAsked = 0;
@@ -229,6 +238,7 @@ function pick(id: string | null): void {
   for (const b of $('roster').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.id === id));
   if (!id) {
     $('card').hidden = true;
+    document.body.classList.remove('sheet');
     return;
   }
   void refreshCard();
@@ -241,6 +251,47 @@ function pickPlace(id: string | null): void {
   scene?.selectPlace(id);
   if (!id) return;
   void refreshCard();
+}
+
+/** A finger moving further than this (CSS pixels) is panning the map, not tapping it. */
+const DRAG_PX = 10;
+/** The press now ending was a pan: it picks nothing. */
+let dragged = false;
+
+/** On a phone: the map at twice the size inside its own box, to pan with a finger; and back. */
+function wireZoom(): void {
+  const zoom = $('zoom');
+  zoom.addEventListener('click', () => {
+    const map = $('map');
+    const on = map.classList.toggle('zoomed');
+    zoom.setAttribute('aria-pressed', String(on));
+    zoom.textContent = on ? '−' : '+';
+    scene?.refit();
+    if (on) {
+      map.scrollLeft = (map.scrollWidth - map.clientWidth) / 2;
+      map.scrollTop = (map.scrollHeight - map.clientHeight) / 2;
+    }
+    scene?.moved();
+  });
+  // Taps land where they look, however the page or the zoomed map has scrolled: the map measures where
+  // the canvas is as each press starts and ends (before the town hears of it), and on every scroll.
+  const map = $('map');
+  for (const type of ['touchstart', 'touchend', 'mousedown', 'mouseup']) map.addEventListener(type, () => scene?.moved(), { capture: true, passive: true });
+  // A finger that moves (or whose touch the browser takes over to scroll) is panning, not picking.
+  let from: { x: number; y: number } | null = null;
+  map.addEventListener('touchstart', (e) => {
+    const t = e.touches[0];
+    from = t ? { x: t.clientX, y: t.clientY } : null;
+    dragged = false;
+  }, { capture: true, passive: true });
+  map.addEventListener('touchmove', (e) => {
+    const t = e.touches[0];
+    if (from && t && Math.hypot(t.clientX - from.x, t.clientY - from.y) > DRAG_PX) dragged = true;
+  }, { capture: true, passive: true });
+  map.addEventListener('touchcancel', () => { dragged = true; }, { capture: true, passive: true });
+  map.addEventListener('mousedown', () => { dragged = false; }, { capture: true, passive: true });
+  map.addEventListener('scroll', () => scene?.moved(), { passive: true });
+  window.addEventListener('scroll', () => scene?.moved(), { passive: true });
 }
 
 document.addEventListener('keydown', (e) => {
@@ -306,7 +357,9 @@ function onHello(h: Hello): void {
   }
   setFeed(h.feed);
   const first: Update = { frame: h.frame, feed: [], snap: true };
-  if (!scene) scene = startGame($('map'), h.layout, { onPick: (id) => pick(id), onPickPlace: (id) => pickPlace(id) });
+  $('version').textContent = `v${h.version}`;
+  $('map').style.setProperty('--map-aspect', `${h.layout.w} / ${h.layout.h}`);
+  if (!scene) scene = startGame($('stage'), h.layout, { onPick: (id) => { if (!dragged) pick(id); }, onPickPlace: (id) => { if (!dragged) pickPlace(id); } });
   onUpdate(first);
 }
 
@@ -315,7 +368,8 @@ function onUpdate(u: Update): void {
   latest = u;
   if (u.msPerMinute) msPerMinute = u.msPerMinute;
   if (u.replay) showReplay(u.replay);
-  $('clock').textContent = u.frame.clock;
+  // The full date, and a short one for a phone's header ("Mon 1 Jan, 07:05").
+  $('clock').replaceChildren(el('span', { class: 'long' }, u.frame.clock), el('span', { class: 'short' }, shortClock(u.frame.clock)));
   if (u.resetFeed) setFeed(u.feed);
   else addFeed(u.feed);
   renderRoster(u);
@@ -340,4 +394,5 @@ function connect(): void {
 }
 
 wireReplay();
+wireZoom();
 connect();

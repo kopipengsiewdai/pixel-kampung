@@ -170,6 +170,8 @@ export interface Hello {
   mode: 'live' | 'replay';
   /** "Live town", "Fake town at 60×", "Replay of trial-2026-...". */
   label: string;
+  /** The release the server is running ("0.9.4"). */
+  version: string;
   /** Real milliseconds one game minute takes right now. */
   msPerMinute: number;
   layout: Layout;

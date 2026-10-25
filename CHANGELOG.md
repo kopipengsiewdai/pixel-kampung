@@ -12,6 +12,7 @@ never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 - Watch page: click a place to see inside. Shops show their stock, prices both ways, who's serving and who works there; the notice board shows its notes with who wrote them and when; the farm plot shows each bed; the jetty shows who's fishing; the lorry stop shows when the lorry comes next and its prices. Owner's view only.
 - Watch page: residents waiting between thoughts aren't frozen any more: they sit at the kopitiam, sweep at their shop, tug a fishing line, stroll a tile or so and back, or look about at home; and a short speech bubble shows each line as it's said.
 - Living town: a watch-page change only; nothing in the town or its save changes.
+- Watch page on a phone: one column with no sideways scrolling, the map across the width (with a zoom button), the feed below, big tap targets and cards as a full-screen sheet; the header is one line with a short date, the version and the mode. The desktop layout is unchanged apart from showing the version.
 
 ## 0.10.1 (2026-10-25)
 
