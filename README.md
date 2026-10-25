@@ -60,15 +60,22 @@ community and stories.
 
 A read-only page shows the pixel kampung, the story feed and a card for
 whichever resident you click (money, job, needs, what they carry, what they're
-doing, and their latest plan and thoughts). It's served on **this PC only**
-(`127.0.0.1`) and makes no outside calls. Open the URL each command prints,
-by default **http://127.0.0.1:8160/**, in any browser on the same PC.
+doing, and their latest plan and thoughts). By default it's served on **this PC only**
+(`127.0.0.1`, which every computer uses to mean "itself") and makes no outside
+calls. Open the URL each command prints, by default **http://127.0.0.1:8160/**,
+in any browser on the same PC.
+
+To watch from a phone at home, add `--lan` to `npm start`: the page then also
+answers on the PC's own home-network address (it prints the URL to open on a
+phone on the same Wi-Fi). It stays read-only, accepts only that exact
+address, and is still never reachable from the internet.
 
 ![The watch page: the kampung map, a resident's card and the story feed](docs/images/watch-page.png)
 
 ```bash
 npm start                                   # the live town on its own clock, with its page
 npm start -- --minds                        # the same, thinking for real (within budget)
+npm start -- --minds --lan                  # the same, also watchable from a phone on your home Wi-Fi
 npm run watch -- --fake --speed 60          # a fresh fake town, 60× fast (a game hour a minute), $0
 npm run trial -- --fake                     # make a free fake trial to replay
 npm run watch -- --replay                   # play back the newest trial in ~/.kampung/trials/
