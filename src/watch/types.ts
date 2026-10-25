@@ -54,6 +54,8 @@ export interface ResidentView {
   /** "Works at the kopitiam for Ah Huat, 7am to 11am, $1.20 a shift"; "Runs the kopitiam"; null. */
   job: string | null;
   carrying: Carried[];
+  /** Their own latest line, if they said something in the last couple of minutes (for a speech bubble). */
+  said?: { t: number; text: string } | null;
 }
 
 export interface ShopView {
