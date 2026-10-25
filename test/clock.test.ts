@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { Budget, HOURLY_ALLOWANCE, TOWN_DAILY_CAP } from '../src/mind/budget.ts';
+import { Budget, ESTIMATE, HOURLY_ALLOWANCE, TOWN_DAILY_CAP } from '../src/mind/budget.ts';
+import { MAX_REPLAY_MINUTES } from '../src/sim/skip.ts';
 import { CostLog } from '../src/mind/cost-log.ts';
 import { FakeModel } from '../src/mind/fake-model.ts';
 import { MemoryStore } from '../src/mind/memory.ts';
@@ -139,5 +140,50 @@ describe('game-time rules on the 4x clock', () => {
     expect(minuteOfDay(lorry.t)).toBe(7 * 60);
     // One game day took six real hours.
     expect(realMsAt(town.world.state.clock, start + 1440) - realMsAt(town.world.state.clock, start)).toBe(6 * 3_600_000);
+  });
+});
+
+describe('review fixes: the 4x clock under load', () => {
+  it('a town that falls behind by a few real minutes (slow thinking) replays them; only real downtime passes quietly', async () => {
+    const start = sgt(9, 0);
+    const events: string[] = [];
+    const town = Town.create(5, start, { onEvent: (e) => events.push(e.type) });
+    await town.catchUp(start + 30); // 7.5 real minutes behind
+    expect(events).not.toContain('quiet_spell');
+    expect(MAX_REPLAY_MINUTES).toBe(10 * GAME_SPEED); // ten real minutes, as before the 4x clock
+    await town.catchUp(start + 30 + 2 * 60); // the PC slept half an hour
+    expect(events).toContain('quiet_spell');
+  });
+
+  it("a plan that can't be afforded yet is made later the same day, once the thinking money is there", async () => {
+    const memory = new MemoryStore(':memory:');
+    const mind = new Mind({ client: new FakeModel(2), memory, costs: new CostLog(null), cards: CARDS });
+    mind.keepSent = true;
+    const start = sgt(6, 0) - 1;
+    const town = Town.create(2, start, { brains: mindBrains(mind, fakeBrains, ['siti']), observer: mind.observe });
+    const siti = town.brains.get('siti')!;
+    const saved = siti.save() as { budget: { level: number; lastT: number } };
+    siti.load({ ...saved, budget: { level: 0, lastT: start } }); // spent out overnight
+    await town.runUntil(start + 12 * 60);
+    const plans = mind.sent.filter((s) => s.kind === 'plan');
+    expect(plans).toHaveLength(1);
+    expect(ESTIMATE.big).toBeLessThanOrEqual(0.01); // big thinking is Haiku at high effort: cents, not dimes
+    memory.close();
+  });
+
+  it("the free fake brain still knows which day it did the lorry run on, from the new date words", async () => {
+    const start = sgt(6, 0) - 1;
+    const town = Town.create(1, start);
+    await town.runUntil(sgt(8, 0));
+    const days = [...town.brains.values()].map((b) => (b.save() as { lorryDay: string | null }).lorryDay).filter((d) => d !== null);
+    expect(days.length).toBeGreaterThan(0);
+    expect(new Set(days)).toEqual(new Set(['Monday']));
+  });
+
+  it('a town made in the last minute before midnight has a date from its first moment', () => {
+    const w = new World(createWorld(1, sgt(23, 59)));
+    expect(() => clockLabel(w)).not.toThrow();
+    expect(dateAt(w.state, w.t)).toMatchObject({ year: 0, month: 1, day: 1 });
+    expect(dateAt(w.state, w.t + 1)).toMatchObject({ day: 2 });
   });
 });

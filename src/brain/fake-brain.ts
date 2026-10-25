@@ -47,8 +47,9 @@ interface Memory {
   buyDays: Record<string, string>;
 }
 
+/** The weekday ("Monday"), from "Monday, 1 January, Year 0, 7:05 in the morning". */
 function day(p: Perception): string {
-  return p.time.split(' ')[0]!;
+  return p.time.split(/[ ,]/)[0]!;
 }
 
 function fill(item: ItemId): number {

@@ -125,7 +125,8 @@ export class MindBrain implements Brain {
     this.mind.fadeOnceADay(ctx.t);
     if (p.reply) this.remember(ctx.t, 'did', p.reply);
     const today = dayIndex(ctx.t);
-    if (this.s.planDay !== today && sgtHour(ctx.t) >= 6) {
+    // A plan they can't afford yet waits for the thinking money, later the same day.
+    if (this.s.planDay !== today && sgtHour(ctx.t) >= 6 && this.canThink('big', ctx)) {
       this.s.planDay = today;
       const res = await this.call('plan', 'big', p, ctx);
       if (res?.text) {
@@ -133,7 +134,7 @@ export class MindBrain implements Brain {
         this.remember(ctx.t, 'plan', `My plan for today: ${res.text}`);
       }
     }
-    const kind = this.businessMoment(p, today) ? 'business' : 'act';
+    const kind = this.canThink('big', ctx) && this.businessMoment(p, today) ? 'business' : 'act';
     const res = await this.call(kind, kind === 'business' ? 'big' : 'routine', p, ctx);
     if (!res) return needsOnly(p);
     if (res.text) this.remember(ctx.t, 'thought', res.text);
@@ -142,7 +143,7 @@ export class MindBrain implements Brain {
 
   async reflect(p: Perception, ctx: ThinkContext): Promise<void> {
     const today = dayIndex(ctx.t);
-    if (this.s.reflectedDay === today) return;
+    if (this.s.reflectedDay === today || !this.canThink('big', ctx)) return;
     this.s.reflectedDay = today;
     const res = await this.call('reflect', 'big', p, ctx);
     if (res?.text) this.remember(ctx.t, 'reflection', res.text);
@@ -165,6 +166,12 @@ export class MindBrain implements Brain {
     if (!atLorry && !opening) return false;
     this.s.businessCalls++;
     return true;
+  }
+
+  /** Whether a think of this tier is within the resident's money and the town's cap right now. */
+  private canThink(tier: Tier, ctx: ThinkContext): boolean {
+    this.budget.refill(ctx.t);
+    return this.budget.canSpend(ESTIMATE[tier]) && !this.mind.townSpent(ctx.realMs, ctx.emit);
   }
 
   /** One model call within budget; null if the resident can't think right now. */

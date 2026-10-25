@@ -10,8 +10,12 @@ export const BUCKET_CAP = 0.06;
 /** Spec §5: past this many dollars in a real day, the whole town rests until real midnight. */
 export const TOWN_DAILY_CAP = 3.33;
 
-/** What a think is expected to cost, checked before the call. Kept on the high side. */
-export const ESTIMATE = { routine: 0.0015, big: 0.04 } as const;
+/**
+ * What a think is expected to cost, checked before the call. Kept on the high
+ * side: big thinking is Haiku at high effort (about a fifth of a cent a call),
+ * not the bigger model the first estimate assumed.
+ */
+export const ESTIMATE = { routine: 0.0015, big: 0.01 } as const;
 
 export interface BudgetState { level: number; lastT: number }
 

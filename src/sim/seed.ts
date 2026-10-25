@@ -50,7 +50,7 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
     seed,
     t,
     clock: { anchorT: t, anchorMs: opts.anchorMs ?? t * 60_000 },
-    calendar: { firstDay: dayIndex(t + 1) },
+    calendar: { firstDay: dayIndex(t) },
     rng: rng.state,
     nextId: 0,
     eventSeq: 0,

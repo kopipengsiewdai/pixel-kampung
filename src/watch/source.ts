@@ -110,7 +110,7 @@ export class Hub {
 
 export interface LiveOptions {
   label: string;
-  /** Real milliseconds one game minute takes (60 000 in real time). */
+  /** Real milliseconds one game minute takes (15 000 for the live town on the 4x clock). */
   msPerMinute: number;
   /** What a resident's mind has been thinking (null when they run on the fake brain). */
   extras?: (id: string, t: number) => CardExtras | null;
