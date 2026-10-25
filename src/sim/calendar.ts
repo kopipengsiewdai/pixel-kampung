@@ -1,11 +1,17 @@
 /**
- * The kampung's own calendar (owner decision, 2026-10-25): it began on
- * 1 January, Year 0, the day the town moved to its own clock. Twelve months,
- * 365 days, with a leap day (29 February) every fourth year: Year 4, 8, 12 and
- * so on; Year 0 has none. Weekdays carry on from the clock. Festivals will be
- * pinned to these dates, so everything about dates lives here.
+ * The kampung's own calendar (owner decisions, 2026-10-25): it began on
+ * Monday, 1 January, Year 0, the day the town moved to its own clock. Twelve
+ * months, 365 days, with a leap day (29 February) every fourth year: Year 4,
+ * 8, 12 and so on; Year 0 has none. The week runs on from that Monday.
+ * Festivals and every weekday rule go by these dates, so everything about
+ * dates and weekdays lives here (a test makes sure nothing else reads one).
  */
-import { dayIndex, timeLabel, weekday, type Weekday } from './time.ts';
+import { dayIndex, hhmm, timeLabel } from './time.ts';
+
+export type Weekday = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
+
+/** The week, from the Monday it began on. */
+export const WEEKDAYS: readonly Weekday[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 /** Where a town's calendar starts: the day index (time.ts) of 1 January, Year 0. */
 export interface Calendar {
@@ -68,9 +74,20 @@ export function dayOfDate(d: Pick<KampungDate, 'year' | 'month' | 'day'>): numbe
   return n + d.day - 1;
 }
 
+/** The town's weekday at game minute t: 1 January, Year 0 was a Monday. */
+export function weekdayAt(w: { calendar: Calendar }, t: number): Weekday {
+  const n = dayIndex(t) - w.calendar.firstDay;
+  return WEEKDAYS[((n % 7) + 7) % 7]!;
+}
+
 /** The town's date at game minute t. */
 export function dateAt(w: { calendar: Calendar }, t: number): KampungDate {
-  return { ...dateOfDay(dayIndex(t) - w.calendar.firstDay), weekday: weekday(t) };
+  return { ...dateOfDay(dayIndex(t) - w.calendar.firstDay), weekday: weekdayAt(w, t) };
+}
+
+/** "Mon 07:05", for the story feed and the watch page. */
+export function shortStamp(w: { calendar: Calendar }, t: number): string {
+  return `${weekdayAt(w, t).slice(0, 3)} ${hhmm(t)}`;
 }
 
 /** "Tuesday, 3 January, Year 0". */

@@ -10,7 +10,8 @@ import { formatMoney, type Cents } from '../sim/money.ts';
 import { energyWord, hungerWord } from '../sim/perception.ts';
 import type { Goods, Resident, Shop, World } from '../sim/state.ts';
 import { dateAt, MONTHS } from '../sim/calendar.ts';
-import { dayIndex, minuteOfDay, sgtHour, sgtMinute, shortStamp } from '../sim/time.ts';
+import { shortStamp } from '../sim/calendar.ts';
+import { dayIndex, minuteOfDay, sgtHour, sgtMinute } from '../sim/time.ts';
 import type { Card, Carried, Frame, Layout, ResidentView, ShopView, Thought } from './types.ts';
 
 export function layoutOf(w: World): Layout {
@@ -128,7 +129,7 @@ export class FrameBuilder {
     });
     return {
       t,
-      stamp: shortStamp(t),
+      stamp: shortStamp(w.state, t),
       clock: clockLabel(w),
       minuteOfDay: minuteOfDay(t),
       lorryHere: w.state.lorryHere,

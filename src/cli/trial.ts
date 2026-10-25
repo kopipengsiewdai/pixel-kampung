@@ -122,7 +122,7 @@ let town: Town;
 const print = (e: GameEvent) => {
   record.onEvent!(e);
   const line = feedLine(e, (id) => town.world.resident(id).name);
-  if (line && (args.feed === true || line.notable || e.type === 'kampung_quiet')) console.log(formatFeedLine(line));
+  if (line && (args.feed === true || line.notable || e.type === 'kampung_quiet')) console.log(formatFeedLine(line, town.world.state));
 };
 town = Town.create(seed, SIM_START, { brains: mindBrains(mind, fakeBrains, chosen), observer: mind.observe, onEvent: print, onTick: record.onTick });
 console.log(`${fake ? 'Dry run (fake model, $0)' : `Trial, up to US$${budget.toFixed(2)}`}: ${minds} on the model for ${hours} game hours.`);

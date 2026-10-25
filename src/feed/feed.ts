@@ -3,7 +3,7 @@ import type { GameEvent } from '../sim/events.ts';
 import { quantityLabel } from '../sim/items.ts';
 import { PLACE_BY_ID } from '../sim/map.ts';
 import { formatMoney } from '../sim/money.ts';
-import { shortStamp } from '../sim/time.ts';
+import { shortStamp, type Calendar } from '../sim/calendar.ts';
 
 export interface FeedLine {
   t: number;
@@ -86,6 +86,6 @@ export function feedLine(e: GameEvent, n: Names): FeedLine | null {
 }
 
 /** "[Mon 07:05] ★ Siti is now working for Ah Huat ..." */
-export function formatFeedLine(l: FeedLine): string {
-  return `[${shortStamp(l.t)}] ${l.notable ? '★ ' : ''}${l.text}`;
+export function formatFeedLine(l: FeedLine, w: { calendar: Calendar }): string {
+  return `[${shortStamp(w, l.t)}] ${l.notable ? '★ ' : ''}${l.text}`;
 }

@@ -42,7 +42,7 @@ const clock = new SystemClock();
 let town: Town;
 const print = (e: GameEvent) => {
   const line = feedLine(e, (id) => town.world.resident(id).name);
-  if (line) console.log(formatFeedLine(line));
+  if (line) console.log(formatFeedLine(line, town.world.state));
 };
 
 let mindOpts: Partial<TownOptions> = {};
@@ -69,7 +69,7 @@ const mem = memory;
 const live = new LiveSource({
   label: mem ? 'Live town (thinking for real)' : 'Live town',
   msPerMinute: REAL_MS_PER_GAME_MINUTE,
-  extras: mem ? (id, t) => extrasFrom((r, k, up, n) => mem.latest(r, k, up, n), id, t) : undefined,
+  extras: mem ? (id, t) => extrasFrom((r, k, up, n) => mem.latest(r, k, up, n), id, t, town.world.state) : undefined,
 });
 const hooks = live.hooks();
 const onEvent = (e: GameEvent) => {
