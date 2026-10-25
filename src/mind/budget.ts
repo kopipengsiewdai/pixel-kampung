@@ -1,8 +1,8 @@
-import { GAME_SPEED } from '../sim/time.ts';
+import { REAL_MS_PER_GAME_MINUTE } from '../sim/time.ts';
 
 /**
  * Spec §5: each resident earns US$0.0139 of thinking a REAL hour (four game
- * hours on the 4x clock), saved up while asleep or idle, with a cap.
+ * hours, 4.8 game hours to a real hour), saved up while asleep or idle, with a cap.
  */
 export const HOURLY_ALLOWANCE = 0.0139;
 /** About 4 real hours' worth: enough for a plan, a reflection or a run of quick thinks. */
@@ -30,7 +30,7 @@ export class Budget {
   }
 
   refill(t: number): void {
-    if (t > this.lastT) this.level = Math.min(BUCKET_CAP, this.level + (HOURLY_ALLOWANCE * (t - this.lastT)) / 60 / GAME_SPEED);
+    if (t > this.lastT) this.level = Math.min(BUCKET_CAP, this.level + (HOURLY_ALLOWANCE * (t - this.lastT) * REAL_MS_PER_GAME_MINUTE) / 3_600_000);
     this.lastT = Math.max(this.lastT, t);
   }
 

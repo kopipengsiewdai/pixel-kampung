@@ -15,9 +15,12 @@ import { SCHEMA_VERSION } from './store/upgrades.ts';
 export const TRIES_PER_THOUGHT = 3;
 /**
  * With nothing happening, a resident thinks again after this many game
- * minutes (2.5 real minutes). On the 4x clock residents think about half as
+ * minutes (about 2 real minutes). On the kampung clock residents think about half as
  * often per game hour as they did at real time, to stay within the same real
- * budget (owner: "4x clock, think less").
+ * budget (owner: "4x clock, think less"). With a game day every five real
+ * hours, the same real budget stretches over a sixth more game time, so
+ * residents short of thinking money think about a sixth less per game hour
+ * (owner: accepted).
  */
 export const QUIET_THINK_MINUTES = 10;
 /** After something they did goes through, the next thought comes this many game minutes later (being spoken to still wakes them the next minute). */

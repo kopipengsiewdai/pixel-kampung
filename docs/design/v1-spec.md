@@ -21,8 +21,9 @@ scripted (a hire, a quarrel, a price war, someone saving up for something).
 
 - **One map**, about 40×30 tiles. It has the five places, an attap house for
   each resident, footpaths, a well, a notice board and the jetty over the sea.
-- **Time:** 4 game minutes per real minute, so a game day is six real hours
-  (revised 2026-10-25; it was 1 game minute = 1 real minute). The kampung
+- **Time:** a game day is five real hours, 4.8 game minutes per real minute
+  (revised 2026-10-25: it was 1 game minute = 1 real minute, then six real
+  hours a day). The kampung
   keeps its own calendar from 1 January, Year 0. Night runs 23:00–06:00
   game time, when residents sleep and think nothing (no AI cost). See
   principles.md.
@@ -114,7 +115,7 @@ roughly 18% headroom under $100.
    eat into ARC's share. The key lives only in `~/.kampung/.env`, never in the
    repo or in chat.
 2. **Per-resident throttle.** Each resident gets a budget of $0.0139 of AI per
-   real hour (four game hours on the 4x clock), which builds up while they sleep or stay idle and has a cap. A
+   real hour (4.8 game hours on the kampung clock), which builds up while they sleep or stay idle and has a cap. A
    resident who has spent it waits (in-world, they "potter about") until it
    refills. Owners' business decisions draw from the same budget.
 3. **Town daily cap.** If the whole town reaches its daily allowance

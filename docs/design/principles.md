@@ -48,23 +48,29 @@ find work.
 
 ## Clock speed (agreed 2026-10-24, revised 2026-10-25)
 
-**The 4x clock (revised 2026-10-25; owner: "4x clock, think less").** One game
-day is six real hours: a game minute is 15 real seconds, and there are four
-game days in every real day. The town keeps its own clock, saved with it
-(game minute = anchor + real time elapsed × 4), so nothing jumps when it
-restarts. Night (23:00–06:00), the 07:00 lorry, shifts, crops and the days
-residents plan and reflect on all run in game time. Walking stays 3 tiles a
-game minute, which is four times faster to watch.
+**A game day every 5 real hours (revised again 2026-10-25).** A game minute
+is 12.5 real seconds, and there are 4.8 game days in every real day, so the
+same game hour falls at a different real time each day and only comes round
+again every five real days (with six hours, game 07:00 was always at the same
+real times). The pace is set in one place, `REAL_MS_PER_GAME_MINUTE` in
+`src/sim/time.ts`. The town keeps its own clock, saved with it (game minute =
+anchor + real time elapsed ÷ 12.5 s), so nothing jumps when it restarts or
+when the pace changes. Night (23:00–06:00), the 07:00 lorry, shifts, crops
+and the days residents plan and reflect on all run in game time. Walking
+stays 3 tiles a game minute, which is 4.8 times faster to watch.
 
 **Thinking money stays in real time:** US$0.0139 per resident per real hour
-and US$3.33 for the town per real day, which is four game days. To fit,
+and US$3.33 for the town per real day, which is 4.8 game days. To fit,
 residents think about half as often per game hour as before (aiming for at
 most about 13 thoughts per waking game hour). With nothing happening they
 think every 10 game minutes, and 2 game minutes after something they did goes
 through. Being spoken to still wakes them the next minute.
 
 *Replaced:* the original decision (2026-10-24) was 1 game day = 1 real day,
-with the town running in real time.
+with the town running in real time; then (2026-10-25, owner: "4x clock,
+think less") a game day was six real hours. The thinking cadence is kept as
+it was at six hours, so a resident short of thinking money now thinks about
+a sixth less per game hour (owner: accepted).
 
 ## The kampung calendar (agreed 2026-10-25)
 

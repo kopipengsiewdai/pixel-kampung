@@ -1,6 +1,6 @@
 /**
- * The live kampung on its own clock (4 game minutes a real minute: a game day
- * is six real hours), with fake brains unless --minds. Saves every minute to
+ * The live kampung on its own clock (4.8 game minutes a real minute: a game day
+ * is five real hours), with fake brains unless --minds. Saves every minute to
  * $KAMPUNG_HOME/kampung.db, writes a heartbeat file, and prints the feed.
  * After downtime it resumes cleanly without replaying the missed hours. A save
  * from an older release is upgraded in place first (docs/design/upgrades.md).

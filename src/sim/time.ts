@@ -1,6 +1,8 @@
 /**
- * Game time runs four times as fast as real time (owner decision, 2026-10-25):
- * a game minute is 15 real seconds and a game day is six real hours. A "game
+ * A game day is five real hours (owner decision, 2026-10-25, replacing the
+ * first "4x" pace of six hours): a game minute is 12.5 real seconds, 4.8 game
+ * days to a real day, so the same game hour drifts through the real day and
+ * only comes round to the same real time every five days. A "game
  * minute" t is a plain counter that only ever goes up; each town's clock
  * (saved with it) ties it to real time. Time of day comes from t as it always
  * has (the old counter was minutes since the Unix epoch in Singapore time, so
@@ -12,9 +14,10 @@ export const MINUTES_PER_DAY = 24 * 60;
 export const NIGHT_START_HOUR = 23;
 export const NIGHT_END_HOUR = 6;
 
-/** Game minutes per real minute. */
-export const GAME_SPEED = 4;
-export const REAL_MS_PER_GAME_MINUTE = 60_000 / GAME_SPEED;
+/** Real milliseconds a game minute takes: the one place the kampung's pace is set. */
+export const REAL_MS_PER_GAME_MINUTE = 12_500;
+/** Game minutes in a real minute (4.8). */
+export const GAME_MINUTES_PER_REAL_MINUTE = 60_000 / REAL_MS_PER_GAME_MINUTE;
 
 /** Ties a town's game minutes to real time: at real moment anchorMs, it was game minute anchorT. */
 export interface GameClock {
