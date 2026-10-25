@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.11.3 (2026-10-25): residents know their kampung
 
 - **Residents know their kampung:** everyone who has lived here knows every place from day one (the jetty, the farm plot, the well, the notice board, the three shops, the lorry stop, and every house by whose it is). Ah Kow, who arrived last month, knows his house, the well and the kopitiam, and finds the rest. How things work (what the lorry sells, how crops grow, prices) is still found out in play. Since launch nobody had fished or farmed: nobody had found the jetty or the farm plot.
 - **Trades:** Rahim grew up fishing, Fatimah has always grown vegetables, Ah Kow worked the land on the estate, Ah Huat cooks for his kopitiam, and Muthu carried cargo at the docks; each is told it with who they are.
