@@ -9,6 +9,10 @@ never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 - **Answers:** a resident someone spoke to first is told, in plain words, that the other person is waiting for their answer, until they answer, the other leaves, or the chat has run long.
 - **No loops:** doing the very same thing again within a few minutes still goes through, but doesn't bring the next thought straight on, and the resident hears "You've just done that."
 - **Living town:** at upgrade (save v3) every resident starts with nothing remembered as last done; the waiting line needs no upgrade, since it comes from what they've already heard.
+## 0.9.3 (2026-10-25)
+
+- Shopkeepers can no longer "set" a price to what it already is: it's refused in-world ("That's already your price"). Mdm Tan had re-set rice to $4.20 every minute and never answered the people asking her for work.
+- Living town: picks this up on restart; nothing in the save changes.
 
 ## 0.9.2 (2026-10-25)
 
