@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.16.2 (2026-10-25): no more starving
 
 - **Hunger that matters:** from very hungry a resident feels it ("Your stomach aches; you need to eat soon."), and near starving can't ignore it ("You're faint with hunger. You must eat now."). Faint with hunger, they eat any food they carry at once, without stopping to think. A hungry resident pottering about is pointed to where food is sold, before anything else.
 - **Food left for the kampung:** travellers from the road no longer buy the last 2 of anything; that's an owner's dial (`travellerReserve` in `settings.json`). In the living town shops ran out of food to travellers, and five residents sat at the edge of starving.
