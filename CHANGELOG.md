@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.14.0 (2026-10-25): travellers on the coast road
 
 - **Travellers from the coast road:** labourers, hawkers and trishaw riders stop at the shops at set hours (busiest at the morning and evening rush), queue, and pay the shop's price if it's no more than they'll pay; serving each takes 2 minutes, by the owner there or a worker on shift. At the shop, owners see who's waiting, how many they served today and how many left unserved or turned away by price; away from it, they hear on coming back how many found nobody serving. Anyone at a busy shop sees someone serving alone. Money from travellers comes from outside the town, and each shop's travellers spend at most $6 a game day (once it's spent, nobody more comes that day).
 - **Cooking takes time:** a batch takes 10 minutes at the stove (kopi 5), with no serving meanwhile. Serving tires like a shift. Owners who lose customers have a reason to hire.
