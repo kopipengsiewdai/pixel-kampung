@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.19.1 (2026-10-26): English on the watch page
 
 - **English on the watch page:** an "English" button by the story feed shows lines residents say or think in Malay (or anything else) in English, with the original on hover. Speech itself is left as the residents choose. Translations come from the cheap model only while the button is on, a batch at a time, inside the town's daily cap (in the cost log as watch-page), and each line is translated once and kept privately under `$KAMPUNG_HOME`.
 
