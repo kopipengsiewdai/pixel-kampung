@@ -2,6 +2,7 @@ import { endShift } from '../activities.ts';
 import { LORRY_SELLS, RECIPES, quantityLabel, type ItemId } from '../items.ts';
 import { PLACE_BY_ID } from '../map.ts';
 import { formatMoney } from '../money.ts';
+import { COOK_MINUTES } from '../travellers.ts';
 import { addGoods, countGoods, LORRY_ID, type Resident, type Shop, type World } from '../state.ts';
 import {
   type ActionResult, type Intent, MAX_PRICE, SAY_NOTHING_SENSIBLE, goodsLabel, itemOf, moneyOf, no, ok,
@@ -170,8 +171,8 @@ export function cook(w: World, r: Resident, i: Intent): ActionResult {
     }
   }
   for (const [need, n] of Object.entries(recipe.needs) as [ItemId, number][]) addGoods(shop.stock, need, -n * batches);
+  // At the stove until it's done (daily-life.md B): the servings go into the kitchen then.
   const qty = recipe.yields * batches;
-  addGoods(shop.stock, item, qty);
-  w.emit({ type: 'cooked', who: r.id, item, qty });
-  return ok(`You cook ${quantityLabel(item, qty)}.`);
+  r.stove = { item, batches, qty, shopId: shop.id, until: w.t + (COOK_MINUTES[item] ?? 10) * batches };
+  return ok(`You start cooking ${batches === 1 ? 'a batch' : `${batches} batches`} of ${item}.`);
 }

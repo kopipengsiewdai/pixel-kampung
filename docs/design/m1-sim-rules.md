@@ -84,7 +84,14 @@ Ordered stock is dropped off at the owner's shop.
   coffee, bread; stall: fish, vegetables) and owners price them in play.
 - Kopitiam cooking (one batch), by the owner or a worker on shift: 1 coffee →
   5 kopi; 1 fish + 1 rice → 2 fish porridge; 1 vegetables + 1 rice → 2
-  vegetable rice.
+  vegetable rice. A batch takes 10 minutes at the stove (kopi 5); the
+  ingredients go in at the start and the servings come out at the end.
+- Travellers from the coast road (daily-life.md B) come to each shop at set
+  hours, queue (4 at most, 8 minutes at most), and are served 2 minutes
+  each by the owner there or a worker on shift there, neither cooking. They
+  pay the shop's price from outside (the `travellers` account) if it's no
+  more than they'll pay (kopi 20¢, fish porridge 50¢, vegetable rice 45¢,
+  rice 35¢, coffee 75¢, bread 25¢, fish 55¢, vegetables 35¢).
 - Haggling at the counter: `buy` can name the money offered. At or above the
   shop's price it's an ordinary sale at the shop's price (nobody overpays).
   Below it, it's an offer whoever minds the counter (the owner there, or a

@@ -3,6 +3,7 @@ import { RESTED } from './activities.ts';
 import type { World } from './state.ts';
 import { dayIndex, GAME_MINUTES_PER_REAL_MINUTE, isNight, minuteOfDay } from './time.ts';
 import { LORRY_ARRIVES, LORRY_LEAVES } from './tick.ts';
+import { stoveMinute } from './travellers.ts';
 
 /**
  * Gaps up to this long (ten real minutes) are simply replayed
@@ -55,5 +56,11 @@ export function skipQuietly(w: World, to: number): void {
   w.state.trades = w.state.trades.filter((o) => o.expires > to);
   w.state.debtOffers = w.state.debtOffers.filter((o) => o.expires > to);
   w.state.priceOffers = w.state.priceOffers.filter((o) => o.expires > to);
+  // Travellers who came in the gap found the town quiet; anything on the stove is done.
+  for (const s of w.state.shops) {
+    s.queue = [];
+    s.serving = [];
+  }
+  for (const r of w.state.residents) stoveMinute(w, r);
   w.emit({ type: 'quiet_spell', minutes: gap });
 }

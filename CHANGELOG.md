@@ -4,6 +4,13 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **Travellers from the coast road:** labourers, hawkers and trishaw riders stop at the shops at set hours (busiest at the morning and evening rush), queue, and pay the shop's price if it's no more than they'll pay; serving each takes 2 minutes, by the owner there or a worker on shift. At the shop, owners see who's waiting, how many they served today and how many left unserved or turned away by price; away from it, they hear on coming back how many found nobody serving. Anyone at a busy shop sees someone serving alone. Money from travellers comes from outside the town, and each shop's travellers spend at most $6 a game day (once it's spent, nobody more comes that day).
+- **Cooking takes time:** a batch takes 10 minutes at the stove (kopi 5), with no serving meanwhile. Serving tires like a shift. Owners who lose customers have a reason to hire.
+- **The owner's dials:** `settings.json` under `KAMPUNG_HOME` holds limits on money from outside, written with the defaults on first start (for now the travellers' daily budget per shop, 600¢). Training wheels, loosened as the residents' own economy takes over.
+- **Living town:** at upgrade (save v10) every shop starts the day with nobody waiting, nobody is mid-cook, and nothing spent by travellers yet; `settings.json` is written on the first start after the upgrade.
+
 ## 0.13.0 (2026-10-25): haggling at the counter
 
 - **Haggling at the counter:** a buyer can name what they'll pay. At or above the shop's price it's a sale at the shop's price; below it, whoever minds the counter (the owner, or a worker on shift) sees the offer and can take it or turn it down, and a taken offer is a sale at that price, shown in the feed. A worker can take an offer down to four-fifths of the price; the owner, any. It lapses after a few minutes, or once the buyer leaves, and the buyer hears it wasn't taken. In the living town Ah Seng and Rahim agreed 26¢ for a bunch of vegetables, then he paid the posted 30¢, twice.

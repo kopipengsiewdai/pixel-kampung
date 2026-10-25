@@ -136,6 +136,19 @@ fish porridge 50¢ (30¢ a bowl), vegetable rice 45¢ (22¢), rice 35¢ (20¢),
 coffee 75¢ (50¢), bread 25¢ (15¢), fish 55¢ (40¢), vegetables 35¢ (25¢).
 Later these become the "town reference prices" of the economy check.
 
+**A daily budget per shop (owner, 2026-10-25: cap the outside money,
+slowly, as his dial).** At the cadence above, travellers could bring about
+$83 a game day into a town of about $345, with the lorry the only sink. So
+each shop's travellers spend at most `travellerBudgetCents` a game day
+(default 600, $6: about $18 for the town); once it's spent, nobody more comes
+to that shop that day (counted as neither left nor away; those already
+queued are still served). It's a dial in the owner's private settings
+(`$KAMPUNG_HOME/settings.json`, `src/sim/dials.ts`), not saved with the
+town. **These caps are training wheels:** the goal is for the residents to
+run their own economy without our guardrails, so they're loosened and in the
+end removed as real sinks (rent, Pak Osman, festivals) and the residents'
+own behaviour take over.
+
 **2. Serving takes time:** `SERVE_MINUTES = 2` a customer, in the tick, with
 no thought. Servers are the owner at the shop (awake, not walking or
 cooking) and each worker on shift there (not cooking). The queue holds 4, a
@@ -172,6 +185,25 @@ and `today: { day, served, left, away, tooDear }`, fresh; Activity gains
 `cooking { item, batches, until }` (nobody is mid-cook at upgrade).
 **Fake brain:** an owner hires whoever asked once 5 customers have left
 unserved today; a seeker asks for work on seeing "serving alone".
+
+**As built (B, save v10).**
+- Travellers come on a fixed cadence (every N minutes of the day), and what
+  each wants is picked by fixed weights from the minute, not the world's
+  random numbers, so other runs aren't disturbed.
+- The kopitiam wants kopi 3, fish porridge 2 and vegetable rice 2; the
+  provision shop rice 3, bread 3 and coffee 1; the stall fish 3 and
+  vegetables 2. Each traveller wants only what is priced and in stock.
+- Too dear counts by item. "Left without being served" counts both those
+  who gave up in the queue and those who found nobody serving. The owner
+  hears of the latter on coming back ("While you were away, …").
+- Each sale is one `travellers` ledger row and one `traveller_bought` event
+  (not in the feed, but the wiki's Economy counts it). The feed gets one
+  `travellers_hour` line per busy shop.
+- Cooking is a `stove` on the resident, not a new Activity kind, so a
+  worker on shift can cook without leaving the shift. While it cooks they
+  can only talk or look around, don't serve, and aren't asked to think.
+  The servings go into the kitchen when it's done.
+- A minute serving tires like a shift.
 
 ## Haggling at the counter (PR 15)
 

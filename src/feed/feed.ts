@@ -25,7 +25,7 @@ const KEY_TYPES: ReadonlySet<string> = new Set([
   'bought', 'sold', 'first_sale', 'lorry_arrived', 'lorry_sale', 'lorry_order',
   'job_offered', 'hired', 'quit', 'let_go', 'wages_paid',
   'gave', 'trade_offered', 'traded', 'trade_declined', 'note_pinned', 'price_set', 'found_place',
-  'price_offered', 'price_refused', 'debt_offered', 'debt_agreed', 'debt_refused', 'repaid', 'let_off',
+  'travellers_hour', 'price_offered', 'price_refused', 'debt_offered', 'debt_agreed', 'debt_refused', 'repaid', 'let_off',
   'kampung_quiet', 'quiet_spell',
 ]);
 
@@ -101,6 +101,8 @@ export function feedText(e: GameEvent, n: Names): { text: string; notable: boole
     case 'trade_offered': return line(`${n(e.who)} offered ${n(e.to)} ${bundleLabel(e.give)} for ${bundleLabel(e.want)}.`);
     case 'traded': return line(`${n(e.who)} and ${n(e.with)} made a trade: ${bundleLabel(e.want)} for ${bundleLabel(e.give)}.`);
     case 'trade_declined': return line(`${n(e.who)} turned down ${n(e.from)}'s offer.`);
+    case 'traveller_bought': return null;
+    case 'travellers_hour': return line(`Travellers from the road bought ${e.served} ${e.served === 1 ? 'thing' : 'things'} at ${place(e.shop)} this past hour, for ${formatMoney(e.cents)}${e.left ? `; ${e.left} left without being served` : ''}.`);
     case 'price_offered': return line(`${n(e.who)} offers ${formatMoney(e.cents)} for ${quantityLabel(e.item, e.qty)} at ${place(e.shop)}.`);
     case 'price_refused': return line(`${n(e.who)} turns down ${n(e.from)}'s ${formatMoney(e.cents)} for ${quantityLabel(e.item, e.qty)}.`);
     case 'debt_offered': {

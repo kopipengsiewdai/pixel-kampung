@@ -113,6 +113,9 @@ const BUSY: Record<string, string> = {
   sleeping: "You're asleep.",
 };
 
+/** What can be done while a batch is cooking. */
+export const AT_STOVE = new Set(['look_around', 'say']);
+
 /** What can still be done in the middle of a shift, without leaving it. */
 export const ON_SHIFT = new Set(['look_around', 'say', 'cook', 'agree', 'refuse']);
 
@@ -127,6 +130,7 @@ export function act(w: World, residentId: string, intent: unknown): ActionResult
   const r = w.resident(residentId);
   const verb = verbOf(intent);
   if (r.activity && !(r.activity.kind === 'working' && ON_SHIFT.has(verb))) return no(BUSY[r.activity.kind]!);
+  if (r.stove && !AT_STOVE.has(verb)) return no("You're busy at the stove.");
   if (isNight(w.t)) return no("It's the middle of the night. You should be asleep.");
   const def = Object.hasOwn(ACTIONS, verb) ? ACTIONS[verb] : undefined;
   if (!def) return no("You're not sure how to do that.");
@@ -138,6 +142,6 @@ export function act(w: World, residentId: string, intent: unknown): ActionResult
 export function availableActions(w: World, r: Resident): { verb: string; says: string }[] {
   const working = r.activity?.kind === 'working';
   return Object.entries(ACTIONS)
-    .filter(([verb, d]) => (!d.ownersOnly || r.role === 'owner') && (!d.here || d.here(w, r)) && (!working || ON_SHIFT.has(verb)))
+    .filter(([verb, d]) => (!d.ownersOnly || r.role === 'owner') && (!d.here || d.here(w, r)) && (!working || ON_SHIFT.has(verb)) && (!r.stove || AT_STOVE.has(verb)))
     .map(([verb, d]) => ({ verb: verb.replace(/_/g, ' '), says: d.says }));
 }

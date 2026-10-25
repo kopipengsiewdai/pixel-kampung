@@ -47,6 +47,15 @@ npm start -- --minds                            # the live town, thinking for re
 live town in `~/.kampung/kampung.db` (set `KAMPUNG_HOME` to move it) and
 resumes from there after a restart. Runtime data never goes in this repo.
 
+**The owner's dials** live in `~/.kampung/settings.json`, written with the
+defaults the first time the town starts; edit it and restart to change them.
+Each limits money coming into the town from outside, as training wheels until
+the residents' own economy (rent, the lorry trader, festivals) takes over:
+
+| Dial | Default | What it does |
+|---|---|---|
+| `travellerBudgetCents` | `600` | What travellers from the coast road spend at one shop in a game day, at most ($6); once spent, no more come to it that day |
+
 There is one living town, upgraded in place by each release: a save from an
 older version is backed up beside it and upgraded on start, and a save from a
 newer version is refused rather than overwritten

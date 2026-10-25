@@ -3,6 +3,7 @@ import {
   catchFish, endShift, interrupt, startSleep, wake, walkHomeToSleep,
 } from './activities.ts';
 import { lapsePriceOffers } from './actions/haggle.ts';
+import { isServing, stoveMinute, travellersMinute } from './travellers.ts';
 import { PLACE_BY_ID } from './map.ts';
 import { NEED_MAX, type Resident, type World } from './state.ts';
 import { lookAbout } from './discovery.ts';
@@ -22,7 +23,7 @@ function updateNeeds(w: World, r: Resident): void {
     r.energy += 3;
   } else {
     r.hunger += 1;
-    r.energy -= kind === 'working' || kind === 'fishing' ? 1 : w.t % 3 === 0 ? 0 : 1;
+    r.energy -= kind === 'working' || kind === 'fishing' || isServing(w, r) ? 1 : w.t % 3 === 0 ? 0 : 1;
     if (r.hunger >= NEED_MAX) r.energy -= 1;
   }
   r.hunger = clamp(r.hunger);
@@ -87,6 +88,7 @@ export function advance(w: World): void {
   for (const r of w.state.residents) {
     updateNeeds(w, r);
     progress(w, r);
+    stoveMinute(w, r);
     if (r.activity?.kind !== 'sleeping') lookAbout(w, r);
     const a = r.activity;
     if (a?.kind !== 'sleeping' && r.energy <= 0) {
@@ -103,6 +105,8 @@ export function advance(w: World): void {
       }
     }
   }
+
+  travellersMinute(w);
 
   w.state.jobOffers = w.state.jobOffers.filter((o) => o.expires > t);
   w.state.trades = w.state.trades.filter((o) => o.expires > t);

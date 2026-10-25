@@ -17,11 +17,15 @@ const CHATTER = [
   'Wah, so expensive now.',
 ];
 
+/** What a fake owner tops up to at the lorry (to twice this when below it): enough for the town and a day's travellers. */
 const RESTOCK: Record<string, Partial<Record<ItemId, number>>> = {
-  'the kopitiam': { rice: 4, coffee: 2 },
+  'the kopitiam': { rice: 4, coffee: 2, fish: 2, vegetables: 2 },
   'the provision shop': { rice: 15, coffee: 4, bread: 8 },
-  'the wet-market stall': { fish: 3, vegetables: 3 },
+  'the wet-market stall': { fish: 6, vegetables: 6 },
 };
+
+/** Where a hungry fake resident looks for food, in turn, and the least they need on them to try. */
+const FOOD_ROUND: readonly [string, number][] = [['the kopitiam', 35], ['the wet-market stall', 30], ['the provision shop', 20]];
 
 /**
  * The fake owners' own pricing habits: a range each picks from. This is the
@@ -88,7 +92,8 @@ export class FakeBrain implements Brain {
       return this.onShift(p);
     }
     if (p.refused) return this.rng.chance(0.5) ? null : this.wander(p);
-    return this.needs(p) ?? this.offers(p) ?? this.shift(p)
+    // An owner meets the lorry even when hungry: an empty shop feeds nobody.
+    return (p.business ? this.lorry(p) : null) ?? this.needs(p) ?? this.offers(p) ?? this.shift(p)
       ?? (p.business ? this.owner(p) : this.seeker(p));
   }
 
@@ -110,16 +115,17 @@ export class FakeBrain implements Brain {
           .sort((a, b) => fill(b.item) / b.price - fill(a.item) / a.price);
         if (options.length) return { verb: 'buy', item: options[0]!.item };
       }
-      if (p.money >= 35 && p.place !== 'the kopitiam') return this.go(p, 'the kopitiam');
-      if (p.money >= 30 && p.place !== 'the wet-market stall') return this.go(p, 'the wet-market stall');
-      if (p.money >= 20 && p.place !== 'the provision shop') return this.go(p, 'the provision shop');
+      // Round the shops once, in turn (the kopitiam, the stall, the provision shop), rather than back and forth.
+      const next = FOOD_ROUND.slice(FOOD_ROUND.findIndex(([place]) => place === p.place) + 1).find(([, least]) => p.money >= least);
+      if (next) return this.go(p, next[0]);
       if (!p.business && !p.job && p.money < 20) {
         // Broke and hungry: ask someone nearby to lend a little, now and then, unless they've just said no.
         const near = p.people.filter((x) => x.doing !== 'asleep');
         const turnedDown = p.recent.slice(-4).some((t) => / won't lend you /.test(t));
         if (near.length && !turnedDown && this.rng.chance(0.3)) return { verb: 'borrow', to: this.rng.pick(near).name, money: '50¢' };
       }
-      if (!p.business) return this.goFish(p);
+      // Nothing to eat anywhere: an owner too goes and catches something.
+      if (!p.business || p.place === 'the provision shop') return this.goFish(p);
     }
     if (p.energy === 'exhausted' || (p.energy === 'tired' && p.hour >= 20)) {
       return p.atHome ? { verb: 'sleep' } : { verb: 'walk_to', where: 'home' };
@@ -191,21 +197,26 @@ export class FakeBrain implements Brain {
     return null;
   }
 
-  private owner(p: Perception): Intent | null {
+  /** At lorry time, once a day: meet the lorry and top the shop up. */
+  private lorry(p: Perception): Intent | null {
     const b = p.business!;
     const lorryTime = (p.hour === 6 && p.minute >= 30) || (p.hour === 7 && p.minute < 25);
-    if (lorryTime && this.mem.lorryDay !== day(p)) {
-      if (p.place !== 'the lorry stop') return this.go(p, 'the lorry stop');
-      if (!p.lorry?.here) return null;
-      const want = RESTOCK[b.place] ?? {};
-      for (const [item, target] of Object.entries(want) as [ItemId, number][]) {
-        const have = b.stock.find((s) => s.item === item)?.qty ?? 0;
-        const price = p.lorry.sells.find((s) => s.item === item)?.price ?? Infinity;
-        const qty = Math.min(target * 2 - have, Math.floor((p.money - 1500) / price));
-        if (have < target && qty > 0) return { verb: 'order_stock', item, qty };
-      }
-      this.mem.lorryDay = day(p);
+    if (!lorryTime || this.mem.lorryDay === day(p)) return null;
+    if (p.place !== 'the lorry stop') return this.go(p, 'the lorry stop');
+    if (!p.lorry?.here) return null;
+    const want = RESTOCK[b.place] ?? {};
+    for (const [item, target] of Object.entries(want) as [ItemId, number][]) {
+      const have = b.stock.find((s) => s.item === item)?.qty ?? 0;
+      const price = p.lorry.sells.find((s) => s.item === item)?.price ?? Infinity;
+      const qty = Math.min(target * 2 - have, Math.floor((p.money - 1500) / price));
+      if (have < target && qty > 0) return { verb: 'order_stock', item, qty };
     }
+    this.mem.lorryDay = day(p);
+    return null;
+  }
+
+  private owner(p: Perception): Intent | null {
+    const b = p.business!;
     if (!b.atShop) return this.go(p, b.place);
     const priced = this.pricing(p);
     if (priced) return priced;
@@ -221,7 +232,8 @@ export class FakeBrain implements Brain {
     }
     const asked = p.recent.slice(-4).map((t) => /^(.+) says to you: "Any work going/.exec(t)?.[1]).find(Boolean);
     const here = p.people.filter((x) => x.doing !== 'asleep').map((x) => x.name);
-    if (b.workers.length === 0 && p.money >= 3000 && p.hour >= 7 && p.hour <= 15 && asked && here.includes(asked)) {
+    // Hires whoever asked once five travellers have left unserved today: a true need, seen.
+    if (b.workers.length === 0 && b.today.left >= 5 && p.money >= 1500 && p.hour >= 7 && p.hour <= 15 && asked && here.includes(asked)) {
       const start = Math.min(p.hour + 1, 14);
       return { verb: 'offer_job', to: asked, wage: this.rng.int(18, 26) * 10, startHour: start, hours: 4 };
     }
@@ -236,6 +248,11 @@ export class FakeBrain implements Brain {
   }
 
   private seeker(p: Perception): Intent | null {
+    // Someone serving alone with people waiting: ask the owner for work, once in a while.
+    const busy = p.busyShop;
+    if (!p.job && busy?.alone && !p.recent.slice(-6).some((t) => t.startsWith(`You say to ${busy.owner}: "You look busy`))) {
+      return { verb: 'say', to: busy.owner, text: 'You look busy. Any work going, boss?' };
+    }
     const fish = this.carrying(p, 'fish');
     const veg = this.carrying(p, 'vegetables');
     const surplus = fish >= 2 || veg >= 3;
