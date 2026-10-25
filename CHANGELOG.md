@@ -4,6 +4,11 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## 0.9.5 (2026-10-25)
+
+- Residents remember the words of a note they pin, as something that matters. Mei Ling pinned a "WANTED" note for herself, forgot it within the hour, and then asked who wrote it.
+- Living town: picks this up on restart. Notes pinned before it are still remembered without their words.
+
 ## 0.9.4 (2026-10-25)
 
 - **Watch from your phone at home:** the live town's page can also be opened from a phone on the same home Wi-Fi (read-only).

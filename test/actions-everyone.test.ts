@@ -404,7 +404,9 @@ describe('read_notice_board / pin_note', () => {
     const w = newWorld();
     const siti = put(w, 'Siti', 'notice-board');
     expect(accepted(act(w, siti.id, { verb: 'read_notice_board' })).reply).toMatch(/empty/);
-    accepted(act(w, siti.id, { verb: 'pin_note', text: 'Fresh fish, cheap. Ask Siti.' }));
+    const pinned = accepted(act(w, siti.id, { verb: 'pin_note', text: 'Fresh fish, cheap. Ask Siti.' }));
+    // She remembers what she wrote, not just that she wrote something (Mei Ling forgot her own WANTED note).
+    expect(pinned.reply).toContain('Fresh fish, cheap. Ask Siti.');
     const raju = put(w, 'Raju', 'notice-board');
     expect(accepted(act(w, raju.id, { verb: 'read_notice_board' })).reply).toMatch(/Fresh fish, cheap\. Ask Siti\.".*Siti/);
   });
