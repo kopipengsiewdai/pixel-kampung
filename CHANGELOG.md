@@ -4,6 +4,11 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## 0.16.1 (2026-10-25)
+
+- A shopkeeper standing in their own shop can eat straight from the stock, and is offered to. Owners were starving at their own counters (Ah Huat and Mdm Tan at the hunger limit) because eating only worked on carried food.
+- Living town: picks this up on restart; nothing in the save changes.
+
 ## 0.16.0 (2026-10-25): families
 
 - **Families:** nobody's family is imaginary any more. **Mak Esah** (63), Siti's mother, lives in Siti's house; **Aminah** (12) and **Hassan** (8), Fatimah's children, live with her: thirteen residents in ten houses. Under 14 they can do chores, errands and fishing but can't be offered a shift ("Hassan is too young to work a shift."); from 60 a body tires a third quicker. They start with no money of their own and think on about half an adult's allowance (the town's daily cap is unchanged). Family call each other as families do: to Siti, "Mak" is her mother. Cards no longer leave room for invented relatives: Ah Huat is a widower, Mei Ling's parents died and her aunt raised her, and Fatimah's children are named.

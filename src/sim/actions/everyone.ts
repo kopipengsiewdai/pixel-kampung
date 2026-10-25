@@ -471,11 +471,14 @@ export function harvest(w: World, r: Resident): ActionResult {
 export function eat(w: World, r: Resident, i: Intent): ActionResult {
   const item = itemOf(i.item);
   if (!item) return no(`You don't have anything called ${quoted(i.item)}.`);
-  if (countGoods(r.items, item) < 1) return no(`You don't have any ${item}.`);
+  // A shopkeeper standing in their own shop can eat straight from the stock (owners starved at their counters).
+  const own = shopHere(w, r);
+  const fromStock = countGoods(r.items, item) < 1 && own?.ownerId === r.id && countGoods(own.stock, item) > 0;
+  if (countGoods(r.items, item) < 1 && !fromStock) return no(`You don't have any ${item}.`);
   const def = ITEMS[item];
   if (!def.food) return no(def.inedible ?? "You can't eat that.");
   if (r.hunger < 50 && !def.food.energy) return no("You're too full to eat another bite.");
-  addGoods(r.items, item, -1);
+  addGoods(fromStock ? own!.stock : r.items, item, -1);
   r.hunger = Math.max(0, r.hunger - def.food.hunger);
   r.energy = Math.min(1000, r.energy + (def.food.energy ?? 0));
   w.emit({ type: 'ate', who: r.id, item });
