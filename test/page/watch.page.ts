@@ -122,8 +122,16 @@ describe('the watch page in a browser', () => {
     const card = page.locator('#card');
     await expect.poll(() => card.isVisible()).toBe(true);
     await expect.poll(() => card.textContent()).toContain('Siti');
-    expect(await card.textContent()).toMatch(/Money\$?\d|Money\d/);
-    expect(await card.textContent()).toContain('Nothing on this card ever reaches a resident');
+    // The compact card: money in the header, needs as chips, one "Now" line, work, then tabs.
+    expect(await card.locator('header .cash').textContent()).toMatch(/^\$\d+\.\d\d$|^\d+¢$/);
+    expect(await card.locator('.needs .chip').count()).toBe(2);
+    expect(await card.textContent()).toMatch(/Now: .+, (full|not hungry|hungry|very hungry|starving), (rested|fine|tired|exhausted)/);
+    expect(await card.textContent()).not.toContain('Nothing on this card ever reaches a resident');
+    expect(await card.locator('[data-tab=plan]').getAttribute('aria-selected')).toBe('true');
+    await card.locator('[data-tab=thoughts]').click();
+    await expect.poll(() => card.locator('[data-tab=thoughts]').getAttribute('aria-selected')).toBe('true');
+    await card.locator('[data-tab=money]').click();
+    await expect.poll(() => card.textContent()).toMatch(/Today in|No money has changed hands/);
     if (shots) await page.screenshot({ path: join(shots, 'watch-live.png') });
 
     // The Talk tab: their conversations, fetched when it opens; the card comes back with its own tab.
@@ -131,8 +139,8 @@ describe('the watch page in a browser', () => {
     await expect.poll(() => card.textContent()).toMatch(/With |Nothing said yet/);
     expect(await card.locator('[data-tab=talk]').getAttribute('aria-selected')).toBe('true');
     if (shots) await page.screenshot({ path: join(shots, 'watch-talk.png') });
-    await card.locator('[data-tab=card]').click();
-    await expect.poll(() => card.textContent()).toMatch(/Money/);
+    await card.locator('[data-tab=plan]').click();
+    await expect.poll(() => card.locator('[data-tab=plan]').getAttribute('aria-selected')).toBe('true');
     // Someone who has talked: their Talk tab shows who they talked with, and the lines.
     const ids = await page.locator('#roster button').evaluateAll((bs) => bs.map((b) => (b as HTMLElement).dataset.id!));
     const talker = async () => {
@@ -166,6 +174,30 @@ describe('the watch page in a browser', () => {
     await expect.poll(async () => Object.keys((await lively())?.idle ?? {}).some((k) => k !== 'none'), { timeout: 20_000 }).toBe(true);
     await expect.poll(async () => (await lively())?.bubbles ?? 0, { timeout: 30_000 }).toBeGreaterThan(0);
     if (shots) await page.screenshot({ path: join(shots, 'watch-idle.png') });
+
+    // The wiki: People, Places, How it works, Economy and What's new, over the town, and closed again.
+    await page.locator('#wiki-open').click();
+    const wiki = page.locator('#wiki');
+    await expect.poll(() => wiki.isVisible()).toBe(true);
+    await expect.poll(() => wiki.textContent()).toContain('Ah Huat, 54');
+    expect(await wiki.textContent()).toMatch(/Family and old friends.*Ah Seng \(son\)/);
+    await wiki.locator('[data-wiki=places]').click();
+    await expect.poll(() => wiki.textContent()).toMatch(/the kopitiam.*Owner.*Ah Huat/);
+    await wiki.locator('[data-wiki=how]').click();
+    await expect.poll(() => wiki.textContent()).toMatch(/The lorry.*07:00/);
+    await wiki.locator('[data-wiki=economy]').click();
+    await expect.poll(() => wiki.textContent()).toMatch(/GDP.*Money in town.*Money out/);
+    expect(await wiki.textContent()).toMatch(/Money in hand/);
+    expect(await wiki.textContent()).toMatch(/nothing spent/);
+    // A shop's money opens up, with its kinds and entries.
+    await wiki.locator('details[data-account=kopitiam] summary').click();
+    await expect.poll(() => wiki.locator('details[data-account=kopitiam]').textContent()).toMatch(/Today in|No money has changed hands/);
+    if (shots) await page.screenshot({ path: join(shots, 'wiki-economy.png') });
+    await wiki.locator('[data-wiki=news]').click();
+    await expect.poll(() => wiki.textContent()).toMatch(/Running v\d+\.\d+\.\d+/);
+    expect(await wiki.locator('strong').count()).toBeGreaterThan(0);
+    await page.keyboard.press('Escape');
+    await expect.poll(() => wiki.isVisible()).toBe(false);
 
     // The desktop layout keeps its side column and has no phone zoom button.
     expect(await page.locator('#zoom').isVisible()).toBe(false);
@@ -201,13 +233,33 @@ describe('the watch page in a browser', () => {
     const feed = (await page.locator('#feed').boundingBox())!;
     expect(feed.y).toBeGreaterThanOrEqual(map.y + map.height - 1);
 
+    // The wiki opens from the header as a full-screen page with big tabs, and never scrolls sideways.
+    const wikiOpen = page.locator('#wiki-open');
+    expect((await wikiOpen.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await wikiOpen.tap();
+    const wiki = page.locator('#wiki');
+    await expect.poll(() => wiki.textContent()).toContain('Ah Huat, 54');
+    const wikiBox = (await wiki.boundingBox())!;
+    expect(wikiBox.width).toBeGreaterThanOrEqual(W - 1);
+    expect(wikiBox.height).toBeGreaterThanOrEqual(H * 0.95);
+    expect((await wiki.locator('[data-wiki=economy]').boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await wiki.locator('[data-wiki=economy]').tap();
+    await expect.poll(() => wiki.textContent()).toMatch(/GDP/);
+    expect(await noSideways()).toBe(true);
+    if (shots) await page.screenshot({ path: join(shots, 'phone-wiki.png') });
+    const wikiClose = page.locator('#wiki-close');
+    expect((await wikiClose.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await wikiClose.tap();
+    await expect.poll(() => wiki.isVisible()).toBe(false);
+
     // The feed's toggle is big enough to tap.
     expect((await page.locator('#feed-all').boundingBox())!.height).toBeGreaterThanOrEqual(44);
 
     // Resident chips are big enough to tap.
     const chip = page.locator('#roster button', { hasText: 'Siti' });
     await chip.waitFor({ state: 'visible' }); // the roster fills after the first frame; reading it earlier was flaky
-    expect((await chip.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    // The roster is redrawn with every update, so a chip can be swapped out between finding it and measuring it.
+    await expect.poll(async () => (await chip.boundingBox())?.height ?? 0).toBeGreaterThanOrEqual(44);
     if (shots) await page.screenshot({ path: join(shots, 'phone-town.png') });
 
     // A card opens as a full-screen sheet with a clear close button, and closes again.

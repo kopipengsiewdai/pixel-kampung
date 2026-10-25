@@ -109,7 +109,7 @@ describe("a resident's talk, for the card", () => {
 describe('the talk route', () => {
   it("gives a resident's conversations from the saved events, read-only, behind the same guards", async () => {
     const store = new SqliteStore(':memory:');
-    const live = new LiveSource({ label: 'Live town', msPerMinute: 1000, everyMs: 0, said: (id, n) => store.saidBy(id, n) });
+    const live = new LiveSource({ label: 'Live town', msPerMinute: 1000, everyMs: 0, said: (id, n, since) => store.saidBy(id, n, since) });
     const town = Town.create(42, sgt(9, 0), { store, ...live.hooks() });
     const [a, b] = town.world.state.residents;
     town.world.emit({ type: 'said', who: a!.id, to: b!.id, text: 'Selamat pagi!' });

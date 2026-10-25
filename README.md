@@ -62,7 +62,9 @@ A read-only page shows the pixel kampung, the story feed and a card for
 whichever resident you click (money, job, needs, what they carry, what they're
 doing, and their latest plan and thoughts, with a Talk tab of their recent
 conversations). The feed shows key moments (sales, hires, wages, gifts, notes,
-first visits, the lorry, prices) unless you switch it to All. By default it's served on **this PC only**
+first visits, the lorry, prices) unless you switch it to All. The **Wiki**
+button opens the Kampung wiki: its people, places, how it works, its economy
+day by day, and what's new. By default it's served on **this PC only**
 (`127.0.0.1`, which every computer uses to mean "itself") and makes no outside
 calls. Open the URL each command prints, by default **http://127.0.0.1:8160/**,
 in any browser on the same PC.

@@ -11,12 +11,14 @@ import type { GameEvent } from '../sim/events.ts';
 import type { Point } from '../sim/map.ts';
 import { createWorld } from '../sim/seed.ts';
 import { World } from '../sim/state.ts';
+import { MINUTES_PER_DAY } from '../sim/time.ts';
 import { shortStamp } from '../sim/calendar.ts';
 import type { TownOptions } from '../town.ts';
 import { ReplayPlayer } from './player.ts';
 import type { ReplayReader } from './replay.ts';
-import type { Card, Frame, Hello, Layout, PlaceCard, ReplayState, TalkView, Update } from './types.ts';
-import { FrameBuilder, TALK_LINES, cardOf, layoutOf, placeCardOf, talkOf, type CardExtras } from './view.ts';
+import type { Card, Frame, Hello, Layout, MoneyView, PlaceCard, ReplayState, TalkView, Update, Wiki } from './types.ts';
+import { FrameBuilder, TALK_DAYS, TALK_LINES, cardOf, layoutOf, placeCardOf, talkOf, type CardExtras } from './view.ts';
+import { ECONOMY_DAYS, ECONOMY_EVENTS, moneyOf, wikiOf } from './wiki.ts';
 
 export const FEED_KEPT = 200;
 export const ROUTE_KEPT = 64;
@@ -31,6 +33,10 @@ export interface WatchSource {
   placeCard(id: string): PlaceCard | null;
   /** A resident's conversations, for the card's Talk tab; null for nobody. */
   talk(id: string): TalkView | null;
+  /** The Kampung wiki: people, places, how it works, the economy, what's new. */
+  wiki(): Wiki;
+  /** A resident's or a shop's money, by kind and entry; null for neither. */
+  money(id: string): MoneyView | null;
   subscribe(fn: (u: Update) => void): () => void;
   /** Replay mode only. */
   control?(cmd: ReplayCommand): ReplayState;
@@ -38,6 +44,11 @@ export interface WatchSource {
   /** Called every 100 ms by the server (replays move their clock on here). */
   tick?(): void;
   close(): void;
+}
+
+/** The shops in a frame, named as on the map. */
+function shopsOf(frame: Frame, layout: Layout): { id: string; ownerId: string; name: string }[] {
+  return frame.shops.map((s) => ({ id: s.id, ownerId: s.ownerId, name: layout.places.find((p) => p.id === s.id)?.name ?? s.name }));
 }
 
 function joinRoutes(a: Point[], b: Point[]): Point[] {
@@ -121,8 +132,14 @@ export interface LiveOptions {
   extras?: (id: string, t: number) => CardExtras | null;
   /** Merge window for updates to the page. */
   everyMs?: number;
-  /** A resident's last n lines of talk from the saved events, newest first; without it, what the page has seen. */
-  said?: (id: string, n: number) => GameEvent[];
+  /** A resident's last n lines of talk since game minute t, from the saved events, newest first; without it, what the page has seen. */
+  said?: (id: string, n: number, sinceT: number) => GameEvent[];
+  /** Money changing hands since game minute t, from the saved events; without it, what the page has seen. */
+  moneyEvents?: (sinceT: number) => GameEvent[];
+  /** The last ledger check's line, if the town keeps one. */
+  audit?: () => string | null;
+  /** Today's thinking spend and the town's daily cap, if the town thinks for real. */
+  spend?: () => { usd: number; cap: number } | null;
 }
 
 /** Lines of talk a live page keeps in hand when there's no save to read from. */
@@ -145,6 +162,7 @@ export class LiveSource implements WatchSource {
   private feed: FeedLine[] = [];
   private fresh: FeedLine[] = [];
   private said: GameEvent[] = [];
+  private money_: GameEvent[] = [];
 
   constructor(opts: LiveOptions) {
     this.opts = opts;
@@ -187,6 +205,11 @@ export class LiveSource implements WatchSource {
     if (!this.world) return;
     const line = this.lineOf(e);
     if (line) this.fresh.push(line);
+    if (ECONOMY_EVENTS.has(e.type) && !this.opts.moneyEvents) {
+      this.money_.push(e);
+      const since = e.t - ECONOMY_DAYS * MINUTES_PER_DAY;
+      if (this.money_[0]!.t < since) this.money_ = this.money_.filter((x) => x.t >= since);
+    }
     if (e.type === 'said' && !this.opts.said) {
       this.said.push(e);
       if (this.said.length > SAID_KEPT) this.said.splice(0, this.said.length - SAID_KEPT);
@@ -238,11 +261,26 @@ export class LiveSource implements WatchSource {
     return this.frame && this.layout ? placeCardOf(this.frame, this.layout, id) : null;
   }
 
+  wiki(): Wiki {
+    if (!this.frame || !this.layout || !this.world) throw new Error('the town is not attached yet');
+    const since = this.frame.t - ECONOMY_DAYS * MINUTES_PER_DAY;
+    const events = this.opts.moneyEvents ? this.opts.moneyEvents(since) : this.money_;
+    return wikiOf(this.frame, this.layout, events, this.world.state, {
+      audit: this.opts.audit?.() ?? null, spend: this.opts.spend?.() ?? null, debts: this.world.state.debts,
+    });
+  }
+
+  money(id: string): MoneyView | null {
+    if (!this.frame || !this.layout || !this.world) return null;
+    const events = this.opts.moneyEvents ? this.opts.moneyEvents(this.frame.t - ECONOMY_DAYS * MINUTES_PER_DAY) : this.money_;
+    return moneyOf(id, events, { t: this.frame.t, people: this.frame.residents, shops: shopsOf(this.frame, this.layout) }, this.world.state);
+  }
+
   talk(id: string): TalkView | null {
     const w = this.world;
     const r = w?.state.residents.find((x) => x.id === id);
     if (!w || !r) return null;
-    const events = this.opts.said ? this.opts.said(id, TALK_LINES) : this.said;
+    const events = this.opts.said ? this.opts.said(id, TALK_LINES, w.t - TALK_DAYS * MINUTES_PER_DAY) : this.said;
     const name = (x: string) => w.state.residents.find((o) => o.id === x)?.name ?? x;
     return { name: r.name, talks: talkOf(events, id, name, w.state) };
   }
@@ -399,6 +437,17 @@ export class ReplaySource implements WatchSource {
 
   placeCard(id: string): PlaceCard | null {
     return placeCardOf(this.reader.frameAt(this.player.state().t), this.layout, id);
+  }
+
+  wiki(): Wiki {
+    const t = this.player.state().t;
+    return wikiOf(this.reader.frameAt(t), this.layout, this.reader.moneyEvents(t - ECONOMY_DAYS * MINUTES_PER_DAY, t), this.reader.calendar(), {});
+  }
+
+  money(id: string): MoneyView | null {
+    const t = this.player.state().t;
+    const frame = this.reader.frameAt(t);
+    return moneyOf(id, this.reader.moneyEvents(t - ECONOMY_DAYS * MINUTES_PER_DAY, t), { t, people: frame.residents, shops: shopsOf(frame, this.layout) }, this.reader.calendar());
   }
 
   talk(id: string): TalkView | null {

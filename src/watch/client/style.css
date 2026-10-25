@@ -186,6 +186,26 @@ body {
 .card .quote { font-style: italic; }
 .card .stamp { color: var(--muted); font-size: 12px; margin-right: 4px; }
 .card .note { color: var(--muted); font-size: 12px; }
+.card .cash { margin-left: auto; font-weight: 700; font-variant-numeric: tabular-nums; }
+.card header .close { margin-left: 8px; }
+.card .needs { display: inline-flex; gap: 3px; }
+.card .chips { display: flex; flex-wrap: wrap; gap: 4px; margin: 2px 0 4px; }
+.chip { display: inline-block; font-size: 12px; padding: 1px 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2); }
+.chip.need.bad { background: #f6dca0; border-color: #d9a441; }
+.chip.need.worse { background: #f3b9a9; border-color: var(--accent); }
+.card .now, .card .job { margin: 2px 0; }
+.card details.shop { margin: 4px 0; }
+.card details.shop summary { cursor: pointer; color: var(--muted); }
+.card .more, .wiki-body .more { background: none; border: none; color: var(--accent); cursor: pointer; font: inherit; font-size: 12px; padding: 2px 0; }
+.card .times { color: var(--muted); font-size: 12px; }
+.card .scroll, .wiki-body .scroll { overflow-x: auto; max-width: 100%; }
+table.money { border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+table.money th, table.money td { padding: 2px 6px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+table.money th:first-child, table.money td:first-child { text-align: left; }
+.in { color: #3f7a2e; font-weight: 600; }
+.out { color: var(--accent); font-weight: 600; }
+.wiki-body details.account { margin: 2px 0; }
+.wiki-body details.account summary { cursor: pointer; }
 .card .tabs { display: flex; gap: 0; margin: 2px 0 6px; border-bottom: 1px solid var(--line); }
 .card .tabs button { background: none; color: var(--muted); border: none; border-bottom: 3px solid transparent; padding: 4px 10px; cursor: pointer; font: inherit; }
 .card .tabs button[aria-selected=true] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
@@ -199,13 +219,74 @@ body {
   .side { max-height: 60vh; }
 }
 
+/* The wiki: a page over the town, read-only. */
+.wiki-open {
+  margin-left: auto;
+  font: inherit;
+  font-weight: 700;
+  background: var(--gold);
+  color: var(--ink);
+  border: 2px solid #121b1b;
+  border-radius: 3px;
+  padding: 2px 12px;
+  cursor: pointer;
+}
+.wiki {
+  position: fixed;
+  inset: 24px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  color: var(--ink);
+  border: 3px solid #121b1b;
+  border-radius: 4px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  padding: 10px 16px;
+  min-width: 0;
+}
+.wiki > header { display: flex; align-items: baseline; gap: 10px; }
+.wiki h2 { margin: 0; font-size: 18px; }
+.wiki .wiki-version { color: var(--muted); font-size: 12px; }
+.wiki .close { margin-left: auto; background: none; border: none; font-size: 22px; cursor: pointer; color: var(--ink); }
+.wiki .tabs { display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--line); margin: 6px 0; }
+.wiki .tabs button { background: none; color: var(--muted); border: none; border-bottom: 3px solid transparent; padding: 4px 10px; cursor: pointer; font: inherit; }
+.wiki .tabs button[aria-selected=true] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+.wiki-body { flex: 1; min-height: 0; overflow-y: auto; overflow-wrap: anywhere; }
+.wiki-body h3 { margin: 12px 0 4px; font-size: 15px; }
+.wiki-body h4 { margin: 10px 0 4px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.wiki-body p { margin: 4px 0; max-width: 72ch; }
+.wiki-body ul { margin: 2px 0; padding-left: 18px; }
+.wiki-body dl { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; margin: 4px 0; }
+.wiki-body dt { color: var(--muted); }
+.wiki-body dd { margin: 0; }
+.wiki-body .entry { border-bottom: 1px dashed var(--line); padding-bottom: 6px; }
+.wiki-body .note { color: var(--muted); font-size: 12px; }
+.wiki-body .quote { font-style: italic; }
+.wiki-body .scroll { overflow-x: auto; max-width: 100%; }
+.wiki-body table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.wiki-body th, .wiki-body td { padding: 3px 8px; border-bottom: 1px solid var(--line); text-align: right; white-space: nowrap; }
+.wiki-body th:first-child, .wiki-body td:first-child { text-align: left; }
+.wiki-body .bars { list-style: none; padding: 0; margin: 4px 0; max-width: 520px; }
+.wiki-body .bars li { display: grid; grid-template-columns: 7.5em 1fr 5.5em; align-items: center; gap: 6px; margin: 2px 0; }
+.wiki-body .bars .bar { height: 10px; background: var(--panel-2); border: 1px solid var(--line); }
+.wiki-body .bars .bar i { display: block; height: 100%; background: #7aa35a; }
+.wiki-body .bars .v { text-align: right; font-variant-numeric: tabular-nums; }
+.wiki-body code { background: var(--panel-2); padding: 0 3px; }
+.wiki > footer { margin-top: 6px; font-size: 11px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 4px; }
+
 /* A phone held upright (360–430px): one column that scrolls down, never sideways. */
 @media (max-width: 600px) {
   html, body { height: auto; }
   body { overflow-x: hidden; }
   body.sheet { overflow: hidden; }
 
-  .top { padding: 6px 10px; gap: 6px 8px; font-size: 12px; }
+  .top { padding: 3px 10px; gap: 6px 8px; font-size: 12px; }
+  .wiki-open { margin-left: 0; flex: none; min-height: 44px; min-width: 44px; padding: 2px 10px; }
+  .wiki { inset: 0; border: none; border-radius: 0; box-shadow: none; padding: 8px 12px; }
+  .wiki .close { min-width: 44px; min-height: 44px; font-size: 28px; border: 2px solid var(--line); border-radius: 4px; }
+  .wiki .tabs button { min-height: 44px; padding: 8px 10px; }
+  .wiki-body .bars li { grid-template-columns: 6.5em 1fr 5em; }
   .line { display: flex; align-items: center; gap: 8px; width: 100%; min-width: 0; white-space: nowrap; }
   .brand { display: none; }
   .clock { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
@@ -260,7 +341,9 @@ body {
   }
   .card header { position: sticky; top: -8px; background: var(--panel); padding: 8px 0; align-items: center; }
   .card .close { min-width: 44px; min-height: 44px; font-size: 28px; border: 2px solid var(--line); border-radius: 4px; }
-  .card .tabs button { min-height: 44px; padding: 8px 16px; font-size: 15px; }
+  .card .tabs button { min-height: 44px; padding: 8px 12px; font-size: 15px; }
+  .card .more, .wiki-body .more { min-height: 44px; }
+  .wiki-body details.account summary, .card details.shop summary { min-height: 44px; display: flex; align-items: center; }
   .toggle button { min-height: 44px; padding: 8px 12px; font-size: 14px; }
   .card dd, .card li { overflow-wrap: anywhere; }
 }

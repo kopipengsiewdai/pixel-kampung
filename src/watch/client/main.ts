@@ -3,7 +3,7 @@
  * owner clicks, and replay controls. Read-only: it only listens to the town.
  * Everything residents said or thought is shown as text, never as HTML.
  */
-import type { Card, FeedLine, Hello, PlaceCard, ReplayState, TalkView, Thought, Update } from '../types.ts';
+import type { Card, Economy, FeedLine, Hello, MoneyView, PlaceCard, ReplayState, TalkView, Thought, Update, Wiki } from '../types.ts';
 import { startGame, type TownScene } from './scene.ts';
 
 const FEED_KEPT = 200;
@@ -146,21 +146,40 @@ function renderRoster(u: Update): void {
 
 // ---------------------------------------------------------------- card
 
-function bar(value: number, cls: string): HTMLElement {
-  const pct = Math.max(0, Math.min(100, value / 10));
-  const fill = el('i');
-  fill.style.width = `${pct}%`;
-  return el('span', { class: `bar ${cls}` }, fill);
+/** A need as a small chip: its icon, its word, and a colour for how pressing it is. */
+function need(icon: string, word: string, label: string, bad: boolean, worse: boolean): HTMLElement {
+  return el('span', { class: `chip need${worse ? ' worse' : bad ? ' bad' : ''}`, title: `${label}: ${word}`, 'aria-label': `${label}: ${word}` }, icon);
+}
+
+/** At most `n` items, then a "more" button that shows the rest. */
+function some<T>(items: T[], n: number, key: string, show: (x: T) => Node): Node[] {
+  const open = expanded.has(key);
+  const shown = open ? items : items.slice(0, n);
+  const out: Node[] = [el('ul', {}, ...shown.map(show))];
+  if (items.length > n) {
+    const more = el('button', { type: 'button', class: 'more' }, open ? 'fewer' : `${items.length - n} more`);
+    more.addEventListener('click', () => {
+      if (open) expanded.delete(key);
+      else expanded.add(key);
+      if (lastCard) renderCard(lastCard);
+    });
+    out.push(more);
+  }
+  return out;
 }
 
 function thoughtItem(t: Thought, quote: boolean): HTMLLIElement {
-  return el('li', {}, el('span', { class: 'stamp' }, t.stamp), quote ? el('span', { class: 'quote' }, `“${t.text}”`) : t.text);
+  return el('li', {}, el('span', { class: 'stamp' }, t.stamp), quote ? el('span', { class: 'quote' }, `“${t.text}”`) : t.text,
+    t.times ? el('span', { class: 'times' }, ` ×${t.times}`) : null);
 }
 
-/** Which tab of a resident's card is open, and their talk once fetched for it. */
-let cardTab: 'card' | 'talk' = 'card';
+type CardTab = 'plan' | 'thoughts' | 'talk' | 'money';
+/** Which tab of a resident's card is open, what it fetched, and which lists are opened out. */
+let cardTab: CardTab = 'plan';
 let talk: { id: string; view: TalkView | null } | null = null;
+let moneyView: { id: string; view: MoneyView | null } | null = null;
 let lastCard: Card | null = null;
+const expanded = new Set<string>();
 
 async function loadTalk(id: string): Promise<void> {
   try {
@@ -175,11 +194,28 @@ async function loadTalk(id: string): Promise<void> {
   if (lastCard && lastCard.id === id) renderCard(lastCard);
 }
 
-function showTab(tab: 'card' | 'talk'): void {
+async function loadMoney(id: string): Promise<void> {
+  try {
+    const res = await fetch(`/api/money/${encodeURIComponent(id)}`);
+    const view = res.ok ? await res.json() as MoneyView : null;
+    if (selected !== id) return;
+    moneyView = { id, view };
+  } catch {
+    if (selected !== id) return;
+    moneyView = { id, view: null };
+  }
+  if (lastCard && lastCard.id === id) renderCard(lastCard);
+}
+
+function showTab(tab: CardTab): void {
   cardTab = tab;
   if (tab === 'talk' && selected) {
     talk = null;
     void loadTalk(selected);
+  }
+  if (tab === 'money' && selected) {
+    moneyView = null;
+    void loadMoney(selected);
   }
   if (lastCard) renderCard(lastCard);
 }
@@ -197,51 +233,83 @@ function talkSection(): (Node | null)[] {
   ]);
 }
 
+/** Money in and out by kind (today and the week), then the entries: shared by the card and the wiki. */
+function moneyBlock(m: MoneyView, key: string): Node[] {
+  if (!m.kinds.length) return [el('p', { class: 'note' }, 'No money has changed hands this week.')];
+  const signed = (c: number) => (c ? money(c) : '');
+  const table = el('table', { class: 'money' },
+    el('thead', {}, el('tr', {}, ...['', 'Today in', 'Today out', 'Week in', 'Week out'].map((h) => el('th', {}, h)))),
+    el('tbody', {}, ...m.kinds.map((k) => el('tr', {},
+      el('td', {}, k.label), el('td', {}, signed(k.todayIn)), el('td', {}, signed(k.todayOut)), el('td', {}, signed(k.weekIn)), el('td', {}, signed(k.weekOut))))));
+  return [
+    el('div', { class: 'scroll' }, table),
+    el('h4', {}, 'Every entry'),
+    ...some(m.entries, 5, key, (e) => el('li', {}, el('span', { class: 'stamp' }, e.stamp),
+      `${e.kind}: ${e.what}, ${e.cents > 0 ? 'from' : 'to'} ${e.with} `,
+      el('span', { class: e.cents > 0 ? 'in' : 'out' }, `${e.cents > 0 ? '+' : '−'}${money(Math.abs(e.cents))}`))),
+  ];
+}
+
+function moneySection(): Node[] {
+  if (!moneyView || !selected || moneyView.id !== selected) return [el('p', { class: 'note' }, 'Counting…')];
+  if (!moneyView.view) return [el('p', { class: 'note' }, "Couldn't fetch their money just now. Open the tab again to retry.")];
+  return moneyBlock(moneyView.view, `money:${selected}`);
+}
+
+/** "walking to the jetty, very hungry, rested", with where they are when that isn't already said. */
+function nowLine(c: Card): string {
+  const where = c.place && !c.doing.includes(c.place) ? ` at ${c.place}` : '';
+  return `${c.doing}${where}, ${c.hungerWord}, ${c.energyWord}`;
+}
+
 function renderCard(c: Card): void {
   lastCard = c;
   const close = el('button', { class: 'close', type: 'button', 'aria-label': 'Close' }, '×');
   close.addEventListener('click', () => pick(null));
-  const tab = (name: 'card' | 'talk', label: string) => {
+  const tab = (name: CardTab, label: string) => {
     const b = el('button', { type: 'button', role: 'tab', 'aria-selected': String(cardTab === name), 'data-tab': name }, label);
     b.addEventListener('click', () => showTab(name));
     return b;
   };
-  const head = [
-    el('header', {}, el('h3', {}, c.name), el('span', { class: 'role' }, c.role === 'owner' ? 'shop owner' : 'looking for work'), close),
-    el('nav', { class: 'tabs', role: 'tablist' }, tab('card', 'Card'), tab('talk', 'Talk')),
-  ];
-  if (cardTab === 'talk') {
-    showCard([...head, ...talkSection(), el('footer', {}, "Owner's view. Nothing on this card ever reaches a resident.")]);
-    return;
-  }
   const parts: (Node | null)[] = [
-    ...head,
-    el('dl', {},
-      el('dt', {}, 'Doing'), el('dd', {}, c.doing),
-      el('dt', {}, 'Where'), el('dd', {}, c.place ?? 'on the footpath'),
-      el('dt', {}, 'Money'), el('dd', {}, money(c.money)),
-      el('dt', {}, 'Job'), el('dd', {}, c.job ?? 'none yet'),
-      el('dt', {}, 'Hunger'), el('dd', {}, bar(c.hunger, 'hunger'), c.hungerWord),
-      el('dt', {}, 'Energy'), el('dd', {}, bar(c.energy, 'energy'), c.energyWord),
-      el('dt', {}, 'Carrying'), el('dd', {}, c.carrying.length ? c.carrying.map((x) => x.label).join(', ') : 'nothing'),
-    ),
+    el('header', {},
+      el('h3', {}, c.name),
+      el('span', { class: 'role' }, c.role === 'owner' ? 'shop owner' : 'looking for work'),
+      el('span', { class: 'needs' },
+        need('🍚', c.hungerWord, 'Hunger', c.hunger >= 450, c.hunger >= 700),
+        need('⚡', c.energyWord, 'Energy', c.energy <= 350, c.energy <= 150)),
+      el('span', { class: 'cash', title: 'Money in hand' }, money(c.money)),
+      close),
+    el('p', { class: 'now' }, el('b', {}, 'Now: '), nowLine(c)),
+    el('p', { class: 'job' }, el('b', {}, 'Work: '), c.job ?? 'none yet'),
+    c.wages.length ? el('p', { class: 'job' }, el('b', {}, 'Wages: '), c.wages.join('; ')) : null,
+    c.carrying.length ? el('div', { class: 'chips' }, ...c.carrying.map((x) => el('span', { class: 'chip' }, x.label))) : null,
   ];
   if (c.shop) {
-    parts.push(el('h4', {}, c.shop.name));
-    parts.push(el('dl', {},
-      el('dt', {}, 'Stock'), el('dd', {}, c.shop.stock.map((x) => x.label).join(', ') || 'empty'),
-      el('dt', {}, 'Sells'), el('dd', {}, c.shop.sells.join(', ') || 'no prices yet'),
-      el('dt', {}, 'Buying from others'), el('dd', {}, c.shop.buys.join(', ') || 'not buying anything right now'),
-      el('dt', {}, 'Minding the shop'), el('dd', {}, c.minding ?? 'nobody right now'),
-    ));
+    const key = `shop:${c.id}`;
+    const details = el('details', expanded.has(key) ? { class: 'shop', open: '' } : { class: 'shop' },
+      el('summary', {}, `${c.shop.name}: ${c.minding ?? 'nobody minding it'}`),
+      el('dl', {},
+        el('dt', {}, 'Stock'), el('dd', {}, c.shop.stock.map((x) => x.label).join(', ') || 'empty'),
+        el('dt', {}, 'Sells'), el('dd', {}, c.shop.sells.join(', ') || 'no prices yet'),
+        el('dt', {}, 'Buying'), el('dd', {}, c.shop.buys.join(', ') || 'not buying anything right now')));
+    // The card is redrawn every second: it stays open or shut as the owner left it.
+    details.addEventListener('toggle', () => { if (details.open) expanded.add(key); else expanded.delete(key); });
+    parts.push(details);
   }
-  if (c.wages.length) parts.push(el('h4', {}, 'Wages'), el('ul', {}, ...c.wages.map((w) => el('li', {}, w))));
-  if (c.plan) parts.push(el('h4', {}, 'Plan for today'), el('p', { class: 'quote' }, `“${c.plan.text}”`));
-  parts.push(el('h4', {}, 'Recent thoughts'));
-  if (c.thoughts.length) parts.push(el('ul', {}, ...c.thoughts.slice().reverse().map((t) => thoughtItem(t, true))));
-  else parts.push(el('p', { class: 'note' }, c.mindNote ?? 'Nothing yet.'));
-  if (c.noticed.length) parts.push(el('h4', {}, 'Lately noticed'), el('ul', {}, ...c.noticed.slice().reverse().map((t) => thoughtItem(t, false))));
-  parts.push(el('footer', {}, "Owner's view. Nothing on this card ever reaches a resident."));
+  parts.push(el('nav', { class: 'tabs', role: 'tablist' }, tab('plan', 'Plan'), tab('thoughts', 'Thoughts'), tab('talk', 'Talk'), tab('money', 'Money')));
+  if (cardTab === 'plan') {
+    parts.push(c.plan ? el('p', { class: 'quote' }, `“${c.plan.text}”`) : el('p', { class: 'note' }, c.mindNote ?? 'No plan for today.'));
+  } else if (cardTab === 'thoughts') {
+    const thoughts = c.thoughts.slice().reverse();
+    if (thoughts.length) parts.push(...some(thoughts, 3, `thoughts:${c.id}`, (t) => thoughtItem(t, true)));
+    else parts.push(el('p', { class: 'note' }, c.mindNote ?? 'Nothing yet.'));
+    if (c.noticed.length) parts.push(el('h4', {}, 'Lately noticed'), ...some(c.noticed.slice().reverse(), 3, `noticed:${c.id}`, (t) => thoughtItem(t, false)));
+  } else if (cardTab === 'talk') {
+    parts.push(...talkSection());
+  } else {
+    parts.push(...moneySection());
+  }
   showCard(parts);
 }
 
@@ -336,9 +404,11 @@ function scheduleCard(): void {
 
 function pick(id: string | null): void {
   if (id !== selected) {
-    cardTab = 'card';
+    cardTab = 'plan';
     talk = null;
+    moneyView = null;
     lastCard = null;
+    expanded.clear();
   }
   selected = id;
   selectedPlace = null;
@@ -404,8 +474,155 @@ function wireZoom(): void {
 }
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') pick(null);
+  if (e.key !== 'Escape') return;
+  if (wikiOpen) showWiki(false);
+  else pick(null);
 });
+
+// ---------------------------------------------------------------- the wiki
+
+type WikiTab = 'people' | 'places' | 'how' | 'economy' | 'news';
+let wikiTab: WikiTab = 'people';
+let wikiOpen = false;
+
+/** Changelog text with its **bold** and `code` shown as such, and links as their words; never as HTML. */
+function richText(text: string): (Node | string)[] {
+  const plain = text.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1');
+  return plain.split(/(\*\*[^*]+\*\*|`[^`]+`)/).filter(Boolean).map((part) => {
+    if (part.startsWith('**') && part.endsWith('**')) return el('strong', {}, part.slice(2, -2));
+    if (part.startsWith('`') && part.endsWith('`')) return el('code', {}, part.slice(1, -1));
+    return part;
+  });
+}
+
+function bars(rows: { name: string; cents: number }[], none: string): HTMLElement {
+  if (!rows.length) return el('p', { class: 'note' }, none);
+  const top = Math.max(1, ...rows.map((r) => r.cents));
+  return el('ul', { class: 'bars' }, ...rows.map((r) => {
+    const fill = el('i');
+    fill.style.width = `${Math.round((100 * r.cents) / top)}%`;
+    return el('li', {}, el('span', {}, r.name), el('span', { class: 'bar' }, fill), el('span', { class: 'v' }, money(r.cents)));
+  }));
+}
+
+function economyView(e: Economy): Node[] {
+  const table = el('table', {},
+    el('thead', {}, el('tr', {}, ...['Day', 'GDP', 'Value traded', 'Sales', 'Money in town', 'Money in', 'Money out'].map((h) => el('th', {}, h)))),
+    el('tbody', {}, ...e.days.slice().reverse().map((d) => el('tr', {},
+      el('td', {}, d.label), el('td', {}, d.gdp < 0 ? `−${money(-d.gdp)}` : money(d.gdp)), el('td', {}, money(d.traded)), el('td', {}, String(d.sales)),
+      el('td', {}, money(d.moneyEnd)), el('td', {}, money(d.moneyIn)), el('td', {}, money(d.moneyOut))))));
+  const spend = e.spend
+    ? `${money(Math.round(e.spend.usd * 100))} of the ${money(Math.round(e.spend.cap * 100))} daily cap (US dollars, by the real day).`
+    : 'No thinking for real in this town (free fake brains): nothing spent.';
+  return [
+    el('p', { class: 'note' }, 'From the saved events. GDP is what the town made: sales in town and to the lorry, less what it ordered in off the lorry. Value traded counts every sale. Money in and out is across the edge of town: the lorry pays in, orders off it go out.'),
+    el('h4', {}, 'Day by day'),
+    el('div', { class: 'scroll' }, table),
+    el('h4', {}, 'Earned today'), bars(e.income, 'Nobody has earned anything yet today.'),
+    el('h4', {}, 'Money in hand'), bars(e.wealth, 'Nobody here.'),
+    el('h4', {}, 'Jobs'),
+    e.jobs.length ? el('ul', {}, ...e.jobs.map((j) => el('li', {}, `${j.name}: ${j.job}`))) : el('p', { class: 'note' }, 'Nobody works for anybody yet.'),
+    el('h4', {}, 'Debts'),
+    e.debts
+      ? el('div', {}, el('p', {}, `${money(e.debts.total)} owed in all.`), el('ul', {}, ...e.debts.list.map((d) => el('li', {}, `${d.debtor} owes ${d.creditor} ${money(d.cents)}`))))
+      : el('p', { class: 'note' }, 'Nobody owes anybody.'),
+    el('h4', {}, 'Money by shop and by resident'),
+    el('p', { class: 'note' }, 'Open one to see its money by kind, today and this week, and every entry.'),
+    ...e.accounts.map((a) => {
+      const body = el('div', {}, el('p', { class: 'note' }, 'Counting…'));
+      const d = el('details', { class: 'account', 'data-account': a.id }, el('summary', {}, a.name), body);
+      d.addEventListener('toggle', () => {
+        if (!d.open) return;
+        void fetch(`/api/money/${encodeURIComponent(a.id)}`)
+          .then((r) => (r.ok ? r.json() as Promise<MoneyView> : null))
+          .then((m) => body.replaceChildren(...(m ? moneyBlock(m, `wiki:${a.id}`) : [el('p', { class: 'note' }, 'Nothing to show.')])))
+          .catch(() => body.replaceChildren(el('p', { class: 'note' }, "Couldn't reach the town just now.")));
+      });
+      return d;
+    }),
+    el('h4', {}, 'Ledger check'), el('p', {}, e.audit ?? 'Not checked yet.'),
+    el('h4', {}, 'Thinking spend today'), el('p', {}, spend),
+  ];
+}
+
+function wikiView(w: Wiki): Node[] {
+  switch (wikiTab) {
+    case 'people': return [
+      ...w.people.map((p) => el('div', { class: 'entry' },
+        el('h3', {}, `${p.name}${p.age !== null ? `, ${p.age}` : ''}`),
+        el('dl', {},
+          el('dt', {}, 'Is'), el('dd', {}, p.role),
+          el('dt', {}, 'Home'), el('dd', {}, p.home ?? 'nowhere yet'),
+          el('dt', {}, 'Work'), el('dd', {}, p.job ?? 'none yet'),
+          el('dt', {}, 'Money'), el('dd', {}, money(p.money)),
+          el('dt', {}, 'Family and old friends'), el('dd', {}, p.ties.length ? p.ties.map((t) => `${t.name} (${t.how})`).join(', ') : 'nobody here, at first'),
+        ),
+        p.personality ? el('p', { class: 'quote' }, `${p.personality} Wants ${p.want}; worries ${p.worry}.`) : null)),
+      el('p', { class: 'note' }, 'Households and marriages will show here once the kampung has them.'),
+    ];
+    case 'places': return w.places.map((p) => el('div', { class: 'entry' },
+      el('h3', {}, p.name),
+      el('p', {}, p.use),
+      p.owner ? el('dl', {}, el('dt', {}, 'Owner'), el('dd', {}, p.owner), el('dt', {}, 'Workers'), el('dd', {}, p.workers.join(', ') || 'none')) : null,
+      p.home !== null ? el('dl', {}, el('dt', {}, 'Home of'), el('dd', {}, p.home)) : null));
+    case 'how': return w.how.flatMap((sec) => [el('h3', {}, sec.title), ...sec.paras.map((t) => el('p', {}, t))]);
+    case 'economy': return economyView(w.economy);
+    case 'news': return [
+      el('p', {}, `Running v${w.version}.`),
+      ...w.news.flatMap((n) => [el('h3', {}, n.title), el('ul', {}, ...n.lines.map((l) => el('li', {}, ...richText(l))))]),
+    ];
+  }
+}
+
+/** The wiki as fetched when it was opened: tabs switch over it without asking the town again. */
+let wikiData: Wiki | null = null;
+
+function drawWiki(): void {
+  for (const b of $('wiki-tabs').querySelectorAll('button')) b.setAttribute('aria-selected', String((b as HTMLElement).dataset.wiki === wikiTab));
+  if (!wikiData) return;
+  $('wiki-version').textContent = `v${wikiData.version}`;
+  $('wiki-body').replaceChildren(...wikiView(wikiData).filter((n): n is Node => n !== null));
+}
+
+async function loadWiki(): Promise<void> {
+  try {
+    const res = await fetch('/api/wiki');
+    if (!res.ok || !wikiOpen) return;
+    const w = await res.json() as Wiki;
+    if (!wikiOpen) return;
+    wikiData = w;
+    drawWiki();
+  } catch {
+    $('wiki-body').replaceChildren(el('p', { class: 'note' }, "Couldn't reach the town just now. Close the wiki and open it again to retry."));
+  }
+}
+
+/** Opens the wiki (fetching it once) or closes it, moving focus in and back out. */
+function showWiki(open: boolean): void {
+  wikiOpen = open;
+  $('wiki').hidden = !open;
+  document.body.classList.toggle('sheet', open || !$('card').hidden);
+  if (open) {
+    wikiData = null;
+    $('wiki-body').replaceChildren(el('p', { class: 'note' }, 'Opening…'));
+    drawWiki();
+    void loadWiki();
+    $('wiki-close').focus();
+  } else {
+    $('wiki-open').focus();
+  }
+}
+
+function wireWiki(): void {
+  $('wiki-open').addEventListener('click', () => showWiki(true));
+  $('wiki-close').addEventListener('click', () => showWiki(false));
+  for (const b of $('wiki-tabs').querySelectorAll('button')) {
+    b.addEventListener('click', () => {
+      wikiTab = (b as HTMLElement).dataset.wiki as WikiTab;
+      drawWiki();
+    });
+  }
+}
 
 // ---------------------------------------------------------------- replay controls
 
@@ -505,4 +722,5 @@ function connect(): void {
 wireReplay();
 wireZoom();
 wireFeed();
+wireWiki();
 connect();

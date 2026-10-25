@@ -123,7 +123,14 @@ export interface PlaceCard {
   home: { of: string | null } | null;
 }
 
-export interface Thought { t: number; stamp: string; kind: string; text: string }
+export interface Thought {
+  t: number;
+  stamp: string;
+  kind: string;
+  text: string;
+  /** How many near-identical thoughts this one stands for, when more than one. */
+  times?: number;
+}
 
 /** Everything the card shows when the owner clicks a resident. */
 export interface Card extends ResidentView {
@@ -193,4 +200,56 @@ export interface TalkLine { t: number; stamp: string; speaker: string; to: strin
 export interface TalkView {
   name: string;
   talks: { with: string; lines: TalkLine[] }[];
+}
+
+/** One resident on the wiki's People page. */
+export interface WikiPerson {
+  id: string;
+  name: string;
+  role: string;
+  age: number | null;
+  personality: string | null;
+  want: string | null;
+  worry: string | null;
+  home: string | null;
+  job: string | null;
+  money: number;
+  /** Family and old friends, from their card: "son", "aunt", "friend". */
+  ties: { name: string; how: string }[];
+}
+
+export interface WikiPlace { id: string; name: string; kind: string; use: string; owner: string | null; workers: string[]; home: string | null }
+
+export interface WikiSection { title: string; paras: string[] }
+
+/** The economy, from the saved events: per game day (oldest first), and today's picture. */
+export interface Economy {
+  /** gdp: sales in town and to the lorry, less orders off it; traded: every sale's value (gross turnover). */
+  days: { day: number; label: string; gdp: number; traded: number; sales: number; moneyIn: number; moneyOut: number; moneyEnd: number }[];
+  income: { name: string; cents: number }[];
+  wealth: { name: string; cents: number }[];
+  jobs: { name: string; job: string }[];
+  debts: { total: number; list: { debtor: string; creditor: string; cents: number }[] } | null;
+  audit: string | null;
+  spend: { usd: number; cap: number } | null;
+  /** The shops, then the residents, whose money can be opened up (GET /api/money/<id>). */
+  accounts: { id: string; name: string }[];
+}
+
+/** The whole wiki, as the page asks for it. */
+export interface Wiki {
+  version: string;
+  people: WikiPerson[];
+  places: WikiPlace[];
+  how: WikiSection[];
+  economy: Economy;
+  news: { title: string; lines: string[] }[];
+}
+
+/** Money in and out for a resident or a shop: by kind, today and over the week, and every entry. */
+export interface MoneyView {
+  name: string;
+  kinds: { label: string; todayIn: number; todayOut: number; weekIn: number; weekOut: number }[];
+  /** Newest first: money in is positive, money out negative. */
+  entries: { t: number; stamp: string; kind: string; with: string; what: string; cents: number }[];
 }

@@ -310,6 +310,16 @@ export async function startWatchServer(opts: WatchServerOptions): Promise<WatchS
       else send(res, 404, 'text/plain; charset=utf-8', 'Nobody by that name.');
       return;
     }
+    if (path.startsWith('/api/money/')) {
+      const money = source.money(path.slice('/api/money/'.length));
+      if (money) json(res, 200, money);
+      else send(res, 404, 'text/plain; charset=utf-8', 'Nobody by that name.');
+      return;
+    }
+    if (path === '/api/wiki') {
+      json(res, 200, source.wiki());
+      return;
+    }
     if (path.startsWith('/api/talk/')) {
       const talk = source.talk(path.slice('/api/talk/'.length));
       if (talk) json(res, 200, talk);

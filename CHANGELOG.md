@@ -4,6 +4,12 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- Watch page: a **compact resident card**: the name, role, hunger and energy as coloured icons, and money in the header; one "Now" line (what they're doing, where, how hungry and tired); their work; what they carry as chips; an owner's shop folded away; then tabs for **Plan**, **Thoughts**, **Talk** and **Money**. Near-identical thoughts fold into one ("×3"), the model's own "*Ah Kow thinks:*" labels and asterisks are gone, and each list shows 3 with "more". The **Money** tab shows their income and spending by kind (sales, purchases, wages, gifts, trades, loans, repayments, the lorry), today and this week, and every entry (when, with whom, what, how much).
+- Watch page: a **Wiki** button in the header opens the Kampung wiki: **People** (who they are from their cards, home, work, money, family and old friends), **Places** (what each is for and whose it is), **How it works** (needs, money and shops, cooking, fishing and farming, the lorry, work and wages, the calendar, written from the rules in the code so its numbers stay true), **Economy** (per game day for up to a week: GDP (what the town made: sales in town and to the lorry, less orders off it) and value traded, sales, money in town, money in and out across the town's edge; today's earnings and everyone's money as bars; who works for whom; debts; each shop's and resident's money, opened up by kind with every entry; the last ledger check; thinking spend against the daily cap) and **What's new** (this changelog, with the running version). Read-only, from the saved events.
+- Living town: watch-page changes only; nothing in the town or its save changes.
+
 ## 0.11.3 (2026-10-25): residents know their kampung
 
 - **Residents know their kampung:** everyone who has lived here knows every place from day one (the jetty, the farm plot, the well, the notice board, the three shops, the lorry stop, and every house by whose it is). Ah Kow, who arrived last month, knows his house, the well and the kopitiam, and finds the rest. How things work (what the lorry sells, how crops grow, prices) is still found out in play. Since launch nobody had fished or farmed: nobody had found the jetty or the farm plot.

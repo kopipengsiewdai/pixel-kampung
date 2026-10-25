@@ -13,6 +13,7 @@
       <div class="clock" id="clock">Connecting…</div>
       <div class="version" id="version"></div>
       <div class="mode" id="mode"></div>
+      <button type="button" class="wiki-open" id="wiki-open" aria-haspopup="dialog">Wiki</button>
     </div>
     <div class="replay" id="replay" hidden>
       <button type="button" id="play" aria-label="Play or pause">❚❚</button>
@@ -48,6 +49,22 @@
       <ol class="feed" id="feed" reversed></ol>
     </section>
   </main>
+  <section class="wiki" id="wiki" role="dialog" aria-label="Kampung wiki" hidden>
+    <header>
+      <h2>Kampung wiki</h2>
+      <span class="wiki-version" id="wiki-version"></span>
+      <button type="button" class="close" id="wiki-close" aria-label="Close the wiki">×</button>
+    </header>
+    <nav class="tabs" id="wiki-tabs" role="tablist">
+      <button type="button" role="tab" data-wiki="people" aria-selected="true">People</button>
+      <button type="button" role="tab" data-wiki="places" aria-selected="false">Places</button>
+      <button type="button" role="tab" data-wiki="how" aria-selected="false">How it works</button>
+      <button type="button" role="tab" data-wiki="economy" aria-selected="false">Economy</button>
+      <button type="button" role="tab" data-wiki="news" aria-selected="false">What's new</button>
+    </nav>
+    <div class="wiki-body" id="wiki-body"></div>
+    <footer>Owner's view. Nothing in the wiki ever reaches a resident.</footer>
+  </section>
   <script src="/app.js"></script>
 </body>
 </html>

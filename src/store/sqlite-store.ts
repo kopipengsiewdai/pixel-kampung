@@ -132,10 +132,28 @@ export class SqliteStore {
   }
 
   /** The last n lines a resident said or had said to them, newest first (the watch page's Talk tab). */
-  saidBy(id: string, n: number): GameEvent[] {
+  /**
+   * The first event seq after game minute t. Read back from the newest by the
+   * primary key, so it costs only the events since t, never the whole log.
+   */
+  private seqAfter(t: number): number {
+    const row = this.db.prepare('SELECT seq FROM events WHERE t <= ? ORDER BY seq DESC LIMIT 1').get(t) as { seq: number } | undefined;
+    return (row?.seq ?? 0) + 1;
+  }
+
+  /** The last n lines a resident said or had said to them since game minute t, newest first (the watch page's Talk tab). */
+  saidBy(id: string, n: number, sinceT: number): GameEvent[] {
     const rows = this.db.prepare(
-      "SELECT data FROM events WHERE type = 'said' AND (json_extract(data, '$.who') = ? OR json_extract(data, '$.to') = ?) ORDER BY seq DESC LIMIT ?",
-    ).all(id, id, n) as { data: string }[];
+      "SELECT data FROM events WHERE seq >= ? AND type = 'said' AND (json_extract(data, '$.who') = ? OR json_extract(data, '$.to') = ?) ORDER BY seq DESC LIMIT ?",
+    ).all(this.seqAfter(sinceT), id, id, n) as { data: string }[];
+    return rows.map((r) => JSON.parse(r.data) as GameEvent);
+  }
+
+  /** Events of these types after game minute t, oldest first (the watch page's wiki), read by seq. */
+  eventsSince(t: number, types: readonly string[]): GameEvent[] {
+    const rows = this.db.prepare(
+      `SELECT data FROM events WHERE seq >= ? AND type IN (${types.map(() => '?').join(',')}) ORDER BY seq`,
+    ).all(this.seqAfter(t), ...types) as { data: string }[];
     return rows.map((r) => JSON.parse(r.data) as GameEvent);
   }
 

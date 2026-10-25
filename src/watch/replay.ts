@@ -9,6 +9,7 @@ import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import { feedLine, keepFeed, type FeedLine } from '../feed/feed.ts';
+import { ECONOMY_EVENTS } from './wiki.ts';
 import type { MemoryKind } from '../mind/memory.ts';
 import type { GameEvent } from '../sim/events.ts';
 import { createWorld } from '../sim/seed.ts';
@@ -91,7 +92,8 @@ export interface ReplayInfo {
 
 const THOUGHT_KINDS: MemoryKind[] = ['thought', 'reflection'];
 const PLAN_PREFIX = /^My plan for today:\s*/;
-const SHOWN = 6;
+/** How many of each kind the card is given: near-identical thoughts fold together, and it shows 3 at first. */
+const SHOWN = 12;
 /** Trials start from the default cast; ids and names don't depend on the seed. */
 const CAST_NAMES: Record<string, string> = Object.fromEntries(createWorld(0, 0).residents.map((r) => [r.id, r.name]));
 
@@ -213,6 +215,16 @@ export class ReplayReader {
     const rows = this.db.prepare(
       "SELECT data FROM replay_events WHERE t <= ? AND json_extract(data, '$.type') = 'said' AND (json_extract(data, '$.who') = ? OR json_extract(data, '$.to') = ?) ORDER BY seq DESC LIMIT ?",
     ).all(t, id, id, n) as { data: string }[];
+    return rows.map((r) => JSON.parse(r.data) as GameEvent);
+  }
+
+  /** Money changing hands after t0, up to and including t1 (the wiki's Economy section). */
+  moneyEvents(t0: number, t1: number): GameEvent[] {
+    if (!this.frames) return [];
+    const types = [...ECONOMY_EVENTS];
+    const rows = this.db.prepare(
+      `SELECT data FROM replay_events WHERE t > ? AND t <= ? AND json_extract(data, '$.type') IN (${types.map(() => '?').join(',')}) ORDER BY seq`,
+    ).all(t0, t1, ...types) as { data: string }[];
     return rows.map((r) => JSON.parse(r.data) as GameEvent);
   }
 
