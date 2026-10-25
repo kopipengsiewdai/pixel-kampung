@@ -127,8 +127,8 @@ function renderCard(c: Card): void {
     parts.push(el('dl', {},
       el('dt', {}, 'Stock'), el('dd', {}, c.shop.stock.map((x) => x.label).join(', ') || 'empty'),
       el('dt', {}, 'Sells'), el('dd', {}, c.shop.sells.join(', ') || 'no prices yet'),
-      el('dt', {}, 'Buys'), el('dd', {}, c.shop.buys.join(', ') || 'nothing'),
-      el('dt', {}, 'Open'), el('dd', {}, c.shop.staffed ? 'someone is minding it' : 'nobody minding it'),
+      el('dt', {}, 'Buying from others'), el('dd', {}, c.shop.buys.join(', ') || 'not buying anything right now'),
+      el('dt', {}, 'Minding the shop'), el('dd', {}, c.minding ?? 'nobody right now'),
     ));
   }
   if (c.wages.length) parts.push(el('h4', {}, 'Wages'), el('ul', {}, ...c.wages.map((w) => el('li', {}, w))));
@@ -161,11 +161,11 @@ function placeCardView(c: PlaceCard): void {
   if (c.shop) {
     parts.push(el('dl', {},
       el('dt', {}, 'Owner'), el('dd', {}, c.shop.owner),
-      el('dt', {}, 'Serving'), el('dd', {}, c.shop.serving ?? 'nobody minding it'),
+      el('dt', {}, 'Minding the shop'), el('dd', {}, c.shop.serving ?? 'nobody right now'),
       el('dt', {}, 'Workers'), el('dd', {}, list(c.shop.workers, 'none')),
       el('dt', {}, 'Stock'), el('dd', {}, list(c.shop.stock.map((x) => x.label), 'empty')),
       el('dt', {}, 'Sells'), el('dd', {}, list(c.shop.sells, 'no prices yet')),
-      el('dt', {}, 'Buys'), el('dd', {}, list(c.shop.buys, 'nothing')),
+      el('dt', {}, 'Buying from others'), el('dd', {}, list(c.shop.buys, 'not buying anything right now')),
     ));
   }
   if (c.notes) {

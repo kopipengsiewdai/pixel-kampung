@@ -10,6 +10,11 @@ never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 - **The money ledger reconciles from nothing:** every purse's starting money is written down as an opening entry, and once a game day (and on start) the live town replays the ledger against every purse and writes `ledger OK` or `ledger MISMATCH: …` to its log.
 - **Living town:** at upgrade (save v7) nobody owes anybody, which is true (a payment for a debt that never was stays a gift), and the ledger opens with every resident's money as it stands; the nightly check counts from those opening entries.
 
+## 0.10.7 (2026-10-25)
+
+- Watch page: shop cards say who is minding the shop ("Ah Huat (the owner)", "Siti (on shift)", or "nobody right now") instead of "someone is minding it", and "Buys" is now "Buying from others" ("not buying anything right now" when no buying prices are set).
+- Living town: a watch-page change only.
+
 ## 0.10.6 (2026-10-25): going somewhere together
 
 - **Going somewhere together:** when someone you've just been talking with sets off, you notice and think again straight away, and you can go with them to where they're heading (or after them, if they've already stopped). The feed shows it: "Rahim goes with Ah Huat to the kopitiam." Before this, someone who said yes to "come with me" stayed put while the other walked off.
