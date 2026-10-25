@@ -169,6 +169,11 @@ export const UPGRADES: readonly Upgrade[] = [
       return { world: { ...world, residents }, brains };
     },
   },
+  {
+    from: 8,
+    why: 'A buyer can offer less than a shop asks, and whoever minds the counter can take it or turn it down; no offers are waiting yet.',
+    save: ({ world, brains }) => ({ world: { ...world, priceOffers: [] }, brains }),
+  },
 ];
 
 /** The save version this code writes and reads. */

@@ -115,6 +115,18 @@ export interface Debt {
   what: string | null;
 }
 
+/** A price offered at a shop's counter, below what it asks: waiting on whoever minds the counter. */
+export interface PriceOffer {
+  id: number;
+  buyerId: string;
+  shopId: string;
+  item: ItemId;
+  qty: number;
+  /** The whole sum offered. */
+  cents: Cents;
+  expires: number;
+}
+
 /** Money offered or asked about, waiting on the other one's yes: a loan offered, a loan asked for, or an IOU. */
 export interface DebtOffer {
   id: number;
@@ -160,6 +172,7 @@ export interface WorldState {
   owed: Owed[];
   debts: Debt[];
   debtOffers: DebtOffer[];
+  priceOffers: PriceOffer[];
   beds: Bed[];
   notes: Note[];
   lorryHere: boolean;

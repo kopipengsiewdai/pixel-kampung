@@ -173,6 +173,18 @@ and `today: { day, served, left, away, tooDear }`, fresh; Activity gains
 **Fake brain:** an owner hires whoever asked once 5 customers have left
 unserved today; a seeker asks for work on seeing "serving alone".
 
+## Haggling at the counter (PR 15)
+
+A buyer can name the money they offer with `buy`; below the shop's price it
+waits for whoever minds the counter, who agrees or refuses (naming the item
+when that person also has a money matter pending, or they're asked which).
+**A worker on shift can take an offer only down to four-fifths of the
+posted price ("That's below what Mdm Tan lets you take."); an owner can take
+any price** (owner's call, recorded 2026-10-25). Taking never charges more
+than the shop asks at that moment. An offer lapses after 5 minutes, or when
+the buyer leaves or nobody minds the counter, and the buyer hears it wasn't
+taken. A worker never sees or takes their own offer.
+
 ## C. More to do each day
 
 **1. Look around.** Main's 0.10.1 made its reply short and stopped it

@@ -85,7 +85,18 @@ Ordered stock is dropped off at the owner's shop.
 - Kopitiam cooking (one batch), by the owner or a worker on shift: 1 coffee →
   5 kopi; 1 fish + 1 rice → 2 fish porridge; 1 vegetables + 1 rice → 2
   vegetable rice.
-- On shift, a worker can still look around, talk and (at the kopitiam) cook,
+- Haggling at the counter: `buy` can name the money offered. At or above the
+  shop's price it's an ordinary sale at the shop's price (nobody overpays).
+  Below it, it's an offer whoever minds the counter (the owner there, or a
+  worker on shift) sees ("Ah Seng offers 16¢ for a bunch of vegetables.")
+  and can agree to or refuse; taken, it's a sale at that price, the money to
+  the owner, never more than the shop asks at that moment. A worker on
+  shift can take only down to four-fifths of the price; the owner, any. It
+  lapses after 5 minutes, or once the buyer leaves or nobody minds the
+  counter, and the buyer hears it wasn't taken. A gift of no money or none
+  of something is refused ("You'd be giving nothing.").
+- On shift, a worker can still look around, talk, answer an offer at the
+  counter and (at the kopitiam) cook,
   without leaving the shift.
 
 ## Fishing and farming

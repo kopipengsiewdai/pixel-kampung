@@ -1,4 +1,5 @@
 import { isRipe, isStaffed, shiftLabel, shopHere } from './actions/everyone.ts';
+import { offersFor } from './actions/haggle.ts';
 import type { DealKind } from './talk.ts';
 import { availableActions } from './actions/index.ts';
 import { ITEMS, LORRY_BUYS, LORRY_SELLS, quantityLabel, type ItemId } from './items.ts';
@@ -91,6 +92,8 @@ export interface Perception {
   trades: { from: string; give: string; want: string }[];
   /** Money they owe and are owed, summed per person (an IOU's words with it), and wages owed to them. */
   debts: { owe: { name: string; cents: Cents; what: string | null }[]; owedYou: { name: string; cents: Cents; what: string | null }[]; wages: { name: string; cents: Cents }[] };
+  /** Prices offered at a counter they're minding, below what the shop asks. */
+  priceOffers: { from: string; item: ItemId; qty: number; cents: Cents; asking: Cents }[];
   /** Loans offered or asked for, and IOUs written to them, waiting on their yes. */
   moneyOffers: { from: string; kind: 'lend' | 'borrow' | 'iou'; cents: Cents; what: string | null }[];
   recent: string[];
@@ -224,6 +227,9 @@ export function perceive(w: World, r: Resident): Perception {
       owedYou: debtsBy(w, (d) => d.creditor === r.id, (d) => d.debtor),
       wages: w.state.owed.filter((o) => o.workerId === r.id).map((o) => ({ name: w.resident(o.employerId).name, cents: o.cents })),
     },
+    priceOffers: offersFor(w, r).map((o) => ({
+      from: w.resident(o.buyerId).name, item: o.item, qty: o.qty, cents: o.cents, asking: (w.shop(o.shopId)!.sellPrices[o.item] ?? 0) * o.qty,
+    })),
     moneyOffers: w.state.debtOffers.filter((o) => o.toId === r.id)
       .map((o) => ({ from: w.resident(o.fromId).name, kind: o.kind, cents: o.cents, what: o.what })),
     recent: r.recent.map((o) => o.text),
@@ -341,6 +347,7 @@ export function describe(p: Perception): string {
   if (p.freeBeds !== null) lines.push(`${p.freeBeds} bed${p.freeBeds === 1 ? ' is' : 's are'} free on the plot.`);
   for (const o of p.jobOffers) lines.push(`${o.from} has offered you work ${shiftLabel(o.startHour, o.hours)} for ${formatMoney(o.wage)} a shift.`);
   for (const t of p.trades) lines.push(`${t.from} offers you ${t.give} for ${t.want}.`);
+  for (const o of p.priceOffers) lines.push(`${o.from} offers ${formatMoney(o.cents)} for ${quantityLabel(o.item, o.qty)}.`);
   for (const o of p.moneyOffers) {
     const sum = formatMoney(o.cents);
     lines.push(o.kind === 'lend' ? `${o.from} offers to lend you ${sum}.`
