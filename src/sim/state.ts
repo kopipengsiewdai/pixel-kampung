@@ -43,6 +43,8 @@ export interface Resident {
   recent: Observation[];
   /** What happened when they last tried something, shown when they next think. */
   reply: { ok: boolean; text: string } | null;
+  /** The last thing they did that went through (written the same way each time), and when: doing it again straight away doesn't bring the next thought on. */
+  lastDone: { what: string; t: number } | null;
   /** Place ids they know of: seen, or heard named. They start knowing only home. */
   knownPlaces: string[];
   /** Resident ids they've met. */

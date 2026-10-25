@@ -41,6 +41,12 @@ export class FakeModel implements ModelClient {
     return { verb: 'say', text: 'Morning! Yes, about that deal...', to: who };
   }
 
+  /** Someone is waiting for your answer: give them one, as a resident told so plainly would. */
+  private answerWaiting(p: Perception): Intent | null {
+    const who = p.waiting?.[0];
+    return who ? { verb: 'say', text: 'Sorry, give me a moment... yes?', to: who } : null;
+  }
+
   private brain(id: string): FakeBrain {
     let b = this.brains.get(id);
     if (!b) {
@@ -79,7 +85,7 @@ export class FakeModel implements ModelClient {
     else if (req.kind === 'reflect') text = 'A long day. I should keep some money aside for tomorrow.';
     else {
       const p = req.hint as Perception;
-      const intent = (this.chatty ? this.answer(p) : null) ?? this.brain(req.residentId).decide(p);
+      const intent = (this.chatty ? this.answer(p) : null) ?? this.answerWaiting(p) ?? this.brain(req.residentId).decide(p);
       toolCall = { name: 'do', input: intent ? fromIntent(intent) : { action: 'potter about' } };
       // Now and then a passing thought, as a real model would write before acting.
       if (req.kind === 'business' || req.t % 7 === 0) text = intent ? `Better ${intent.verb.replace(/_/g, ' ')}.` : 'Nothing to do just now.';

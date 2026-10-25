@@ -86,6 +86,29 @@ export const UPGRADES: readonly Upgrade[] = [
       };
     },
   },
+  {
+    from: 3,
+    why: "Residents remember what they last did, so doing the same thing again straight away doesn't keep them from answering anyone.",
+    save: ({ world, brains }) => {
+      // The free fake brain's weekday labels ("done the lorry run on Tuesday") that aren't today's are
+      // stale: some came from before the v3 calendar. It only ever compares a label with today, so they
+      // are cleared. Today's weekday by the kampung's week, as calendar.ts had it at v4 (frozen).
+      const day = Math.floor(((world.t as number) + 8 * 60) / 1440);
+      const firstDay = (world.calendar as { firstDay: number }).firstDay;
+      const today = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'][(((day - firstDay) % 7) + 7) % 7]!;
+      const keep = (d: unknown) => (d === today ? d : typeof d === 'string' ? '' : d);
+      const fresh = Object.fromEntries(Object.entries(brains).map(([id, b]) => {
+        if (!b || typeof b !== 'object' || !('lorryDay' in b)) return [id, b];
+        const fb = b as { lorryDay: unknown; buyDays?: Record<string, unknown> };
+        const buyDays = Object.fromEntries(Object.entries(fb.buyDays ?? {}).map(([k, v]) => [k, keep(v)]));
+        return [id, { ...fb, lorryDay: keep(fb.lorryDay), buyDays }];
+      }));
+      return {
+        world: { ...world, residents: (world.residents as Record<string, unknown>[]).map((r) => ('lastDone' in r ? r : { ...r, lastDone: null })) },
+        brains: fresh,
+      };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */
