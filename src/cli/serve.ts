@@ -72,6 +72,7 @@ const live = new LiveSource({
   label: mem ? 'Live town (thinking for real)' : 'Live town',
   msPerMinute: REAL_MS_PER_GAME_MINUTE,
   extras: mem ? (id, t) => extrasFrom((r, k, up, n) => mem.latest(r, k, up, n), id, t, town.world.state) : undefined,
+  said: (id, n) => store.saidBy(id, n),
 });
 const hooks = live.hooks();
 const onEvent = (e: GameEvent) => {

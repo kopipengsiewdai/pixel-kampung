@@ -103,7 +103,18 @@ describe('the watch page in a browser', () => {
     const url = await watch('--fake', '--speed', '600');
     const { page, foreign, errors } = await visit(url);
     expect(await colours(page)).toBeGreaterThan(40);
+    // The feed shows key moments by default; "All" shows everything, and the choice is remembered.
+    expect(await page.locator('#feed-key').getAttribute('aria-pressed')).toBe('true');
+    await expect.poll(() => page.locator('#feed li').count(), { timeout: 30_000 }).toBeGreaterThan(0);
+    await page.locator('#feed-all').click();
+    expect(await page.locator('#feed-all').getAttribute('aria-pressed')).toBe('true');
     await expect.poll(() => page.locator('#feed li').count()).toBeGreaterThan(3);
+    const all = await page.locator('#feed li').count();
+    await page.reload();
+    await expect.poll(() => page.locator('#feed-all').getAttribute('aria-pressed')).toBe('true');
+    await page.locator('#feed-key').click();
+    await expect.poll(() => page.locator('#feed li').count()).toBeLessThanOrEqual(all + 50);
+    expect(await page.locator('#feed-key').getAttribute('aria-pressed')).toBe('true');
     await expect.poll(() => page.locator('#clock').textContent()).toMatch(/Monday 1 January, Year 0, \d\d:\d\d/);
     expect(await page.locator('#replay').isVisible()).toBe(false);
 
@@ -114,6 +125,28 @@ describe('the watch page in a browser', () => {
     expect(await card.textContent()).toMatch(/Money\$?\d|Money\d/);
     expect(await card.textContent()).toContain('Nothing on this card ever reaches a resident');
     if (shots) await page.screenshot({ path: join(shots, 'watch-live.png') });
+
+    // The Talk tab: their conversations, fetched when it opens; the card comes back with its own tab.
+    await card.locator('[data-tab=talk]').click();
+    await expect.poll(() => card.textContent()).toMatch(/With |Nothing said yet/);
+    expect(await card.locator('[data-tab=talk]').getAttribute('aria-selected')).toBe('true');
+    if (shots) await page.screenshot({ path: join(shots, 'watch-talk.png') });
+    await card.locator('[data-tab=card]').click();
+    await expect.poll(() => card.textContent()).toMatch(/Money/);
+    // Someone who has talked: their Talk tab shows who they talked with, and the lines.
+    const ids = await page.locator('#roster button').evaluateAll((bs) => bs.map((b) => (b as HTMLElement).dataset.id!));
+    const talker = async () => {
+      for (const id of ids) {
+        const t = await (await fetch(new URL(`/api/talk/${id}`, url))).json() as { talks: unknown[] };
+        if (t.talks.length) return id;
+      }
+      return null;
+    };
+    await expect.poll(talker, { timeout: 60_000 }).not.toBeNull();
+    await page.locator(`#roster button[data-id="${(await talker())!}"]`).click();
+    await card.locator('[data-tab=talk]').click();
+    await expect.poll(() => card.textContent()).toMatch(/With .*“/);
+    if (shots) await page.screenshot({ path: join(shots, 'watch-talk-lines.png') });
 
     // Click a place on the map itself, at least 2 tiles from anyone: its card opens, with what's inside.
     type Point = { x: number; y: number } | null;
@@ -168,6 +201,9 @@ describe('the watch page in a browser', () => {
     const feed = (await page.locator('#feed').boundingBox())!;
     expect(feed.y).toBeGreaterThanOrEqual(map.y + map.height - 1);
 
+    // The feed's toggle is big enough to tap.
+    expect((await page.locator('#feed-all').boundingBox())!.height).toBeGreaterThanOrEqual(44);
+
     // Resident chips are big enough to tap.
     const chip = page.locator('#roster button', { hasText: 'Siti' });
     await chip.waitFor({ state: 'visible' }); // the roster fills after the first frame; reading it earlier was flaky
@@ -188,6 +224,13 @@ describe('the watch page in a browser', () => {
     expect(closeBox.width).toBeGreaterThanOrEqual(44);
     expect(closeBox.height).toBeGreaterThanOrEqual(44);
     if (shots) await page.screenshot({ path: join(shots, 'phone-card.png') });
+    // The Talk tab works in the sheet too, with a big enough tab to tap.
+    const talkTab = card.locator('[data-tab=talk]');
+    expect((await talkTab.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await talkTab.tap();
+    await expect.poll(() => card.textContent()).toMatch(/With |Nothing said yet/);
+    expect(await noSideways()).toBe(true);
+    if (shots) await page.screenshot({ path: join(shots, 'phone-talk.png') });
     await close.tap();
     await expect.poll(() => card.isVisible()).toBe(false);
     expect(await noSideways()).toBe(true);

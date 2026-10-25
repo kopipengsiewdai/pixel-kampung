@@ -11,7 +11,8 @@ import { energyWord, hungerWord } from '../sim/perception.ts';
 import type { Goods, Resident, Shop, World } from '../sim/state.ts';
 import { dateAt, MONTHS, shortStamp } from '../sim/calendar.ts';
 import { dayIndex, minuteOfDay, sgtHour, sgtMinute } from '../sim/time.ts';
-import type { Card, Carried, Frame, Layout, PlaceCard, ResidentView, ShopView, Thought } from './types.ts';
+import type { GameEvent } from '../sim/events.ts';
+import type { Card, Carried, Frame, Layout, PlaceCard, ResidentView, ShopView, TalkLine, Thought } from './types.ts';
 import { LORRY_ARRIVES, LORRY_LEAVES } from '../sim/tick.ts';
 
 export function layoutOf(w: World): Layout {
@@ -245,4 +246,35 @@ export function placeCardOf(frame: Frame, layout: Layout, id: string): PlaceCard
   }
   if (place.kind === 'house') card.home = { of: frame.residents.find((r) => r.homeId === id)?.name ?? null };
   return card;
+}
+
+/** How many of a resident's lines of talk the card's Talk tab holds. */
+export const TALK_LINES = 50;
+/** Quiet minutes after which the same two are in a new conversation. */
+export const TALK_GAP = 10;
+
+/**
+ * A resident's conversations from the saved talk: what they said and what was
+ * said to them, newest first, the last TALK_LINES lines. A new partner, or
+ * more than TALK_GAP quiet minutes, starts a new conversation.
+ */
+export function talkOf(events: readonly GameEvent[], id: string, name: (id: string) => string, w: { calendar: { firstDay: number } }): { with: string; lines: TalkLine[] }[] {
+  const said = events
+    .filter((e): e is Extract<GameEvent, { type: 'said' }> => e.type === 'said' && (e.who === id || e.to === id))
+    .sort((a, b) => b.seq - a.seq)
+    .slice(0, TALK_LINES);
+  const talks: { with: string; lines: TalkLine[] }[] = [];
+  let partner: string | null = null;
+  let lastT = Infinity;
+  for (const e of said) {
+    const other = e.who === id ? (e.to ?? '') : e.who;
+    const current = talks.at(-1);
+    if (!current || other !== partner || lastT - e.t > TALK_GAP) {
+      talks.push({ with: other ? name(other) : 'everyone nearby', lines: [] });
+      partner = other;
+    }
+    lastT = e.t;
+    talks.at(-1)!.lines.push({ t: e.t, stamp: shortStamp(w, e.t), speaker: name(e.who), to: e.to ? name(e.to) : null, text: e.text, mine: e.who === id });
+  }
+  return talks;
 }

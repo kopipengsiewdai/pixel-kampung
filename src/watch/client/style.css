@@ -129,6 +129,12 @@ body {
 .roster button .dot.asleep { background: #5a6a8a; }
 .roster button .dot.working { background: var(--accent); }
 
+.feed-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.toggle { display: inline-flex; border: 1px solid var(--line); border-radius: 3px; overflow: hidden; }
+.toggle button { background: var(--panel-2); color: var(--ink); border: none; padding: 2px 8px; cursor: pointer; font: inherit; font-size: 12px; }
+.toggle button + button { border-left: 1px solid var(--line); }
+.toggle button[aria-pressed=true] { background: var(--ink); color: var(--panel); }
+
 .feed {
   list-style: none;
   margin: 0;
@@ -180,6 +186,11 @@ body {
 .card .quote { font-style: italic; }
 .card .stamp { color: var(--muted); font-size: 12px; margin-right: 4px; }
 .card .note { color: var(--muted); font-size: 12px; }
+.card .tabs { display: flex; gap: 0; margin: 2px 0 6px; border-bottom: 1px solid var(--line); }
+.card .tabs button { background: none; color: var(--muted); border: none; border-bottom: 3px solid transparent; padding: 4px 10px; cursor: pointer; font: inherit; }
+.card .tabs button[aria-selected=true] { color: var(--ink); border-bottom-color: var(--accent); font-weight: 600; }
+.card .talk li.mine { color: var(--ink); }
+.card .talk li .who { font-weight: 600; margin-right: 4px; }
 .card footer { margin-top: 10px; font-size: 11px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 6px; }
 
 @media (max-width: 900px) {
@@ -249,5 +260,7 @@ body {
   }
   .card header { position: sticky; top: -8px; background: var(--panel); padding: 8px 0; align-items: center; }
   .card .close { min-width: 44px; min-height: 44px; font-size: 28px; border: 2px solid var(--line); border-radius: 4px; }
+  .card .tabs button { min-height: 44px; padding: 8px 16px; font-size: 15px; }
+  .toggle button { min-height: 44px; padding: 8px 12px; font-size: 14px; }
   .card dd, .card li { overflow-wrap: anywhere; }
 }

@@ -38,7 +38,13 @@
     </section>
     <section class="side">
       <nav class="roster" id="roster" aria-label="Residents"></nav>
-      <h2>Story feed</h2>
+      <div class="feed-head">
+        <h2>Story feed</h2>
+        <div class="toggle" role="group" aria-label="Which moments to show">
+          <button type="button" id="feed-key" aria-pressed="true">Key moments</button>
+          <button type="button" id="feed-all" aria-pressed="false">All</button>
+        </div>
+      </div>
       <ol class="feed" id="feed" reversed></ol>
     </section>
   </main>

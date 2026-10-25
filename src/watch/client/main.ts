@@ -3,7 +3,7 @@
  * owner clicks, and replay controls. Read-only: it only listens to the town.
  * Everything residents said or thought is shown as text, never as HTML.
  */
-import type { Card, FeedLine, Hello, PlaceCard, ReplayState, Thought, Update } from '../types.ts';
+import type { Card, FeedLine, Hello, PlaceCard, ReplayState, TalkView, Thought, Update } from '../types.ts';
 import { startGame, type TownScene } from './scene.ts';
 
 const FEED_KEPT = 200;
@@ -68,16 +68,66 @@ function shortClock(clock: string): string {
   return clock.replace(/^(\w{3})\w* (\d+) (\w{3})\w*, Year \d+, /, '$1 $2 $3, ');
 }
 
+/** Key moments only (the default), or everything. Remembered in this browser, if it lets us. */
+type FeedMode = 'key' | 'all';
+const FEED_MODE_KEY = 'kampung.feed';
+let feedMode: FeedMode = 'key';
+try {
+  if (localStorage.getItem(FEED_MODE_KEY) === 'all') feedMode = 'all';
+} catch {
+  // Storage blocked (a private window): key moments, as by default.
+}
+/** Every line in hand, oldest first: the latest, and key moments from before them (as the server keeps them). */
+let feedLines: FeedLine[] = [];
+
+const shows = (l: FeedLine) => feedMode === 'all' || l.key;
+
+function keep(lines: FeedLine[]): FeedLine[] {
+  const out: FeedLine[] = [];
+  let keys = 0;
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const l = lines[i]!;
+    const recent = lines.length - i <= FEED_KEPT;
+    if (recent || (l.key && keys < FEED_KEPT)) out.push(l);
+    if (l.key) keys++;
+    if (!recent && keys >= FEED_KEPT) break;
+  }
+  return out.reverse();
+}
+
+function drawFeed(): void {
+  $('feed').replaceChildren(...feedLines.filter(shows).slice(-FEED_KEPT).reverse().map(feedItem));
+  $('feed-key').setAttribute('aria-pressed', String(feedMode === 'key'));
+  $('feed-all').setAttribute('aria-pressed', String(feedMode === 'all'));
+}
+
 function setFeed(lines: FeedLine[]): void {
-  const feed = $('feed');
-  feed.replaceChildren(...lines.slice(-FEED_KEPT).reverse().map(feedItem));
+  feedLines = keep(lines);
+  drawFeed();
 }
 
 function addFeed(lines: FeedLine[]): void {
   if (!lines.length) return;
+  feedLines = keep([...feedLines, ...lines]);
   const feed = $('feed');
-  for (const l of lines) feed.prepend(feedItem(l));
+  for (const l of lines) if (shows(l)) feed.prepend(feedItem(l));
   while (feed.children.length > FEED_KEPT) feed.lastElementChild!.remove();
+}
+
+function setFeedMode(mode: FeedMode): void {
+  feedMode = mode;
+  try {
+    localStorage.setItem(FEED_MODE_KEY, mode);
+  } catch {
+    // Not remembered, but still shown.
+  }
+  drawFeed();
+}
+
+function wireFeed(): void {
+  $('feed-key').addEventListener('click', () => setFeedMode('key'));
+  $('feed-all').addEventListener('click', () => setFeedMode('all'));
+  drawFeed();
 }
 
 // ---------------------------------------------------------------- roster
@@ -107,11 +157,65 @@ function thoughtItem(t: Thought, quote: boolean): HTMLLIElement {
   return el('li', {}, el('span', { class: 'stamp' }, t.stamp), quote ? el('span', { class: 'quote' }, `“${t.text}”`) : t.text);
 }
 
+/** Which tab of a resident's card is open, and their talk once fetched for it. */
+let cardTab: 'card' | 'talk' = 'card';
+let talk: { id: string; view: TalkView | null } | null = null;
+let lastCard: Card | null = null;
+
+async function loadTalk(id: string): Promise<void> {
+  try {
+    const res = await fetch(`/api/talk/${encodeURIComponent(id)}`);
+    const view = res.ok ? await res.json() as TalkView : null;
+    if (selected !== id) return;
+    talk = { id, view };
+  } catch {
+    if (selected !== id) return;
+    talk = { id, view: null };
+  }
+  if (lastCard && lastCard.id === id) renderCard(lastCard);
+}
+
+function showTab(tab: 'card' | 'talk'): void {
+  cardTab = tab;
+  if (tab === 'talk' && selected) {
+    talk = null;
+    void loadTalk(selected);
+  }
+  if (lastCard) renderCard(lastCard);
+}
+
+function talkSection(): (Node | null)[] {
+  if (!talk || !selected || talk.id !== selected) return [el('p', { class: 'note' }, 'Listening back…')];
+  if (!talk.view) return [el('p', { class: 'note' }, "Couldn't fetch their talk just now. Open the tab again to retry.")];
+  if (!talk.view.talks.length) return [el('p', { class: 'note' }, 'Nothing said yet.')];
+  return talk.view.talks.flatMap((g) => [
+    el('h4', {}, `With ${g.with}`),
+    el('ul', { class: 'talk' }, ...g.lines.map((l) => el('li', l.mine ? { class: 'mine' } : {},
+      el('span', { class: 'stamp' }, l.stamp),
+      el('span', { class: 'who' }, `${l.speaker}${l.to ? ` to ${l.to}` : ''}:`),
+      el('span', { class: 'quote' }, `“${l.text}”`)))),
+  ]);
+}
+
 function renderCard(c: Card): void {
+  lastCard = c;
   const close = el('button', { class: 'close', type: 'button', 'aria-label': 'Close' }, '×');
   close.addEventListener('click', () => pick(null));
-  const parts: (Node | null)[] = [
+  const tab = (name: 'card' | 'talk', label: string) => {
+    const b = el('button', { type: 'button', role: 'tab', 'aria-selected': String(cardTab === name), 'data-tab': name }, label);
+    b.addEventListener('click', () => showTab(name));
+    return b;
+  };
+  const head = [
     el('header', {}, el('h3', {}, c.name), el('span', { class: 'role' }, c.role === 'owner' ? 'shop owner' : 'looking for work'), close),
+    el('nav', { class: 'tabs', role: 'tablist' }, tab('card', 'Card'), tab('talk', 'Talk')),
+  ];
+  if (cardTab === 'talk') {
+    showCard([...head, ...talkSection(), el('footer', {}, "Owner's view. Nothing on this card ever reaches a resident.")]);
+    return;
+  }
+  const parts: (Node | null)[] = [
+    ...head,
     el('dl', {},
       el('dt', {}, 'Doing'), el('dd', {}, c.doing),
       el('dt', {}, 'Where'), el('dd', {}, c.place ?? 'on the footpath'),
@@ -231,6 +335,11 @@ function scheduleCard(): void {
 }
 
 function pick(id: string | null): void {
+  if (id !== selected) {
+    cardTab = 'card';
+    talk = null;
+    lastCard = null;
+  }
   selected = id;
   selectedPlace = null;
   scene?.selectPlace(null);
@@ -395,4 +504,5 @@ function connect(): void {
 
 wireReplay();
 wireZoom();
+wireFeed();
 connect();

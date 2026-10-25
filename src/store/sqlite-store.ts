@@ -131,6 +131,14 @@ export class SqliteStore {
     return rows.map((r) => JSON.parse(r.data) as GameEvent);
   }
 
+  /** The last n lines a resident said or had said to them, newest first (the watch page's Talk tab). */
+  saidBy(id: string, n: number): GameEvent[] {
+    const rows = this.db.prepare(
+      "SELECT data FROM events WHERE type = 'said' AND (json_extract(data, '$.who') = ? OR json_extract(data, '$.to') = ?) ORDER BY seq DESC LIMIT ?",
+    ).all(id, id, n) as { data: string }[];
+    return rows.map((r) => JSON.parse(r.data) as GameEvent);
+  }
+
   ledger(): LedgerEntry[] {
     const rows = this.db.prepare('SELECT seq, t, from_id, to_id, cents, reason FROM ledger ORDER BY seq').all() as
       { seq: number; t: number; from_id: string; to_id: string; cents: number; reason: string }[];
