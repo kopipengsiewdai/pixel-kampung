@@ -23,6 +23,8 @@ const BUBBLE_MS = 4500;
 const OVERLAY_DEPTH = 9000;
 /** Residents draw above every building and prop (still under the night tint), so nobody is hidden inside a shop. */
 const PEOPLE_DEPTH = 5000;
+/** A press that moves further than this (in map pixels) before it lifts is a drag, not a tap. */
+const TAP_SLOP = 12;
 
 interface Pt { x: number; y: number }
 
@@ -293,7 +295,7 @@ export class TownScene extends Phaser.Scene {
     const p = tileCentre(r);
     const sprite = this.add.sprite(p.x, p.y, 'people', look * 4).setOrigin(0.5, 1);
     sprite.setInteractive({ hitArea: new Phaser.Geom.Rectangle(-4, -6, 24, 24), hitAreaCallback: Phaser.Geom.Rectangle.Contains, useHandCursor: true });
-    sprite.on('pointerdown', () => this.hooks.onPick(r.id));
+    sprite.on('pointerup', (ptr: Phaser.Input.Pointer) => { if (this.isTap(ptr)) this.hooks.onPick(r.id); });
     const label = this.add.text(p.x, p.y - 16, r.name, {
       fontFamily: 'ui-monospace, Consolas, monospace', fontSize: '7px', color: '#fdf6e3', stroke: '#1d1d1d', strokeThickness: 2, resolution: 4,
     }).setOrigin(0.5, 1).setDepth(OVERLAY_DEPTH + 5);
@@ -303,6 +305,23 @@ export class TownScene extends Phaser.Scene {
       padding: { x: 3, y: 2 }, resolution: 4, wordWrap: { width: 110 },
     }).setOrigin(0.5, 1).setDepth(OVERLAY_DEPTH + 6).setVisible(false);
     return { view: r, sprite, label, zz, bubble, saidT: r.said?.t ?? -1, bubbleUntil: 0, idle: 'none', look, facing: DOWN, pts: [p], start: 0, dur: 1 };
+  }
+
+  /** A tap or click, not the end of a finger dragging the zoomed map about. */
+  private isTap(ptr: Phaser.Input.Pointer): boolean {
+    return ptr.getDistance() < TAP_SLOP;
+  }
+
+  /** The canvas moved on the page (the page or the zoomed map scrolled): pointers map from where it is now. */
+  moved(): void {
+    this.game.scale.updateBounds();
+  }
+
+  /** Fits the canvas to its box again (after the box changed size, as for the phone zoom). */
+  refit(): void {
+    // refresh() reuses the box size it measured last; measure it again first.
+    this.game.scale.getParentBounds();
+    this.game.scale.refresh();
   }
 
   select(id: string | null): void {
@@ -316,7 +335,7 @@ export class TownScene extends Phaser.Scene {
       const r = this.placeRect(p);
       this.add.zone(r.x, r.y, r.w, r.h).setOrigin(0, 0).setDepth(-5)
         .setInteractive({ useHandCursor: true })
-        .on('pointerdown', () => this.hooks.onPickPlace(p.id));
+        .on('pointerup', (ptr: Phaser.Input.Pointer) => { if (this.isTap(ptr)) this.hooks.onPickPlace(p.id); });
     }
   }
 
@@ -461,6 +480,9 @@ export function startGame(parent: HTMLElement, layout: Layout, hooks: TownHooks)
     backgroundColor: '#121b1b',
     scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
     fps: { target: 30, limit: 30 },
+    // Touches are the page's too: only presses on the canvas itself reach the town (not taps on a card
+    // sheet over it), and a finger can still scroll the page or pan the zoomed map.
+    input: { windowEvents: false, touch: { capture: false } },
     audio: { noAudio: true },
     banner: false,
     scene,

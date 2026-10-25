@@ -63,6 +63,43 @@ resident's prompt; the page only reads the town.
   Same owner's-view rule: nothing on it reaches a resident. Replays of
   trials recorded before place cards show what their frames have.
 
+### On a phone
+
+The owner watches on his phone over home Wi-Fi (`--lan`), so below 600px wide
+the page is one column that scrolls down and never sideways (owner request,
+2026-10-25):
+
+- **Header:** one line, with a short date ("Mon 1 Jan, 07:05"), the version
+  and the mode. Replay controls take a second line when there are any.
+- **Map:** it spans the width at the map's own shape, with
+  `image-rendering: pixelated`. The scale isn't a whole number at phone
+  widths (704 map pixels into about 380), so the pixels stay crisp but not
+  all the same size. A **zoom** button (44px, bottom right of the map) shows
+  the map at twice the size inside its own box, to pan with a finger; the
+  page itself never scrolls sideways. The browser's own pinch zoom still
+  works.
+- **Feed:** stacked below the map, after the resident chips.
+- **Touch:** resident chips, the zoom button, replay controls and a card's
+  close button are at least 44px tall.
+- **Cards:** a resident's or place's card opens as a full-screen sheet with a
+  sticky header and close button, and the page behind it doesn't scroll.
+- **Touch:** Phaser listens only on the canvas and never swallows touches
+  (`windowEvents: false`, no touch capture), so a finger scrolls the page
+  or pans the zoomed map, and a tap on a card sheet never reaches the map
+  beneath it. A press picks someone or a place only when it lifts without
+  having moved (more than 10px is a pan), and the map re-measures where the
+  canvas is as each press starts and ends, so taps land where they look
+  after any scroll.
+- **Desktop:** the layout is unchanged; the header gains only the version.
+- **Later pages** (the wiki, What's new) use the same breakpoint and rules.
+
+The headless page check runs the live fake town at 390×844 (touch, 3×). It
+checks for no sideways overflow, the canvas spanning the width, the feed
+below the map, a one-line header, 44px chips, a card opening as a sheet and
+closing, a tapped place opening its card, a tap inside the sheet not reaching
+the map, a finger drag panning the zoomed map without opening anything, a tap
+landing right after the map moved, and zooming in and out.
+
 ## Speeds and replay
 
 - `--speed` is **game minutes per real minute**: 4 is the live town's pace

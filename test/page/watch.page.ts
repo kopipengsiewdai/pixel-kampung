@@ -54,8 +54,11 @@ async function watch(...args: string[]): Promise<string> {
 
 interface Visit { page: Page; foreign: string[]; errors: string[] }
 
-async function visit(url: string): Promise<Visit> {
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+/** A phone held upright, as the owner watches at home (390×844, touch). */
+const PHONE = { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 };
+
+async function visit(url: string, device: Parameters<Browser['newPage']>[0] = { viewport: { width: 1440, height: 900 } }): Promise<Visit> {
+  const page = await browser.newPage(device);
   const origin = new URL(url).origin;
   const foreign: string[] = [];
   const errors: string[] = [];
@@ -131,8 +134,109 @@ describe('the watch page in a browser', () => {
     await expect.poll(async () => (await lively())?.bubbles ?? 0, { timeout: 30_000 }).toBeGreaterThan(0);
     if (shots) await page.screenshot({ path: join(shots, 'watch-idle.png') });
 
+    // The desktop layout keeps its side column and has no phone zoom button.
+    expect(await page.locator('#zoom').isVisible()).toBe(false);
+    await expect.poll(() => page.locator('#version').textContent()).toMatch(/^v\d+\.\d+\.\d+/);
+
     const health = await (await fetch(new URL('/api/health', url))).json() as { rss: number };
     expect(health.rss).toBeLessThan(500 * 1024 * 1024);
+    expect(foreign).toEqual([]);
+    expect(errors).toEqual([]);
+    await page.close();
+  });
+
+  it('fits a phone held upright: no sideways scroll, the map across the width, big tap targets, cards as a full-screen sheet', async () => {
+    const url = await watch('--fake', '--speed', '600');
+    const { page, foreign, errors } = await visit(url, PHONE);
+    const W = PHONE.viewport.width;
+    const H = PHONE.viewport.height;
+    const noSideways = () => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth && document.body.scrollWidth <= window.innerWidth);
+    expect(await noSideways()).toBe(true);
+    expect(await colours(page)).toBeGreaterThan(40);
+
+    // The header is one compact line: date, version and mode.
+    const header = (await page.locator('header.top').boundingBox())!;
+    expect(header.height).toBeLessThan(56);
+    await expect.poll(() => page.locator('#version').textContent()).toMatch(/^v\d/);
+    await expect.poll(() => page.locator('#clock .short').innerText()).toMatch(/^Mon 1 Jan, \d\d:\d\d$/);
+
+    // The map spans the width; the feed comes below it.
+    const map = (await page.locator('#map canvas').boundingBox())!;
+    expect(map.x).toBeGreaterThanOrEqual(0);
+    expect(map.x + map.width).toBeLessThanOrEqual(W + 0.5);
+    expect(map.width).toBeGreaterThan(W * 0.9);
+    const feed = (await page.locator('#feed').boundingBox())!;
+    expect(feed.y).toBeGreaterThanOrEqual(map.y + map.height - 1);
+
+    // Resident chips are big enough to tap.
+    const chip = page.locator('#roster button', { hasText: 'Siti' });
+    expect((await chip.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    if (shots) await page.screenshot({ path: join(shots, 'phone-town.png') });
+
+    // A card opens as a full-screen sheet with a clear close button, and closes again.
+    await chip.tap();
+    const card = page.locator('#card');
+    await expect.poll(() => card.isVisible()).toBe(true);
+    await expect.poll(() => card.textContent()).toContain('Siti');
+    const sheet = (await card.boundingBox())!;
+    expect(sheet.x).toBeLessThanOrEqual(0.5);
+    expect(sheet.width).toBeGreaterThanOrEqual(W - 1);
+    expect(sheet.height).toBeGreaterThanOrEqual(H * 0.95);
+    const close = card.locator('.close');
+    const closeBox = (await close.boundingBox())!;
+    expect(closeBox.width).toBeGreaterThanOrEqual(44);
+    expect(closeBox.height).toBeGreaterThanOrEqual(44);
+    if (shots) await page.screenshot({ path: join(shots, 'phone-card.png') });
+    await close.tap();
+    await expect.poll(() => card.isVisible()).toBe(false);
+    expect(await noSideways()).toBe(true);
+
+    // Tapping a place on the map opens its card; a tap inside the open sheet never reaches the map beneath it.
+    type Point = { x: number; y: number } | null;
+    const pointOf = (id: string) => page.evaluate((p) => (window as unknown as { __kampung: { placePoint(id: string): Point } }).__kampung.placePoint(p), id);
+    const tapPlace = async (id: string) => {
+      await expect.poll(() => pointOf(id), { timeout: 20_000 }).not.toBeNull();
+      const at = (await pointOf(id))!;
+      await page.touchscreen.tap(at.x, at.y);
+    };
+    await tapPlace('lorry-stop');
+    await expect.poll(() => card.textContent()).toContain('the lorry stop');
+    await tapPlace('provision-shop');
+    await page.waitForTimeout(400);
+    expect(await card.textContent()).toContain('the lorry stop');
+    await card.locator('.close').tap();
+    await expect.poll(() => card.isVisible()).toBe(false);
+
+    // The zoom button doubles the map inside its own box (the page still doesn't scroll sideways), and back.
+    const zoom = page.locator('#zoom');
+    expect((await zoom.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+    await zoom.tap();
+    await expect.poll(async () => (await page.locator('#map canvas').boundingBox())!.width).toBeGreaterThan(W * 1.5);
+    expect(await noSideways()).toBe(true);
+    if (shots) await page.screenshot({ path: join(shots, 'phone-zoomed.png') });
+
+    // A finger drag pans the zoomed map, and opens nothing.
+    const scrollLeft = () => page.evaluate(() => document.getElementById('map')!.scrollLeft);
+    const before = await scrollLeft();
+    const box = (await page.locator('#map').boundingBox())!;
+    const cdp = await page.context().newCDPSession(page);
+    const [sx, sy] = [box.x + box.width / 2, box.y + box.height / 2];
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: sx, y: sy }] });
+    for (let i = 1; i <= 6; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: sx - 25 * i, y: sy }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await expect.poll(scrollLeft).toBeGreaterThan(before + 40);
+    await page.waitForTimeout(600);
+    expect(await card.isVisible()).toBe(false);
+
+    // Right after the map has moved, a tap still lands where it looks.
+    await page.evaluate(() => { const m = document.getElementById('map')!; m.scrollLeft = 120; m.scrollTop = 60; });
+    await tapPlace('provision-shop');
+    await expect.poll(() => card.textContent()).toContain('the provision shop');
+    await card.locator('.close').tap();
+    await expect.poll(() => card.isVisible()).toBe(false);
+    await zoom.tap();
+    await expect.poll(async () => (await page.locator('#map canvas').boundingBox())!.width).toBeLessThanOrEqual(W + 0.5);
+
     expect(foreign).toEqual([]);
     expect(errors).toEqual([]);
     await page.close();
