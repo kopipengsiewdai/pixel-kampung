@@ -33,7 +33,7 @@ export function importanceOf(kind: MemoryKind, text: string): number {
   if (/wages|still owes|paid you|owe/.test(s)) return 7;
   if (/trade|gave you|turned down/.test(s)) return 6;
   if (kind === 'thought') return 4;
-  if (/says to you/.test(s)) return 5;
+  if (/says to you|^you say/.test(s)) return 5;
   if (/says:|says to/.test(s)) return 3;
   if (kind === 'did' && /^(you can't|you don't|nobody|there's|that's|it's)/.test(s)) return 3;
   return 2;

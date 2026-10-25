@@ -4,6 +4,7 @@
  * reports cost per resident-hour against the $0.0139 ceiling.
  *
  *   npm run trial -- --fake [--minds 10] [--hours 24]       free dry run
+ *   npm run trial -- --fake --chatty                        ...where everyone answers talk
  *   npm run trial -- --minds 3 --hours 4 --budget 1.00      real calls (owner's PC)
  *
  * Real trials need ANTHROPIC_API_KEY in $KAMPUNG_HOME/.env. All trials
@@ -61,7 +62,7 @@ function spentOnTrials(dir: string): number {
 let client: ModelClient;
 let budget = numArg(args, 'budget', 1);
 if (fake) {
-  client = new FakeModel(seed);
+  client = new FakeModel(seed, { chatty: args.chatty === true });
   budget = Infinity;
 } else {
   const apiKey = readApiKey(home);
@@ -136,6 +137,7 @@ const inputAll = stats.input + stats.cacheRead + stats.cacheWrite;
 console.log('\n--- what thinking cost ---');
 if (failures) console.log(`failed calls: ${failures} (each charged at its estimate)`);
 console.log(`calls: ${stats.calls} (${Object.entries(stats.byKind).map(([k, n]) => `${k} ${n}`).join(', ')})`);
+console.log(`calls per resident-hour: ${(stats.calls / residentHours).toFixed(1)}`);
 console.log(`tokens: ${inputAll} in (${Math.round((100 * stats.cacheRead) / Math.max(1, inputAll))}% from cache), ${stats.output} out`);
 console.log(`spent: US$${stats.usd.toFixed(4)}${fake ? ' (estimated from fake token counts)' : ''}`);
 console.log(`per resident-hour: US$${perHour.toFixed(5)} against a ceiling of US$${HOURLY_ALLOWANCE} (${Math.round((100 * perHour) / HOURLY_ALLOWANCE)}%)`);

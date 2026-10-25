@@ -6,6 +6,9 @@ import { formatMoney, type Cents } from './money.ts';
 import { TALK_GAP_MINUTES, TALK_SOFT_LIMIT, type Goods, type Resident, type World } from './state.ts';
 import { dayIndex, sgtHour, sgtMinute, timeLabel } from './time.ts';
 
+/** How many lines of their own ongoing conversation a resident has in mind. */
+export const TALK_LINES = 6;
+
 export type HungerWord = 'full' | 'not hungry' | 'hungry' | 'very hungry' | 'starving';
 export type EnergyWord = 'rested' | 'fine' | 'tired' | 'exhausted';
 
@@ -50,6 +53,8 @@ export interface Perception {
   jobOffers: { from: string; wage: Cents; startHour: number; hours: number }[];
   trades: { from: string; give: string; want: string }[];
   recent: string[];
+  /** The last lines of their own conversations, oldest first (they also stay in `recent`). */
+  talk: string[];
   /** People they've been talking with for a while. */
   longTalks: string[];
   /** What happened when they last tried something. */
@@ -153,6 +158,7 @@ export function perceive(w: World, r: Resident): Perception {
       want: describeBundle(t.want),
     })),
     recent: r.recent.map((o) => o.text),
+    talk: r.recent.filter((o) => o.talk && w.t - o.t <= TALK_GAP_MINUTES).slice(-TALK_LINES).map((o) => o.text),
     longTalks: Object.entries(w.state.talk)
       .filter(([k, v]) => v.lines >= TALK_SOFT_LIMIT && w.t - v.lastT <= TALK_GAP_MINUTES && k.split('|').includes(r.id))
       .map(([k]) => w.resident(k.split('|').find((id) => id !== r.id)!).name),
@@ -181,6 +187,12 @@ function priceLine(t: PriceTag): string {
   const stock = t.stock === undefined ? '' : t.stock === 0 ? ' (sold out)' : ` (${t.stock} left)`;
   const wants = t.wants === undefined ? '' : t.wants === 0 ? ' (no more wanted)' : ` (wants ${t.wants} more)`;
   return `${t.item} ${formatMoney(t.price)}${stock}${wants}`;
+}
+
+/** The last few things they saw or heard, besides the talk shown on its own. */
+export function latelyLines(p: Perception): string[] {
+  const talk = new Set(p.talk);
+  return p.recent.filter((l) => !talk.has(l)).slice(-5);
 }
 
 /** The perception as plain words, as the character would take it in. */
@@ -216,7 +228,9 @@ export function describe(p: Perception): string {
   if (p.freeBeds !== null) lines.push(`${p.freeBeds} bed${p.freeBeds === 1 ? ' is' : 's are'} free on the plot.`);
   for (const o of p.jobOffers) lines.push(`${o.from} has offered you work ${shiftLabel(o.startHour, o.hours)} for ${formatMoney(o.wage)} a shift.`);
   for (const t of p.trades) lines.push(`${t.from} offers you ${t.give} for ${t.want}.`);
-  if (p.recent.length) lines.push(`Lately: ${p.recent.slice(-5).join(' ')}`);
+  const lately = latelyLines(p);
+  if (lately.length) lines.push(`Lately: ${lately.join(' ')}`);
+  if (p.talk.length) lines.push(`The talk so far:\n${p.talk.map((l) => `- ${l}`).join('\n')}`);
   for (const n of p.longTalks) lines.push(`You've been talking with ${n} for a while.`);
   if (p.reply) lines.push(p.reply);
   return lines.join('\n');

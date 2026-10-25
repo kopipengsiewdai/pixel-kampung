@@ -89,11 +89,16 @@ const BUSY: Record<string, string> = {
 /** What can still be done in the middle of a shift, without leaving it. */
 export const ON_SHIFT = new Set(['look_around', 'say', 'cook']);
 
+/** The action asked for, as written in ACTIONS ("Walk to" → walk_to); '' if none. */
+export function verbOf(intent: unknown): string {
+  return intent && typeof intent === 'object' && typeof (intent as Intent).verb === 'string'
+    ? (intent as Intent).verb.trim().toLowerCase().replace(/\s+/g, '_') : '';
+}
+
 /** Validates and performs one action. Every refusal is in-world text. */
 export function act(w: World, residentId: string, intent: unknown): ActionResult {
   const r = w.resident(residentId);
-  const verb = intent && typeof intent === 'object' && typeof (intent as Intent).verb === 'string'
-    ? (intent as Intent).verb.trim().toLowerCase().replace(/\s+/g, '_') : '';
+  const verb = verbOf(intent);
   if (r.activity && !(r.activity.kind === 'working' && ON_SHIFT.has(verb))) return no(BUSY[r.activity.kind]!);
   if (isNight(w.t)) return no("It's the middle of the night. You should be asleep.");
   const def = Object.hasOwn(ACTIONS, verb) ? ACTIONS[verb] : undefined;

@@ -17,7 +17,12 @@ export type Activity =
   | { kind: 'working'; jobId: number; until: number; worked: number }
   | { kind: 'sleeping'; reason: 'night' | 'nap' | 'collapse'; until: number | null };
 
-export interface Observation { t: number; text: string }
+export interface Observation {
+  t: number;
+  text: string;
+  /** A line of a conversation they're part of: said to them, to everyone, or by them. */
+  talk?: true;
+}
 
 export interface Resident {
   id: string;
@@ -253,11 +258,9 @@ export class World {
   }
 
   /** Something happened to this resident: they remember it and think again soon. */
-  notify(id: string, text: string): void {
-    this.observer?.(id, this.state.t, text);
+  notify(id: string, text: string, talk = false): void {
+    this.remember(id, text, talk);
     const r = this.resident(id);
-    r.recent.push({ t: this.state.t, text });
-    if (r.recent.length > MAX_RECENT) r.recent.splice(0, r.recent.length - MAX_RECENT);
     r.thinkAt = Math.min(r.thinkAt, this.state.t + 1);
   }
 
@@ -279,10 +282,10 @@ export class World {
     if (otherId !== r.id && !r.knownPeople.includes(otherId)) r.knownPeople.push(otherId);
   }
 
-  remember(id: string, text: string): void {
+  remember(id: string, text: string, talk = false): void {
     this.observer?.(id, this.state.t, text);
     const r = this.resident(id);
-    r.recent.push({ t: this.state.t, text });
+    r.recent.push(talk ? { t: this.state.t, text, talk } : { t: this.state.t, text });
     if (r.recent.length > MAX_RECENT) r.recent.splice(0, r.recent.length - MAX_RECENT);
   }
 }
