@@ -4,8 +4,9 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.9.4 (2026-10-25)
 
+- **Watch from your phone at home:** the live town's page can also be opened from a phone on the same home Wi-Fi (read-only).
 - **Backups:** a town restarted after every failed upgrade keeps one backup
   of its old save instead of a new full copy per try.
 - **Refusal:** a save that can't be opened read-only is refused with a plain
@@ -14,6 +15,7 @@ never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
   (brains included) and have exactly today's tables.
 - **Living town:** nothing to pick up. Saved state is unchanged and a v2 town
   carries on as it is.
+
 ## 0.9.3 (2026-10-25)
 
 - Shopkeepers can no longer "set" a price to what it already is: it's refused in-world ("That's already your price"). Mdm Tan had re-set rice to $4.20 every minute and never answered the people asking her for work.

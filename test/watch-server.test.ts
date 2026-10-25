@@ -213,3 +213,27 @@ describe('a tab that stops reading', () => {
     expect(stuck.destroyed).toBe(true);
   });
 });
+
+describe('home Wi-Fi mode', () => {
+  it("answers this PC's own home-network address, and still refuses other host names", async () => {
+    const live = new LiveSource({ label: 'Live town', msPerMinute: 1000, everyMs: 0 });
+    const town = Town.create(42, START, live.hooks());
+    const server = await startWatchServer({ source: live, client: CLIENT, assetsDir: tmp(), port: 0, lan: true, lanAddresses: ['192.168.1.50'] });
+    cleanups.push(() => server.close());
+    expect(server.lanUrls).toEqual([`http://192.168.1.50:${server.port}/`]);
+    expect((await rawGet(server.port, '/api/layout', `192.168.1.50:${server.port}`)).status).toBe(200);
+    expect((await rawGet(server.port, '/api/layout', `127.0.0.1:${server.port}`)).status).toBe(200);
+    expect((await rawGet(server.port, '/api/layout', `evil.example:${server.port}`)).status).toBe(403);
+    expect((await rawGet(server.port, '/api/layout', `10.9.9.9:${server.port}`)).status).toBe(403);
+    void town;
+  });
+
+  it('stays on this PC only unless asked', async () => {
+    const live = new LiveSource({ label: 'Live town', msPerMinute: 1000, everyMs: 0 });
+    Town.create(42, START, live.hooks());
+    const server = await startWatchServer({ source: live, client: CLIENT, assetsDir: tmp(), port: 0, lanAddresses: ['192.168.1.50'] });
+    cleanups.push(() => server.close());
+    expect(server.lanUrls).toEqual([]);
+    expect((await rawGet(server.port, '/api/layout', `192.168.1.50:${server.port}`)).status).toBe(403);
+  });
+});

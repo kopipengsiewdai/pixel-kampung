@@ -4,6 +4,7 @@
  * any other host name are refused (no DNS rebinding), and the page's content
  * policy lets it load and fetch only from this server.
  */
+import { networkInterfaces } from 'node:os';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -50,12 +51,31 @@ export interface WatchServerOptions {
   catalog?: Catalog;
   /** Speed for replays opened from the page. */
   replaySpeed?: number;
+  /** Home Wi-Fi mode: also answer on this PC's home-network addresses (read-only page, for the owner's phone). */
+  lan?: boolean;
+  /** This PC's home-network IPv4 addresses (default: found from its network cards). */
+  lanAddresses?: string[];
+}
+
+/** Private (home-network) IPv4 addresses of this PC: 10.x, 172.16-31.x and 192.168.x. */
+export function homeAddresses(): string[] {
+  const out: string[] = [];
+  for (const list of Object.values(networkInterfaces())) {
+    for (const a of list ?? []) {
+      if (a.family !== 'IPv4' || a.internal) continue;
+      const [x, y] = a.address.split('.').map(Number);
+      if (x === 10 || (x === 172 && y! >= 16 && y! <= 31) || (x === 192 && y === 168)) out.push(a.address);
+    }
+  }
+  return out;
 }
 
 export interface WatchServer {
   host: string;
   port: number;
   url: string;
+  /** Addresses to open on a phone on the same Wi-Fi (empty unless `lan`). */
+  lanUrls: string[];
   source(): WatchSource;
   close(): Promise<void>;
 }
@@ -181,7 +201,9 @@ export async function startWatchServer(opts: WatchServerOptions): Promise<WatchS
   };
 
   let port = opts.port;
-  const allowedHosts = () => new Set([`${HOST}:${port}`, `localhost:${port}`]);
+  const lan = opts.lan ? (opts.lanAddresses ?? homeAddresses()) : [];
+  // Only exact addresses of this PC are accepted, never a name, so DNS rebinding stays blocked.
+  const allowedHosts = () => new Set([`${HOST}:${port}`, `localhost:${port}`, ...lan.map((a) => `${a}:${port}`)]);
 
   const handle = async (req: IncomingMessage, res: ServerResponse) => {
     if (!allowedHosts().has(req.headers.host ?? '')) {
@@ -310,7 +332,7 @@ export async function startWatchServer(opts: WatchServerOptions): Promise<WatchS
   });
   await new Promise<void>((ok, fail) => {
     server.once('error', fail);
-    server.listen(opts.port, HOST, () => {
+    server.listen(opts.port, opts.lan ? '0.0.0.0' : HOST, () => {
       server.off('error', fail);
       ok();
     });
@@ -321,6 +343,7 @@ export async function startWatchServer(opts: WatchServerOptions): Promise<WatchS
     host: HOST,
     port,
     url: `http://${HOST}:${port}/`,
+    lanUrls: lan.map((a) => `http://${a}:${port}/`),
     source: () => source,
     close: () => new Promise<void>((ok) => {
       clearInterval(ticker);
