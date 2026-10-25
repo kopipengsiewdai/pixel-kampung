@@ -95,7 +95,8 @@ describe('clicking a place shows what is inside', () => {
     const c = cardAt(w, siti.homeId)!;
     expect(c.name).toBe("Siti's house");
     expect(c.home).toEqual({ of: 'Siti' });
-    expect(c.here).toEqual(['Siti']);
+    // Her mother lives with her, and is home too.
+    expect(c.here).toEqual(['Siti', 'Mak Esah']);
   });
 
   it('nothing for a place that does not exist', () => {

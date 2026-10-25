@@ -117,14 +117,22 @@ describe('the wiki', () => {
 
   it('people: who they are, from their card, with home, job, money and family and old friends', () => {
     const people = peopleOf(frame, layout);
-    expect(people).toHaveLength(10);
+    expect(people).toHaveLength(13);
+    expect(people.find((p) => p.name === 'Hassan')).toMatchObject({ role: 'lives with family', age: 8, home: "Fatimah's house" });
     const huat = people.find((p) => p.name === 'Ah Huat')!;
     expect(huat).toMatchObject({ role: 'runs a shop', age: 54, home: "Ah Huat's house" });
     expect(huat.ties).toEqual(expect.arrayContaining([{ name: 'Ah Seng', how: 'son' }, { name: 'Rahim', how: 'friend' }]));
     expect(people.find((p) => p.name === 'Mei Ling')!.ties).toEqual([{ name: 'Mdm Tan', how: 'aunt' }]);
     expect(people.find((p) => p.name === 'Ah Kow')!.ties).toEqual([]);
-    expect(people.find((p) => p.name === 'Siti')!.ties).toEqual([{ name: 'Fatimah', how: 'known from before' }]);
-    expect(people.find((p) => p.name === 'Fatimah')!.ties).toEqual([{ name: 'Rahim', how: "late husband's brother" }, { name: 'Siti', how: 'friend' }]);
+    expect(people.find((p) => p.name === 'Siti')!.ties).toEqual([{ name: 'Mak Esah', how: 'mother' }, { name: 'Fatimah', how: 'known from before' }]);
+    expect(people.find((p) => p.name === 'Fatimah')!.ties).toEqual([
+      { name: 'Aminah', how: 'daughter' }, { name: 'Hassan', how: 'son' }, { name: 'Rahim', how: "late husband's brother" }, { name: 'Siti', how: 'friend' },
+    ]);
+    expect(people.find((p) => p.name === 'Hassan')!.ties).toEqual([{ name: 'Fatimah', how: 'mother' }, { name: 'Aminah', how: 'big sister' }, { name: 'Rahim', how: 'uncle' }]);
+    expect(people.find((p) => p.name === 'Rahim')!.ties).toEqual([
+      { name: 'Fatimah', how: "late brother's wife" }, { name: 'Aminah', how: 'niece' }, { name: 'Hassan', how: 'nephew' }, { name: 'Ah Huat', how: 'old friend' },
+    ]);
+    expect(people.find((p) => p.name === 'Mak Esah')!.ties).toEqual([{ name: 'Siti', how: 'daughter' }]);
   });
 
   it('places: each with what it is for, and whose it is', () => {
@@ -180,7 +188,7 @@ describe('the wiki route', () => {
       expect(res.status).toBe(200);
       const wiki = await res.json() as { version: string; people: unknown[]; places: unknown[]; how: unknown[]; news: unknown[]; economy: { days: unknown[]; audit: string; spend: unknown } };
       expect(wiki.version).toMatch(/^\d+\.\d+\.\d+/);
-      expect(wiki.people).toHaveLength(10);
+      expect(wiki.people).toHaveLength(13);
       expect(wiki.places.length).toBeGreaterThan(8);
       expect(wiki.how.length).toBeGreaterThan(4);
       expect(wiki.news.length).toBeGreaterThan(3);

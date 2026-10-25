@@ -15,7 +15,8 @@ Two atlases come out:
                            superpowers-asset-packs): the residents, grass,
                            paths, floor paving, trees, bushes, flowers,
                            crates, barrels and kopitiam stools. Two residents'
-                           hair is recoloured.
+                           hair is recoloured, and three more residents are
+                           recoloured from the same characters.
 
 Needs Pillow. Deterministic: same input, same output.
 """
@@ -654,11 +655,24 @@ PACK_TILES = {
 }
 
 # Resident sprites: which pack character each one wears (by the default cast's ids).
-PEOPLE = ['10', '4', '3', '17', '22', '12', '25', '6', '5', '16']
+# The pack has no older woman, girl or boy, so the last three (Mak Esah, Aminah,
+# Hassan) are recoloured from their family's looks (LOOKS); the page draws the
+# children smaller.
+PEOPLE = ['10', '4', '3', '17', '22', '12', '25', '6', '5', '16', '4', '5', '3']
 # Hair recoloured toward black for a 1960s kampung (sheet: {from: to}).
 HAIR = {
     '6': {(192, 58, 36): (44, 34, 36), (151, 44, 38): (26, 20, 24)},
     '17': {(226, 169, 45): (52, 40, 42), (205, 89, 39): (32, 24, 28)},
+}
+
+
+# Recolours by column: Mak Esah's hair greyed and her dress maroon; Aminah in
+# green; Hassan with black hair and a red headband.
+LOOKS = {
+    10: {(145, 87, 139): (118, 116, 120), (211, 162, 206): (196, 194, 198),
+         (54, 124, 152): (128, 44, 52), (35, 53, 93): (78, 26, 34), (45, 89, 123): (104, 34, 44)},
+    11: {(146, 30, 101): (30, 104, 66), (224, 31, 76): (58, 160, 92)},
+    12: {(44, 49, 38): (26, 22, 26), (72, 84, 61): (48, 40, 44), (111, 128, 91): (196, 64, 52)},
 }
 
 
@@ -688,6 +702,8 @@ def people_sheet(pack):
         im = Image.open(os.path.join(pack, 'ninja-adventure', 'characters', f'{n}.png')).convert('RGBA').crop((0, 0, 64, 64))
         if n in HAIR:
             im = recolour(im, HAIR[n])
+        if i in LOOKS:
+            im = recolour(im, LOOKS[i])
         sheet.paste(im, (64 * i, 0))
     return sheet
 

@@ -10,7 +10,9 @@ Licence:  CC0 1.0 Universal (public domain dedication)
 Used here (cropped and packed by scripts/art/build_art.py):
   people.png  walk cycles of characters 10, 4, 3, 17, 22, 12, 25, 6, 5 and 16
               from ninja-adventure/characters/; the hair of 6 and 17 is
-              recoloured darker.
+              recoloured darker. Three more columns are 4, 5 and 3 again,
+              recoloured (grey hair and a maroon dress; green clothes; black
+              hair and a red headband) for Mak Esah, Aminah and Hassan.
   tiles.png   grass, dry field, footpath and floor paving, trees, a bush,
               ferns, flowers, a grass tuft, a rock, a crate, a barrel, a pot,
               a sack, a table and a stool from

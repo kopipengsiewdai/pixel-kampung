@@ -122,6 +122,13 @@ describe('the watch page in a browser', () => {
     const card = page.locator('#card');
     await expect.poll(() => card.isVisible()).toBe(true);
     await expect.poll(() => card.textContent()).toContain('Siti');
+    expect(await card.locator('header .role').textContent()).toBe('looking for work');
+    // Those who live with family are labelled so, not as job-seekers.
+    await page.locator('#roster button', { hasText: 'Hassan' }).click();
+    await expect.poll(() => card.locator('header h3').textContent()).toBe('Hassan');
+    expect(await card.locator('header .role').textContent()).toBe('lives with family');
+    await page.locator('#roster button', { hasText: 'Siti' }).click();
+    await expect.poll(() => card.locator('header h3').textContent()).toBe('Siti');
     // The compact card: money in the header, needs as chips, one "Now" line, work, then tabs.
     expect(await card.locator('header .cash').textContent()).toMatch(/^\$\d+\.\d\d$|^\d+¢$/);
     expect(await card.locator('.needs .chip').count()).toBe(2);

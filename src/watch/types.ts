@@ -31,7 +31,10 @@ export interface Carried { item: string; qty: number; label: string }
 export interface ResidentView {
   id: string;
   name: string;
-  role: 'owner' | 'seeker';
+  role: 'owner' | 'seeker' | 'family';
+  /** Their age this kampung year; a child (under 14) is drawn smaller. */
+  age: number;
+  child: boolean;
   homeId: string;
   x: number;
   y: number;

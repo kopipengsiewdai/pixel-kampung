@@ -6,7 +6,7 @@ import { choreMinute, lapseErrands } from './actions/chores.ts';
 import { lapsePriceOffers } from './actions/haggle.ts';
 import { isServing, stoveMinute, travellersMinute } from './travellers.ts';
 import { PLACE_BY_ID } from './map.ts';
-import { NEED_MAX, type Resident, type World } from './state.ts';
+import { NEED_MAX, OLD_AGE, type Resident, type World } from './state.ts';
 import { lookAbout } from './discovery.ts';
 import { isNight, minuteOfDay } from './time.ts';
 
@@ -25,6 +25,8 @@ function updateNeeds(w: World, r: Resident): void {
   } else {
     r.hunger += 1;
     r.energy -= kind === 'working' || kind === 'fishing' || isServing(w, r) ? 1 : w.t % 3 === 0 ? 0 : 1;
+    // Past sixty, a body tires a third quicker.
+    if (w.ageOf(r) >= OLD_AGE && w.t % 3 === 0) r.energy -= 1;
     if (r.hunger >= NEED_MAX) r.energy -= 1;
   }
   r.hunger = clamp(r.hunger);

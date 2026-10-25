@@ -54,7 +54,7 @@ describe('frames', () => {
     const frame = new FrameBuilder().build(w);
     expect(frame.t).toBe(w.t);
     expect(frame.stamp).toBe('Mon 09:00');
-    expect(frame.residents).toHaveLength(10);
+    expect(frame.residents).toHaveLength(13);
     const s = frame.residents.find((r) => r.id === siti.id)!;
     expect(s).toMatchObject({ name: 'Siti', role: 'seeker', x: siti.pos.x, y: siti.pos.y, money: siti.money, place: 'the jetty', job: null });
     expect(s.route).toEqual([{ x: siti.pos.x, y: siti.pos.y }]);

@@ -77,7 +77,7 @@ export function canHelp(w: World, r: Resident, o: Resident): 'beds' | 'nets' | n
 }
 
 export function help(w: World, r: Resident, i: Intent): ActionResult {
-  const o = w.residentByName(i.to);
+  const o = w.residentByName(i.to, r);
   if (!o || !w.knowsPerson(r, o.id)) return no(`You don't know anyone called ${quoted(i.to)}.`);
   if (o.id === r.id) return no("That's you.");
   const what = canHelp(w, r, o);
@@ -143,7 +143,7 @@ function errandOf(w: World, r: Resident, words: string | null): { kind: 'water' 
   if (!m) return ERRAND_HINT;
   const item = itemOf(m[1]!.replace(/^(a|an|the|some|my)\s+/, ''));
   if (!item) return `You don't have anything called ${quoted(m[1])}.`;
-  const to = w.residentByName(m[2]);
+  const to = w.residentByName(m[2], r);
   if (!to || !w.knowsPerson(r, to.id)) return `You don't know anyone called ${quoted(m[2])}.`;
   return { kind: 'take', item, to };
 }
@@ -172,7 +172,7 @@ export function askErrand(w: World, r: Resident, i: Intent): ActionResult {
 
 /** The errand someone named has asked r to run, not yet taken up. */
 export function errandFrom(w: World, r: Resident, from: unknown): Errand | null {
-  const o = w.residentByName(from);
+  const o = w.residentByName(from, r);
   return o ? w.state.errands.find((e) => !e.taken && e.askerId === o.id && e.runnerId === r.id) ?? null : null;
 }
 

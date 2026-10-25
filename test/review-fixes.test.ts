@@ -27,7 +27,7 @@ describe('someone who has gone', () => {
   it("someone not in the kampung at all is answered so, in the kampung's words", () => {
     const w = newWorld(9);
     const siti = put(w, 'Siti', 'well');
-    const reply = refused(act(w, siti.id, { verb: 'say', to: 'Mak', text: 'Mak, I am home.' }), /don't know anyone called "Mak"/);
+    const reply = refused(act(w, siti.id, { verb: 'say', to: 'Pak Ali', text: 'Pak Ali, I am home.' }), /don't know anyone called "Pak Ali"/);
     expect(reply).toMatch(/nobody by that name in the kampung/);
   });
 

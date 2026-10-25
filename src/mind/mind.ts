@@ -3,6 +3,7 @@ import type { Card } from '../seed/cards.ts';
 import type { Intent } from '../sim/actions/index.ts';
 import { ITEMS, type ItemId } from '../sim/items.ts';
 import { latelyLines, type Perception } from '../sim/perception.ts';
+import type { Role } from '../sim/state.ts';
 import { dayIndex, sgtHour } from '../sim/time.ts';
 import { Budget, ESTIMATE, TOWN_DAILY_CAP, type BudgetState } from './budget.ts';
 import type { CostLog } from './cost-log.ts';
@@ -49,9 +50,10 @@ export class Mind {
     this.onError = opts.onError ?? (() => {});
   }
 
-  brainFor(residentId: string, name: string, role: 'owner' | 'seeker', shop: string | null, t: number): MindBrain {
+  /** allowance: their share of the hourly thinking allowance (1 is a full one). */
+  brainFor(residentId: string, name: string, role: Role, shop: string | null, t: number, allowance = 1, age?: number): MindBrain {
     const card = this.cards.find((c) => c.name === name) ?? { name, age: 30, personality: 'Ordinary.', want: 'a decent life', worry: 'about hard times', knows: '' };
-    return new MindBrain(this, residentId, systemPrompt(card, role, shop), t);
+    return new MindBrain(this, residentId, systemPrompt(card, role, shop, age ?? card.age), t, allowance);
   }
 
   observe = (residentId: string, t: number, text: string): void => {
@@ -100,11 +102,15 @@ export class MindBrain implements Brain {
   private s: MindState;
   private budget: Budget;
 
-  constructor(mind: Mind, id: string, system: string, t: number) {
+  /** Their share of the hourly thinking allowance. */
+  readonly allowance: number;
+
+  constructor(mind: Mind, id: string, system: string, t: number, allowance = 1) {
     this.mind = mind;
     this.id = id;
     this.system = system;
-    this.budget = new Budget(t);
+    this.allowance = allowance;
+    this.budget = new Budget(t, undefined, allowance);
     this.s = { budget: this.budget.save(), planDay: null, plan: null, businessDay: null, businessCalls: 0, reflectedDay: null };
   }
 
@@ -117,7 +123,7 @@ export class MindBrain implements Brain {
     if (!saved || typeof saved !== 'object' || !('budget' in saved)) return;
     const s = saved as MindState;
     this.s = { ...s };
-    this.budget = Budget.load(s.budget);
+    this.budget = Budget.load(s.budget, this.allowance);
     if (s.model !== undefined) this.mind.client.loadFor?.(this.id, s.model);
   }
 

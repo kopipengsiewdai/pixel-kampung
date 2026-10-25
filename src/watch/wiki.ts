@@ -202,7 +202,8 @@ export function moneyOf(
 /** "Ah Seng is your son." → son; "Rahim has been your friend since the war." → friend. */
 function tiesOf(knows: string, names: readonly string[]): { name: string; how: string }[] {
   const out: { name: string; how: string }[] = [];
-  for (const s of knows.split(/(?<=\.)\s+/)) {
+  // One tie a clause: "Fatimah is your mother, and Hassan is your little brother; you live with them."
+  for (const s of knows.split(/(?<=\.)\s+|;\s+|,\s+and\s+/)) {
     const who = names.find((n) => s.startsWith(`${n} `));
     if (!who) {
       // "You know Fatimah from the well every morning."
@@ -223,8 +224,8 @@ export function peopleOf(frame: Frame, layout: Layout): WikiPerson[] {
     return {
       id: r.id,
       name: r.name,
-      role: r.role === 'owner' ? 'runs a shop' : 'looking for work',
-      age: card?.age ?? null,
+      role: r.role === 'owner' ? 'runs a shop' : r.role === 'family' ? 'lives with family' : 'looking for work',
+      age: r.age,
       personality: card?.personality ?? null,
       want: card?.want ?? null,
       worry: card?.worry ?? null,

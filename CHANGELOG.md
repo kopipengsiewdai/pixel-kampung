@@ -4,6 +4,11 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **Families:** nobody's family is imaginary any more. **Mak Esah** (63), Siti's mother, lives in Siti's house; **Aminah** (12) and **Hassan** (8), Fatimah's children, live with her: thirteen residents in ten houses. Under 14 they can do chores, errands and fishing but can't be offered a shift ("Hassan is too young to work a shift."); from 60 a body tires a third quicker. They start with no money of their own and think on about half an adult's allowance (the town's daily cap is unchanged). Family call each other as families do: to Siti, "Mak" is her mother. Cards no longer leave room for invented relatives: Ah Huat is a widower, Mei Ling's parents died and her aunt raised her, and Fatimah's children are named.
+- **Living town:** at upgrade (save v12) Mak Esah, Aminah and Hassan are at home, as they always were, knowing every place in the kampung and their family, who know them; everyone gets a birth year from their age. The new card lines are picked up on restart.
+
 ## 0.15.0 (2026-10-25): more to do each day
 
 - **More to do each day:** chores that take a while with no thinking meanwhile: fetch a pail of water at the well, mend your nets at the jetty (the next few catches bring one more fish), sweep the shop (travellers wait longer in a swept shop). Kopi and fish porridge now take a pail of water. Residents can ask each other to run errands for pay ("fetch water", "take a fish to Mdm Tan"), paid when it's done or owed if the asker can't pay (an errand not done by the day's end hands the thing back, or it's owed for), and help a neighbour water their beds or mend their nets. At the dawn tide a line comes up empty half as often.

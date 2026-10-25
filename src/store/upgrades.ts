@@ -50,6 +50,20 @@ const PLACES_V8 = [
 /** What Ah Kow, the newcomer, knows besides home, frozen for v7 → v8. */
 const NEWCOMER_PLACES_V8 = ['well', 'kopitiam'];
 
+/** Everyone's age when the families came in, by id (the cards, frozen for v11 → v12). */
+const AGES_V12: Record<string, number> = {
+  'ah-huat': 54, 'mdm-tan': 47, rahim: 40, 'mei-ling': 19, 'ah-kow': 34, siti: 26, muthu: 45, 'ah-seng': 22, fatimah: 36, raju: 29,
+  'mak-esah': 63, aminah: 12, hassan: 8,
+};
+/** The three who were always there, frozen for v11 → v12: whose house they share, and whom they know. */
+const FAMILY_V12 = [
+  { id: 'mak-esah', name: 'Mak Esah', livesWith: 'siti', knows: ['siti'] },
+  { id: 'aminah', name: 'Aminah', livesWith: 'fatimah', knows: ['fatimah', 'hassan', 'rahim'] },
+  { id: 'hassan', name: 'Hassan', livesWith: 'fatimah', knows: ['fatimah', 'aminah', 'rahim'] },
+];
+/** Who in the town already knows them, frozen for v11 → v12. */
+const KNOW_FAMILY_V12: Record<string, string[]> = { siti: ['mak-esah'], fatimah: ['aminah', 'hassan'], rahim: ['aminah', 'hassan'] };
+
 export const UPGRADES: readonly Upgrade[] = [
   {
     from: 1,
@@ -197,6 +211,37 @@ export const UPGRADES: readonly Upgrade[] = [
       }));
       const residents = (world.residents as Record<string, unknown>[]).map((r) => ({ ...r, mended: null }));
       return { world: { ...world, shops, residents, errands: [] }, brains };
+    },
+  },
+  {
+    from: 11,
+    why: "Mak Esah, Siti's mother, lives with Siti, and Fatimah's children Aminah and Hassan live with her: they were always there, and are at home now. Everyone has a birth year, from their age.",
+    save: ({ world, brains }) => {
+      // The kampung year at the save's minute, by the calendar as it stood at v11 (frozen): Year 0 has 365 days, then a leap year every fourth.
+      let rest = Math.floor(((world.t as number) + 8 * 60) / 1440) - (world.calendar as { firstDay: number }).firstDay;
+      const days = (y: number) => (y > 0 && y % 4 === 0 ? 366 : 365);
+      let year = 0;
+      while (rest >= days(year)) rest -= days(year++);
+      const born = (id: string) => year - (AGES_V12[id] ?? 30);
+      type R = { id: string; homeId: string; knownPeople: string[] };
+      const old = (world.residents as R[]).map((r) => {
+        const add = (KNOW_FAMILY_V12[r.id] ?? []).filter((id) => !r.knownPeople.includes(id));
+        return { ...r, born: born(r.id), knownPeople: [...r.knownPeople, ...add] };
+      });
+      const added = FAMILY_V12.flatMap((f) => {
+        const host = old.find((r) => r.id === f.livesWith);
+        if (!host || old.some((r) => r.id === f.id)) return [];
+        // A house's door spot, as the map has it (frozen): house-n's rect starts at x = 1 + 4(n - 1), y = 1, and is 3 × 2.
+        const n = Number(/^house-(\d+)$/.exec(host.homeId)?.[1] ?? 1);
+        return [{
+          id: f.id, name: f.name, role: 'family', born: born(f.id), homeId: host.homeId, pos: { x: 2 + 4 * (n - 1), y: 2 },
+          money: 0, items: {}, hunger: 150, energy: 950, activity: null, thinkAt: world.t, recent: [], reply: null, lastDone: null,
+          stove: null, mended: null,
+          knownPlaces: [host.homeId, ...PLACES_V8.filter((id) => id !== host.homeId)],
+          knownPeople: f.knows.filter((id) => old.some((r) => r.id === id) || FAMILY_V12.some((o) => o.id === id)),
+        }];
+      });
+      return { world: { ...world, residents: [...old, ...added] }, brains };
     },
   },
 ];

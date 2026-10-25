@@ -9,8 +9,8 @@ describe('residents know their kampung, and still meet people and new places in 
     expect(who(w, 'Siti').knownPlaces).toContain('jetty');
     expect(who(w, 'Ah Huat').knownPlaces).toContain('kopitiam');
     expect(who(w, 'Ah Kow').knownPlaces).toEqual([who(w, 'Ah Kow').homeId, 'well', 'kopitiam']);
-    // People: only family and old friends (Siti knows Fatimah from the well).
-    expect(who(w, 'Siti').knownPeople).toEqual([who(w, 'Fatimah').id]);
+    // People: only family and old friends (Siti knows Fatimah from the well, and her mother).
+    expect(who(w, 'Siti').knownPeople).toEqual([who(w, 'Fatimah').id, who(w, 'Mak Esah').id]);
     expect(who(w, 'Ah Kow').knownPeople).toEqual([]);
   });
 

@@ -1,4 +1,5 @@
 import type { Card } from '../seed/cards.ts';
+import type { Role } from '../sim/state.ts';
 import { describe, type Perception } from '../sim/perception.ts';
 import type { ThinkKind } from './model.ts';
 import type { Memory } from './memory.ts';
@@ -9,11 +10,12 @@ import { POTTER } from './tools.ts';
  * In-world words only (CLAUDE.md hard rule): no talk of games, systems,
  * features, prices or how anything in the kampung works.
  */
-export function systemPrompt(card: Card, role: 'owner' | 'seeker', shop: string | null): string {
+/** age: their age now, as the kampung's years go by (the card's, if not given). */
+export function systemPrompt(card: Card, role: Role, shop: string | null, age = card.age): string {
   // Only an owner's line: it can't go stale. Whether someone has work is in the notes each moment.
   const roleLine = role === 'owner' && shop ? `You own ${shop}.` : '';
   return [
-    `You are ${card.name}, ${card.age}. ${card.personality}`,
+    `You are ${card.name}, ${age}. ${card.personality}`,
     `You want ${card.want}. You worry ${card.worry}.`,
     card.knows,
     card.trade ?? '',

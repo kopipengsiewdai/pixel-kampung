@@ -58,7 +58,7 @@ export function whoIsHere(w: World, r: Resident): string {
 
 /** Someone the resident can deal with face to face, or the in-world reason they can't. */
 export function personNearby(w: World, r: Resident, name: unknown, opts: { awake?: boolean } = {}): Resident | string {
-  const o = w.residentByName(name);
+  const o = w.residentByName(name, r);
   if (!o) return `You don't know anyone called ${quoted(name)}; there's nobody by that name in the kampung.`;
   if (o.id === r.id) return "That's you.";
   if (!w.isNear(r, o)) return `${o.name} isn't nearby. ${whoIsHere(w, r)}`;

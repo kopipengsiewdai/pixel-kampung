@@ -40,13 +40,14 @@ describe('everyone who has lived here knows their kampung', () => {
 describe('their trades, on their cards', () => {
   const trade = (name: string) => CARDS.find((c) => c.name === name)!.trade;
 
-  it('the five who have one, in their own words, and only real work', () => {
+  it('the six who have one, in their own words, and only real work', () => {
     expect(trade('Rahim')).toBe('You grew up fishing off the jetty with your father; you know the sea.');
     expect(trade('Fatimah')).toBe("You've always grown vegetables; you know a bed wants water every day.");
     expect(trade('Ah Kow')).toBe("You worked the land on the estate; you're not afraid of hard work in the sun.");
     expect(trade('Ah Huat')).toBe('You cook for the kopitiam yourself: kopi, fish porridge, vegetable rice.');
     expect(trade('Muthu')).toBe("You carried cargo at the docks; you're strong and steady.");
-    expect(CARDS.filter((c) => c.trade).map((c) => c.name).sort()).toEqual(['Ah Huat', 'Ah Kow', 'Fatimah', 'Muthu', 'Rahim']);
+    expect(trade('Hassan')).toBe("You've fished off the jetty since you could walk.");
+    expect(CARDS.filter((c) => c.trade).map((c) => c.name).sort()).toEqual(['Ah Huat', 'Ah Kow', 'Fatimah', 'Hassan', 'Muthu', 'Rahim']);
   });
 
   it('is told with who they are', () => {

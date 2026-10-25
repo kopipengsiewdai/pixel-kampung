@@ -6,10 +6,17 @@ import type { Cents } from './money.ts';
 import type { EventBody, GameEvent, LedgerEntry } from './events.ts';
 import { PLACE_BY_ID, PLACES, inPlace, distance, placeAt, type Place } from './map.ts';
 import { Rng } from './rng.ts';
-import type { Calendar } from './calendar.ts';
+import { dateAt, type Calendar } from './calendar.ts';
+import { CAST } from '../seed/cast.ts';
 import type { GameClock } from './time.ts';
 
-export type Role = 'owner' | 'seeker';
+/** An owner runs a business; a seeker looks for work; family live with family (Mak Esah, Aminah, Hassan). */
+export type Role = 'owner' | 'seeker' | 'family';
+
+/** Under this age, nobody works a shift (owner, 2026-10-25). */
+export const GROWN_AGE = 14;
+/** From this age, a body tires quicker. */
+export const OLD_AGE = 60;
 export type Goods = Partial<Record<ItemId, number>>;
 
 /** Needs run 0–1000. Hunger 0 is full; energy 1000 is fully rested. */
@@ -36,6 +43,9 @@ export interface Resident {
   id: string;
   name: string;
   role: Role;
+  /** The kampung year they were born (age = this year minus it; a birthday is new year). */
+  born: number;
+  /** Their house; a house can be shared, and goes by the first who lives there. */
   homeId: string;
   pos: Point;
   money: Cents;
@@ -349,10 +359,20 @@ export class World {
     return r;
   }
 
-  residentByName(name: unknown): Resident | null {
+  /** Someone by name, or by what `by` calls them in their family ("Mak"). */
+  residentByName(name: unknown, by?: Resident): Resident | null {
     if (typeof name !== 'string') return null;
     const s = name.trim().toLowerCase();
-    return this.state.residents.find((r) => r.name.toLowerCase() === s) ?? null;
+    const found = this.state.residents.find((r) => r.name.toLowerCase() === s);
+    if (found || !by) return found ?? null;
+    const calls = CAST.find((c) => c.name === by.name)?.calls ?? {};
+    const kin = Object.entries(calls).find(([word]) => word.toLowerCase() === s)?.[1];
+    return kin ? this.state.residents.find((r) => r.name === kin) ?? null : null;
+  }
+
+  /** Their age this kampung year. */
+  ageOf(r: Resident): number {
+    return dateAt(this.state, this.t).year - r.born;
   }
 
   shop(id: string): Shop | null {

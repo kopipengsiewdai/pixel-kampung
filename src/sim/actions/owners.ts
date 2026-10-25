@@ -3,7 +3,7 @@ import { LORRY_SELLS, RECIPES, quantityLabel, type ItemId } from '../items.ts';
 import { PLACE_BY_ID } from '../map.ts';
 import { formatMoney } from '../money.ts';
 import { COOK_MINUTES } from '../travellers.ts';
-import { addGoods, countGoods, LORRY_ID, type Resident, type Shop, type World } from '../state.ts';
+import { addGoods, countGoods, GROWN_AGE, LORRY_ID, type Resident, type Shop, type World } from '../state.ts';
 import {
   type ActionResult, type Intent, MAX_PRICE, SAY_NOTHING_SENSIBLE, goodsLabel, itemOf, moneyOf, no, ok,
   personNearby, qtyOf, quoted,
@@ -73,6 +73,7 @@ export function offerJob(w: World, r: Resident, i: Intent): ActionResult {
   const o = personNearby(w, r, i.to);
   if (typeof o === 'string') return no(o);
   if (o.role === 'owner') return no(`${o.name} has a business to run.`);
+  if (w.ageOf(o) < GROWN_AGE) return no(`${o.name} is too young to work a shift.`);
   const job = w.jobOf(o.id);
   if (job?.employerId === r.id) return no(`${o.name} already works for you.`);
   // The wage may come as "money" or "price" too, and times as people say them ("7am", "17:00", "4 hours").
@@ -92,7 +93,7 @@ export function offerJob(w: World, r: Resident, i: Intent): ActionResult {
 }
 
 export function letGo(w: World, r: Resident, i: Intent): ActionResult {
-  const o = w.residentByName(i.who);
+  const o = w.residentByName(i.who, r);
   if (!o) return no(`You don't know anyone called ${quoted(i.who)}.`);
   const job = w.jobOf(o.id);
   if (!job || job.employerId !== r.id) return no(`${o.name} doesn't work for you.`);
@@ -105,7 +106,7 @@ export function letGo(w: World, r: Resident, i: Intent): ActionResult {
 }
 
 export function payWages(w: World, r: Resident, i: Intent): ActionResult {
-  const o = w.residentByName(i.to);
+  const o = w.residentByName(i.to, r);
   if (!o) return no(`You don't know anyone called ${quoted(i.to)}.`);
   const owed = w.state.owed.find((x) => x.employerId === r.id && x.workerId === o.id);
   if (!owed || owed.cents === 0) return no(`You don't owe ${o.name} anything.`);
