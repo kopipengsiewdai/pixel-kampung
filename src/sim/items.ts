@@ -45,9 +45,13 @@ export const ITEMS: Record<ItemId, ItemDef> = {
 export const ITEM_IDS = Object.keys(ITEMS) as ItemId[];
 
 export function findItem(name: string): ItemId | null {
-  const s = name.trim().toLowerCase();
+  // Also the game's own labels ("a cup of kopi", "2 loaves of bread"), so residents can name what they see.
+  const s = name.trim().toLowerCase().replace(/^(?:a|an|the|some|one|\d+)\s+/, '');
   for (const def of Object.values(ITEMS)) {
     if (def.id === s || def.aliases.includes(s)) return def.id;
+    const one = def.one.replace(/^(?:a|an)\s+/, '');
+    const many = def.many.replace(/^\{n\}\s+/, '');
+    if (s === one || s === many) return def.id;
   }
   return null;
 }
