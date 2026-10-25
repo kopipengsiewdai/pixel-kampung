@@ -167,7 +167,7 @@ export function supplyFor(w: World, day: number): Record<Brought, number> {
 
 /** The lowest and highest he'll go for an item on a side. */
 export function bounds(side: Side, item: ItemId): [Cents, Cents] | null {
-  const town = TOWN_PRICES[item];
+  const town = Object.hasOwn(TOWN_PRICES, item) ? TOWN_PRICES[item] : undefined;
   if (!town) return null;
   const [lo, hi] = side === 'sells' ? SELL_BOUNDS : BUY_BOUNDS;
   return [Math.ceil(town * lo), Math.floor(town * hi)];
@@ -300,6 +300,7 @@ export function arrive(w: World, leaves: number): void {
     if (a.owes > 0 && a.since !== null && w.t - a.since > DEBT_MINUTES) a.cheated = true;
   }
   const supply = supplyFor(w, day);
+  const sent = { ...supply };
   const goods: Goods = {};
   const held: Goods = {};
   const space = Math.floor(LOAD * GOODS_SHARE);
@@ -307,7 +308,8 @@ export function arrive(w: World, leaves: number): void {
   // Orders come first, in the order asked; whatever town couldn't spare (or the lorry couldn't take) doesn't come.
   for (const ord of o.orders) {
     if (ord.brought !== null) continue;
-    const n = Math.max(0, Math.min(ord.qty, supply[ord.item], space - used));
+    // Orders take at most half of what town sends of a thing: the rest is for whoever comes.
+    const n = Math.max(0, Math.min(ord.qty, supply[ord.item], Math.floor(sent[ord.item] / 2) - countGoods(held, ord.item), space - used));
     ord.brought = n;
     supply[ord.item] -= n;
     used += n;
@@ -330,11 +332,13 @@ export function arrive(w: World, leaves: number): void {
   o.visit = v;
   w.state.lorryHere = true;
   w.emit({ type: 'lorry_arrived' });
+  // The horn tells the kampung what's on the back today.
+  const names = BRINGS.filter((g) => countGoods(v.goods, g) + countGoods(v.held, g) > 0).map((g) => ITEMS[g].many.replace(/^\{n\} (?:tins of |loaves of |bags of )?/, ''));
+  const aboard = names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
   for (const r of w.state.residents) {
     if (w.isAsleep(r)) continue;
     w.learnPlace(r, 'lorry-stop');
-    // Shopkeepers know the horn means the stock for their shelves.
-    w.notify(r.id, w.shopOf(r.id) ? "You hear the lorry's horn from the lorry stop: the lorry man has come with stock for the shops." : "You hear the lorry's horn from the lorry stop.");
+    w.notify(r.id, aboard ? `You hear the lorry's horn from the lorry stop: the lorry man is in from town with ${aboard}.` : "You hear the lorry's horn from the lorry stop.");
   }
 }
 
@@ -527,8 +531,8 @@ export function payOsman(w: World, r: Resident, money: Cents | null): Done {
   if (r.money < cents) return nope(`You only have ${formatMoney(r.money)}.`);
   w.transfer(r.id, LORRY_ID, cents, 'paid the lorry man');
   a.owes -= cents;
-  // What's left is the newest of it: its week starts again.
-  a.since = a.owes > 0 ? w.t : null;
+  // What's left is still the old debt: its week runs on until it's all paid.
+  if (a.owes === 0) a.since = null;
   w.emit({ type: 'lorry_paid', who: r.id, cents, stillOwed: a.owes });
   return yes(`You pay ${OSMAN} ${formatMoney(cents)}. He crosses it out in his book.${a.owes > 0 ? ` You still owe him ${formatMoney(a.owes)}.` : ''}`);
 }
@@ -641,7 +645,7 @@ export async function osmanThinks(w: World, head: OsmanHead | null, realMs: numb
     let by: 'ai' | 'script' = 'script';
     for (const side of ['sells', 'buys'] as const) {
       for (const [item, raw] of Object.entries(got?.[side] ?? {})) {
-        if (v[side][item as ItemId] === undefined) continue;
+        if (!Object.hasOwn(v[side], item)) continue;
         const c = toCents(raw);
         const p = c === null ? null : clampPrice(side, item as ItemId, c);
         if (p !== null) {
@@ -677,8 +681,9 @@ export async function osmanThinks(w: World, head: OsmanHead | null, realMs: numb
     const a = account(w, r.id);
     const facts = { name: r.name, side: o.side, item: o.item, qty: o.qty, offered: o.cents, list, floor, ceiling, regular: isRegular(a), cheated: !!a?.cheated };
     const scripted = scriptedHaggle(facts);
+    // Past his cap (several offers in one minute), his usual ways answer.
+    const thought = head && v.haggles < HAGGLES_PER_VISIT ? await head.haggle({ ...facts, scripted }, at) : null;
     v.haggles++;
-    const thought = head ? await head.haggle({ ...facts, scripted }, at) : null;
     const ans = settleAnswer(facts, thought ?? scripted);
     w.emit({ type: 'lorry_haggled', who: r.id, side: o.side, item: o.item, qty: o.qty, cents: o.cents, answer: ans.answer === 'accept' ? 'took' : ans.answer === 'counter' ? 'countered' : 'refused', counter: ans.each ?? null, by: thought ? 'ai' : 'script' });
     const said = cleanLine(ans.words, 160);
@@ -698,6 +703,14 @@ export async function osmanThinks(w: World, head: OsmanHead | null, realMs: numb
 
 /** Keeps any answer within his bounds: never accepting past them, a counter always between the offer and his price and inside his limits. */
 export function settleAnswer(b: Omit<HaggleBrief, 'scripted'>, a: HaggleAnswer): HaggleAnswer {
+  const settled = settle(b, a);
+  // His words stand only if the answer does: no "done, take it" on a deal his bounds turned down.
+  const same = settled.answer === a.answer && (settled.answer !== 'counter' || settled.each === Math.round(toCents(a.each) ?? NaN));
+  const { words, ...rest } = settled;
+  return same && words !== undefined ? { ...rest, words } : rest;
+}
+
+function settle(b: Omit<HaggleBrief, 'scripted'>, a: HaggleAnswer): HaggleAnswer {
   const per = b.offered / b.qty;
   const words = a.words;
   if (b.side === 'sells') {

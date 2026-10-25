@@ -180,13 +180,14 @@ export function cook(w: World, r: Resident, i: Intent): ActionResult {
   if (!item || !recipe || skillLevel(r, 'cooking') < (recipe.level ?? 1)) return no(`You don't know how to make ${quoted(i.item)}.`);
   const batches = qtyOf(i.batches);
   if (batches === null) return no(SAY_NOTHING_SENSIBLE);
+  const own = w.shopOf(r.id)?.id === shop.id;
   for (const [need, n] of Object.entries(recipe.needs) as [ItemId, number][]) {
-    if (countGoods(shop.stock, need) + countGoods(r.items, need) < n * batches) {
+    if (countGoods(shop.stock, need) + (own ? countGoods(r.items, need) : 0) < n * batches) {
       const perBatch = goodsLabel(recipe.needs);
       return no(`Each batch takes ${perBatch}, and the kitchen is short of ${need}.`);
     }
   }
-  // The kitchen's stock first, then what the cook has brought along.
+  // The kitchen's stock first, then (in their own kitchen) what the cook has brought along.
   for (const [need, n] of Object.entries(recipe.needs) as [ItemId, number][]) {
     const fromStock = Math.min(countGoods(shop.stock, need), n * batches);
     addGoods(shop.stock, need, -fromStock);

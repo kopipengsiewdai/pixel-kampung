@@ -90,18 +90,6 @@ describe('a neighbour can see someone is hungry', () => {
   });
 });
 
-describe('the horn tells shopkeepers the lorry brings stock', () => {
-  it('owners hear it is time for their stock; others only hear the horn', () => {
-    const w = newWorld(5, 0);
-    const huat = put(w, 'Ah Huat', 'kopitiam');
-    const siti = put(w, 'Siti', 'well');
-    for (let i = 0; i < 4 * 60 && !w.state.lorryHere; i++) advance(w);
-    expect(w.state.lorryHere).toBe(true);
-    expect(huat.recent.some((o) => /horn/.test(o.text) && /stock/.test(o.text))).toBe(true);
-    expect(siti.recent.some((o) => /horn/.test(o.text) && /stock/.test(o.text))).toBe(false);
-  });
-});
-
 describe('hungry, they are pointed only where someone will serve them', () => {
   const idle: Brain = { decide: () => null, save: () => null, load: () => {} };
   function hungryTown(minded: boolean) {

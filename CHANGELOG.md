@@ -11,7 +11,7 @@ never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
   - He sets his prices once a visit, always between 110% and 160% of the town price when selling and 40% to 80% when buying. He pays a little more when trade is slow, and asks a little more when money is piling up.
   - Name a price and he takes it, counters or says no; after about ten haggles a morning it's take it or leave it.
   - He keeps a book: regulars get slightly better prices and credit (up to about a quarter of a typical purse), debts last a week, and anyone who lets one run pays more and gets no more credit. He never forgets.
-  - Ask him to bring something next time, with a deposit if you like. Nothing is promised: he brings what town can spare and hands back the deposit for the rest (or all of it, if nobody comes for it).
+  - Ask him to bring something next time, with a deposit if you like. Nothing is promised: orders take at most half of what town sends of anything, so there is always some on open sale; he brings what town can spare and hands back the deposit for the rest (or all of it, if nobody comes for it).
   - He brings one line of news from town each visit.
   - In a thinking town his prices, his haggling and his news come from the cheap model (a fraction of a cent a visit, counted in the town's daily cap); with the cap spent or a call failing he trades by his usual ways.
 - **Living town:** at upgrade (save v15) nobody has dealt with him yet. A lorry in at the stop carries on with the old lorry's goods and prices until eight; if the old lorry has already been today, he first comes tomorrow.
@@ -20,7 +20,7 @@ never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
   - A cook can use what they've brought along when the kitchen is short.
   - "Eat" is only offered with something edible to hand, not with just raw rice or coffee powder.
   - A hungry resident is pointed only to shops someone is minding; with none, to the jetty for a fish. Finding nobody minding a shop ends that thought instead of trying again and again.
-  - Shopkeepers hear the lorry's horn as the stock for their shelves arriving.
+  - The lorry's horn tells everyone what he's brought from town today.
   - Neighbours can see when someone nearby looks hungry or faint with hunger.
   - Whoever pinned a note sees it as "your note" on the board.
 - **Farm beds no longer stay taken forever:** a bed left without water for three days withers (a papaya tree holds out a week), its planter is told, and anyone may plant there again.
