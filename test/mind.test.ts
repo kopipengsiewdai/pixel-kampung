@@ -9,7 +9,7 @@ import { CostLog } from '../src/mind/cost-log.ts';
 import { Mind, needsOnly, BUSINESS_CALLS_PER_DAY } from '../src/mind/mind.ts';
 import { mindBrains } from '../src/mind/setup.ts';
 import { fromIntent, toIntent } from '../src/mind/tools.ts';
-import { TEST_CARDS } from '../src/seed/test-cards.ts';
+import { CARDS } from '../src/seed/cards.ts';
 import { Town, fakeBrains } from '../src/town.ts';
 import type { GameEvent } from '../src/sim/events.ts';
 import { perceive } from '../src/sim/perception.ts';
@@ -29,7 +29,7 @@ afterEach(() => {
 function mindTown(seed: number, opts: { costDir?: string | null; townCap?: number; memory?: MemoryStore } = {}) {
   const memory = opts.memory ?? new MemoryStore(':memory:');
   const mind = new Mind({
-    client: new FakeModel(seed), memory, costs: new CostLog(opts.costDir ?? null), cards: TEST_CARDS, townCap: opts.townCap,
+    client: new FakeModel(seed), memory, costs: new CostLog(opts.costDir ?? null), cards: CARDS, townCap: opts.townCap,
   });
   mind.keepSent = true;
   const events: GameEvent[] = [];
@@ -120,7 +120,7 @@ describe('failures and odd saves', () => {
     const dir = tempDir();
     const failing = { think: async () => { throw new Error('timed out'); } };
     const errors: unknown[] = [];
-    const mind = new Mind({ client: failing, memory: new MemoryStore(':memory:'), costs: new CostLog(dir), cards: TEST_CARDS, onError: (e) => errors.push(e) });
+    const mind = new Mind({ client: failing, memory: new MemoryStore(':memory:'), costs: new CostLog(dir), cards: CARDS, onError: (e) => errors.push(e) });
     const town = Town.create(1, START, { brains: mindBrains(mind, fakeBrains, ['siti']), observer: mind.observe });
     await town.runUntil(START + 2);
     expect(errors.length).toBeGreaterThan(0);
@@ -133,7 +133,7 @@ describe('failures and odd saves', () => {
     const plain = Town.create(2, START);
     await plain.runUntil(START + 30);
     const snap = plain.snapshot();
-    const mind = new Mind({ client: new FakeModel(2), memory: new MemoryStore(':memory:'), costs: new CostLog(null), cards: TEST_CARDS });
+    const mind = new Mind({ client: new FakeModel(2), memory: new MemoryStore(':memory:'), costs: new CostLog(null), cards: CARDS });
     const town = Town.fromSnapshot(snap.world, snap.brains, { brains: mindBrains(mind, fakeBrains), observer: mind.observe });
     await town.runUntil(START + 60);
     expect(town.t).toBe(START + 60);
@@ -214,7 +214,7 @@ describe('a town of minds, on the fake model ($0)', () => {
     first.memory.close(); // the process stops here
 
     const memory = new MemoryStore(memPath);
-    const mind = new Mind({ client: new FakeModel(9), memory, costs: new CostLog(join(dir, 'costs')), cards: TEST_CARDS });
+    const mind = new Mind({ client: new FakeModel(9), memory, costs: new CostLog(join(dir, 'costs')), cards: CARDS });
     const resumed = Town.fromSnapshot(snap.world, snap.brains, { brains: mindBrains(mind, fakeBrains), observer: mind.observe });
     await resumed.runUntil(START + 1500);
     expect(resumed.snapshot().world).toEqual(continuous.town.snapshot().world);

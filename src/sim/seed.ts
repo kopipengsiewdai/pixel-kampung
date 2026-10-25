@@ -28,7 +28,8 @@ export function createWorld(seed: number, t: number, cast: readonly CastMember[]
       recent: [],
       reply: null,
       knownPlaces: c.business ? [homeId, c.business] : [homeId],
-      knownPeople: [],
+      // Family and old friends are known from day one; everyone else is met in play.
+      knownPeople: c.knows.map(slug),
     };
   });
   const shops = cast.flatMap((c, i) => {

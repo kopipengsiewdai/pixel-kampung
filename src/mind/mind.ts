@@ -1,5 +1,5 @@
 import type { Brain, ThinkContext } from '../brain/brain.ts';
-import type { Card } from '../seed/test-cards.ts';
+import type { Card } from '../seed/cards.ts';
 import type { Intent } from '../sim/actions/index.ts';
 import { ITEMS, type ItemId } from '../sim/items.ts';
 import type { Perception } from '../sim/perception.ts';
@@ -50,7 +50,7 @@ export class Mind {
   }
 
   brainFor(residentId: string, name: string, role: 'owner' | 'seeker', shop: string | null, t: number): MindBrain {
-    const card = this.cards.find((c) => c.name === name) ?? { name, age: 30, personality: 'Ordinary.', want: 'a decent life', worry: 'hard times' };
+    const card = this.cards.find((c) => c.name === name) ?? { name, age: 30, personality: 'Ordinary.', want: 'a decent life', worry: 'about hard times', knows: '' };
     return new MindBrain(this, residentId, systemPrompt(card, role, shop), t);
   }
 

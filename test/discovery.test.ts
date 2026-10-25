@@ -8,7 +8,9 @@ describe('residents start knowing almost nothing', () => {
     const w = newWorld(9, 0, 1, true, false);
     expect(who(w, 'Siti').knownPlaces).toEqual([who(w, 'Siti').homeId]);
     expect(who(w, 'Ah Huat').knownPlaces.sort()).toEqual([who(w, 'Ah Huat').homeId, 'kopitiam'].sort());
-    expect(who(w, 'Siti').knownPeople).toEqual([]);
+    // People: only family and old friends (Siti knows Fatimah from the well).
+    expect(who(w, 'Siti').knownPeople).toEqual([who(w, 'Fatimah').id]);
+    expect(who(w, 'Ah Kow').knownPeople).toEqual([]);
   });
 
   it("can't walk to a place they don't know of yet", () => {
@@ -55,7 +57,7 @@ describe('residents start knowing almost nothing', () => {
     const siti = put(w, 'Siti', 'well');
     const raju = put(w, 'Raju', 'well');
     accepted(act(w, siti.id, { verb: 'say', text: 'My cousin went to Sitiawan, and Rajudin too.' }));
-    expect(raju.knownPeople).toEqual([siti.id]);
+    expect(raju.knownPeople).toEqual([who(w, 'Muthu').id, siti.id]);
   });
 
   it("knows someone's house only once they know the person and have seen or heard of it", () => {

@@ -2,7 +2,13 @@
 
 Ten residents of a 1960s Singapore kampung. Each card is what the resident
 knows about themselves, and nothing about how the game works. The **Knows**
-line holds the ties they start with; that line needs a small code addition.
+line holds the ties they start with.
+
+In code: the cards, written to the resident as "you", are in
+`src/seed/cards.ts`. Roles, businesses and starting ties are in
+`src/seed/cast.ts`. Each resident is told their Knows line, and already knows
+those people on day one (so Ah Seng can go and find his father). Everyone else
+they meet in play. A test checks the code against this page.
 
 ## Owners
 

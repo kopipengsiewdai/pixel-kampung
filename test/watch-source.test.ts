@@ -7,7 +7,7 @@ import { FakeModel } from '../src/mind/fake-model.ts';
 import { MemoryStore } from '../src/mind/memory.ts';
 import { Mind } from '../src/mind/mind.ts';
 import { mindBrains } from '../src/mind/setup.ts';
-import { TEST_CARDS } from '../src/seed/test-cards.ts';
+import { CARDS } from '../src/seed/cards.ts';
 import { Town, fakeBrains } from '../src/town.ts';
 import { ReplayReader, ReplayRecorder, extrasFrom, recordTown } from '../src/watch/replay.ts';
 import { Hub, LiveSource, ReplaySource, THOUGHTS_ONLY_NOTICE } from '../src/watch/source.ts';
@@ -57,7 +57,7 @@ describe('the live source', () => {
 
   it("shows a mind's plan and thoughts on the card (fake model, $0)", async () => {
     const memory = new MemoryStore(':memory:');
-    const mind = new Mind({ client: new FakeModel(1), memory, costs: new CostLog(null), cards: TEST_CARDS, townCap: Infinity });
+    const mind = new Mind({ client: new FakeModel(1), memory, costs: new CostLog(null), cards: CARDS, townCap: Infinity });
     const live = new LiveSource({
       label: 'x', msPerMinute: 1000, everyMs: 0,
       extras: (id, t) => extrasFrom((r, k, up, n) => memory.latest(r, k, up, n), id, t),

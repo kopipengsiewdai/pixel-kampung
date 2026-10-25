@@ -25,7 +25,7 @@ import { CostLog } from '../mind/cost-log.ts';
 import { MemoryStore } from '../mind/memory.ts';
 import { Mind } from '../mind/mind.ts';
 import { mindBrains } from '../mind/setup.ts';
-import { TEST_CARDS } from '../seed/test-cards.ts';
+import { CARDS } from '../seed/cards.ts';
 import { fakeBrains, type TownOptions } from '../town.ts';
 import { ASSETS_DIR, buildClient } from '../watch/bundle.ts';
 import { extrasFrom } from '../watch/replay.ts';
@@ -56,7 +56,7 @@ if (args.minds === true) {
     client: new AnthropicModel({ apiKey }),
     memory,
     costs: new CostLog(join(home, 'costs')),
-    cards: TEST_CARDS,
+    cards: CARDS,
     onError: (err) => console.error(`A thinking call failed: ${err instanceof Error ? err.constructor.name : 'Error'}${err && typeof err === 'object' && 'status' in err ? ` (HTTP ${String(err.status)})` : ''}`),
   });
   mindOpts = { brains: mindBrains(mind, fakeBrains), observer: mind.observe };

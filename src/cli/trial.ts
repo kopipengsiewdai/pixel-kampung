@@ -25,7 +25,7 @@ import { HOURLY_ALLOWANCE } from '../mind/budget.ts';
 import { mindBrains } from '../mind/setup.ts';
 import type { ModelClient, ThinkRequest, ThinkResponse } from '../mind/model.ts';
 import { costUsd } from '../mind/pricing.ts';
-import { TEST_CARDS } from '../seed/test-cards.ts';
+import { CARDS } from '../seed/cards.ts';
 import type { GameEvent } from '../sim/events.ts';
 import { Town, fakeBrains } from '../town.ts';
 import { ReplayRecorder, recordTown } from '../watch/replay.ts';
@@ -111,7 +111,7 @@ const memory = new MemoryStore(trialDb);
 // Frames and events go in the same file, so the watch page can play the trial back.
 const recorder = new ReplayRecorder(trialDb, { seed, label: `${fake ? 'dry run' : 'trial'} ${stamp.slice(0, 16)}, ${minds} on the model` });
 const record = recordTown(recorder);
-const mind = new Mind({ client: counting, memory, costs: new CostLog(costDir), cards: TEST_CARDS, townCap: budget, onError });
+const mind = new Mind({ client: counting, memory, costs: new CostLog(costDir), cards: CARDS, townCap: budget, onError });
 // One owner among the minds, so business calls are measured too.
 const order = ['ah-huat', 'siti', 'raju', 'mei-ling', 'ah-kow', 'muthu', 'ah-seng', 'fatimah', 'mdm-tan', 'rahim'];
 const chosen = order.slice(0, minds);
