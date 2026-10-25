@@ -6,8 +6,10 @@ import { choreMinute, lapseErrands } from './actions/chores.ts';
 import { lapsePriceOffers } from './actions/haggle.ts';
 import { isServing, stoveMinute, travellersMinute } from './travellers.ts';
 import { PLACE_BY_ID } from './map.ts';
-import { NEED_MAX, OLD_AGE, type Resident, type World } from './state.ts';
+import { addGoods, NEED_MAX, OLD_AGE, type Resident, type World } from './state.ts';
 import { lookAbout } from './discovery.ts';
+import { ITEMS, type ItemId } from './items.ts';
+import { FAINT_HUNGER } from './perception.ts';
 import { isNight, minuteOfDay } from './time.ts';
 
 export const LORRY_ARRIVES = 7 * 60;
@@ -67,6 +69,20 @@ function progress(w: World, r: Resident): void {
   }
 }
 
+/** Faint with hunger, a resident eats the most filling food they carry at once, without a thought (as they sleep at night). */
+function eatToSurvive(w: World, r: Resident): void {
+  const food = (Object.keys(r.items) as ItemId[])
+    .filter((i) => (r.items[i] ?? 0) > 0 && ITEMS[i].food)
+    .sort((a, b) => ITEMS[b].food!.hunger - ITEMS[a].food!.hunger)[0];
+  if (!food) return;
+  const def = ITEMS[food];
+  addGoods(r.items, food, -1);
+  r.hunger = Math.max(0, r.hunger - def.food!.hunger);
+  r.energy = Math.min(NEED_MAX, r.energy + (def.food!.energy ?? 0));
+  w.emit({ type: 'ate', who: r.id, item: food });
+  w.notify(r.id, `Faint with hunger, you eat the ${def.one.replace(/^(a|an) /, '')} you were carrying.`);
+}
+
 /** Advances the world by one game minute. Brains are not involved here. */
 export function advance(w: World): void {
   w.state.t += 1;
@@ -93,6 +109,7 @@ export function advance(w: World): void {
 
   for (const r of w.state.residents) {
     updateNeeds(w, r);
+    if (r.activity?.kind !== 'sleeping' && r.hunger >= FAINT_HUNGER) eatToSurvive(w, r);
     progress(w, r);
     stoveMinute(w, r);
     if (r.activity?.kind !== 'sleeping') lookAbout(w, r);

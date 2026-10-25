@@ -4,6 +4,12 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **Hunger that matters:** from very hungry a resident feels it ("Your stomach aches; you need to eat soon."), and near starving can't ignore it ("You're faint with hunger. You must eat now."). Faint with hunger, they eat any food they carry at once, without stopping to think. A hungry resident pottering about is pointed to where food is sold, before anything else.
+- **Food left for the kampung:** travellers from the road no longer buy the last 2 of anything; that's an owner's dial (`travellerReserve` in `settings.json`). In the living town shops ran out of food to travellers, and five residents sat at the edge of starving.
+- **Living town:** picks this up on restart; nothing in the save changes (the new dial takes its default until `settings.json` names it).
+
 ## 0.16.1 (2026-10-25)
 
 - A shopkeeper standing in their own shop can eat straight from the stock, and is offered to. Owners were starving at their own counters (Ah Huat and Mdm Tan at the hunger limit) because eating only worked on carried food.

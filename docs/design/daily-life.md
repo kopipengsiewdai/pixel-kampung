@@ -149,6 +149,11 @@ run their own economy without our guardrails, so they're loosened and in the
 end removed as real sinks (rent, Pak Osman, festivals) and the residents'
 own behaviour take over.
 
+**A reserve for the kampung (2026-10-25).** In the living town, shops sold
+out to travellers and five residents sat at the edge of starving. So
+travellers don't buy the last `travellerReserve` (default 2) of anything a
+shop has; the town's own people still can. Another of the owner's dials.
+
 **2. Serving takes time:** `SERVE_MINUTES = 2` a customer, in the tick, with
 no thought. Servers are the owner at the shop (awake, not walking or
 cooking) and each worker on shift there (not cooking). The queue holds 4, a

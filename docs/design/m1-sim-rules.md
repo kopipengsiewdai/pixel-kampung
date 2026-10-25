@@ -39,7 +39,9 @@ of this goes into any resident's prompt.
   Everyone wakes at 06:00. Brains are never asked to think at night.
 - Running out of energy means dozing off on the spot until partly rested.
   Starving (hunger 1000) drains energy faster, ends a shift in progress and
-  stops you starting one.
+  stops you starting one. From 800 a resident is told their stomach aches;
+  from 950 they're faint, and eat the most filling food they carry at once,
+  without a thought.
   Nobody dies.
 - Walking covers 3 tiles a minute along the shortest route, preferring
   footpaths.

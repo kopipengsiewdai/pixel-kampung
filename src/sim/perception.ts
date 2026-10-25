@@ -69,6 +69,8 @@ export interface Perception {
   people: { name: string; doing: string }[];
   money: Cents;
   carrying: { item: ItemId; qty: number }[];
+  /** Hunger that hurts, in words, from 800; null below. */
+  hungerPang: string | null;
   hunger: HungerWord;
   energy: EnergyWord;
   job: {
@@ -131,8 +133,22 @@ export interface Perception {
 
 const HUNGRY: ReadonlySet<HungerWord> = new Set(['hungry', 'very hungry', 'starving']);
 
+/** From here hunger hurts, and then it can't wait. */
+export const ACHING_HUNGER = 800;
+export const FAINT_HUNGER = 950;
+
+/** Hunger that matters, in words: eating (or going where food is) is the next thing to do. */
+export function hungerPang(h: number): string | null {
+  if (h >= FAINT_HUNGER) return "You're faint with hunger. You must eat now.";
+  if (h >= ACHING_HUNGER) return 'Your stomach aches; you need to eat soon.';
+  return null;
+}
+
+/** From here a resident is hungry. */
+export const HUNGRY_FROM = 450;
+
 export function hungerWord(h: number): HungerWord {
-  return h < 200 ? 'full' : h < 450 ? 'not hungry' : h < 700 ? 'hungry' : h < 1000 ? 'very hungry' : 'starving';
+  return h < 200 ? 'full' : h < HUNGRY_FROM ? 'not hungry' : h < 700 ? 'hungry' : h < 1000 ? 'very hungry' : 'starving';
 }
 
 export function energyWord(e: number): EnergyWord {
@@ -194,6 +210,7 @@ export function perceive(w: World, r: Resident): Perception {
     money: r.money,
     carrying: goodsList(r.items),
     hunger: hungerWord(r.hunger),
+    hungerPang: hungerPang(r.hunger),
     energy: energyWord(r.energy),
     job: jobRow ? {
       place: PLACE_BY_ID.get(jobRow.placeId)!.name,
@@ -348,6 +365,7 @@ export function describe(p: Perception): string {
     ? `Nearby: ${p.people.map((x) => `${x.name} (${x.doing})`).join(', ')}.`
     : "There's nobody else around.");
   if (p.atHome && HUNGRY.has(p.hunger) && !p.carrying.some((c) => ITEMS[c.item].food)) lines.push("There's no food in the house.");
+  if (p.hungerPang) lines.push(p.hungerPang);
   lines.push(`You feel ${p.hunger} and ${p.energy}. You have ${formatMoney(p.money)}${p.carrying.length ? ` and you're carrying ${p.carrying.map((c) => quantityLabel(c.item, c.qty)).join(', ')}` : ''}.`);
   // What's owed, every moment, next to their money: so talk of debts meets what's true.
   const bracket = (what: string | null) => (what ? ` (${what})` : '');

@@ -13,8 +13,11 @@ import type { Cents } from './money.ts';
 export interface Dials {
   /** What travellers from the road spend at one shop in a game day, at most; once spent, no more come that day. */
   travellerBudgetCents: Cents;
+  /** How many of anything a shop keeps back from travellers, for the kampung's own people. */
+  travellerReserve: number;
 }
 
 export const DEFAULT_DIALS: Readonly<Dials> = {
   travellerBudgetCents: 600,
+  travellerReserve: 2,
 };
