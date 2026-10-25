@@ -68,7 +68,7 @@ describe('items', () => {
     expect(findItem('Fish')).toBe('fish');
     expect(findItem('veg')).toBe('vegetables');
     expect(findItem('kopi')).toBe('kopi');
-    expect(findItem('cups of kopi')).toBeNull();
+    expect(findItem('cups of kopi')).toBe('kopi'); // the game's own label (0.11.1)
     expect(findItem('fish porridge')).toBe('fish porridge');
     expect(findItem('durian')).toBeNull();
   });
