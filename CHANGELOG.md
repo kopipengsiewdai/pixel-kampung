@@ -4,6 +4,11 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## 0.9.3 (2026-10-25)
+
+- Shopkeepers can no longer "set" a price to what it already is: it's refused in-world ("That's already your price"). Mdm Tan had re-set rice to $4.20 every minute and never answered the people asking her for work.
+- Living town: picks this up on restart; nothing in the save changes.
+
 ## 0.9.2 (2026-10-25)
 
 - Watch page: the story feed survives a restart; the page refills it with the latest stories from the saved town.
