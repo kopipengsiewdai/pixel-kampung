@@ -88,6 +88,12 @@ function shopView(w: World, s: Shop): ShopView {
   };
 }
 
+/** Who is minding a shop, in plain words: "Ah Huat (the owner)", "Siti (on shift)", or null. */
+export function mindingLabel(shop: ShopView, name: (id: string) => string): string | null {
+  if (!shop.serving) return null;
+  return `${name(shop.serving)} (${shop.serving === shop.ownerId ? 'the owner' : 'on shift'})`;
+}
+
 /** Who is serving at a shop right now: the owner if they're minding it, else a worker on shift there. */
 function servingAt(w: World, s: Shop): string | null {
   const owner = w.resident(s.ownerId);
@@ -190,7 +196,8 @@ export function cardOf(frame: Frame, id: string, extras: CardExtras): Card | nul
     ...frame.owed.filter((o) => o.employerId === id && o.cents > 0).map((o) => `Owes ${name(o.workerId)} ${formatMoney(o.cents)}`),
     ...frame.owed.filter((o) => o.workerId === id && o.cents > 0).map((o) => `Owed ${formatMoney(o.cents)} by ${name(o.employerId)}`),
   ];
-  return { ...r, shop: frame.shops.find((s) => s.ownerId === id) ?? null, wages, ...extras };
+  const shop = frame.shops.find((s) => s.ownerId === id) ?? null;
+  return { ...r, shop, minding: shop ? mindingLabel(shop, name) : null, wages, ...extras };
 }
 
 const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
@@ -214,7 +221,7 @@ export function placeCardOf(frame: Frame, layout: Layout, id: string): PlaceCard
   const shop = frame.shops.find((s) => s.id === id);
   if (shop) {
     card.shop = {
-      owner: name(shop.ownerId)!, serving: name(shop.serving ?? null), workers: (shop.workers ?? []).map((w) => name(w)!),
+      owner: name(shop.ownerId)!, serving: mindingLabel(shop, (x) => name(x)!), workers: (shop.workers ?? []).map((w) => name(w)!),
       stock: shop.stock, sells: shop.sells, buys: shop.buys,
     };
   }

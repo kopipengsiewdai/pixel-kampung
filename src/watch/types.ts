@@ -128,6 +128,8 @@ export interface Thought { t: number; stamp: string; kind: string; text: string 
 /** Everything the card shows when the owner clicks a resident. */
 export interface Card extends ResidentView {
   shop: ShopView | null;
+  /** Who is minding their shop right now: "Ah Huat (the owner)", "Siti (on shift)", or null. */
+  minding: string | null;
   /** "Owes Siti $1.20", "Owed $1.20 by Ah Huat". */
   wages: string[];
   /** Their plan for today, if their mind made one. */

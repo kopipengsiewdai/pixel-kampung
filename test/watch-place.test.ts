@@ -18,11 +18,20 @@ describe('clicking a place shows what is inside', () => {
     const c = cardAt(w, 'provision-shop')!;
     expect(c).toMatchObject({ id: 'provision-shop', kind: 'provision_shop', name: 'the provision shop' });
     expect(c.shop!.owner).toBe('Mdm Tan');
-    expect(c.shop!.serving).toBe('Mdm Tan');
+    expect(c.shop!.serving).toBe('Mdm Tan (the owner)');
     expect(c.shop!.workers).toEqual(['Ah Kow']);
     expect(c.shop!.sells).toContain('rice 30¢');
     expect(c.shop!.stock.map((s) => s.label).join(', ')).toMatch(/rice/);
     expect(c.here.sort()).toEqual(['Mdm Tan', 'Siti']);
+  });
+
+  it('says plainly who is minding a shop: the owner, or a worker on shift', () => {
+    const w = newWorld(9);
+    const tan = put(w, 'Mdm Tan', 'well');
+    const kow = put(w, 'Ah Kow', 'provision-shop');
+    w.state.jobs.push({ id: 51, employerId: tan.id, workerId: kow.id, placeId: 'provision-shop', wage: 120, startHour: 13, hours: 4, lastWorkedDay: null });
+    kow.activity = { kind: 'working', jobId: 51 } as never;
+    expect(cardAt(w, 'provision-shop')!.shop!.serving).toBe('Ah Kow (on shift)');
   });
 
   it('a shop nobody is minding says so', () => {
