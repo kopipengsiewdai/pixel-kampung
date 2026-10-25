@@ -4,6 +4,11 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## 0.10.7 (2026-10-25)
+
+- Watch page: shop cards say who is minding the shop ("Ah Huat (the owner)", "Siti (on shift)", or "nobody right now") instead of "someone is minding it", and "Buys" is now "Buying from others" ("not buying anything right now" when no buying prices are set).
+- Living town: a watch-page change only.
+
 ## 0.10.6 (2026-10-25): going somewhere together
 
 - **Going somewhere together:** when someone you've just been talking with sets off, you notice and think again straight away, and you can go with them to where they're heading (or after them, if they've already stopped). The feed shows it: "Rahim goes with Ah Huat to the kopitiam." Before this, someone who said yes to "come with me" stayed put while the other walked off.
