@@ -52,6 +52,20 @@ export function setPrice(w: World, r: Resident, i: Intent): ActionResult {
   return ok(`You'll buy ${item} at ${formatMoney(cents)} each${limit !== null ? `, up to ${quantityLabel(item, limit)}` : ''}.`);
 }
 
+/** An hour of the day from 7, "7", "7am", "1 pm", "07:00" or "noon"; null if it isn't one. */
+function hourOf(v: unknown): number | null {
+  if (typeof v === 'number') return Number.isInteger(v) && v >= 0 && v <= 23 ? v : null;
+  if (typeof v !== 'string') return null;
+  const s = v.trim().toLowerCase();
+  if (s === 'noon') return 12;
+  const m = /^(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?$/.exec(s);
+  if (!m) return null;
+  let h = Number(m[1]);
+  const pm = m[3]?.startsWith('p');
+  if (m[3]) { if (h < 1 || h > 12) return null; h = (h % 12) + (pm ? 12 : 0); }
+  return h >= 0 && h <= 23 ? h : null;
+}
+
 export function offerJob(w: World, r: Resident, i: Intent): ActionResult {
   const shop = ownShop(w, r);
   if (typeof shop === 'string') return no("You don't have a business to hire for.");
@@ -60,10 +74,11 @@ export function offerJob(w: World, r: Resident, i: Intent): ActionResult {
   if (o.role === 'owner') return no(`${o.name} has a business to run.`);
   const job = w.jobOf(o.id);
   if (job?.employerId === r.id) return no(`${o.name} already works for you.`);
-  const wage = moneyOf(i.wage);
+  // The wage may come as "money" or "price" too, and times as people say them ("7am", "17:00", "4 hours").
+  const wage = moneyOf(i.wage ?? i.money ?? i.price);
   if (wage === null || wage === 0 || wage > MAX_WAGE) return no("That doesn't sound like a wage.");
-  const startHour = qtyOf(i.startHour, -1);
-  const hours = qtyOf(i.hours, -1);
+  const startHour = hourOf(i.startHour);
+  const hours = qtyOf(typeof i.hours === 'string' ? i.hours.replace(/\s*hours?$/i, '') : i.hours, -1);
   if (startHour === null || hours === null || startHour < 0 || hours < 0) return no("You're not sure what hours you meant.");
   if (hours > MAX_SHIFT_HOURS) return no('Nobody can work that long in one go.');
   if (startHour < 6 || startHour + hours > 23) return no("Nobody wants to work through the night.");

@@ -82,6 +82,17 @@ describe('offer_job', () => {
     expect(w.state.jobOffers).toHaveLength(1);
     expect(siti.recent.at(-1)?.text).toMatch(/offers you work at the kopitiam, from 8 in the morning to 12 noon every day, for \$2\.00/);
   });
+  it('understands wages and hours the way people say them (live: 35 offers refused)', () => {
+    const w = newWorld();
+    const huat = put(w, 'Ah Huat', 'kopitiam');
+    put(w, 'Ah Kow', 'kopitiam');
+    put(w, 'Mei Ling', 'kopitiam');
+    accepted(act(w, huat.id, { verb: 'offer_job', to: 'Ah Kow', money: '$1.50 a shift', startHour: '7am', hours: '4 hours' }));
+    accepted(act(w, huat.id, { verb: 'offer_job', to: 'Mei Ling', wage: '$1.20', startHour: '17:00', hours: 3 }));
+    expect(w.state.jobOffers.map((o) => [o.wage, o.startHour, o.hours])).toEqual([[150, 7, 4], [120, 17, 3]]);
+    accepted(act(w, huat.id, { verb: 'offer_job', to: 'Ah Kow', wage: 150, startHour: '1pm', hours: 2 }));
+    expect(w.state.jobOffers.find((o) => o.workerId === who(w, 'Ah Kow').id)?.startHour).toBe(13);
+  });
   it('refusals: other owners, night hours, silly wages, far away, already yours', () => {
     const w = newWorld();
     const huat = put(w, 'Ah Huat', 'kopitiam');

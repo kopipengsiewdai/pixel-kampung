@@ -4,6 +4,12 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## 0.11.1 (2026-10-25): hiring and eating work
+
+- **Hiring works:** a job offer understands wages and hours the way people say them ("$1.50 a shift", "7am", "17:00", "4 hours"), and takes the wage from any money field. Every one of Ah Huat's 35 offers since launch had been refused as "That doesn't sound like a wage."
+- **Eating works:** items can be named the way the game describes them ("a cup of kopi", "2 loaves of bread", "a plate of vegetable rice"). Four residents had not eaten since launch.
+- Living town: picks this up on restart; nothing in the save changes.
+
 ## 0.11.0 (2026-10-25): real debts and lending
 
 - **Real debts and lending:** anyone can lend, ask to borrow, or write an IOU, and nobody owes anything until the other one agrees (an offer lapses after half an hour). What you owe and are owed is in front of you every moment, next to your money ("You owe Mdm Tan $2.00.", "Nobody owes you anything, and you owe nobody."); a worker sees wages owed to them too. Paying back goes oldest debt first and can be part; the one owed can let you off. Talk of settling an account now meets what's true.

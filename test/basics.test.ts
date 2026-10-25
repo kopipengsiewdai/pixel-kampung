@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { formatMoney, parseMoney } from '../src/sim/money.ts';
+import { findItem } from '../src/sim/items.ts';
 import { Rng } from '../src/sim/rng.ts';
 import {
   dayIndex, gameMinuteFromMs, isNight, minuteOfDay, sgtHour, timeLabel, msFromGameMinute, sgtMinute,
@@ -20,6 +21,12 @@ describe('money', () => {
     expect(parseMoney('35c')).toBe(35);
     expect(parseMoney('2')).toBe(200);
     expect(parseMoney('lots')).toBeNull();
+    // Live: Ah Huat's job offers were all refused because wages came as phrases.
+    expect(parseMoney('$1.50 a shift')).toBe(150);
+    expect(parseMoney('$2 per day')).toBe(200);
+    expect(parseMoney('80 cents each')).toBe(80);
+    expect(parseMoney('1.50 dollars')).toBe(150);
+    expect(parseMoney('2 loaves')).toBeNull();
   });
 });
 
@@ -79,5 +86,19 @@ describe('clocks', () => {
   it('system clock reads real time', () => {
     const before = Date.now();
     expect(new SystemClock().nowMs()).toBeGreaterThanOrEqual(before);
+  });
+});
+
+describe('item names as the game itself writes them', () => {
+  it('finds an item by its own label (live: "cup of kopi" and "loaf of bread" were refused, and four residents never ate)', () => {
+    expect(findItem('cup of kopi')).toBe('kopi');
+    expect(findItem('a cup of kopi')).toBe('kopi');
+    expect(findItem('a loaf of bread')).toBe('bread');
+    expect(findItem('2 loaves of bread')).toBe('bread');
+    expect(findItem('plate of vegetable rice')).toBe('vegetable rice');
+    expect(findItem('a bowl of fish porridge')).toBe('fish porridge');
+    expect(findItem('tin of coffee powder')).toBe('coffee');
+    expect(findItem('a bunch of vegetables')).toBe('vegetables');
+    expect(findItem('gold')).toBeNull();
   });
 });
