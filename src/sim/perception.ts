@@ -5,7 +5,8 @@ import { offersFor } from './actions/haggle.ts';
 import { servers } from './travellers.ts';
 import type { DealKind } from './talk.ts';
 import { availableActions } from './actions/index.ts';
-import { ITEMS, LORRY_BUYS, LORRY_SELLS, quantityLabel, type ItemId } from './items.ts';
+import { ITEMS, quantityLabel, type ItemId } from './items.ts';
+import { HAGGLES_PER_VISIT, OSMAN, priceFor, room } from './osman.ts';
 import { PLACES, PLACE_BY_ID, type Place } from './map.ts';
 import { formatMoney, type Cents } from './money.ts';
 import { CIRCLE_LINES, SAID_ALL_LINES, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, WORD_MINUTES, type Debt, type Goods, type Observation, type Resident, type Shop, type TalkRecord, type World } from './state.ts';
@@ -67,7 +68,8 @@ export interface Perception {
   /** Where they are, as they'd say it: a shop by whose it is ("Mdm Tan's provision shop", "your kopitiam"). */
   where: string;
   atHome: boolean;
-  people: { name: string; doing: string }[];
+  /** looks: how hungry they look, if it shows. */
+  people: { name: string; doing: string; looks?: string }[];
   money: Cents;
   carrying: { item: ItemId; qty: number }[];
   /** Hunger that hurts, in words, from 800; null below. */
@@ -93,7 +95,11 @@ export interface Perception {
     today: { served: number; left: number; tooDear: { item: ItemId; n: number }[] };
   } | null;
   shop: { name: string; staffed: boolean; sells: PriceTag[]; buys: PriceTag[] } | null;
-  lorry: { here: boolean; sells: PriceTag[]; buys: PriceTag[] } | null;
+  /** At the lorry stop: the lorry man (by name, once met), his prices for you today, his room, your slate and what you asked him to bring. */
+  lorry: {
+    here: boolean; who: string; sells: PriceTag[]; buys: PriceTag[]; room: number; owes: Cents;
+    brought: { item: ItemId; asked: number; brought: number }[]; asked: { item: ItemId; qty: number }[]; haggled: boolean;
+  } | null;
   beds: { n: number; ready: boolean; wateredToday: boolean }[];
   freeBeds: number | null;
   jobOffers: { from: string; wage: Cents; startHour: number; hours: number }[];
@@ -166,6 +172,12 @@ function goodsList(g: Goods): { item: ItemId; qty: number }[] {
   return (Object.entries(g) as [ItemId, number][]).filter(([, n]) => n > 0).map(([item, qty]) => ({ item, qty }));
 }
 
+/** How hungry someone looks to anyone nearby. */
+function looks(o: Resident): string {
+  return o.activity?.kind === 'sleeping' ? '' : o.hunger >= FAINT_HUNGER ? 'looking faint with hunger' : o.hunger >= LOOKS_HUNGRY ? 'looking hungry' : '';
+}
+const LOOKS_HUNGRY = 700;
+
 function doing(w: World, o: Resident): string {
   switch (o.activity?.kind) {
     case 'walking': return 'walking by';
@@ -175,6 +187,27 @@ function doing(w: World, o: Resident): string {
     case 'sleeping': return 'asleep';
     default: return w.shopOf(o.id) && w.isAt(o, w.shopOf(o.id)!.id) ? 'minding the shop' : 'standing about';
   }
+}
+
+/** The lorry stop as r sees it: his name once they've met him, and his prices for them. */
+function lorryView(w: World, r: Resident): NonNullable<Perception['lorry']> {
+  const o = w.state.osman;
+  const v = o.visit;
+  const a = o.accounts[r.id];
+  const price = (side: 'sells' | 'buys', from: Partial<Record<ItemId, Cents>>, stock?: Goods): PriceTag[] =>
+    (Object.keys(from) as ItemId[]).map((item) => ({ item, price: priceFor(w, r, side, item)!, ...(stock ? { stock: stock[item] ?? 0 } : {}) }));
+  const mine = o.orders.filter((x) => x.who === r.id);
+  return {
+    here: !!v,
+    who: a ? OSMAN : 'the lorry man',
+    sells: v ? price('sells', v.sells, v.goods) : [],
+    buys: v ? price('buys', v.buys) : [],
+    room: v ? room(v) : 0,
+    owes: a?.owes ?? 0,
+    brought: v ? mine.filter((x) => x.brought !== null).map((x) => ({ item: x.item, asked: x.qty, brought: x.brought! })) : [],
+    asked: mine.filter((x) => x.brought === null).map((x) => ({ item: x.item, qty: x.qty })),
+    haggled: !!v && v.haggles >= HAGGLES_PER_VISIT,
+  };
 }
 
 function tags(prices: Partial<Record<ItemId, Cents>>, stock?: Goods): PriceTag[] {
@@ -213,7 +246,7 @@ export function perceive(w: World, r: Resident): Perception {
     placeId: here?.id ?? null,
     where: here ? placeLabel(w, r, here) : 'out on the footpath',
     atHome: w.isAt(r, r.homeId),
-    people: w.nearby(r).map((o) => ({ name: o.name, doing: doing(w, o) })),
+    people: w.nearby(r).map((o) => { const l = looks(o); return l ? { name: o.name, doing: doing(w, o), looks: l } : { name: o.name, doing: doing(w, o) }; }),
     money: r.money,
     carrying: goodsList(r.items),
     hunger: hungerWord(r.hunger),
@@ -253,11 +286,7 @@ export function perceive(w: World, r: Resident): Perception {
       sells: tags(shop.sellPrices, shop.stock),
       buys: buyTags(shop),
     } : null,
-    lorry: w.isAt(r, 'lorry-stop') ? {
-      here: w.state.lorryHere,
-      sells: r.role === 'owner' ? tags(LORRY_SELLS) : [],
-      buys: tags(LORRY_BUYS),
-    } : null,
+    lorry: w.isAt(r, 'lorry-stop') ? lorryView(w, r) : null,
     beds: w.state.beds.filter((b) => b.planterId === r.id)
       .map((b) => ({ n: b.n, ready: isRipe(w, b), wateredToday: b.lastWateredDay === today })),
     freeBeds: w.isAt(r, 'farm') ? w.state.beds.filter((b) => b.planterId === null).length : null,
@@ -373,7 +402,7 @@ function unbackedLine(u: { name: string; kind: DealKind; mine: boolean }): strin
 export function describe(p: Perception): string {
   const lines: string[] = [`It's ${p.time}. You're at ${p.where}.`];
   lines.push(p.people.length
-    ? `Nearby: ${p.people.map((x) => `${x.name} (${x.doing})`).join(', ')}.`
+    ? `Nearby: ${p.people.map((x) => `${x.name} (${x.doing}${x.looks ? `, ${x.looks}` : ''})`).join(', ')}.`
     : "There's nobody else around.");
   if (p.atHome && HUNGRY.has(p.hunger) && !p.carrying.some((c) => ITEMS[c.item].food)) lines.push("There's no food in the house.");
   if (p.hungerPang) lines.push(p.hungerPang);
@@ -412,11 +441,19 @@ export function describe(p: Perception): string {
     if (p.shop.buys.length) lines.push(`They're buying: ${p.shop.buys.map(priceLine).join(', ')}.`);
   }
   if (p.lorry) {
-    if (!p.lorry.here) lines.push("The lorry isn't here.");
+    const l = p.lorry;
+    if (!l.here) lines.push("The lorry isn't here.");
     else {
-      lines.push(`The lorry is here. The lorry man buys ${p.lorry.buys.map(priceLine).join(', ')}.`);
-      if (p.lorry.sells.length) lines.push(`The lorry man takes orders for ${p.lorry.sells.map(priceLine).join(', ')}.`);
+      lines.push(`${l.who === OSMAN ? `${OSMAN}'s lorry` : 'The lorry'} is here. He's selling ${l.sells.map(priceLine).join(', ') || 'nothing'}.`);
+      lines.push(`He buys ${l.buys.map(priceLine).join(', ')}${l.room === 0 ? ", but his lorry is full today" : l.room < 10 ? `, with room for only ${l.room} more` : ''}.`);
+      if (l.haggled) lines.push("He's done haggling for this morning: his price or nothing.");
+      for (const b of l.brought) {
+        lines.push(b.brought === b.asked ? `He has the ${quantityLabel(b.item, b.asked)} you asked for.`
+          : b.brought === 0 ? `He couldn't get any of the ${b.item} you asked for.` : `He could only get ${b.brought} of the ${b.asked} ${b.item} you asked for.`);
+      }
     }
+    for (const a of l.asked) lines.push(`You've asked him to bring ${quantityLabel(a.item, a.qty)} next time.`);
+    if (l.owes > 0) lines.push(`You owe ${l.who} ${formatMoney(l.owes)}.`);
   }
   if (p.beds.length) lines.push(`Your beds on the farm plot: ${p.beds.map((b) => `bed ${b.n} ${b.ready ? 'ready to harvest' : b.wateredToday ? 'watered today' : 'needs water'}`).join('; ')}.`);
   if (p.freeBeds !== null) lines.push(`${p.freeBeds} bed${p.freeBeds === 1 ? ' is' : 's are'} free on the plot.`);

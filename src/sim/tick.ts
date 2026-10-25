@@ -10,12 +10,14 @@ import { isServing, stoveMinute, travellersMinute } from './travellers.ts';
 import { PLACE_BY_ID } from './map.ts';
 import { addGoods, NEED_MAX, OLD_AGE, type Resident, type World } from './state.ts';
 import { lookAbout } from './discovery.ts';
+import { ARRIVES, osmanMinute, STAYS } from './osman.ts';
 import { ITEMS, type ItemId } from './items.ts';
 import { FAINT_HUNGER } from './perception.ts';
 import { isNight, minuteOfDay } from './time.ts';
 
-export const LORRY_ARRIVES = 7 * 60;
-export const LORRY_LEAVES = 7 * 60 + 30;
+/** About when the lorry comes and goes (Pak Osman's own day varies a little: src/sim/osman.ts). */
+export const LORRY_ARRIVES = ARRIVES;
+export const LORRY_LEAVES = ARRIVES + STAYS;
 
 function clamp(v: number): number {
   return Math.max(0, Math.min(NEED_MAX, v));
@@ -95,20 +97,6 @@ export function advance(w: World): void {
   if (mod === 23 * 60) w.emit({ type: 'night_fell' });
   if (mod === 6 * 60) w.emit({ type: 'morning' });
 
-  const lorry = mod >= LORRY_ARRIVES && mod < LORRY_LEAVES;
-  if (lorry !== w.state.lorryHere) {
-    w.state.lorryHere = lorry;
-    w.emit({ type: lorry ? 'lorry_arrived' : 'lorry_left' });
-    // Everyone awake hears it come in, and learns where it stops.
-    if (lorry) {
-      for (const r of w.state.residents) {
-        if (r.activity?.kind === 'sleeping') continue;
-        w.learnPlace(r, 'lorry-stop');
-        w.notify(r.id, "You hear the lorry's horn from the lorry stop.");
-      }
-    }
-  }
-
   for (const r of w.state.residents) {
     updateNeeds(w, r);
     if (r.activity?.kind !== 'sleeping' && r.hunger >= FAINT_HUNGER) eatToSurvive(w, r);
@@ -131,6 +119,7 @@ export function advance(w: World): void {
     }
   }
 
+  osmanMinute(w);
   travellersMinute(w);
 
   w.state.jobOffers = w.state.jobOffers.filter((o) => o.expires > t);

@@ -17,7 +17,7 @@ import { SaveTooNewError, SqliteStore } from '../src/store/sqlite-store.ts';
 import { SCHEMA_VERSION, UPGRADES, type SaveData, type Upgrade } from '../src/store/upgrades.ts';
 import { Town, fakeBrains } from '../src/town.ts';
 import { dateAt, nowLabel } from '../src/sim/calendar.ts';
-import { gameMinuteAt } from '../src/sim/time.ts';
+import { gameMinuteAt, minuteOfDay } from '../src/sim/time.ts';
 import { dumpSql, FIXTURE_DIR, fixtureShape, fixtureSql, fixtureUpgraded, freshTables, loadSql, misfits, peek, saveShape, tablesOf, upgradedHeader, upgradeOneStep } from './saves.ts';
 
 const dirs: string[] = [];
@@ -499,5 +499,52 @@ describe('starting a command on an old or a newer save', () => {
     expect(res.err).toContain('saved by a newer Pixel Kampung');
     expect(res.err).not.toMatch(/at .*\.ts:\d+/); // a message, not a stack trace
     expect(readFileSync(path).equals(bytes)).toBe(true);
+  });
+});
+
+describe('v14 → v15: Pak Osman the lorry trader', () => {
+  const v14 = (): SaveData => {
+    const path = savePath();
+    loadSql(fixtureSql(14), path);
+    return savedOf(path);
+  };
+  /** The v14 world moved to a minute of its own day, with or without the old lorry in. */
+  const at = (s: SaveData, mod: number, lorryHere: boolean): SaveData => {
+    const t = s.world.t as number;
+    const now = t - ((((t + 480) % 1440) + 1440) % 1440) + mod;
+    return { world: { ...s.world, t: now, lorryHere, clock: { ...(s.world.clock as object), anchorT: now } }, brains: s.brains };
+  };
+
+  it('a lorry caught mid-visit carries on with the old goods and prices until eight, then drives off; nobody has dealt with him yet', async () => {
+    const up = step(14).save!(at(v14(), 7 * 60 + 10, true));
+    const o = up.world.osman as { visit: { leaves: number; sells: Record<string, number> } | null; lastDay: number | null; accounts: object; orders: unknown[] };
+    expect(o.visit).not.toBeNull();
+    expect(o.visit!.sells).toMatchObject({ rice: 20, coffee: 50, bread: 15 });
+    expect(o.accounts).toEqual({});
+    expect(o.orders).toEqual([]);
+    const left: number[] = [];
+    const town = Town.fromSnapshot({ ...(up.world as unknown as WorldState), version: SCHEMA_VERSION }, up.brains, {
+      onEvent: (e) => { if (e.type === 'lorry_left' || e.type === 'lorry_arrived') left.push(minuteOfDay(e.t)); },
+    });
+    const w = town.world;
+    while (minuteOfDay(w.t) < 8 * 60 + 5) {
+      await town.step();
+      if (w.state.osman.visit) expect(w.state.lorryHere).toBe(true);
+    }
+    // It leaves at eight and doesn't come round a second time that morning.
+    expect(left).toEqual([8 * 60]);
+  });
+
+  it('after the old lorry has been, no second lorry that morning; before it came, Pak Osman comes', () => {
+    const after = step(14).save!(at(v14(), 7 * 60 + 40, false)).world.osman as { visit: unknown; lastDay: number | null };
+    expect(after.visit).toBeNull();
+    expect(after.lastDay).not.toBeNull();
+    const before = step(14).save!(at(v14(), 6 * 60 + 10, false)).world.osman as { visit: unknown; lastDay: number | null };
+    expect(before).toEqual({ lastDay: null, visit: null, accounts: {}, orders: [] });
+  });
+
+  it('is idempotent', () => {
+    const once = step(14).save!(at(v14(), 7 * 60 + 10, true));
+    expect(step(14).save!(once)).toEqual(once);
   });
 });

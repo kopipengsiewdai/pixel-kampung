@@ -118,3 +118,13 @@ export function lacks(r: Resident, b: Bundle, you: boolean): string | null {
 export function itemWord(item: ItemId): string {
   return ITEMS[item].id;
 }
+
+/** Whether a sum of money was named at all. */
+export function hasMoney(i: Intent): boolean {
+  return i.money !== undefined && i.money !== null && i.money !== '';
+}
+
+/** "Pay later": true, "yes", "later"... */
+export function saysLater(v: unknown): boolean {
+  return v === true || (typeof v === 'string' && /^(true|yes|y|later|on credit|credit)$/i.test(v.trim()));
+}

@@ -157,7 +157,7 @@ describe('the lorry', () => {
     kow.thinkAt = w.t + 50;
     advance(w);
     expect(w.state.lorryHere).toBe(true);
-    for (const r of w.state.residents) expect(r.recent.some((o) => o.text === "You hear the lorry's horn from the lorry stop."), r.name).toBe(true);
+    for (const r of w.state.residents) expect(r.recent.some((o) => o.text.startsWith("You hear the lorry's horn from the lorry stop")), r.name).toBe(true);
     expect(kow.knownPlaces).toContain('lorry-stop');
     expect(kow.thinkAt).toBe(w.t + 1);
   });

@@ -19,6 +19,15 @@ export type EventBody =
   | { type: 'lorry_left' }
   | { type: 'lorry_sale'; who: string; item: ItemId; qty: number; cents: Cents }
   | { type: 'lorry_order'; who: string; shop: string; item: ItemId; qty: number; cents: Cents }
+  /** Bought off the lorry into their own hands; `later` on Pak Osman's slate. */
+  | { type: 'lorry_bought'; who: string; item: ItemId; qty: number; cents: Cents; later: boolean }
+  /** Pak Osman's answer to a price someone named: `by` is whether his head or his scripted ways answered (owner's eyes). */
+  | { type: 'lorry_haggled'; who: string; side: 'sells' | 'buys'; item: ItemId; qty: number; cents: Cents; answer: 'took' | 'countered' | 'refused' | 'flat'; counter: Cents | null; by: 'ai' | 'script' }
+  | { type: 'lorry_asked'; who: string; item: ItemId; qty: number; deposit: Cents }
+  | { type: 'lorry_collected'; who: string; item: ItemId; qty: number; asked: number; cents: Cents }
+  | { type: 'lorry_paid'; who: string; cents: Cents; stillOwed: Cents }
+  | { type: 'lorry_gossip'; text: string }
+  | { type: 'lorry_priced'; by: 'ai' | 'script'; sells: Partial<Record<ItemId, Cents>>; buys: Partial<Record<ItemId, Cents>> }
   | { type: 'went_fishing'; who: string }
   | { type: 'caught_fish'; who: string; qty: number }
   | { type: 'planted'; who: string; bed: number; crop?: Crop }

@@ -1,6 +1,7 @@
 import type { Brain } from './brain/brain.ts';
 import { FakeBrain } from './brain/fake-brain.ts';
 import { act, verbOf, type Intent } from './sim/actions/index.ts';
+import { isStaffed } from './sim/actions/everyone.ts';
 import { DEFAULT_DIALS, type Dials } from './sim/dials.ts';
 import type { EventBody, GameEvent, LedgerEntry } from './sim/events.ts';
 import { ITEMS, type ItemId } from './sim/items.ts';
@@ -10,6 +11,7 @@ import { createWorld } from './sim/seed.ts';
 import { MAX_REPLAY_MINUTES, skipQuietly } from './sim/skip.ts';
 import { World, type Resident, type WorldState } from './sim/state.ts';
 import { advance } from './sim/tick.ts';
+import { osmanThinks, type OsmanHead } from './sim/osman.ts';
 import { isNight, minuteOfDay, realMsAt } from './sim/time.ts';
 import type { SqliteStore } from './store/sqlite-store.ts';
 import { SCHEMA_VERSION } from './store/upgrades.ts';
@@ -50,12 +52,17 @@ function pottered(w: World, r: Resident, p: Perception): void {
   if (own && p.placeId === own.id) return;
   // Hungry, with nothing in hand to eat: where food is sold comes first, at once.
   if (r.hunger >= HUNGRY_FROM && !Object.keys(r.items).some((i) => ITEMS[i as ItemId].food && (r.items[i as ItemId] ?? 0) > 0)) {
-    const food = w.state.shops.filter((s) => s.id !== p.placeId && r.knownPlaces.includes(s.id)
+    const food = w.state.shops.filter((s) => s.id !== p.placeId && r.knownPlaces.includes(s.id) && isStaffed(w, s)
       && (Object.entries(s.sellPrices) as [ItemId, number][]).some(([i, price]) => ITEMS[i].food && (s.stock[i] ?? 0) > 0 && price <= r.money))
       .map((s) => w.placeName(PLACE_BY_ID.get(s.id)!));
     if (food.length) {
       const list = food.length === 1 ? food[0]! : `${food.slice(0, -1).join(', ')} or ${food.at(-1)}`;
       r.reply = { ok: true, text: `You're hungry. You could get something to eat at ${list}.` };
+      return;
+    }
+    // Nobody serving anywhere: there are always fish in the sea.
+    if (p.placeId !== 'jetty' && r.knownPlaces.includes('jetty')) {
+      r.reply = { ok: true, text: "You're hungry. You could catch a fish at the jetty." };
       return;
     }
   }
@@ -75,6 +82,7 @@ const NUDGE_FIRST = ['jetty', 'farm'];
 /** The refusals (from personNearby and say) that asking again this minute can't change. */
 const NOT_NEARBY = / isn't nearby\. /;
 const SAID_ALL = / have said all there is to say\.$/;
+const NOBODY_MINDING = /^Nobody's minding /;
 
 /** The person an action is aimed at, lower-cased, if any. */
 function personOf(i: Intent): string | null {
@@ -118,6 +126,8 @@ export interface TownOptions {
   anchorMs?: number;
   /** The owner's dials (src/sim/dials.ts); any left out keep their defaults. */
   dials?: Partial<Dials>;
+  /** Pak Osman's bounded head (src/mind/osman-head.ts); without one he trades by his scripted ways. */
+  osman?: OsmanHead | null;
 }
 
 /** The running kampung: world + brains + optional store, advanced a minute at a time. */
@@ -127,6 +137,7 @@ export class Town {
   private store?: SqliteStore;
   private onEvent?: (e: GameEvent) => void;
   private onTick?: (world: World) => void;
+  private osman: OsmanHead | null;
 
   private constructor(state: WorldState, opts: TownOptions, savedBrains?: Record<string, unknown>) {
     this.world = new World(state);
@@ -135,6 +146,7 @@ export class Town {
     this.store = opts.store;
     this.onEvent = opts.onEvent;
     this.onTick = opts.onTick;
+    this.osman = opts.osman ?? null;
     const make = opts.brains ?? fakeBrains;
     this.brains = new Map(state.residents.map((r, i) => [r.id, make(r, i, state.seed, state)]));
     if (savedBrains) for (const [id, b] of this.brains) if (savedBrains[id] !== undefined) b.load(savedBrains[id]);
@@ -179,6 +191,8 @@ export class Town {
     const emit = (e: EventBody) => { w.emit(e); };
     const realMs = realMsAt(w.state.clock, w.t);
     const mod = minuteOfDay(w.t);
+    // The lorry man answers before anyone thinks: his prices, his news, and any offer from last minute.
+    await osmanThinks(w, this.osman, realMs);
     if (mod >= EVENING_FROM) {
       for (const r of w.state.residents) {
         const brain = this.brains.get(r.id)!;
@@ -210,7 +224,7 @@ export class Town {
             break;
           }
           // Two who have said all there is to say won't find more this minute either.
-          if (!res.ok && SAID_ALL.test(res.reply ?? '')) break;
+          if (!res.ok && (SAID_ALL.test(res.reply ?? '') || NOBODY_MINDING.test(res.reply ?? ''))) break;
           if (res.ok) {
             const what = sameness(intent);
             const before = r.lastDone;

@@ -62,6 +62,7 @@ describe('the nudge, when hungry, points to food', () => {
     const kopitiam = w.shop('kopitiam')!;
     kopitiam.sellPrices = { 'fish porridge': 40 };
     kopitiam.stock = { 'fish porridge': 3 };
+    put(w, 'Ah Huat', 'kopitiam');
     const siti = put(w, 'Siti', 'well');
     siti.hunger = 820;
     siti.money = 500;

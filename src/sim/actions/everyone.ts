@@ -1,6 +1,7 @@
 import { FISHING_MINUTES, RESTED, startSleep } from '../activities.ts';
 import { dealKind, settlesBy } from '../talk.ts';
-import { ITEMS, LORRY_BUYS, quantityLabel, type ItemId } from '../items.ts';
+import { ITEMS, quantityLabel, type ItemId } from '../items.ts';
+import { lorryBuy, lorrySell } from '../osman.ts';
 import { MAP_H, MAP_W, PLACES, PLACE_BY_ID, findPath, isWalkable, type Point } from '../map.ts';
 import { learnFromWords } from '../discovery.ts';
 import { handedOver } from './chores.ts';
@@ -10,12 +11,12 @@ import { perceive } from '../perception.ts';
 import { PLACE_WORDS } from '../places.ts';
 import { BEST_DAY_YIELD, effectiveLevel, HANDY_YIELD, practise, skillLevel } from '../skills.ts';
 import {
-  addGoods, type Bed, type Crop, CIRCLE_LINES, countGoods, type Resident, type Shop, type World, LORRY_ID, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, SAID_ALL_LINES,
+  addGoods, type Bed, type Crop, CIRCLE_LINES, countGoods, type Resident, type Shop, type World, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, SAID_ALL_LINES,
 } from '../state.ts';
 import { atTimeOfDay, dayIndex, sgtHour } from '../time.ts';
 import {
   type ActionResult, type Intent, SAY_NOTHING_SENSIBLE, bundleLabel, bundleOf, isEmptyBundle, itemOf,
-  lacks, moneyOf, no, ok, personNearby, qtyOf, quoted, textOf,
+  lacks, moneyOf, no, ok, personNearby, qtyOf, quoted, textOf, hasMoney, saysLater,
 } from './common.ts';
 
 export const MAX_SAY = 300;
@@ -265,7 +266,11 @@ export function recordFirstSale(w: World, shop: Shop): void {
 
 export function buy(w: World, r: Resident, i: Intent): ActionResult {
   if (w.isAt(r, 'lorry-stop')) {
-    return no(w.shopOf(r.id) ? 'The lorry man takes orders for your shop, not sales over the tailboard.' : 'The lorry man only takes orders from shopkeepers.');
+    const qty = qtyOf(i.qty);
+    if (qty === null) return no(SAY_NOTHING_SENSIBLE);
+    const money = hasMoney(i) ? moneyOf(i.money) : null;
+    if (hasMoney(i) && money === null) return no("That doesn't sound like money.");
+    return lorryBuy(w, r, itemOf(i.item), qty, { forShop: null, money, later: saysLater(i.later) });
   }
   const shop = shopHere(w, r);
   if (!shop) return no("There's nothing for sale here.");
@@ -309,15 +314,9 @@ export function sell(w: World, r: Resident, i: Intent): ActionResult {
   const qty = qtyOf(i.qty);
   if (qty === null) return no(SAY_NOTHING_SENSIBLE);
   if (w.isAt(r, 'lorry-stop')) {
-    if (!w.state.lorryHere) return no("The lorry isn't here.");
-    const price = item ? LORRY_BUYS[item] : undefined;
-    if (!item || !price) return no('The lorry man only buys fish and vegetables.');
-    if (countGoods(r.items, item) < qty) return no(`You don't have ${quantityLabel(item, qty)}.`);
-    const cents = price * qty;
-    addGoods(r.items, item, -qty);
-    w.transfer(LORRY_ID, r.id, cents, `sold ${item} to the lorry`);
-    w.emit({ type: 'lorry_sale', who: r.id, item, qty, cents });
-    return ok(`The lorry man takes ${quantityLabel(item, qty)} and pays you ${formatMoney(cents)}.`);
+    const money = hasMoney(i) ? moneyOf(i.money) : null;
+    if (hasMoney(i) && money === null) return no("That doesn't sound like money.");
+    return lorrySell(w, r, item, qty, money);
   }
   const shop = shopHere(w, r);
   if (!shop) return no("There's nobody here to sell to.");
@@ -669,7 +668,7 @@ export function readNoticeBoard(w: World, r: Resident): ActionResult {
     learnFromWords(w, r, n.text);
     w.learnPerson(r, n.authorId);
   }
-  const lines = w.state.notes.map((n) => `- "${n.text}" (${w.resident(n.authorId).name})`);
+  const lines = w.state.notes.map((n) => `- "${n.text}" (${n.authorId === r.id ? 'your note' : w.resident(n.authorId).name})`);
   return ok(`Notes on the board:\n${lines.join('\n')}`);
 }
 

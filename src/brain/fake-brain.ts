@@ -237,7 +237,7 @@ export class FakeBrain implements Brain {
   /** At lorry time, once a day: meet the lorry and top the shop up. */
   private lorry(p: Perception): Intent | null {
     const b = p.business!;
-    const lorryTime = (p.hour === 6 && p.minute >= 30) || (p.hour === 7 && p.minute < 25);
+    const lorryTime = (p.hour === 6 && p.minute >= 20) || (p.hour === 7 && p.minute < 40);
     if (!lorryTime || this.mem.lorryDay === day(p)) return null;
     if (p.place !== 'the lorry stop') return this.go(p, 'the lorry stop');
     if (!p.lorry?.here) return null;

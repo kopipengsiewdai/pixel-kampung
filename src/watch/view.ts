@@ -247,8 +247,8 @@ export function placeCardOf(frame: Frame, layout: Layout, id: string): PlaceCard
   }
   if (place.kind === 'jetty') card.fishing = people.filter((r) => r.activity === 'fishing').map((r) => r.name);
   if (place.kind === 'lorry_stop') {
-    const next = frame.lorryHere ? `Here now, until ${hhmm(LORRY_LEAVES)}.`
-      : `Comes at ${hhmm(LORRY_ARRIVES)} ${frame.minuteOfDay < LORRY_ARRIVES ? 'today' : 'tomorrow'}, leaves at ${hhmm(LORRY_LEAVES)}.`;
+    const next = frame.lorryHere ? `Pak Osman is here now, until about ${hhmm(LORRY_LEAVES)}.`
+      : `Pak Osman comes about ${hhmm(LORRY_ARRIVES)} ${frame.minuteOfDay < LORRY_ARRIVES ? 'today' : 'tomorrow'} (not on Sundays), and stays about an hour and a half.`;
     card.lorry = { here: frame.lorryHere, next, sells: priceList(LORRY_SELLS), buys: priceList(LORRY_BUYS) };
   }
   if (place.kind === 'house') card.home = { of: frame.residents.find((r) => r.homeId === id)?.name ?? null };

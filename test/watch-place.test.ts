@@ -77,15 +77,15 @@ describe('clicking a place shows what is inside', () => {
   });
 
   it('the lorry stop: when the lorry comes next, and what it buys and sells at', () => {
-    const early = cardAt(newWorld(6, 30), 'lorry-stop')!;
+    const early = cardAt(newWorld(6, 10), 'lorry-stop')!;
     expect(early.lorry!.here).toBe(false);
-    expect(early.lorry!.next).toBe('Comes at 07:00 today, leaves at 07:30.');
+    expect(early.lorry!.next).toBe('Pak Osman comes about 06:30 today (not on Sundays), and stays about an hour and a half.');
     expect(early.lorry!.sells).toContain('rice 20¢');
     expect(early.lorry!.buys).toContain('fish 15¢');
     const w = newWorld(7, 10);
     w.state.lorryHere = true;
-    expect(cardAt(w, 'lorry-stop')!.lorry).toMatchObject({ here: true, next: 'Here now, until 07:30.' });
-    expect(cardAt(newWorld(9), 'lorry-stop')!.lorry!.next).toBe('Comes at 07:00 tomorrow, leaves at 07:30.');
+    expect(cardAt(w, 'lorry-stop')!.lorry).toMatchObject({ here: true, next: 'Pak Osman is here now, until about 08:00.' });
+    expect(cardAt(newWorld(9), 'lorry-stop')!.lorry!.next).toBe('Pak Osman comes about 06:30 tomorrow (not on Sundays), and stays about an hour and a half.');
   });
 
   it("a house: whose it is and who's in", () => {

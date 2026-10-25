@@ -3,7 +3,7 @@ import type { Cents } from './money.ts';
 export type ItemId =
   | 'fish' | 'vegetables' | 'rice' | 'coffee' | 'bread'
   | 'kopi' | 'fish porridge' | 'vegetable rice' | 'water'
-  | 'red snapper' | 'chilli' | 'papaya' | 'sambal kangkong';
+  | 'red snapper' | 'chilli' | 'papaya' | 'sambal kangkong' | 'kerosene' | 'bubur';
 
 export interface ItemDef {
   id: ItemId;
@@ -46,6 +46,14 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     id: 'sambal kangkong', one: 'a plate of sambal kangkong', many: '{n} plates of sambal kangkong',
     aliases: ['sambal', 'kangkong belacan'], food: { hunger: 300 },
   },
+  bubur: {
+    id: 'bubur', one: 'a bowl of bubur', many: '{n} bowls of bubur',
+    aliases: ['plain rice', 'rice porridge', 'plain porridge', 'congee', 'boiled rice', 'cooked rice', 'nasi', 'bowl of rice', 'rice bowl'], food: { hunger: 300 },
+  },
+  kerosene: {
+    id: 'kerosene', one: 'a tin of kerosene', many: '{n} tins of kerosene', aliases: ['minyak tanah', 'lamp oil', 'paraffin'],
+    inedible: "Kerosene? That's for the lamp, not for drinking.",
+  },
   kopi: { id: 'kopi', one: 'a cup of kopi', many: '{n} cups of kopi', aliases: [], food: { hunger: 50, energy: 120 } },
   'fish porridge': {
     id: 'fish porridge', one: 'a bowl of fish porridge', many: '{n} bowls of fish porridge',
@@ -76,12 +84,12 @@ export function quantityLabel(item: ItemId, n: number): string {
   return n === 1 ? def.one : def.many.replace('{n}', String(n));
 }
 
-/** What the morning lorry sells to owners, per unit. Money leaves town. */
+/** What the morning lorry usually sells, per unit (owner's view; Pak Osman sets each day's list in src/sim/osman.ts). Money leaves town. */
 export const LORRY_SELLS: Partial<Record<ItemId, Cents>> = {
-  rice: 20, coffee: 50, bread: 15, fish: 40, vegetables: 25,
+  rice: 20, coffee: 50, bread: 15, kerosene: 38,
 };
 
-/** What the lorry buys from anyone, per unit, at low fixed prices. Money enters town. */
+/** What the lorry usually buys from anyone, per unit. Money enters town. */
 export const LORRY_BUYS: Partial<Record<ItemId, Cents>> = {
   fish: 15, vegetables: 10,
 };
@@ -101,4 +109,6 @@ export const RECIPES: Partial<Record<ItemId, Recipe>> = {
   'vegetable rice': { makes: 'vegetable rice', needs: { vegetables: 1, rice: 1 }, yields: 2 },
   // A Skilled cook's dish: ties the kitchen to a Skilled grower's chilli.
   'sambal kangkong': { makes: 'sambal kangkong', needs: { vegetables: 1, chilli: 1 }, yields: 3, level: 3 },
+  // Plain rice boiled soft: the dish that turns the lorry's rice into a meal.
+  bubur: { makes: 'bubur', needs: { rice: 1, water: 1 }, yields: 3 },
 };

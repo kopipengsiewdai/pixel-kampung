@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { advance, advanceTo } from '../src/sim/tick.ts';
 import { newWorld, who, put, sgt } from './helpers.ts';
 import { PLACE_BY_ID } from '../src/sim/map.ts';
+import { scheduleFor } from '../src/sim/osman.ts';
+import { dayIndex, minuteOfDay } from '../src/sim/time.ts';
 
 describe('needs', () => {
   it('awake: hunger +1 a minute, energy drains about 2 every 3 minutes', () => {
@@ -84,13 +86,14 @@ describe('the day', () => {
     expect(w.takeEvents().some((e) => e.type === 'morning')).toBe(true);
   });
 
-  it('the lorry comes at 07:00 and leaves at 07:30', () => {
-    const w = newWorld(6, 58);
-    advance(w);
+  it("the lorry comes about 06:30 and stays about an hour and a half, by Pak Osman's day", () => {
+    const w = newWorld(6, 0);
+    const s = scheduleFor(w, dayIndex(w.t))!;
+    advanceTo(w, w.t - minuteOfDay(w.t) + s.arrives - 1);
     expect(w.state.lorryHere).toBe(false);
     advance(w);
     expect(w.state.lorryHere).toBe(true);
-    advanceTo(w, sgt(7, 29));
+    advanceTo(w, w.t - minuteOfDay(w.t) + s.leaves - 1);
     expect(w.state.lorryHere).toBe(true);
     advance(w);
     expect(w.state.lorryHere).toBe(false);
