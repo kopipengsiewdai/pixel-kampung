@@ -155,7 +155,8 @@ body {
   padding: 10px 12px;
   box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35);
 }
-.card header { display: flex; align-items: baseline; gap: 8px; }
+/* The header (name and close button) stays in view while the card scrolls. */
+.card header { display: flex; align-items: baseline; gap: 8px; position: sticky; top: -10px; z-index: 1; background: var(--panel); padding: 10px 0 6px; margin-top: -10px; }
 .card h3 { margin: 0; font-size: 18px; }
 .card .role { color: var(--muted); font-size: 12px; }
 .card .close {

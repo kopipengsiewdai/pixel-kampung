@@ -4,8 +4,9 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.10.4 (2026-10-25): a day every five hours
 
+- Watch page: a card's name and close button stay in view while you scroll it, on any screen size.
 - **A game day every five real hours** (it was six): a game minute is 12.5 real seconds and there are 4.8 game days to a real day, so the same game hour comes at a different real time each day. Thinking money stays per real hour, so residents short of it think about a sixth less per game hour.
 - **Living town:** at upgrade (save v5) the clock is re-anchored where the town stands, at the real moment it got there, so nothing jumps; time missed while it was stopped passes at the new pace.
 

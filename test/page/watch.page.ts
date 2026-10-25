@@ -170,6 +170,7 @@ describe('the watch page in a browser', () => {
 
     // Resident chips are big enough to tap.
     const chip = page.locator('#roster button', { hasText: 'Siti' });
+    await chip.waitFor({ state: 'visible' }); // the roster fills after the first frame; reading it earlier was flaky
     expect((await chip.boundingBox())!.height).toBeGreaterThanOrEqual(44);
     if (shots) await page.screenshot({ path: join(shots, 'phone-town.png') });
 
