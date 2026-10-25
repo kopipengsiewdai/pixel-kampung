@@ -1,6 +1,7 @@
 import type { Resident, World } from '../state.ts';
 import { isNight } from '../time.ts';
 import { type ActionResult, type Intent, no } from './common.ts';
+import * as debts from './debts.ts';
 import * as everyone from './everyone.ts';
 import * as owners from './owners.ts';
 
@@ -43,6 +44,27 @@ export const ACTIONS: Record<string, ActionDef> = {
   decline_trade: {
     run: everyone.declineTrade, ownersOnly: false, says: 'turn down a trade (person)',
     here: (w, r) => w.state.trades.some((t) => t.toId === r.id),
+  },
+  lend: { run: debts.lend, ownersOnly: false, says: 'lend someone money, if they agree (person, money)', here: withPeople },
+  borrow: { run: debts.borrow, ownersOnly: false, says: 'ask someone to lend you money (person, money)', here: withPeople },
+  write_iou: {
+    run: debts.writeIou, ownersOnly: false, says: 'write someone an IOU saying you owe them (person, money, words: what for)', here: withPeople,
+  },
+  agree: {
+    run: debts.agree, ownersOnly: false, says: 'agree to what someone offered or asked about money (person)',
+    here: (w, r) => w.state.debtOffers.some((o) => o.toId === r.id),
+  },
+  refuse: {
+    run: debts.refuse, ownersOnly: false, says: 'turn down what someone offered or asked about money (person)',
+    here: (w, r) => w.state.debtOffers.some((o) => o.toId === r.id),
+  },
+  repay: {
+    run: debts.repay, ownersOnly: false, says: 'pay back money you owe (person, and money to pay only part)',
+    here: (w, r) => w.state.debts.some((d) => d.debtor === r.id),
+  },
+  let_off: {
+    run: debts.letOff, ownersOnly: false, says: 'let someone off what they owe you (person, and money for only part)',
+    here: (w, r) => w.state.debts.some((d) => d.creditor === r.id),
   },
   fish: { run: everyone.fish, ownersOnly: false, says: 'fish', here: at('jetty') },
   plant: { run: everyone.plant, ownersOnly: false, says: 'plant kangkong in a free bed', here: at('farm') },

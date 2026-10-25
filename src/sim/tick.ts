@@ -97,6 +97,7 @@ export function advance(w: World): void {
 
   w.state.jobOffers = w.state.jobOffers.filter((o) => o.expires > t);
   w.state.trades = w.state.trades.filter((o) => o.expires > t);
+  w.state.debtOffers = w.state.debtOffers.filter((o) => o.expires > t);
 }
 
 export function advanceTo(w: World, t: number): void {

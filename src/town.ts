@@ -91,6 +91,7 @@ export class Town {
   /** A brand-new kampung whose first simulated minute is t + 1. */
   static create(seed: number, t: number, opts: TownOptions = {}): Town {
     const town = new Town(createWorld(seed, t, { anchorMs: opts.anchorMs }), opts);
+    town.world.openBalances();
     town.flush();
     return town;
   }

@@ -4,7 +4,7 @@ import { availableActions } from './actions/index.ts';
 import { LORRY_BUYS, LORRY_SELLS, quantityLabel, type ItemId } from './items.ts';
 import { PLACES, PLACE_BY_ID } from './map.ts';
 import { formatMoney, type Cents } from './money.ts';
-import { CIRCLE_LINES, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, WORD_MINUTES, type Goods, type Observation, type Resident, type TalkRecord, type World } from './state.ts';
+import { CIRCLE_LINES, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, WORD_MINUTES, type Debt, type Goods, type Observation, type Resident, type TalkRecord, type World } from './state.ts';
 import { nowLabel } from './calendar.ts';
 import { dayIndex, sgtHour, sgtMinute } from './time.ts';
 
@@ -85,6 +85,10 @@ export interface Perception {
   freeBeds: number | null;
   jobOffers: { from: string; wage: Cents; startHour: number; hours: number }[];
   trades: { from: string; give: string; want: string }[];
+  /** Money they owe and are owed, summed per person (an IOU's words with it), and wages owed to them. */
+  debts: { owe: { name: string; cents: Cents; what: string | null }[]; owedYou: { name: string; cents: Cents; what: string | null }[]; wages: { name: string; cents: Cents }[] };
+  /** Loans offered or asked for, and IOUs written to them, waiting on their yes. */
+  moneyOffers: { from: string; kind: 'lend' | 'borrow' | 'iou'; cents: Cents; what: string | null }[];
   recent: string[];
   /** The last lines of their own conversations, oldest first (they also stay in `recent`). */
   talk: string[];
@@ -196,6 +200,13 @@ export function perceive(w: World, r: Resident): Perception {
       give: describeBundle(t.give),
       want: describeBundle(t.want),
     })),
+    debts: {
+      owe: debtsBy(w, (d) => d.debtor === r.id, (d) => d.creditor),
+      owedYou: debtsBy(w, (d) => d.creditor === r.id, (d) => d.debtor),
+      wages: w.state.owed.filter((o) => o.workerId === r.id).map((o) => ({ name: w.resident(o.employerId).name, cents: o.cents })),
+    },
+    moneyOffers: w.state.debtOffers.filter((o) => o.toId === r.id)
+      .map((o) => ({ from: w.resident(o.fromId).name, kind: o.kind, cents: o.cents, what: o.what })),
     recent: r.recent.map((o) => o.text),
     talk: r.recent.filter((o) => o.talk && w.t - o.t <= TALK_GAP_MINUTES).slice(-TALK_LINES).map((o) => o.text),
     longTalks: chatsOf(w, r).filter(({ rec }) => rec.lines >= TALK_SOFT_LIMIT && rec.idle < CIRCLE_LINES).map(({ o }) => o.name),
@@ -218,6 +229,19 @@ export function perceive(w: World, r: Resident): Perception {
     p.refused = !r.reply.ok;
   }
   return p;
+}
+
+/** Debts picked out, summed per the other person (in order of the oldest), with any IOU words joined. */
+function debtsBy(w: World, mine: (d: Debt) => boolean, other: (d: Debt) => string): { name: string; cents: Cents; what: string | null }[] {
+  const out = new Map<string, { name: string; cents: Cents; what: string | null }>();
+  for (const d of w.state.debts.filter(mine).sort((a, b) => a.since - b.since || a.id - b.id)) {
+    const id = other(d);
+    const row = out.get(id) ?? { name: w.resident(id).name, cents: 0, what: null };
+    row.cents += d.cents;
+    if (d.what) row.what = row.what ? `${row.what}, ${d.what}` : d.what;
+    out.set(id, row);
+  }
+  return [...out.values()];
 }
 
 function describeBundle(b: { items: Goods; cents: Cents }): string {
@@ -258,6 +282,14 @@ export function describe(p: Perception): string {
     ? `Nearby: ${p.people.map((x) => `${x.name} (${x.doing})`).join(', ')}.`
     : "There's nobody else around.");
   lines.push(`You feel ${p.hunger} and ${p.energy}. You have ${formatMoney(p.money)}${p.carrying.length ? ` and you're carrying ${p.carrying.map((c) => quantityLabel(c.item, c.qty)).join(', ')}` : ''}.`);
+  // What's owed, every moment, next to their money: so talk of debts meets what's true.
+  const bracket = (what: string | null) => (what ? ` (${what})` : '');
+  for (const d of p.debts.owe) lines.push(`You owe ${d.name} ${formatMoney(d.cents)}${bracket(d.what)}.`);
+  for (const d of p.debts.owedYou) lines.push(`${d.name} owes you ${formatMoney(d.cents)}${bracket(d.what)}.`);
+  for (const d of p.debts.wages) lines.push(`${d.name} owes you ${formatMoney(d.cents)} in wages.`);
+  if (!p.debts.owe.length && !p.debts.owedYou.length && !p.debts.wages.length && !p.business?.owed.length) {
+    lines.push('Nobody owes you anything, and you owe nobody.');
+  }
   // What they are, every moment, so nobody talks as if they ran a shop they don't (or shared one that's theirs).
   if (!p.job && !p.business) lines.push("You have no work just now, and you don't run a stall or shop.");
   if (p.job) {
@@ -287,6 +319,12 @@ export function describe(p: Perception): string {
   if (p.freeBeds !== null) lines.push(`${p.freeBeds} bed${p.freeBeds === 1 ? ' is' : 's are'} free on the plot.`);
   for (const o of p.jobOffers) lines.push(`${o.from} has offered you work ${shiftLabel(o.startHour, o.hours)} for ${formatMoney(o.wage)} a shift.`);
   for (const t of p.trades) lines.push(`${t.from} offers you ${t.give} for ${t.want}.`);
+  for (const o of p.moneyOffers) {
+    const sum = formatMoney(o.cents);
+    lines.push(o.kind === 'lend' ? `${o.from} offers to lend you ${sum}.`
+      : o.kind === 'borrow' ? `${o.from} asks to borrow ${sum} from you.`
+      : `${o.from} writes you an IOU for ${sum}${bracket(o.what)}.`);
+  }
   const lately = latelyLines(p);
   if (lately.length) lines.push(`Lately: ${lately.join(' ')}`);
   if (p.talk.length) lines.push(`The talk so far:\n${p.talk.map((l) => `- ${l}`).join('\n')}`);

@@ -34,6 +34,7 @@ import { Town, fakeBrains } from '../town.ts';
 import { ReplayRecorder, recordTown } from '../watch/replay.ts';
 import { numArg, parseArgs } from './args.ts';
 import { SIM_START } from './start.ts';
+import { formatMoney } from '../sim/money.ts';
 import { talkMeasures } from '../sim/talk.ts';
 import { GAME_MINUTES_PER_REAL_MINUTE, isNight } from '../sim/time.ts';
 
@@ -162,5 +163,10 @@ console.log(`talk that led to something: ${pct(talk.ledChatShare)} of chats, ${p
 console.log(`lines per resident per waking game hour: ${(talk.lines / (minds * (wakingMinutes / 60))).toFixed(1)}`);
 console.log(`deals in words: ${talk.wordDeals} (${talk.wordDealsBacked} done within 5 minutes); going round in circles: ${talk.circles}`);
 console.log(`done: ${(['bought', 'sold', 'gave', 'traded', 'trade_offered', 'job_offered', 'hired'] as const).map((t) => `${t} ${count(t)}`).join(', ')}`);
+const cents = (type: GameEvent['type']) => events.reduce((n, e) => n + (e.type === type && 'cents' in e ? e.cents : 0), 0);
+const purses = (role: 'owner' | 'seeker') => town.world.state.residents.filter((r) => r.role === role).reduce((n, r) => n + r.money, 0);
+console.log('\n--- money ---');
+console.log(`debts made: ${count('debt_agreed')} (${formatMoney(cents('debt_agreed'))}), paid back: ${count('repaid')} (${formatMoney(cents('repaid'))}), let off: ${count('let_off')} (${formatMoney(cents('let_off'))}); asked or offered: ${count('debt_offered')}, turned down: ${count('debt_refused')}`);
+console.log(`at the end: owners hold ${formatMoney(purses('owner'))}, seekers ${formatMoney(purses('seeker'))}; still owed ${formatMoney(town.world.state.debts.reduce((n, d) => n + d.cents, 0))}`);
 if (!fake) console.log(`all trials so far: US$${spentOnTrials(costRoot).toFixed(4)} of US$${TRIAL_ALLOWANCE}`);
 console.log(`\nWatch it back: npm run watch -- --replay trial-${stamp}.db`);

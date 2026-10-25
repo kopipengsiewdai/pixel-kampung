@@ -16,7 +16,8 @@ import { dbPath, heartbeatPath, kampungHome } from '../config/paths.ts';
 import { feedLine, formatFeedLine } from '../feed/feed.ts';
 import type { GameEvent } from '../sim/events.ts';
 import { SystemClock } from '../sim/clock.ts';
-import { gameMinuteAt, gameMinuteFromMs, REAL_MS_PER_GAME_MINUTE } from '../sim/time.ts';
+import { auditLedger } from '../sim/audit.ts';
+import { dayIndex, gameMinuteAt, gameMinuteFromMs, REAL_MS_PER_GAME_MINUTE } from '../sim/time.ts';
 import { Town } from '../town.ts';
 import { numArg, parseArgs } from './args.ts';
 import { openSave } from './open-save.ts';
@@ -106,6 +107,16 @@ const page = buildClient()
     return null;
   });
 
+// The money check, once a game day (at midnight) and on start: the ledger replayed against every purse.
+// Owner's log only; nothing a resident sees.
+let auditedDay: number | null = null;
+function audit(): void {
+  const day = dayIndex(town.t);
+  if (day === auditedDay) return;
+  auditedDay = day;
+  console.log(auditLedger(store.ledger(), town.world.state.residents).line);
+}
+
 let busy = false;
 async function tick(): Promise<void> {
   if (busy) return;
@@ -113,6 +124,7 @@ async function tick(): Promise<void> {
   try {
     const t = now();
     if (t > town.t) await town.catchUp(t);
+    audit();
     writeFileSync(heartbeatPath(home), JSON.stringify({ at: new Date(clock.nowMs()).toISOString(), t: town.t }));
   } finally {
     busy = false;

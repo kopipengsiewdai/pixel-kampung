@@ -114,6 +114,22 @@ Ordered stock is dropped off at the owner's shop.
   someone you spoke with in the last 5 minutes is; if they've already
   stopped, you go after them. Nothing about it is saved.
 
+## Debts and lending
+
+- A loan offered, a loan asked for, or an IOU written waits on the other
+  one's yes for 30 minutes. Agreeing checks the lender's money then; an IOU
+  moves none. Both have to be nearby.
+- One debt per debtor, creditor and kind (`loan` or `iou`): a new one adds
+  to it and keeps when it began; an IOU's words (up to 80 characters) are
+  kept with it. No interest and no due dates (owner, 2026-10-25).
+- `repay` pays the oldest debt first; with no sum it pays all, and refuses
+  when short; more than is owed pays only what is owed. `let off` takes off
+  the newest debt first, so the oldest stands longest.
+- The ledger's outside accounts: `lorry`, and `kampung-opening`, the opening
+  entry for each purse (a new town's starting money; at the v7 upgrade,
+  everyone's money as it stood). The nightly check replays the ledger from
+  the first opening entry; what came before it is already in it.
+
 ## Downtime
 
 - A gap of up to 10 minutes is replayed. A longer gap is skipped in one jump:
