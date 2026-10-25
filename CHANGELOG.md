@@ -4,6 +4,12 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **Residents know their kampung:** everyone who has lived here knows every place from day one (the jetty, the farm plot, the well, the notice board, the three shops, the lorry stop, and every house by whose it is). Ah Kow, who arrived last month, knows his house, the well and the kopitiam, and finds the rest. How things work (what the lorry sells, how crops grow, prices) is still found out in play. Since launch nobody had fished or farmed: nobody had found the jetty or the farm plot.
+- **Trades:** Rahim grew up fishing, Fatimah has always grown vegetables, Ah Kow worked the land on the estate, Ah Huat cooks for his kopitiam, and Muthu carried cargo at the docks; each is told it with who they are.
+- **Living town:** at upgrade (save v8) everyone but Ah Kow comes to know every place, and Ah Kow the well and the kopitiam, added to what they already knew; nobody is told anything changed.
+
 ## 0.11.2 (2026-10-25): key moments and the Talk tab
 
 - Watch page: the story feed shows **key moments** by default (sales and purchases, hires and firings, wages, gifts and trades, notes pinned, first visits to places, the lorry, price changes, and talk that claims a deal done), with a "Key moments | All" switch in its header that this browser remembers. Walking, arriving, looking around and plain chat show under All.
