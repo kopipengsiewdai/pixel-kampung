@@ -68,7 +68,7 @@ repo, still needs his yes.
 Owner, 2026-10-25: "Yes, you can publish each release's tag and notes on
 GitHub from now on." Claude pushes each release tag and publishes its GitHub
 release (notes = that version's CHANGELOG section), then deploys it to the
-living town with `%USERPROFILE%\.kampungin\deploy.ps1 <tag>`.
+living town with `%USERPROFILE%\.kampung\bin\deploy.ps1 <tag>`.
 
 ## Working rules
 

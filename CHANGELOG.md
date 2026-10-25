@@ -14,6 +14,15 @@ never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
   (brains included) and have exactly today's tables.
 - **Living town:** nothing to pick up. Saved state is unchanged and a v2 town
   carries on as it is.
+## 0.9.3 (2026-10-25)
+
+- Shopkeepers can no longer "set" a price to what it already is: it's refused in-world ("That's already your price"). Mdm Tan had re-set rice to $4.20 every minute and never answered the people asking her for work.
+- Living town: picks this up on restart; nothing in the save changes.
+
+## 0.9.2 (2026-10-25)
+
+- Watch page: the story feed survives a restart; the page refills it with the latest stories from the saved town.
+- Living town: a watch-page change only; the save already keeps every event.
 
 ## 0.9.1 (2026-10-25)
 

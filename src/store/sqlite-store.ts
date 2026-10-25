@@ -120,6 +120,12 @@ export class SqliteStore {
     }
   }
 
+  /** The last `limit` events, oldest first (the watch page's feed after a restart). */
+  recentEvents(limit: number): GameEvent[] {
+    const rows = this.db.prepare('SELECT data FROM events ORDER BY seq DESC LIMIT ?').all(limit) as { data: string }[];
+    return rows.reverse().map((r) => JSON.parse(r.data) as GameEvent);
+  }
+
   events(afterSeq = 0, limit = 1_000_000): GameEvent[] {
     const rows = this.db.prepare('SELECT data FROM events WHERE seq > ? ORDER BY seq LIMIT ?').all(afterSeq, limit) as { data: string }[];
     return rows.map((r) => JSON.parse(r.data) as GameEvent);

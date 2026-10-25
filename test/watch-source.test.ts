@@ -8,6 +8,7 @@ import { MemoryStore } from '../src/mind/memory.ts';
 import { Mind } from '../src/mind/mind.ts';
 import { mindBrains } from '../src/mind/setup.ts';
 import { CARDS } from '../src/seed/cards.ts';
+import { SqliteStore } from '../src/store/sqlite-store.ts';
 import { Town, fakeBrains } from '../src/town.ts';
 import { ReplayReader, ReplayRecorder, extrasFrom, recordTown } from '../src/watch/replay.ts';
 import { Hub, LiveSource, ReplaySource, THOUGHTS_ONLY_NOTICE } from '../src/watch/source.ts';
@@ -41,6 +42,27 @@ describe('the live source', () => {
     expect(hello.feed.some((l) => /Dawn/.test(l.text))).toBe(true);
     expect(got.flatMap((u) => u.feed)).toEqual(hello.feed);
     live.close();
+  });
+
+  it('keeps the story feed across a restart, from the saved events', async () => {
+    const path = join(tmp(), 'kampung.db');
+    const store = new SqliteStore(path);
+    const before = new LiveSource({ label: 'Live town', msPerMinute: 60_000, everyMs: 0 });
+    const town = Town.create(42, START, { store, ...before.hooks() });
+    await town.runUntil(START + 60);
+    const feedBefore = before.hello().feed;
+    expect(feedBefore.length).toBeGreaterThan(5);
+    before.close();
+    store.close(); // the town stops
+
+    const store2 = new SqliteStore(path);
+    const after = new LiveSource({ label: 'Live town', msPerMinute: 60_000, everyMs: 0 });
+    const resumed = Town.resume({ store: store2, ...after.hooks() })!;
+    after.attach(resumed.world);
+    after.seed(store2.recentEvents(2000));
+    expect(after.hello().feed).toEqual(feedBefore);
+    after.close();
+    store2.close();
   });
 
   it("shows a fake-brain resident's card with what they noticed and no thoughts", async () => {

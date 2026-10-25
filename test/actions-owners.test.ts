@@ -51,6 +51,17 @@ describe('set_price', () => {
     accepted(act(w, huat.id, { verb: 'set_price', item: 'kopi', price: 0 }));
     expect(shop.sellPrices.kopi).toBeUndefined();
   });
+
+  it('setting the price it already is changes nothing: refused in-world, no event (live loop, 0.9.2)', () => {
+    const w = newWorld();
+    const tan = put(w, 'Mdm Tan', 'provision-shop');
+    accepted(act(w, tan.id, { verb: 'set_price', item: 'rice', price: 420 }));
+    w.takeEvents();
+    refused(act(w, tan.id, { verb: 'set_price', item: 'rice', price: '$4.20' }), /already/);
+    refused(act(w, tan.id, { verb: 'set_price', item: 'rice', price: 0, side: 'buy' }), /already/); // not buying it anyway
+    expect(w.takeEvents()).toEqual([]);
+    accepted(act(w, tan.id, { verb: 'set_price', item: 'rice', price: 400 })); // a real change still works
+  });
   it('refusals: not an owner, away from the shop, nonsense price', () => {
     const w = newWorld();
     refused(act(w, who(w, 'Siti').id, { verb: 'set_price', item: 'kopi', price: 5 }), /shopkeepers/);
