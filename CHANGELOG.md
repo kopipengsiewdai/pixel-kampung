@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.18.0 (2026-10-25): what the skilled can do
 
 - **Skills, what the skilled and masters can do:**
   - A skilled fisher with mended nets can **cast a net** from the jetty (45 minutes, up to four fish, one mended catch used), and a master's line sometimes brings up a **red snapper**.
