@@ -4,6 +4,11 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## 0.9.1 (2026-10-25)
+
+- Watch page: residents are no longer hidden behind shop fronts and buildings; they always draw in front.
+- Living town: a watch-page change only; nothing in the town or its save changes.
+
 ## 0.9.0 (2026-10-25): launch
 
 The first numbered release: everything up to the 24/7 launch.
