@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.15.0 (2026-10-25): more to do each day
 
 - **More to do each day:** chores that take a while with no thinking meanwhile: fetch a pail of water at the well, mend your nets at the jetty (the next few catches bring one more fish), sweep the shop (travellers wait longer in a swept shop). Kopi and fish porridge now take a pail of water. Residents can ask each other to run errands for pay ("fetch water", "take a fish to Mdm Tan"), paid when it's done or owed if the asker can't pay (an errand not done by the day's end hands the thing back, or it's owed for), and help a neighbour water their beds or mend their nets. At the dawn tide a line comes up empty half as often.
 - **Looking around** is no longer offered (where you are and who's there is already in front of you), and doesn't bring the next thought on.
