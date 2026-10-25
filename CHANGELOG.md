@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.11.0 (2026-10-25): real debts and lending
 
 - **Real debts and lending:** anyone can lend, ask to borrow, or write an IOU, and nobody owes anything until the other one agrees (an offer lapses after half an hour). What you owe and are owed is in front of you every moment, next to your money ("You owe Mdm Tan $2.00.", "Nobody owes you anything, and you owe nobody."); a worker sees wages owed to them too. Paying back goes oldest debt first and can be part; the one owed can let you off. Talk of settling an account now meets what's true.
 - **The money ledger reconciles from nothing:** every purse's starting money is written down as an opening entry, and once a game day (and on start) the live town replays the ledger against every purse and writes `ledger OK` or `ledger MISMATCH: …` to its log.
