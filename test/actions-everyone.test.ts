@@ -38,7 +38,10 @@ describe('look_around', () => {
     const res = accepted(act(w, who(w, 'Siti').id, { verb: 'look_around' }));
     expect(res.reply).toMatch(/kopitiam/);
     expect(res.reply).toMatch(/Ah Huat/);
-    expect(res.reply).toMatch(/kopi 10¢/);
+    // Short: the reply becomes a memory, and the full view (time, money, prices) is already in
+    // front of them every time they think. Whole views were 56% of the live town's memory text.
+    expect(res.reply).not.toMatch(/10¢|\$|feel|It's/);
+    expect(res.reply!.length).toBeLessThan(160);
   });
   it('is refused while asleep', () => {
     const w = newWorld();
