@@ -505,5 +505,6 @@ export function pinNote(w: World, r: Resident, i: Intent): ActionResult {
   w.state.notes.push({ id: w.nextId(), authorId: r.id, text, t: w.t });
   if (w.state.notes.length > MAX_NOTES) w.state.notes.shift();
   w.emit({ type: 'note_pinned', who: r.id, text });
-  return ok('You pin your note to the board.');
+  // Remembered word for word, so the writer recognises their own note later.
+  return ok(`You pin your note to the board: "${text}"`);
 }

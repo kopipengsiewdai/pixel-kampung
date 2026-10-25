@@ -55,6 +55,7 @@ describe('memory', () => {
     expect(importanceOf('noticed', 'Siti paid you $2.00 in wages.')).toBe(7);
     expect(importanceOf('did', 'You buy a cup of kopi for 10¢.')).toBe(2);
     expect(importanceOf('reflection', 'anything')).toBe(8);
+    expect(importanceOf('did', 'You pin your note to the board: "WANTED: help. Ask for Mei Ling."')).toBe(6);
   });
   it('recalls what fits the moment, and lets trivial things fade after two weeks', () => {
     const m = new MemoryStore(':memory:');
