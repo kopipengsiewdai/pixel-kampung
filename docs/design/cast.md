@@ -10,6 +10,12 @@ In code: the cards, written to the resident as "you", are in
 those people on day one (so Ah Seng can go and find his father). Everyone else
 they meet in play. A test checks the code against this page.
 
+**Ties are words, not a family system (owner, 2026-10-25).** Each resident is
+an individual: they live alone in their own house, and family members don't
+start out knowing each other's homes. A tie is only the Knows line they're
+told and the people they already know. Families, shared homes and anything
+else built on ties are left for later design.
+
 ## Owners
 
 **1. Ah Huat**, 54, runs the kopitiam
