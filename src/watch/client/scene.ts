@@ -18,6 +18,8 @@ const UP = 1;
 const LEFT = 2;
 const RIGHT = 3;
 const OVERLAY_DEPTH = 9000;
+/** Residents draw above every building and prop (still under the night tint), so nobody is hidden inside a shop. */
+const PEOPLE_DEPTH = 5000;
 
 interface Pt { x: number; y: number }
 
@@ -299,7 +301,7 @@ export class TownScene extends Phaser.Scene {
       const asleep = r.activity === 'sleeping';
       const inside = asleep && this.isInside(r, r.homeId);
       m.sprite.setPosition(pos.x, pos.y).setFrame(row * PEOPLE_COLS + m.look * 4 + m.facing);
-      m.sprite.setVisible(!inside).setAngle(asleep && !inside ? 90 : 0).setDepth(pos.y);
+      m.sprite.setVisible(!inside).setAngle(asleep && !inside ? 90 : 0).setDepth(PEOPLE_DEPTH + pos.y);
       m.label.setPosition(pos.x, pos.y - 16).setVisible(!inside || r.id === this.selected);
       const bob = Math.sin(time / 500 + m.look) * 1.5;
       if (inside) {
@@ -308,7 +310,7 @@ export class TownScene extends Phaser.Scene {
       } else m.zz.setPosition(pos.x + 6, pos.y - 18 + bob);
       m.zz.setVisible(asleep);
       if (r.id === this.selected) {
-        this.ring.setVisible(!inside).setPosition(pos.x, pos.y).setDepth(pos.y - 1);
+        this.ring.setVisible(!inside).setPosition(pos.x, pos.y).setDepth(PEOPLE_DEPTH + pos.y - 1);
       }
     }
     if (!this.selected || !this.movers.has(this.selected)) this.ring.setVisible(false);
