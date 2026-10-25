@@ -2,7 +2,7 @@ import type { Brain, ThinkContext } from '../brain/brain.ts';
 import type { Card } from '../seed/cards.ts';
 import type { Intent } from '../sim/actions/index.ts';
 import { ITEMS, type ItemId } from '../sim/items.ts';
-import type { Perception } from '../sim/perception.ts';
+import { latelyLines, type Perception } from '../sim/perception.ts';
 import { dayIndex, sgtHour } from '../sim/time.ts';
 import { Budget, ESTIMATE, TOWN_DAILY_CAP, type BudgetState } from './budget.ts';
 import type { CostLog } from './cost-log.ts';
@@ -172,7 +172,8 @@ export class MindBrain implements Brain {
     this.budget.refill(ctx.t);
     if (!this.budget.canSpend(ESTIMATE[tier]) || this.mind.townSpent(ctx.t, ctx.emit)) return null;
     const cue = [p.place, ...p.people.map((x) => x.name), ...p.recent.slice(-3), p.reply ?? ''].join(' ');
-    const seen = new Set(p.recent);
+    // Leave out only what the notes already show, so older things heard can still come back.
+    const seen = new Set([...latelyLines(p), ...p.talk]);
     const memories = this.mind.memory.recall(this.id, ctx.t, cue, 16)
       .filter((m, i, all) => !seen.has(m.text) && all.findIndex((x) => x.text === m.text) === i)
       .slice(-8);
