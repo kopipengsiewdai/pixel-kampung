@@ -198,7 +198,8 @@ export function cardOf(frame: Frame, id: string, extras: CardExtras): Card | nul
     ...frame.owed.filter((o) => o.workerId === id && o.cents > 0).map((o) => `Owed ${formatMoney(o.cents)} by ${name(o.employerId)}`),
   ];
   const shop = frame.shops.find((s) => s.ownerId === id) ?? null;
-  return { ...r, shop, minding: shop ? mindingLabel(shop, name) : null, wages, ...extras };
+  const plan = extras.plan ? tidyThoughts([extras.plan])[0]! : null;
+  return { ...r, shop, minding: shop ? mindingLabel(shop, name) : null, wages, ...extras, plan, thoughts: tidyThoughts(extras.thoughts), noticed: tidyThoughts(extras.noticed) };
 }
 
 const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
@@ -250,6 +251,8 @@ export function placeCardOf(frame: Frame, layout: Layout, id: string): PlaceCard
 
 /** How many of a resident's lines of talk the card's Talk tab holds. */
 export const TALK_LINES = 50;
+/** How far back, in game days, the Talk tab reads a resident's talk from the save. */
+export const TALK_DAYS = 7;
 /** Quiet minutes after which the same two are in a new conversation. */
 export const TALK_GAP = 10;
 
@@ -277,4 +280,26 @@ export function talkOf(events: readonly GameEvent[], id: string, name: (id: stri
     talks.at(-1)!.lines.push({ t: e.t, stamp: shortStamp(w, e.t), speaker: name(e.who), to: e.to ? name(e.to) : null, text: e.text, mine: e.who === id });
   }
   return talks;
+}
+
+const THOUGHT_WORDS = (text: string) => new Set(text.toLowerCase().match(/[a-z']+/g)?.filter((w) => w.length > 2) ?? []);
+
+/**
+ * Thoughts as the card shows them: the model's own labels ("*Ah Kow
+ * thinks:*") and asterisks gone, and near-identical ones folded into the
+ * newest of them with how many times. Newest last, as given.
+ */
+export function tidyThoughts(list: readonly Thought[]): Thought[] {
+  const kept: { th: Thought; words: Set<string> }[] = [];
+  for (const raw of list.slice().reverse()) {
+    const text = raw.text.replace(/^\s*\*?\s*[^*:\n]{1,40}\bthinks:\s*\*?\s*/i, '').replace(/\*/g, '').trim();
+    const words = THOUGHT_WORDS(text);
+    const same = kept.find((k) => {
+      const shared = [...words].filter((w) => k.words.has(w)).length;
+      return shared / Math.max(1, new Set([...words, ...k.words]).size) >= 0.5;
+    });
+    if (same) same.th.times = (same.th.times ?? 1) + 1;
+    else kept.push({ th: { ...raw, text }, words });
+  }
+  return kept.map((k) => k.th).reverse();
 }

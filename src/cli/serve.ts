@@ -24,6 +24,7 @@ import { openSave } from './open-save.ts';
 import { join } from 'node:path';
 import { readApiKey } from '../config/env.ts';
 import { AnthropicModel } from '../mind/anthropic-model.ts';
+import { TOWN_DAILY_CAP } from '../mind/budget.ts';
 import { CostLog } from '../mind/cost-log.ts';
 import { MemoryStore } from '../mind/memory.ts';
 import { Mind } from '../mind/mind.ts';
@@ -34,6 +35,7 @@ import { ASSETS_DIR, buildClient } from '../watch/bundle.ts';
 import { extrasFrom } from '../watch/replay.ts';
 import { DEFAULT_PORT, startWatchServer } from '../watch/server.ts';
 import { FEED_KEPT, LiveSource } from '../watch/source.ts';
+import { ECONOMY_EVENTS } from '../watch/wiki.ts';
 
 const args = parseArgs(process.argv.slice(2));
 const home = kampungHome();
@@ -49,6 +51,7 @@ const print = (e: GameEvent) => {
 
 let mindOpts: Partial<TownOptions> = {};
 let memory: MemoryStore | null = null;
+let costs: CostLog | null = null;
 if (args.minds === true) {
   const apiKey = readApiKey(home);
   if (!apiKey) {
@@ -56,10 +59,11 @@ if (args.minds === true) {
     process.exit(1);
   }
   memory = new MemoryStore(dbPath(home));
+  costs = new CostLog(join(home, 'costs'));
   const mind = new Mind({
     client: new AnthropicModel({ apiKey }),
     memory,
-    costs: new CostLog(join(home, 'costs')),
+    costs,
     cards: CARDS,
     onError: (err) => console.error(`A thinking call failed: ${err instanceof Error ? err.constructor.name : 'Error'}${err && typeof err === 'object' && 'status' in err ? ` (HTTP ${String(err.status)})` : ''}`),
   });
@@ -72,7 +76,10 @@ const live = new LiveSource({
   label: mem ? 'Live town (thinking for real)' : 'Live town',
   msPerMinute: REAL_MS_PER_GAME_MINUTE,
   extras: mem ? (id, t) => extrasFrom((r, k, up, n) => mem.latest(r, k, up, n), id, t, town.world.state) : undefined,
-  said: (id, n) => store.saidBy(id, n),
+  said: (id, n, since) => store.saidBy(id, n, since),
+  moneyEvents: (since) => store.eventsSince(since, [...ECONOMY_EVENTS]),
+  audit: () => lastAudit,
+  spend: () => (costs ? { usd: costs.spentOn(costs.dayKey(clock.nowMs())), cap: TOWN_DAILY_CAP } : null),
 });
 const hooks = live.hooks();
 const onEvent = (e: GameEvent) => {
@@ -111,11 +118,13 @@ const page = buildClient()
 // The money check, once a game day (at midnight) and on start: the ledger replayed against every purse.
 // Owner's log only; nothing a resident sees.
 let auditedDay: number | null = null;
+let lastAudit: string | null = null;
 function audit(): void {
   const day = dayIndex(town.t);
   if (day === auditedDay) return;
   auditedDay = day;
-  console.log(auditLedger(store.ledger(), town.world.state.residents).line);
+  lastAudit = auditLedger(store.ledger(), town.world.state.residents).line;
+  console.log(lastAudit);
 }
 
 let busy = false;
