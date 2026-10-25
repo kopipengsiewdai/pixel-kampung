@@ -122,8 +122,11 @@ export interface Proposal { id: number; fromId: string; toId: string; expires: n
 /** How close two people have grown: game days on which both spoke to the other (keyed by talkKey). */
 export interface Bond { days: number; day: number; a: boolean; b: boolean }
 
+/** The kinds of event news can carry (kept narrow, so a new kind of event elsewhere doesn't change what's saved). */
+export type NewsEvent = Extract<Body, { type: 'moved_in' }>;
+
 /** Something the town hears of on the next minute (an upgrade's moves, say): an event, and who is told what. */
-export interface NewsItem { event: Body; tell: { id: string; text: string }[] }
+export interface NewsItem { event: NewsEvent; tell: { id: string; text: string }[] }
 
 export interface WorldState {
   /** The save version (SCHEMA_VERSION); older saves are upgraded on load (docs/design/upgrades.md). */

@@ -198,3 +198,49 @@ describe('the watch page', () => {
     expect(v('Ah Kow').home).toBeNull();
   });
 });
+
+describe('offers and proposals lapse', () => {
+  it('a home offer lapses after two hours, a proposal after half an hour', async () => {
+    const { advance } = await import('../src/sim/tick.ts');
+    const { HOME_OFFER_MINUTES, PROPOSAL_MINUTES } = await import('../src/sim/households.ts');
+    const w = at9();
+    put(w, 'Siti', 'well');
+    put(w, 'Ah Kow', 'well');
+    accepted(act(w, who(w, 'Siti').id, { verb: 'take_in', to: 'Ah Kow' }));
+    w.state.proposals.push({ id: 999, fromId: who(w, 'Raju').id, toId: who(w, 'Siti').id, expires: w.t + PROPOSAL_MINUTES });
+    for (let i = 0; i < PROPOSAL_MINUTES; i++) advance(w);
+    expect(w.state.proposals).toEqual([]);
+    expect(w.state.homeOffers).toHaveLength(1);
+    for (let i = PROPOSAL_MINUTES; i < HOME_OFFER_MINUTES; i++) advance(w);
+    expect(w.state.homeOffers).toEqual([]);
+    refused(act(w, who(w, 'Ah Kow').id, { verb: 'move_in', from: 'Siti' }), /hasn't offered/);
+  });
+});
+
+describe('the v4 → v5 step on its own', () => {
+  it('changes nothing when run twice, and skips a pair if one of them is missing', async () => {
+    const { UPGRADES } = await import('../src/store/upgrades.ts');
+    const { loadSql, fixtureSql, peek } = await import('./saves.ts');
+    const { mkdtempSync, rmSync } = await import('node:fs');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const step = UPGRADES.find((u) => u.from === 4)!;
+    const dir = mkdtempSync(join(tmpdir(), 'kampung-step-'));
+    try {
+      const path = join(dir, 'k.db');
+      loadSql(fixtureSql(4), path);
+      const row = peek<{ world: string; brains: string }>(path, 'SELECT world, brains FROM snapshot');
+      const save = { world: JSON.parse(row.world), brains: JSON.parse(row.brains) };
+      const once = step.save!(structuredClone(save));
+      expect(step.save!(structuredClone(once))).toEqual(once);
+      const noHuat = structuredClone(save);
+      noHuat.world.residents = noHuat.world.residents.filter((r: { id: string }) => r.id !== 'ah-huat');
+      const up = step.save!(noHuat).world as unknown as { residents: { id: string; homeId: string }[]; news: unknown[] };
+      const seng = up.residents.find((r) => r.id === 'ah-seng')!;
+      expect(seng.homeId).toBe(save.world.residents.find((r: { id: string }) => r.id === 'ah-seng').homeId);
+      expect(up.news).toHaveLength(1); // only Mei Ling's move
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});

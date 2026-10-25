@@ -150,3 +150,16 @@ memories and discover new things in-world. Every change to saved state ships
 with an upgrade step; how it works: [upgrades.md](upgrades.md). Releases are
 versioned (launch is v0.9, which becomes v1.0 after a clean 7-day run), and
 each changelog entry says how the living town picks the change up.
+
+## Households, homes and marriage (agreed 2026-10-25)
+
+**Family live together.** Ah Seng lives in his father Ah Huat's house and Mei
+Ling in her aunt Mdm Tan's, so two houses stand empty. **Residents are free:**
+a household head can tell someone to leave, anyone can offer someone a home,
+and someone with no home sleeps rough (the jetty, the kopitiam bench, under
+the eaves), resting worse. **Marriage** happens only if two unmarried adults
+who have grown close choose it (propose and accept); there is no
+matchmaking. Close kin can't marry. The houses people live in are family
+homes, rent-free; renting, the village head and the village fund follow in
+later builds. The plan: [households.md](households.md) and
+[village-characters.md](village-characters.md).
