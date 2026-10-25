@@ -114,7 +114,9 @@ AI residents are players *inside* the world, not developers of it.
 
 ## One world forever (agreed 2026-10-25)
 
-**The town that launches is never reset** unless the owner says so. Future
-features ship as upgrades that the living town picks up in place: residents
-keep their memories and discover new things in-world. Every change to saved
-state ships with an upgrade step. How it works: [upgrades.md](upgrades.md).
+The town that launches is **never reset** unless the owner says so. Every
+release upgrades the living town in place: residents keep their lives and
+memories and discover new things in-world. Every change to saved state ships
+with an upgrade step; how it works: [upgrades.md](upgrades.md). Releases are
+versioned (launch is v0.9, which becomes v1.0 after a clean 7-day run), and
+each changelog entry says how the living town picks the change up.
