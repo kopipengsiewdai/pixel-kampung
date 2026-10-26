@@ -159,7 +159,7 @@ export class TownScene extends Phaser.Scene {
         else if (t === 'floor') {
           const kind = floorOf.get(`${x},${y}`);
           if (kind === 'lorry_stop') { atlas = 'k'; frame = 'road'; }
-          else if (kind !== 'house' && kind !== 'village_head' && kind !== 'village_kitchen') frame = 'paving';
+          else if (kind !== 'house' && kind !== 'village_head' && kind !== 'village_kitchen' && kind !== 'school') frame = 'paving';
         }
         // Water under the jetty and the shore, so the planks sit on the sea.
         if (t === 'jetty' && y >= 24) rt.drawFrame('k', `sea-${r % 3}`, px, py);
@@ -186,10 +186,11 @@ export class TownScene extends Phaser.Scene {
       const home = p.id;
       this.glows.push({ img: glow, lit: (f) => f.residents.some((r) => r.homeId === home && this.isInside(r, home) && r.activity !== 'sleeping') });
     }
-    // The village kitchen: an attap shelter, drawn once Mr Lim's odd jobs have built it.
+    // The village kitchen and the schoolhouse: attap buildings, drawn once Mr Lim's odd jobs have built them.
     for (const p of this.layout.places) {
-      if (p.kind !== 'village_kitchen') continue;
-      const img = this.add.image(p.rect.x * T, (p.rect.y + p.rect.h) * T, 'k', 'house-2').setOrigin(0, 1).setVisible(false);
+      const frame = p.kind === 'village_kitchen' ? 'house-2' : p.kind === 'school' ? 'house-0' : null;
+      if (!frame) continue;
+      const img = this.add.image(p.rect.x * T, (p.rect.y + p.rect.h) * T, 'k', frame).setOrigin(0, 1).setVisible(false);
       img.setDepth(img.y - 8);
       this.builds.set(p.id, img);
     }

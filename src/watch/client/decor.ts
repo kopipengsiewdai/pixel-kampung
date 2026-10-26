@@ -57,7 +57,7 @@ export const PLANTS: readonly Prop[] = [
 ];
 
 /** Which pack character each of the default cast wears (people.png columns, in cast order), then Mr Lim. */
-export const PEOPLE_ORDER = ['ah-huat', 'mdm-tan', 'rahim', 'mei-ling', 'ah-kow', 'siti', 'muthu', 'ah-seng', 'fatimah', 'raju', 'mak-esah', 'aminah', 'hassan', 'mr-lim'];
+export const PEOPLE_ORDER = ['ah-huat', 'mdm-tan', 'rahim', 'mei-ling', 'ah-kow', 'siti', 'muthu', 'ah-seng', 'fatimah', 'raju', 'mak-esah', 'aminah', 'hassan', 'mr-lim', 'miss-de-souza'];
 
 /** Farm bed n (1–8): its top-left tile. Beds are 2×2, four across and two down the plot. */
 export function bedTile(n: number): { x: number; y: number } {
