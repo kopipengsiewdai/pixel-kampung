@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.22.0 (2026-10-26): less wasted thinking
 
 - **Less wasted thinking** (in a day of the living town, about one call in three went on something that couldn't work):
   - Someone who has said three things in a row to a person who hasn't answered sees that they haven't, and a fourth is turned away ("Mdm Tan hasn't answered you."). Any answer, or doing something together, starts it again. (Ah Kow said much the same line to Mdm Tan every ten minutes for hours.)
