@@ -111,6 +111,7 @@ export const ACTIONS: Record<string, ActionDef> = {
   ask_errand: {
     run: chores.askErrand, ownersOnly: false, says: 'ask someone to run an errand for pay (person; words: "fetch water", or "take something to someone"; money)', here: withPeople,
   },
+  gather_firewood: { run: (w, r) => chores.gatherFirewood(w, r), ownersOnly: false, says: 'gather firewood', here: at('farm') },
   fish: { run: everyone.fish, ownersOnly: false, says: 'fish', here: at('jetty') },
   cast_net: {
     run: (w, r) => chores.castNet(w, r), ownersOnly: false, says: 'cast a net from the jetty',
@@ -159,7 +160,8 @@ export const ACTIONS: Record<string, ActionDef> = {
   cook: {
     run: owners.cook, ownersOnly: false, says: 'cook in the kitchen (item: the dish; details: batches)',
     here: (w, r) => (w.shopOf(r.id)?.id === 'kopitiam' && w.isAt(r, 'kopitiam'))
-      || (r.activity?.kind === 'working' && w.jobOf(r.id)?.placeId === 'kopitiam'),
+      || (r.activity?.kind === 'working' && w.jobOf(r.id)?.placeId === 'kopitiam')
+      || (!r.activity && w.isAt(r, r.homeId)),
   },
 };
 

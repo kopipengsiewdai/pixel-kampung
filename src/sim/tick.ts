@@ -13,7 +13,8 @@ import { lookAbout } from './discovery.ts';
 import { ARRIVES, osmanMinute, STAYS } from './osman.ts';
 import { ITEMS, type ItemId } from './items.ts';
 import { FAINT_HUNGER } from './perception.ts';
-import { isNight, minuteOfDay } from './time.ts';
+import { dayIndex, isNight, minuteOfDay } from './time.ts';
+import { kinOf } from '../seed/cast.ts';
 
 /** About when the lorry comes and goes (Pak Osman's own day varies a little: src/sim/osman.ts). */
 export const LORRY_ARRIVES = ARRIVES;
@@ -88,6 +89,18 @@ function eatToSurvive(w: World, r: Resident): void {
 }
 
 /** Advances the world by one game minute. Brains are not involved here. */
+/** Kin seen faint with hunger stays in mind (docs/design/home-cooking.md): once a day for each. */
+function noticeFaintKin(w: World, r: Resident): void {
+  const today = dayIndex(w.t);
+  for (const k of kinOf(r.id)) {
+    const o = w.state.residents.find((x) => x.id === k.id);
+    if (!o || o.activity?.kind === 'sleeping' || o.hunger < FAINT_HUNGER || !w.isNear(r, o)) continue;
+    const text = `${o.name} looked faint with hunger.`;
+    if (r.recent.some((m) => m.text === text && dayIndex(m.t) === today)) continue;
+    w.remember(r.id, text);
+  }
+}
+
 export function advance(w: World): void {
   w.state.t += 1;
   const t = w.t;
@@ -102,7 +115,10 @@ export function advance(w: World): void {
     if (r.activity?.kind !== 'sleeping' && r.hunger >= FAINT_HUNGER) eatToSurvive(w, r);
     progress(w, r);
     stoveMinute(w, r);
-    if (r.activity?.kind !== 'sleeping') lookAbout(w, r);
+    if (r.activity?.kind !== 'sleeping') {
+      lookAbout(w, r);
+      noticeFaintKin(w, r);
+    }
     const a = r.activity;
     if (a?.kind !== 'sleeping' && r.energy <= 0) {
       interrupt(w, r);

@@ -251,7 +251,7 @@ describe('cook', () => {
     const w = newWorld();
     const tan = put(w, 'Mdm Tan', 'kopitiam');
     refused(act(w, tan.id, { verb: 'cook', item: 'kopi' }), /don't have a kitchen/);
-    const huat = who(w, 'Ah Huat');
+    const huat = put(w, 'Ah Huat', 'well');
     refused(act(w, huat.id, { verb: 'cook', item: 'kopi' }), /in your kitchen/);
     put(w, 'Ah Huat', 'kopitiam');
     refused(act(w, huat.id, { verb: 'cook', item: 'bread' }), /don't know how to make "bread"/);
@@ -263,7 +263,7 @@ describe('the action space', () => {
   it('is exactly the v1 list, each with accept and refusal tests above', () => {
     expect(Object.keys(ACTIONS).sort()).toEqual([
       'accept_job', 'accept_trade', 'agree', 'ask_errand', 'ask_to_bring', 'borrow', 'buy', 'cast_net', 'collect', 'cook', 'decline_trade', 'eat',
-      'fetch_water', 'fish', 'give', 'go_with', 'harvest', 'help', 'lend', 'let_go', 'let_off', 'look_around',
+      'fetch_water', 'fish', 'gather_firewood', 'give', 'go_with', 'harvest', 'help', 'lend', 'let_go', 'let_off', 'look_around',
       'mend_nets', 'offer_job', 'offer_trade', 'order_stock', 'pay_lorry_man', 'pay_wages', 'pin_note', 'plant', 'quit_job',
       'read_notice_board', 'refuse', 'repay', 'say', 'sell', 'set_price', 'sleep', 'sweep', 'teach', 'walk_to', 'water',
       'work_shift', 'write_iou',

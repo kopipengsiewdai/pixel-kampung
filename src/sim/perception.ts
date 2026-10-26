@@ -102,6 +102,8 @@ export interface Perception {
   } | null;
   beds: { n: number; ready: boolean; wateredToday: boolean }[];
   freeBeds: number | null;
+  /** At home: pots' worth of kerosene left in the stove. */
+  stove: number | null;
   jobOffers: { from: string; wage: Cents; startHour: number; hours: number }[];
   trades: { from: string; give: string; want: string }[];
   /** Money they owe and are owed, summed per person (an IOU's words with it), and wages owed to them. */
@@ -290,6 +292,7 @@ export function perceive(w: World, r: Resident): Perception {
     beds: w.state.beds.filter((b) => b.planterId === r.id)
       .map((b) => ({ n: b.n, ready: isRipe(w, b), wateredToday: b.lastWateredDay === today })),
     freeBeds: w.isAt(r, 'farm') ? w.state.beds.filter((b) => b.planterId === null).length : null,
+    stove: w.isAt(r, r.homeId) ? w.state.stoves[r.homeId] ?? 0 : null,
     jobOffers: w.state.jobOffers.filter((o) => o.workerId === r.id)
       .map((o) => ({ from: w.resident(o.employerId).name, wage: o.wage, startHour: o.startHour, hours: o.hours })),
     trades: w.state.trades.filter((t) => t.toId === r.id).map((t) => ({
@@ -456,6 +459,7 @@ export function describe(p: Perception): string {
     if (l.owes > 0) lines.push(`You owe ${l.who} ${formatMoney(l.owes)}.`);
   }
   if (p.beds.length) lines.push(`Your beds on the farm plot: ${p.beds.map((b) => `bed ${b.n} ${b.ready ? 'ready to harvest' : b.wateredToday ? 'watered today' : 'needs water'}`).join('; ')}.`);
+  if (p.stove) lines.push(`There's kerosene in the stove for ${p.stove === 1 ? 'one more pot' : `${p.stove} more pots`}.`);
   if (p.freeBeds !== null) lines.push(`${p.freeBeds} bed${p.freeBeds === 1 ? ' is' : 's are'} free on the plot.`);
   for (const o of p.jobOffers) lines.push(`${o.from} has offered you work ${shiftLabel(o.startHour, o.hours)} for ${formatMoney(o.wage)} a shift.`);
   for (const t of p.trades) lines.push(`${t.from} offers you ${t.give} for ${t.want}.`);

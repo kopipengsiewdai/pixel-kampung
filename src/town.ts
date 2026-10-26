@@ -2,6 +2,7 @@ import type { Brain } from './brain/brain.ts';
 import { FakeBrain } from './brain/fake-brain.ts';
 import { act, verbOf, type Intent } from './sim/actions/index.ts';
 import { isStaffed } from './sim/actions/everyone.ts';
+import { kinOf } from './seed/cast.ts';
 import { DEFAULT_DIALS, type Dials } from './sim/dials.ts';
 import type { EventBody, GameEvent, LedgerEntry } from './sim/events.ts';
 import { ITEMS, type ItemId } from './sim/items.ts';
@@ -60,7 +61,12 @@ function pottered(w: World, r: Resident, p: Perception): void {
       r.reply = { ok: true, text: `You're hungry. You could get something to eat at ${list}.` };
       return;
     }
-    // Nobody serving anywhere: there are always fish in the sea.
+    // Nobody serving: family in another house, then the sea.
+    const kin = kinOf(r.id).find((k) => w.state.residents.some((o) => o.id === k.id && o.homeId !== r.homeId) && w.knowsPerson(r, k.id));
+    if (kin) {
+      r.reply = { ok: true, text: `You're hungry. You could ask your ${kin.word} ${w.resident(kin.id).name} for something to eat.` };
+      return;
+    }
     if (p.placeId !== 'jetty' && r.knownPlaces.includes('jetty')) {
       r.reply = { ok: true, text: "You're hungry. You could catch a fish at the jetty." };
       return;
