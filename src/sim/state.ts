@@ -274,6 +274,8 @@ export interface WorldState {
   rentToldTo: string[];
   /** The last Monday Mr Lim came round. */
   lastRoundDay: number;
+  /** Mr Lim's hardship loans still owed, by whom, and what they pay back a round (a week's rent); repaid into the fund. */
+  loans: { who: string; owed: Cents; weekly: Cents }[];
   /** Rent still owed from a house lost, by who held it. */
   arrears: Record<string, Cents>;
   /** Who each person sleeping rough was turned out with (the holder), so they come home together. */
@@ -295,6 +297,8 @@ export interface WorldState {
 
 /** A house or stall: who holds it, its rent a week, whether bought, buying week by week, what's owed and since what day. */
 export interface Property {
+  /** A week's grace Mr Lim has given on rent owing: until which day, and the day he gave it (hardship help). */
+  grace: { until: number; given: number } | null;
   holder: string | null;
   rent: Cents;
   owned: boolean;
@@ -389,6 +393,8 @@ export class World {
   observer: ((residentId: string, t: number, text: string) => void) | null = null;
   /** The owner's dials, from the private settings (not saved with the town). */
   dials: Dials = { ...DEFAULT_DIALS };
+  /** Mr Lim's plan for the day's odd jobs, from his head or his own way (not saved: a restart plans again). */
+  mrLim: { day: number; plan: { jobs: number; pay: number }; asks: { who: string; said: string | null }[]; asked: Record<string, number> } = { day: -1, plan: { jobs: 2, pay: 50 }, asks: [], asked: {} };
   /** What's been said to the teacher, waiting for her answer, and her day's calls, openings and answers to each (not saved: a restart forgets them, and her head counts its calls from the cost log). */
   teacher: { asks: { who: string; text: string }[]; day: number; calls: number; opened: string[]; answered: Record<string, number> } = { asks: [], day: -1, calls: 0, opened: [], answered: {} };
 

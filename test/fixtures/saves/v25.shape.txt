@@ -1,0 +1,767 @@
+src/sim/state.ts WorldState {
+  arrears: {
+    [key: string]: number
+  }
+  beds: {
+    crop: "chilli" | "kangkong" | "papaya"
+    lastWateredDay: null | number
+    n: number
+    pickedDay: null | number
+    plantedDay: number
+    planterId: null | string
+    readyDay: null | number
+    wateredDays: number
+  }[]
+  bonds: {
+    [key: string]: {
+      counted: string[]
+      day: number
+      fondness: number
+      talk: number
+      trust: number
+    }
+  }
+  calendar: {
+    firstDay: number
+  }
+  clock: {
+    anchorMs: number
+    anchorT: number
+  }
+  debtOffers: {
+    cents: number
+    expires: number
+    fromId: string
+    id: number
+    kind: "borrow" | "iou" | "lend"
+    toId: string
+    what: null | string
+  }[]
+  debts: {
+    cents: number
+    creditor: string
+    debtor: string
+    due: null | number
+    id: number
+    kind: "iou" | "loan"
+    since: number
+    what: null | string
+  }[]
+  errands: {
+    askerId: string
+    cents: number
+    expires: number
+    id: number
+    item: "banana" | "boiled kangkong" | "bread" | "bubur" | "chilli" | "coconut" | "coffee" | "firewood" | "fish porridge" | "fish" | "grilled fish" | "kerosene" | "kopi" | "papaya" | "pot" | "red snapper" | "rice" | "sambal kangkong" | "vegetable rice" | "vegetables" | "water" | null
+    kind: "take" | "water"
+    runnerId: string
+    taken: false | true
+    toId: null | string
+  }[]
+  eventSeq: number
+  evictedWith: {
+    [key: string]: string
+  }
+  faintSeen: {
+    [key: string]: number
+  }
+  fires: {
+    by: string
+    id: number
+    until: number
+    x: number
+    y: number
+  }[]
+  firsts: string[]
+  fund: number
+  illSeen: {
+    [key: string]: number
+  }
+  jobOffers: {
+    employerId: string
+    expires: number
+    hours: number
+    id: number
+    startHour: number
+    wage: number
+    workerId: string
+  }[]
+  jobs: {
+    employerId: string
+    hours: number
+    id: number
+    lastWorkedDay: null | number
+    placeId: string
+    startHour: number
+    wage: number
+    workerId: string
+  }[]
+  lastRoundDay: number
+  ledgerSeq: number
+  lessonOffers: {
+    expires: number
+    id: number
+    learnerId: string
+    skill: "cooking" | "english" | "farming" | "fishing"
+    teacherId: string
+  }[]
+  lessons: {
+    day: number
+    id: number
+    learnerId: string
+    skill: "cooking" | "english" | "farming" | "fishing"
+    teacherId: string
+  }[]
+  loans: {
+    owed: number
+    weekly: number
+    who: string
+  }[]
+  lorryHere: false | true
+  nextId: number
+  notes: {
+    authorId: string
+    id: number
+    t: number
+    text: string
+  }[]
+  oddJobs: {
+    day: number
+    doneBy: null | string
+    id: number
+    kind: string
+    noteId: number
+    pay: number
+    placeId: string
+    project: null | string
+  }[]
+  oddJobsDay: number
+  osman: {
+    accounts: {
+      [key: string]: {
+        cheated: false | true
+        days: number
+        lastDay: null | number
+        owes: number
+        since: null | number
+      }
+    }
+    lastDay: null | number
+    orders: {
+      brought: null | number
+      deposit: number
+      each: number
+      forShop: null | string
+      id: number
+      item: "bread" | "coffee" | "kerosene" | "pot" | "rice"
+      qty: number
+      who: string
+    }[]
+    visit: null | {
+      buys: {
+        banana?: number | undefined
+        "boiled kangkong"?: number | undefined
+        bread?: number | undefined
+        bubur?: number | undefined
+        chilli?: number | undefined
+        coconut?: number | undefined
+        coffee?: number | undefined
+        firewood?: number | undefined
+        fish?: number | undefined
+        "fish porridge"?: number | undefined
+        "grilled fish"?: number | undefined
+        kerosene?: number | undefined
+        kopi?: number | undefined
+        papaya?: number | undefined
+        pot?: number | undefined
+        "red snapper"?: number | undefined
+        rice?: number | undefined
+        "sambal kangkong"?: number | undefined
+        "vegetable rice"?: number | undefined
+        vegetables?: number | undefined
+        water?: number | undefined
+      }
+      day: number
+      deals: {
+        [key: string]: {
+          [key: string]: number
+        }
+      }
+      goods: {
+        banana?: number | undefined
+        "boiled kangkong"?: number | undefined
+        bread?: number | undefined
+        bubur?: number | undefined
+        chilli?: number | undefined
+        coconut?: number | undefined
+        coffee?: number | undefined
+        firewood?: number | undefined
+        fish?: number | undefined
+        "fish porridge"?: number | undefined
+        "grilled fish"?: number | undefined
+        kerosene?: number | undefined
+        kopi?: number | undefined
+        papaya?: number | undefined
+        pot?: number | undefined
+        "red snapper"?: number | undefined
+        rice?: number | undefined
+        "sambal kangkong"?: number | undefined
+        "vegetable rice"?: number | undefined
+        vegetables?: number | undefined
+        water?: number | undefined
+      }
+      gossip: null | string
+      haggles: number
+      heard: string[]
+      held: {
+        banana?: number | undefined
+        "boiled kangkong"?: number | undefined
+        bread?: number | undefined
+        bubur?: number | undefined
+        chilli?: number | undefined
+        coconut?: number | undefined
+        coffee?: number | undefined
+        firewood?: number | undefined
+        fish?: number | undefined
+        "fish porridge"?: number | undefined
+        "grilled fish"?: number | undefined
+        kerosene?: number | undefined
+        kopi?: number | undefined
+        papaya?: number | undefined
+        pot?: number | undefined
+        "red snapper"?: number | undefined
+        rice?: number | undefined
+        "sambal kangkong"?: number | undefined
+        "vegetable rice"?: number | undefined
+        vegetables?: number | undefined
+        water?: number | undefined
+      }
+      leaves: number
+      offers: {
+        cents: number
+        forShop: null | string
+        id: number
+        item: "banana" | "boiled kangkong" | "bread" | "bubur" | "chilli" | "coconut" | "coffee" | "firewood" | "fish porridge" | "fish" | "grilled fish" | "kerosene" | "kopi" | "papaya" | "pot" | "red snapper" | "rice" | "sambal kangkong" | "vegetable rice" | "vegetables" | "water"
+        later: false | true
+        qty: number
+        side: "buys" | "sells"
+        who: string
+      }[]
+      priced: false | true
+      produce: {
+        banana?: number | undefined
+        "boiled kangkong"?: number | undefined
+        bread?: number | undefined
+        bubur?: number | undefined
+        chilli?: number | undefined
+        coconut?: number | undefined
+        coffee?: number | undefined
+        firewood?: number | undefined
+        fish?: number | undefined
+        "fish porridge"?: number | undefined
+        "grilled fish"?: number | undefined
+        kerosene?: number | undefined
+        kopi?: number | undefined
+        papaya?: number | undefined
+        pot?: number | undefined
+        "red snapper"?: number | undefined
+        rice?: number | undefined
+        "sambal kangkong"?: number | undefined
+        "vegetable rice"?: number | undefined
+        vegetables?: number | undefined
+        water?: number | undefined
+      }
+      sells: {
+        banana?: number | undefined
+        "boiled kangkong"?: number | undefined
+        bread?: number | undefined
+        bubur?: number | undefined
+        chilli?: number | undefined
+        coconut?: number | undefined
+        coffee?: number | undefined
+        firewood?: number | undefined
+        fish?: number | undefined
+        "fish porridge"?: number | undefined
+        "grilled fish"?: number | undefined
+        kerosene?: number | undefined
+        kopi?: number | undefined
+        papaya?: number | undefined
+        pot?: number | undefined
+        "red snapper"?: number | undefined
+        rice?: number | undefined
+        "sambal kangkong"?: number | undefined
+        "vegetable rice"?: number | undefined
+        vegetables?: number | undefined
+        water?: number | undefined
+      }
+    }
+  }
+  owed: {
+    cents: number
+    employerId: string
+    since?: number | undefined
+    workerId: string
+  }[]
+  priceOffers: {
+    buyerId: string
+    cents: number
+    expires: number
+    id: number
+    item: "banana" | "boiled kangkong" | "bread" | "bubur" | "chilli" | "coconut" | "coffee" | "firewood" | "fish porridge" | "fish" | "grilled fish" | "kerosene" | "kopi" | "papaya" | "pot" | "red snapper" | "rice" | "sambal kangkong" | "vegetable rice" | "vegetables" | "water"
+    qty: number
+    shopId: string
+  }[]
+  projects: {
+    builtDay: null | number
+    done: number[]
+    id: string
+  }[]
+  property: {
+    [key: string]: {
+      grace: null | {
+        given: number
+        until: number
+      }
+      holder: null | string
+      owing: number
+      owned: false | true
+      rent: number
+      rentToOwn: null | {
+        of: number
+        paid: number
+      }
+      since: null | number
+    }
+  }
+  rentFrom: number
+  rentNoticed: false | true
+  rentToldTo: string[]
+  residents: {
+    activity: null | {
+      adult: false | true
+      kind: "school"
+      learnt: number
+      until: number
+    } | {
+      chore: "cast_net" | "fetch_water" | "forage" | "gather_wood" | "mend_nets" | "odd_job" | "sweep"
+      forId: null | string
+      job: null | number
+      kind: "chore"
+      shift: null | {
+        jobId: number
+        until: number
+        worked: number
+      }
+      shopId: null | string
+      until: number
+    } | {
+      dest: null | string
+      kind: "walking"
+      path: {
+        x: number
+        y: number
+      }[]
+      thenSleep: false | true
+    } | {
+      jobId: number
+      kind: "working"
+      until: number
+      worked: number
+    } | {
+      kind: "fishing"
+      until: number
+    } | {
+      kind: "sleeping"
+      reason: "collapse" | "nap" | "night"
+      until: null | number
+    }
+    born: number
+    energy: number
+    faintFrom: null | number
+    foraged: null | {
+      day: number
+      n: number
+    }
+    homeId: string
+    hunger: number
+    id: string
+    ill: null | {
+      better: null | number
+      since: number
+    }
+    items: {
+      banana?: number | undefined
+      "boiled kangkong"?: number | undefined
+      bread?: number | undefined
+      bubur?: number | undefined
+      chilli?: number | undefined
+      coconut?: number | undefined
+      coffee?: number | undefined
+      firewood?: number | undefined
+      fish?: number | undefined
+      "fish porridge"?: number | undefined
+      "grilled fish"?: number | undefined
+      kerosene?: number | undefined
+      kopi?: number | undefined
+      papaya?: number | undefined
+      pot?: number | undefined
+      "red snapper"?: number | undefined
+      rice?: number | undefined
+      "sambal kangkong"?: number | undefined
+      "vegetable rice"?: number | undefined
+      vegetables?: number | undefined
+      water?: number | undefined
+    }
+    knownPeople: string[]
+    knownPlaces: string[]
+    lastDone: null | {
+      t: number
+      what: string
+    }
+    mended: null | {
+      day: number
+      left: number
+    }
+    money: number
+    name: string
+    pos: {
+      x: number
+      y: number
+    }
+    recent: {
+      t: number
+      talk?: true | undefined
+      text: string
+    }[]
+    reply: null | {
+      ok: false | true
+      text: string
+    }
+    role: "family" | "owner" | "seeker"
+    skills: {
+      cooking?: undefined | {
+        drops: number
+        lastDay: number
+        peak: number
+        rusty: false | true
+        today: {
+          day: number
+          xp: number
+        }
+        xp: number
+      }
+      english?: undefined | {
+        drops: number
+        lastDay: number
+        peak: number
+        rusty: false | true
+        today: {
+          day: number
+          xp: number
+        }
+        xp: number
+      }
+      farming?: undefined | {
+        drops: number
+        lastDay: number
+        peak: number
+        rusty: false | true
+        today: {
+          day: number
+          xp: number
+        }
+        xp: number
+      }
+      fishing?: undefined | {
+        drops: number
+        lastDay: number
+        peak: number
+        rusty: false | true
+        today: {
+          day: number
+          xp: number
+        }
+        xp: number
+      }
+    }
+    stove: null | {
+      batches: number
+      item: "banana" | "boiled kangkong" | "bread" | "bubur" | "chilli" | "coconut" | "coffee" | "firewood" | "fish porridge" | "fish" | "grilled fish" | "kerosene" | "kopi" | "papaya" | "pot" | "red snapper" | "rice" | "sambal kangkong" | "vegetable rice" | "vegetables" | "water"
+      qty: number
+      shopId: string
+      until: number
+    }
+    thinkAt: number
+  }[]
+  rng: number
+  seed: number
+  shops: {
+    buyLimits: {
+      banana?: number | undefined
+      "boiled kangkong"?: number | undefined
+      bread?: number | undefined
+      bubur?: number | undefined
+      chilli?: number | undefined
+      coconut?: number | undefined
+      coffee?: number | undefined
+      firewood?: number | undefined
+      fish?: number | undefined
+      "fish porridge"?: number | undefined
+      "grilled fish"?: number | undefined
+      kerosene?: number | undefined
+      kopi?: number | undefined
+      papaya?: number | undefined
+      pot?: number | undefined
+      "red snapper"?: number | undefined
+      rice?: number | undefined
+      "sambal kangkong"?: number | undefined
+      "vegetable rice"?: number | undefined
+      vegetables?: number | undefined
+      water?: number | undefined
+    }
+    buyPrices: {
+      banana?: number | undefined
+      "boiled kangkong"?: number | undefined
+      bread?: number | undefined
+      bubur?: number | undefined
+      chilli?: number | undefined
+      coconut?: number | undefined
+      coffee?: number | undefined
+      firewood?: number | undefined
+      fish?: number | undefined
+      "fish porridge"?: number | undefined
+      "grilled fish"?: number | undefined
+      kerosene?: number | undefined
+      kopi?: number | undefined
+      papaya?: number | undefined
+      pot?: number | undefined
+      "red snapper"?: number | undefined
+      rice?: number | undefined
+      "sambal kangkong"?: number | undefined
+      "vegetable rice"?: number | undefined
+      vegetables?: number | undefined
+      water?: number | undefined
+    }
+    hour: {
+      cents: number
+      left: number
+      served: number
+    }
+    id: string
+    ownerId: string
+    queue: {
+      item: "banana" | "boiled kangkong" | "bread" | "bubur" | "chilli" | "coconut" | "coffee" | "firewood" | "fish porridge" | "fish" | "grilled fish" | "kerosene" | "kopi" | "papaya" | "pot" | "red snapper" | "rice" | "sambal kangkong" | "vegetable rice" | "vegetables" | "water"
+      t: number
+    }[]
+    sellPrices: {
+      banana?: number | undefined
+      "boiled kangkong"?: number | undefined
+      bread?: number | undefined
+      bubur?: number | undefined
+      chilli?: number | undefined
+      coconut?: number | undefined
+      coffee?: number | undefined
+      firewood?: number | undefined
+      fish?: number | undefined
+      "fish porridge"?: number | undefined
+      "grilled fish"?: number | undefined
+      kerosene?: number | undefined
+      kopi?: number | undefined
+      papaya?: number | undefined
+      pot?: number | undefined
+      "red snapper"?: number | undefined
+      rice?: number | undefined
+      "sambal kangkong"?: number | undefined
+      "vegetable rice"?: number | undefined
+      vegetables?: number | undefined
+      water?: number | undefined
+    }
+    serving: {
+      by: string
+      item: "banana" | "boiled kangkong" | "bread" | "bubur" | "chilli" | "coconut" | "coffee" | "firewood" | "fish porridge" | "fish" | "grilled fish" | "kerosene" | "kopi" | "papaya" | "pot" | "red snapper" | "rice" | "sambal kangkong" | "vegetable rice" | "vegetables" | "water"
+      until: number
+    }[]
+    stock: {
+      banana?: number | undefined
+      "boiled kangkong"?: number | undefined
+      bread?: number | undefined
+      bubur?: number | undefined
+      chilli?: number | undefined
+      coconut?: number | undefined
+      coffee?: number | undefined
+      firewood?: number | undefined
+      fish?: number | undefined
+      "fish porridge"?: number | undefined
+      "grilled fish"?: number | undefined
+      kerosene?: number | undefined
+      kopi?: number | undefined
+      papaya?: number | undefined
+      pot?: number | undefined
+      "red snapper"?: number | undefined
+      rice?: number | undefined
+      "sambal kangkong"?: number | undefined
+      "vegetable rice"?: number | undefined
+      vegetables?: number | undefined
+      water?: number | undefined
+    }
+    sweptDay: null | number
+    today: {
+      away: number
+      awayTold: number
+      cents: number
+      day: number
+      left: number
+      lost: number
+      masterCooked: false | true
+      served: number
+      servedBy: {
+        [key: string]: number
+      }
+      tooDear: {
+        banana?: number | undefined
+        "boiled kangkong"?: number | undefined
+        bread?: number | undefined
+        bubur?: number | undefined
+        chilli?: number | undefined
+        coconut?: number | undefined
+        coffee?: number | undefined
+        firewood?: number | undefined
+        fish?: number | undefined
+        "fish porridge"?: number | undefined
+        "grilled fish"?: number | undefined
+        kerosene?: number | undefined
+        kopi?: number | undefined
+        papaya?: number | undefined
+        pot?: number | undefined
+        "red snapper"?: number | undefined
+        rice?: number | undefined
+        "sambal kangkong"?: number | undefined
+        "vegetable rice"?: number | undefined
+        vegetables?: number | undefined
+        water?: number | undefined
+      }
+    }
+  }[]
+  stoves: {
+    [key: string]: number
+  }
+  t: number
+  talk: {
+    [key: string]: {
+      gift?: string | undefined
+      idle: number
+      idleWas?: undefined | {
+        n: number
+        t: number
+      }
+      lastT: number
+      lines: number
+      said?: undefined | {
+        t: number
+        words: string[]
+      }[]
+      unanswered?: undefined | {
+        by: string
+        n: number
+        t: number
+      }
+      word: null | {
+        awake?: number | undefined
+        broken?: false | true | undefined
+        by: string
+        kind: "deal" | "job" | "paying"
+        t: number
+      }
+    }
+  }
+  trades: {
+    expires: number
+    fromId: string
+    give: {
+      cents: number
+      items: {
+        banana?: number | undefined
+        "boiled kangkong"?: number | undefined
+        bread?: number | undefined
+        bubur?: number | undefined
+        chilli?: number | undefined
+        coconut?: number | undefined
+        coffee?: number | undefined
+        firewood?: number | undefined
+        fish?: number | undefined
+        "fish porridge"?: number | undefined
+        "grilled fish"?: number | undefined
+        kerosene?: number | undefined
+        kopi?: number | undefined
+        papaya?: number | undefined
+        pot?: number | undefined
+        "red snapper"?: number | undefined
+        rice?: number | undefined
+        "sambal kangkong"?: number | undefined
+        "vegetable rice"?: number | undefined
+        vegetables?: number | undefined
+        water?: number | undefined
+      }
+    }
+    id: number
+    toId: string
+    want: {
+      cents: number
+      items: {
+        banana?: number | undefined
+        "boiled kangkong"?: number | undefined
+        bread?: number | undefined
+        bubur?: number | undefined
+        chilli?: number | undefined
+        coconut?: number | undefined
+        coffee?: number | undefined
+        firewood?: number | undefined
+        fish?: number | undefined
+        "fish porridge"?: number | undefined
+        "grilled fish"?: number | undefined
+        kerosene?: number | undefined
+        kopi?: number | undefined
+        papaya?: number | undefined
+        pot?: number | undefined
+        "red snapper"?: number | undefined
+        rice?: number | undefined
+        "sambal kangkong"?: number | undefined
+        "vegetable rice"?: number | undefined
+        vegetables?: number | undefined
+        water?: number | undefined
+      }
+    }
+  }[]
+  version: number
+}
+
+src/brain/fake-brain.ts Memory {
+  buyDays: {
+    [key: string]: string
+  }
+  lorryDay: null | string
+  rng: number
+  taughtDay?: null | string | undefined
+}
+
+src/mind/mind.ts MindState {
+  budget: {
+    lastT: number
+    level: number
+  }
+  businessCalls: number
+  businessDay: null | number
+  model?: unknown
+  plan: null | string
+  planDay: null | number
+  planMisses: number
+  reflectedDay: null | number
+}
+
+Tables of a fresh save:
+CREATE TABLE events (seq INTEGER PRIMARY KEY, t INTEGER NOT NULL, type TEXT NOT NULL, data TEXT NOT NULL);
+CREATE TABLE ledger (seq INTEGER PRIMARY KEY, t INTEGER NOT NULL, from_id TEXT NOT NULL, to_id TEXT NOT NULL, cents INTEGER NOT NULL, reason TEXT NOT NULL);
+CREATE TABLE memories (id INTEGER PRIMARY KEY AUTOINCREMENT, resident TEXT NOT NULL, t INTEGER NOT NULL, kind TEXT NOT NULL, text TEXT NOT NULL, importance INTEGER NOT NULL);
+CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE snapshot (id INTEGER PRIMARY KEY CHECK (id = 1), t INTEGER NOT NULL, world TEXT NOT NULL, brains TEXT NOT NULL);
+CREATE INDEX memories_by_resident ON memories (resident, t);

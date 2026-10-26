@@ -12,7 +12,7 @@ import * as households from '../households.ts';
 import { TOO_ILL, TOO_ILL_FOR } from '../sickness.ts';
 import { fireGround, fireNear, KITCHEN_ID, kitchenBuilt, lightFire } from '../cooking.ts';
 import { canJoinClass, CLASS_FEE, joinClass } from '../school.ts';
-import { doneToday, openJobHere, whatOf } from '../mr-lim.ts';
+import { askForHelp, canAskHelp, doneToday, openJobHere, whatOf } from '../mr-lim.ts';
 import { formatMoney } from '../money.ts';
 import { moneyOf, ok as yes } from './common.ts';
 
@@ -158,7 +158,7 @@ export const ACTIONS: Record<string, ActionDef> = {
       return m === null || m === 0 ? no("That doesn't sound like money.") : res(households.payRent(w, r, m));
     },
     ownersOnly: false, says: 'pay Mr Lim the rent you owe (money for only part)',
-    here: (w, r) => w.isAt(r, 'village-head') && (households.heldBy(w, r.id).some(([, p]) => p.owing > 0) || (w.state.arrears[r.id] ?? 0) > 0),
+    here: (w, r) => w.isAt(r, 'village-head') && (households.heldBy(w, r.id).some(([, p]) => p.owing > 0) || (w.state.arrears[r.id] ?? 0) > 0 || w.state.loans.some((l) => l.who === r.id)),
   },
   buy_place: {
     run: (w, r, i) => res(households.buyPlace(w, r, i.item)), ownersOnly: false, says: 'buy your house from Mr Lim outright (item: house, or stall)',
@@ -209,6 +209,10 @@ export const ACTIONS: Record<string, ActionDef> = {
     here: (w, r) => (w.shopOf(r.id)?.id === 'kopitiam' && w.isAt(r, 'kopitiam'))
       || (r.activity?.kind === 'working' && w.jobOf(r.id)?.placeId === 'kopitiam')
       || (!r.activity && owners.cookable(w, r) !== null),
+  },
+  ask_mr_lim_for_help: {
+    run: (w, r, i) => askForHelp(w, r, typeof i.text === 'string' ? i.text.slice(0, 200) : null), ownersOnly: false, says: 'ask Mr Lim for help (a little time on the rent, or a small loan)',
+    here: (w, r) => canAskHelp(w, r),
   },
   join_english_class: {
     run: (w, r) => joinClass(w, r), ownersOnly: false, says: `join the evening English class (${formatMoney(CLASS_FEE)})`,

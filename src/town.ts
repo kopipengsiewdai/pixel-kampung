@@ -14,6 +14,7 @@ import { World, type Resident, type WorldState } from './sim/state.ts';
 import { advance } from './sim/tick.ts';
 import { osmanThinks, priceFor, type OsmanHead } from './sim/osman.ts';
 import { teacherThinks, type TeacherHead } from './sim/school.ts';
+import { mrLimHelps, mrLimThinks, type MrLimHead } from './sim/mr-lim.ts';
 import { isNight, minuteOfDay, realMsAt } from './sim/time.ts';
 import type { SqliteStore } from './store/sqlite-store.ts';
 import { SCHEMA_VERSION } from './store/upgrades.ts';
@@ -136,6 +137,8 @@ export interface TownOptions {
   osman?: OsmanHead | null;
   /** Miss de Souza's bounded head (src/mind/teacher-head.ts); without one she speaks her own words. */
   teacher?: TeacherHead | null;
+  /** Mr Lim's bounded head (src/mind/mrlim-head.ts); without one he goes his own way. */
+  mrLim?: MrLimHead | null;
 }
 
 /** The running kampung: world + brains + optional store, advanced a minute at a time. */
@@ -147,6 +150,7 @@ export class Town {
   private onTick?: (world: World) => void;
   private osman: OsmanHead | null;
   private teacher: TeacherHead | null;
+  private mrLim: MrLimHead | null;
 
   private constructor(state: WorldState, opts: TownOptions, savedBrains?: Record<string, unknown>) {
     this.world = new World(state);
@@ -157,6 +161,7 @@ export class Town {
     this.onTick = opts.onTick;
     this.osman = opts.osman ?? null;
     this.teacher = opts.teacher ?? null;
+    this.mrLim = opts.mrLim ?? null;
     const make = opts.brains ?? fakeBrains;
     this.brains = new Map(state.residents.map((r, i) => [r.id, make(r, i, state.seed, state)]));
     if (savedBrains) for (const [id, b] of this.brains) if (savedBrains[id] !== undefined) b.load(savedBrains[id]);
@@ -204,6 +209,8 @@ export class Town {
     // The lorry man answers before anyone thinks: his prices, his news, and any offer from last minute.
     await osmanThinks(w, this.osman, realMs);
     await teacherThinks(w, this.teacher, realMs);
+    await mrLimThinks(w, this.mrLim, realMs);
+    await mrLimHelps(w, this.mrLim, realMs);
     if (mod >= EVENING_FROM) {
       for (const r of w.state.residents) {
         const brain = this.brains.get(r.id)!;
