@@ -240,6 +240,8 @@ export interface WorldState {
   osman: OsmanState;
   /** Batches of kerosene left in each house's stove, by house id (docs/design/home-cooking.md). */
   stoves: Record<string, number>;
+  /** The day each resident last took in a relative faint with hunger, by "who>whom". */
+  faintSeen: Record<string, number>;
   /** Keys of one-off notable things that already happened (e.g. a shop's first sale). */
   firsts: string[];
   /** Lines spoken between each pair lately ("a|b" sorted), for the talk soft limit. */

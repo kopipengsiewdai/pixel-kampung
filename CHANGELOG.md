@@ -6,9 +6,9 @@ never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
 ## Unreleased
 
-- **Cooking at home** ([docs/design/home-cooking.md](docs/design/home-cooking.md)): every house has a small stove. Anyone can cook a plain dish at home (bubur, fish porridge, vegetable rice, kopi, and new **grilled fish** and **boiled kangkong**) from what they carry: a small pot, two servings (three for a master cook), into their own hands. The skilled dishes stay at the kopitiam.
+- **Cooking at home** ([docs/design/home-cooking.md](docs/design/home-cooking.md)): every house has a small stove. Anyone can cook a plain dish at home (bubur, fish porridge, vegetable rice, kopi, and new **grilled fish** and **boiled kangkong**) from what they carry: one small pot at a time on a house's stove, two servings (three for a master cook), into their own hands. The skilled dishes stay at the kopitiam.
   - A stove needs fuel: **firewood**, gathered free past the farm plot (20 minutes a bundle, one bundle a pot), or a tin of **kerosene** from Pak Osman, which lasts four pots for anyone in that house.
-- **Family:** a hungry resident with no shop serving thinks of a relative in another house before the jetty ("You could ask your uncle Rahim for something to eat"), and seeing a relative faint with hunger stays in mind, once a day.
+- **Family:** a hungry resident with no shop serving thinks of a relative in another house and of the jetty, in turn ("You could ask your uncle Rahim for something to eat"), and seeing a relative faint with hunger stays in mind, once a day.
 - **Living town:** at upgrade (save v16) every stove starts with no kerosene in it, and nobody has any firewood yet.
 
 ## 0.19.1 (2026-10-26): English on the watch page

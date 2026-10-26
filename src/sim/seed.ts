@@ -91,6 +91,7 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
     lorryHere: false,
     osman: freshOsman(),
     stoves: {},
+    faintSeen: {},
     firsts: [],
     talk: {},
   };

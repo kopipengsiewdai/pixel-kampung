@@ -227,7 +227,7 @@ describe('cook, as a kopitiam worker on shift', () => {
     accepted(act(w, tan.id, { verb: 'offer_job', to: 'Raju', wage: 100, startHour: 9, hours: 2 }));
     accepted(act(w, raju.id, { verb: 'accept_job', from: 'Mdm Tan' }));
     accepted(act(w, raju.id, { verb: 'work_shift' }));
-    refused(act(w, raju.id, { verb: 'cook', item: 'kopi' }), /don't have a kitchen/);
+    refused(act(w, raju.id, { verb: 'cook', item: 'kopi' }), /stove is at home/);
   });
 });
 
@@ -250,7 +250,7 @@ describe('cook', () => {
   it('refusals: no kitchen, away from it, unknown dish, short of ingredients', () => {
     const w = newWorld();
     const tan = put(w, 'Mdm Tan', 'kopitiam');
-    refused(act(w, tan.id, { verb: 'cook', item: 'kopi' }), /don't have a kitchen/);
+    refused(act(w, tan.id, { verb: 'cook', item: 'kopi' }), /stove is at home/);
     const huat = put(w, 'Ah Huat', 'well');
     refused(act(w, huat.id, { verb: 'cook', item: 'kopi' }), /in your kitchen/);
     put(w, 'Ah Huat', 'kopitiam');

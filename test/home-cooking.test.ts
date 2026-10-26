@@ -6,7 +6,7 @@ import { threshold } from '../src/sim/skills.ts';
 import type { Resident, World } from '../src/sim/state.ts';
 import { advance } from '../src/sim/tick.ts';
 import { dayIndex } from '../src/sim/time.ts';
-import { Town } from '../src/town.ts';
+import { QUIET_THINK_MINUTES, Town } from '../src/town.ts';
 import { accepted, act, expectInWorld, newWorld, put, refused, sgt, who } from './helpers.ts';
 
 const offered = (w: World, name: string, verb: string) => perceive(w, who(w, name)).actions.some((a) => a.verb === verb);
@@ -61,6 +61,30 @@ describe('cooking at home', () => {
     expect(ITEMS['boiled kangkong'].food!.hunger).toBeGreaterThan(ITEMS.vegetables.food!.hunger);
   });
 
+  it('one small pot: one batch at a time, and one pot on a house\'s stove at once', () => {
+    const w = newWorld(9);
+    const fat = atHome(w, 'Fatimah');
+    fat.items = { rice: 3, water: 3, firewood: 3 };
+    const res = accepted(act(w, fat.id, { verb: 'cook', item: 'bubur', batches: 3 }));
+    expect(res.reply).toMatch(/one small pot/);
+    expect(fat.stove!.qty).toBe(2);
+    expect(fat.items.rice).toBe(2);
+    const aminah = atHome(w, 'Aminah');
+    aminah.items = { rice: 1, water: 1, firewood: 1 };
+    refused(act(w, aminah.id, { verb: 'cook', item: 'bubur' }), /already a pot on the stove/);
+    fat.hunger = 100;
+    aminah.hunger = 100;
+    run(w, 15);
+    accepted(act(w, aminah.id, { verb: 'cook', item: 'bubur' }));
+  });
+
+  it('away from home, the stove is at home', () => {
+    const w = newWorld(9);
+    const siti = put(w, 'Siti', 'well');
+    siti.items = { rice: 1, water: 1, firewood: 1 };
+    refused(act(w, siti.id, { verb: 'cook', item: 'bubur' }), /stove is at home/);
+  });
+
   it('a master cook gets one more serving at home too', () => {
     const w = newWorld(9);
     const esah = atHome(w, 'Mak Esah');
@@ -82,7 +106,7 @@ describe('cooking at home', () => {
     const raju = who(w, 'Raju');
     put(w, 'Raju', siti.homeId);
     raju.items = { rice: 1, water: 1, firewood: 1 };
-    if (raju.homeId !== siti.homeId) refused(act(w, raju.id, { verb: 'cook', item: 'bubur' }), /kitchen/);
+    if (raju.homeId !== siti.homeId) refused(act(w, raju.id, { verb: 'cook', item: 'bubur' }), /stove is at home/);
   });
 
   it('a tin of kerosene in the stove lasts four batches, for anyone in the house, before any firewood', () => {
@@ -110,7 +134,7 @@ describe('cooking at home', () => {
 });
 
 describe('family: the hungry think of their kin', () => {
-  it('with no shop being minded, a hungry resident thinks of a relative in another house before the jetty', async () => {
+  it('with no shop being minded, a hungry resident thinks of a relative in another house, and of the jetty in turn', async () => {
     const idle: Brain = { decide: () => null, save: () => null, load: () => {} };
     const start = sgt(9, 0) - 1;
     const town = Town.create(1, start, { brains: () => idle });
@@ -125,22 +149,36 @@ describe('family: the hungry think of their kin', () => {
     aminah.hunger = 820;
     aminah.items = {};
     aminah.thinkAt = start + 1;
-    await town.runUntil(start + 1);
-    const text = aminah.reply?.text ?? '';
-    expect(text).toBe("You're hungry. You could ask your uncle Rahim for something to eat.");
-    expectInWorld(text);
+    const heard: string[] = [];
+    for (let k = 0; k < 2; k++) {
+      const at = start + 1 + k * QUIET_THINK_MINUTES;
+      aminah.thinkAt = at;
+      put(w, 'Aminah', 'well');
+      await town.runUntil(at);
+      heard.push(aminah.reply?.text ?? '');
+    }
+    expect(heard).toContain("You're hungry. You could ask your uncle Rahim for something to eat.");
+    expect(heard).toContain("You're hungry. You could catch a fish at the jetty.");
+    for (const text of heard) expectInWorld(text);
   });
 });
 
 describe('family: a faint relative is remembered', () => {
   it('seeing kin faint with hunger becomes a memory, once a day', () => {
     const w = newWorld(9);
+    const remembered: { id: string; text: string }[] = [];
+    w.observer = (id, _t, text) => { remembered.push({ id, text }); };
     const rahim = put(w, 'Rahim', 'well');
     const aminah = put(w, 'Aminah', 'well');
     aminah.hunger = 990;
     rahim.hunger = 100;
     run(w, 3);
-    const seen = rahim.recent.filter((o) => /Aminah looked faint with hunger/.test(o.text));
+    // However much else is going on meanwhile.
+    for (let k = 0; k < 3; k++) {
+      for (let i = 0; i < 20; i++) w.remember(rahim.id, `Something else happens (${k}, ${i}).`);
+      run(w, 1);
+    }
+    const seen = remembered.filter((x) => x.id === rahim.id && /Aminah looked faint with hunger/.test(x.text));
     expect(seen).toHaveLength(1);
     // Not for someone who isn't family.
     const kow = put(w, 'Ah Kow', 'well');

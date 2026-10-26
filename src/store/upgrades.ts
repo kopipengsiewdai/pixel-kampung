@@ -302,7 +302,7 @@ export const UPGRADES: readonly Upgrade[] = [
   },  {
     from: 15,
     why: "Every house has a small stove: anyone can cook a plain dish at home with firewood gathered past the farm plot or a tin of kerosene from Pak Osman, a small pot of two servings into their own hands. Every stove starts with no kerosene in it.",
-    save: ({ world, brains }) => ({ world: { ...world, stoves: world.stoves ?? {} }, brains }),
+    save: ({ world, brains }) => ({ world: { ...world, stoves: world.stoves ?? {}, faintSeen: world.faintSeen ?? {} }, brains }),
   },
 ];
 

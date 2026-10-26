@@ -95,9 +95,10 @@ function noticeFaintKin(w: World, r: Resident): void {
   for (const k of kinOf(r.id)) {
     const o = w.state.residents.find((x) => x.id === k.id);
     if (!o || o.activity?.kind === 'sleeping' || o.hunger < FAINT_HUNGER || !w.isNear(r, o)) continue;
-    const text = `${o.name} looked faint with hunger.`;
-    if (r.recent.some((m) => m.text === text && dayIndex(m.t) === today)) continue;
-    w.remember(r.id, text);
+    const key = `${r.id}>${o.id}`;
+    if (w.state.faintSeen[key] === today) continue;
+    w.state.faintSeen[key] = today;
+    w.remember(r.id, `${o.name} looked faint with hunger.`);
   }
 }
 

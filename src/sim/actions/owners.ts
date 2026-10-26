@@ -164,14 +164,17 @@ export const HOME_YIELD = 2;
 /** Batches a tin of kerosene gives a home stove. */
 export const KEROSENE_BATCHES = 4;
 
-function cookAtHome(w: World, r: Resident, item: ItemId, batches: number): ActionResult {
+function cookAtHome(w: World, r: Resident, item: ItemId, asked: number): ActionResult {
   const recipe = RECIPES[item]!;
   if (recipe.level) return no("You'd want a proper kitchen for that.");
+  const home = r.homeId;
+  if (w.state.residents.some((o) => o.id !== r.id && o.stove?.shopId === home)) return no("There's already a pot on the stove.");
+  // One small pot: one batch at a time.
+  const batches = 1;
   for (const [need, n] of Object.entries(recipe.needs) as [ItemId, number][]) {
     if (countGoods(r.items, need) < n * batches) return no(`Each batch takes ${goodsLabel(recipe.needs)}, and you're short of ${need}.`);
   }
   // Fuel for every batch: kerosene already in the stove, then a tin poured in, then firewood.
-  const home = r.homeId;
   if ((w.state.stoves[home] ?? 0) + countGoods(r.items, 'kerosene') * KEROSENE_BATCHES + countGoods(r.items, 'firewood') < batches) {
     return no('The stove needs firewood or kerosene for that.');
   }
@@ -188,7 +191,7 @@ function cookAtHome(w: World, r: Resident, item: ItemId, batches: number): Actio
   const qty = (HOME_YIELD + (master ? 1 : 0)) * batches;
   const minutes = Math.round((COOK_MINUTES[item] ?? 10) * (effectiveLevel(r, 'cooking') >= 2 ? HANDY_COOK : 1));
   r.stove = { item, batches, qty, shopId: home, until: w.t + minutes * batches };
-  return ok(`You light the stove and start cooking ${batches === 1 ? 'a pot' : `${batches} pots`} of ${item}.`);
+  return ok(`You light the stove and start cooking a pot of ${item}.${asked > 1 ? ' You only have the one small pot.' : ''}`);
 }
 
 /** Whose kitchen this resident may cook in: their own, or the one they're on shift in. */
@@ -201,7 +204,7 @@ function kitchenFor(w: World, r: Resident): Shop | 'home' | string {
   if (job?.placeId === 'kopitiam') {
     return r.activity?.kind === 'working' ? w.shop(job.placeId)! : 'You can only use the kitchen during your shift.';
   }
-  return "You don't have a kitchen to cook in.";
+  return 'Your stove is at home.';
 }
 
 export function cook(w: World, r: Resident, i: Intent): ActionResult {

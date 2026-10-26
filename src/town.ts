@@ -63,11 +63,13 @@ function pottered(w: World, r: Resident, p: Perception): void {
     }
     // Nobody serving: family in another house, then the sea.
     const kin = kinOf(r.id).find((k) => w.state.residents.some((o) => o.id === k.id && o.homeId !== r.homeId) && w.knowsPerson(r, k.id));
-    if (kin) {
+    // Kin and the sea in turn, one quiet thought each: an aunt may be as hungry as you.
+    const jetty = p.placeId !== 'jetty' && r.knownPlaces.includes('jetty');
+    if (kin && (!jetty || Math.floor(w.t / QUIET_THINK_MINUTES) % 2 === 0)) {
       r.reply = { ok: true, text: `You're hungry. You could ask your ${kin.word} ${w.resident(kin.id).name} for something to eat.` };
       return;
     }
-    if (p.placeId !== 'jetty' && r.knownPlaces.includes('jetty')) {
+    if (jetty) {
       r.reply = { ok: true, text: "You're hungry. You could catch a fish at the jetty." };
       return;
     }

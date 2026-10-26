@@ -47,6 +47,9 @@ src/sim/state.ts WorldState {
     toId: null | string
   }[]
   eventSeq: number
+  faintSeen: {
+    [key: string]: number
+  }
   firsts: string[]
   jobOffers: {
     employerId: string
