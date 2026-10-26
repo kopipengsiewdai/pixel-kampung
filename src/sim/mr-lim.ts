@@ -17,6 +17,8 @@ import { formatMoney, type Cents } from './money.ts';
 import { Rng } from './rng.ts';
 import { MR_LIM_ID, type Resident, type World } from './state.ts';
 import { dayIndex, minuteOfDay } from './time.ts';
+import { PROJECT_JOBS, PROJECT_JOBS_A_DAY, PROJECT_NAMES, projectJobOf, projectKind } from './projects.ts';
+import { projectJobDone } from './cooking.ts';
 
 export const MR_LIM = 'Mr Lim';
 /** He sets out for the notice board at a quarter past seven. */
@@ -104,7 +106,7 @@ export function openJobHere(w: World, r: Resident): World['state']['oddJobs'][nu
   return jobsToday(w).find((j) => j.doneBy === null && w.isAt(r, j.placeId) && !workingAt(w, j.id)) ?? null;
 }
 
-export const whatOf = (kind: string) => ODD_JOB_KINDS.find((k) => k.kind === kind)?.what ?? 'odd work';
+export const whatOf = (kind: string) => ODD_JOB_KINDS.find((k) => k.kind === kind)?.what ?? projectJobOf(kind)?.what ?? 'odd work';
 
 /** Each minute: once he's at the board (or the town wakes later in the day), yesterday's jobs come down and today's go up. */
 export function mrLimMinute(w: World): void {
@@ -129,8 +131,21 @@ export function mrLimMinute(w: World): void {
     const noteId = w.nextId();
     w.state.notes.push({ id: noteId, authorId: MR_LIM_ID, text, t: w.t });
     if (w.state.notes.length > BOARD_MAX) w.state.notes.shift();
-    w.state.oddJobs.push({ id: w.nextId(), kind: k.kind, placeId: k.placeId, pay: ODD_JOB_PAY, day: today, doneBy: null, noteId });
+    w.state.oddJobs.push({ id: w.nextId(), kind: k.kind, placeId: k.placeId, pay: ODD_JOB_PAY, day: today, doneBy: null, noteId, project: null });
     w.emit({ type: 'note_pinned', who: MR_LIM_ID, text });
+  }
+  // Beside them, the next jobs on whatever he's having built.
+  for (const p of w.state.projects) {
+    if (p.builtDay !== null) continue;
+    const next = (PROJECT_JOBS[p.id] ?? []).map((j, i) => ({ ...j, i })).filter((j) => !p.done.includes(j.i)).slice(0, PROJECT_JOBS_A_DAY);
+    for (const j of next) {
+      const text = `Wanted, for ${PROJECT_NAMES[p.id] ?? 'the new building'}: someone to ${j.what}. An hour's work, ${formatMoney(ODD_JOB_PAY)} when it's done. Mr Lim.`;
+      const noteId = w.nextId();
+      w.state.notes.push({ id: noteId, authorId: MR_LIM_ID, text, t: w.t });
+      if (w.state.notes.length > BOARD_MAX) w.state.notes.shift();
+      w.state.oddJobs.push({ id: w.nextId(), kind: projectKind(p.id, j.i), placeId: j.placeId, pay: ODD_JOB_PAY, day: today, doneBy: null, noteId, project: p.id });
+      w.emit({ type: 'note_pinned', who: MR_LIM_ID, text });
+    }
   }
 }
 
@@ -144,4 +159,14 @@ export function finishOddJob(w: World, r: Resident, id: number | null): void {
   const what = whatOf(job.kind);
   w.emit({ type: 'odd_job_done', who: r.id, what, cents: job.pay });
   w.remember(r.id, `You finish the job for Mr Lim (${what}), and Mr Lim pays you ${formatMoney(job.pay)}.`);
+  const pj = job.project ? projectJobOf(job.kind) : null;
+  if (pj && projectJobDone(w, pj.project, pj.index)) {
+    // The last job done: it's built, and Mr Lim lets it be known.
+    const name = PROJECT_NAMES[pj.project] ?? 'the new building';
+    const text = `${name[0]!.toUpperCase()}${name.slice(1)} is ready. Anyone may cook there, bringing their own food and a little firewood or kerosene. Mr Lim.`;
+    w.state.notes.push({ id: w.nextId(), authorId: MR_LIM_ID, text, t: w.t });
+    if (w.state.notes.length > BOARD_MAX) w.state.notes.shift();
+    w.emit({ type: 'note_pinned', who: MR_LIM_ID, text });
+    w.emit({ type: 'built', what: name });
+  }
 }

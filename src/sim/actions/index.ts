@@ -10,6 +10,7 @@ import * as owners from './owners.ts';
 import * as teach from './teach.ts';
 import * as households from '../households.ts';
 import { TOO_ILL, TOO_ILL_FOR } from '../sickness.ts';
+import { fireGround, fireNear, KITCHEN_ID, kitchenBuilt, lightFire } from '../cooking.ts';
 import { doneToday, openJobHere, whatOf } from '../mr-lim.ts';
 import { formatMoney } from '../money.ts';
 import { moneyOf, ok as yes } from './common.ts';
@@ -201,7 +202,12 @@ export const ACTIONS: Record<string, ActionDef> = {
     run: owners.cook, ownersOnly: false, says: 'cook in the kitchen (item: the dish; details: batches)',
     here: (w, r) => (w.shopOf(r.id)?.id === 'kopitiam' && w.isAt(r, 'kopitiam'))
       || (r.activity?.kind === 'working' && w.jobOf(r.id)?.placeId === 'kopitiam')
-      || (!r.activity && w.isAt(r, r.homeId)),
+      || (!r.activity && w.isAt(r, r.homeId))
+      || (!r.activity && ((w.isAt(r, KITCHEN_ID) && kitchenBuilt(w)) || !!fireNear(w, r))),
+  },
+  light_fire: {
+    run: (w, r) => lightFire(w, r), ownersOnly: false, says: 'light a cooking fire with a bundle of firewood',
+    here: (w, r) => fireGround(w, r) && countGoods(r.items, 'firewood') > 0 && !fireNear(w, r),
   },
 };
 

@@ -214,7 +214,13 @@ export interface Bed {
 export interface Note { id: number; authorId: string; text: string; t: number }
 
 /** One of Mr Lim's paid odd jobs (subsistence.md Q3.1): what, where, its pay, the day it was pinned, who did it, and its note. */
-export interface OddJob { id: number; kind: string; placeId: string; pay: Cents; day: number; doneBy: string | null; noteId: number }
+export interface OddJob { id: number; kind: string; placeId: string; pay: Cents; day: number; doneBy: string | null; noteId: number; project: string | null }
+
+/** Something Mr Lim has built through odd jobs: which of its jobs are done, and the day it was finished. */
+export interface Project { id: string; done: number[]; builtDay: number | null }
+
+/** A cooking fire: where, who lit it, and when it burns out. */
+export interface Fire { id: number; x: number; y: number; by: string; until: number }
 
 export interface WorldState {
   /** The save version (SCHEMA_VERSION); older saves are upgraded on load (docs/design/upgrades.md). */
@@ -273,6 +279,10 @@ export interface WorldState {
   /** Mr Lim's odd jobs pinned today (and any done), and the day he last pinned them. */
   oddJobs: OddJob[];
   oddJobsDay: number;
+  /** What Mr Lim is building, or has built, through odd jobs. */
+  projects: Project[];
+  /** Cooking fires burning outdoors. */
+  fires: Fire[];
   /** Keys of one-off notable things that already happened (e.g. a shop's first sale). */
   firsts: string[];
   /** Lines spoken between each pair lately ("a|b" sorted), for the talk soft limit. */

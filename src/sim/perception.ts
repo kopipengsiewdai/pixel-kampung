@@ -11,6 +11,7 @@ import { ITEMS, quantityLabel, type ItemId } from './items.ts';
 import { HAGGLES_PER_VISIT, OSMAN, priceFor, room } from './osman.ts';
 import { distance, PLACES, PLACE_BY_ID, type Place } from './map.ts';
 import { doneToday, mrLimAt, openJobHere, whatOf } from './mr-lim.ts';
+import { cookingLines } from './cooking.ts';
 import { formatMoney, type Cents } from './money.ts';
 import { CIRCLE_LINES, NEARBY_TILES, SAID_ALL_LINES, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, UNANSWERED_LINES, WORD_MINUTES, type Bond, type Debt, type Goods, type Observation, type Resident, type Shop, type TalkRecord, type World } from './state.ts';
 import { nowLabel } from './calendar.ts';
@@ -83,6 +84,8 @@ export interface Perception {
   ill: boolean;
   /** Rent owed, and what can be had at the village head's house. */
   household: string[];
+  /** Where they could cook here: a fire burning, or the village kitchen built or going up. */
+  cooking: string[];
   /** Mr Lim, when he's near: what he's doing. */
   villageHead: string | null;
   /** Mr Lim's odd job here, open to them. */
@@ -302,6 +305,7 @@ export function perceive(w: World, r: Resident): Perception {
     ill: r.ill !== null,
     foodWays: foodWays(w, r),
     household: householdLines(w, r, w.isAt(r, 'village-head')),
+    cooking: cookingLines(w, r),
     villageHead: (() => { const m = mrLimAt(w, w.t); return m.out && distance(m.pos, r.pos) <= NEARBY_TILES ? m.doing : null; })(),
     oddJob: (() => { const j = doneToday(w, r) ? null : openJobHere(w, r); return j ? { what: whatOf(j.kind), pay: j.pay } : null; })(),
     energy: energyWord(r.energy),
@@ -468,6 +472,7 @@ export function describe(p: Perception): string {
   if (p.ill) lines.push("You're ill: feverish and weak. You need to eat, and rest.");
   lines.push(...p.foodWays);
   lines.push(...p.household);
+  lines.push(...p.cooking);
   if (p.villageHead) lines.push(`Mr Lim, the village head, is here, ${p.villageHead}.`);
   if (p.oddJob) lines.push(`Mr Lim wants someone to ${p.oddJob.what} here: ${formatMoney(p.oddJob.pay)} for an hour's work.`);
   lines.push(`You feel ${p.hunger} and ${p.energy}. You have ${formatMoney(p.money)}${p.carrying.length ? ` and you're carrying ${p.carrying.map((c) => quantityLabel(c.item, c.qty)).join(', ')}` : ''}.`);

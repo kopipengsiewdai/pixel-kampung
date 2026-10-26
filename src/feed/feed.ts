@@ -97,6 +97,8 @@ export function feedText(e: GameEvent, n: Names): { text: string; notable: boole
     case 'harvested': return line(`${n(e.who)} harvested ${quantityLabel(e.item ?? 'vegetables', e.qty)}.`, true);
     case 'ate': return line(`${n(e.who)} had ${quantityLabel(e.item, 1)}.`);
     case 'foraged': return line(`${n(e.who)} foraged ${quantityLabel(e.item, 1)}.`);
+    case 'fire_lit': return line(`${n(e.who)} lit a cooking fire.`);
+    case 'built': return line(`${e.what[0]!.toUpperCase()}${e.what.slice(1)} is built.`, true);
     case 'odd_job_done': return line(`${n(e.who)} did an odd job for Mr Lim (${e.what}), for ${formatMoney(e.cents)}.`, true);
     case 'fell_ill': return line(`${n(e.who)} has fallen ill from hunger.`, true);
     case 'got_well': return line(`${n(e.who)} is well again.`, true);
