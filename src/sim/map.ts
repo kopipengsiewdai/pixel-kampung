@@ -48,7 +48,7 @@ export const PLACES: readonly Place[] = [
   // Mr Lim's house (households-build.md): the top row is all homes, so it stands in the open ground below.
   place('village-head', 'village_head', "the village head's house", { x: 22, y: 15, w: 3, h: 2 }),
   // The shared village kitchen (subsistence.md "Where cooking happens"), below Mr Lim's path: built through his odd jobs.
-  place('village-kitchen', 'village_kitchen', 'the village kitchen', { x: 26, y: 18, w: 3, h: 2 }),
+  place('village-kitchen', 'village_kitchen', 'the village kitchen', { x: 26, y: 17, w: 3, h: 2 }),
 ];
 
 export const PLACE_BY_ID: ReadonlyMap<string, Place> = new Map(PLACES.map((p) => [p.id, p]));

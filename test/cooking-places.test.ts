@@ -127,3 +127,38 @@ describe('a shared village kitchen, built by Mr Lim through odd jobs (3)', () =>
     expect(w.state.oddJobs.some((j) => j.day === dayIndex(w.t) && j.project === 'village-kitchen')).toBe(false);
   });
 });
+
+describe('the upgrade (save v23)', () => {
+  it('no fires; the kitchen not yet begun; old jobs belong to no building; those who know Mr Lim\'s house know where the kitchen goes', async () => {
+    const { UPGRADES } = await import('../src/store/upgrades.ts');
+    const step = UPGRADES.find((u) => u.from === 22)!;
+    const world = {
+      residents: [{ id: 'a', knownPlaces: ['house-1', 'village-head'] }, { id: 'b', knownPlaces: ['house-5'] }],
+      oddJobs: [{ id: 1, kind: 'mend_jetty' }],
+    };
+    const up = step.save!({ world, brains: {} }).world as Record<string, unknown> & { residents: { knownPlaces: string[] }[] };
+    expect(up.fires).toEqual([]);
+    expect(up.projects).toEqual([{ id: 'village-kitchen', done: [], builtDay: null }]);
+    expect(up.oddJobs).toEqual([{ id: 1, kind: 'mend_jetty', project: null }]);
+    expect(up.residents[0]!.knownPlaces).toEqual(['house-1', 'village-head', 'village-kitchen']);
+    expect(up.residents[1]!.knownPlaces).toEqual(['house-5']);
+    expect(step.save!({ world: up, brains: {} }).world).toEqual(up);
+  });
+});
+
+describe('the watch page shows them', () => {
+  it('a frame carries the fires burning and what is built', async () => {
+    const { FrameBuilder } = await import('../src/watch/view.ts');
+    const w = newWorld(14);
+    const raju = put(w, 'Raju', 'jetty');
+    raju.items = { firewood: 1 };
+    accepted(act(w, raju.id, { verb: 'light_fire' }));
+    let f = new FrameBuilder().build(w);
+    expect(f.fires).toEqual([{ x: raju.pos.x, y: raju.pos.y }]);
+    expect(f.built).toEqual([]);
+    expect(f.building!['village-kitchen']).toMatch(/0 of 8/);
+    w.state.projects[0]!.builtDay = dayIndex(w.t);
+    f = new FrameBuilder().build(w);
+    expect(f.built).toEqual(['village-kitchen']);
+  });
+});

@@ -14,7 +14,8 @@ import { accepted, act, expectInWorld, newWorld, put, refused, sgt, who } from '
 
 const seen = (w: World, name: string) => describePerception(perceive(w, who(w, name)));
 const runTo = (w: World, t: number) => { while (w.t < t) advance(w); };
-const today = (w: World) => w.state.oddJobs.filter((j) => j.day === dayIndex(w.t));
+/** Today's usual odd jobs (not those toward something being built). */
+const today = (w: World) => w.state.oddJobs.filter((j) => j.day === dayIndex(w.t) && j.project === null);
 
 describe("Mr Lim's day: a scripted body (village-characters.md, subsistence.md Q3.1)", () => {
   it('indoors at night, at his door by day, out to the notice board in the morning', () => {
@@ -58,7 +59,7 @@ describe("Mr Lim's odd jobs", () => {
     expect(jobs.length).toBeLessThanOrEqual(3);
     expect(new Set(jobs.map((j) => j.placeId)).size).toBe(jobs.length);
     for (const j of jobs) expect(j.pay).toBe(ODD_JOB_PAY);
-    const notes = w.state.notes.filter((n) => n.authorId === MR_LIM_ID);
+    const notes = w.state.notes.filter((n) => n.authorId === MR_LIM_ID && !/^Wanted, for /.test(n.text));
     expect(notes.length).toBe(jobs.length);
     const events: string[] = [];
     // The board reads them as Mr Lim's.
@@ -76,7 +77,7 @@ describe("Mr Lim's odd jobs", () => {
     runTo(w, sgt(9, 0, 1));
     expect(today(w).every((j) => !first.includes(j.id))).toBe(true);
     expect(w.state.oddJobs.some((j) => first.includes(j.id) && j.doneBy === null)).toBe(false);
-    expect(w.state.notes.filter((n) => n.authorId === MR_LIM_ID).length).toBe(today(w).length);
+    expect(w.state.notes.filter((n) => n.authorId === MR_LIM_ID).length).toBe(w.state.oddJobs.filter((j) => j.day === dayIndex(w.t)).length);
   });
 
   it('done at its place as an hour\'s chore, paid from Mr Lim\'s purse, at most one a day each', () => {

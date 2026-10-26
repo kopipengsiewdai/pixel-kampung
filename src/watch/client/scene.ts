@@ -93,6 +93,10 @@ export class TownScene extends Phaser.Scene {
   private lorryHere = false;
   private beds: { tiles: Phaser.GameObjects.Image[]; crops: Phaser.GameObjects.Image[] }[] = [];
   private glows: { img: Phaser.GameObjects.Image; lit: (f: Frame) => boolean }[] = [];
+  /** Buildings Mr Lim has put up, shown once they're built (by place id). */
+  private builds = new Map<string, Phaser.GameObjects.Image>();
+  /** Cooking fires: a warm, flickering glow where each burns. */
+  private fireImgs: Phaser.GameObjects.Image[] = [];
   private homes = new Map<string, LayoutPlace>();
   private selected: string | null = null;
   private lastT = 0;
@@ -155,7 +159,7 @@ export class TownScene extends Phaser.Scene {
         else if (t === 'floor') {
           const kind = floorOf.get(`${x},${y}`);
           if (kind === 'lorry_stop') { atlas = 'k'; frame = 'road'; }
-          else if (kind !== 'house' && kind !== 'village_head') frame = 'paving';
+          else if (kind !== 'house' && kind !== 'village_head' && kind !== 'village_kitchen') frame = 'paving';
         }
         // Water under the jetty and the shore, so the planks sit on the sea.
         if (t === 'jetty' && y >= 24) rt.drawFrame('k', `sea-${r % 3}`, px, py);
@@ -181,6 +185,13 @@ export class TownScene extends Phaser.Scene {
         .setOrigin(0, 0).setDepth(OVERLAY_DEPTH + 1).setBlendMode(Phaser.BlendModes.ADD).setVisible(false);
       const home = p.id;
       this.glows.push({ img: glow, lit: (f) => f.residents.some((r) => r.homeId === home && this.isInside(r, home) && r.activity !== 'sleeping') });
+    }
+    // The village kitchen: an attap shelter, drawn once Mr Lim's odd jobs have built it.
+    for (const p of this.layout.places) {
+      if (p.kind !== 'village_kitchen') continue;
+      const img = this.add.image(p.rect.x * T, (p.rect.y - 1) * T, 'k', 'house-2').setOrigin(0, 0).setVisible(false);
+      img.setDepth(img.y + img.height - 8);
+      this.builds.set(p.id, img);
     }
     // The village head's house: the grandest of the attap houses.
     for (const p of this.layout.places) {
@@ -319,6 +330,16 @@ export class TownScene extends Phaser.Scene {
     const light = lightAt(f.minuteOfDay);
     this.overlay.setFillStyle(light.color, light.alpha);
     for (const g of this.glows) g.img.setVisible(light.alpha > 0.2 && g.lit(f));
+    for (const [id, img] of this.builds) img.setVisible((f.built ?? []).includes(id));
+    const fires = f.fires ?? [];
+    while (this.fireImgs.length < fires.length) {
+      this.fireImgs.push(this.add.image(0, 0, 'k', 'glow').setOrigin(0.5, 0.5).setBlendMode(Phaser.BlendModes.ADD).setDepth(OVERLAY_DEPTH + 1));
+    }
+    this.fireImgs.forEach((img, i) => {
+      const at = fires[i];
+      img.setVisible(!!at);
+      if (at) img.setPosition((at.x + 0.5) * T, (at.y + 0.5) * T);
+    });
   }
 
   private makeMover(r: ResidentView): Mover {
@@ -439,6 +460,7 @@ export class TownScene extends Phaser.Scene {
   update(time: number): void {
     if (!this.frame) return;
     this.drawn++;
+    this.fireImgs.forEach((img, i) => img.setAlpha(0.65 + 0.35 * Math.abs(Math.sin(time / 110 + i * 1.7))));
     for (const m of this.movers.values()) {
       const r = m.view;
       const f = Math.min(1, (time - m.start) / m.dur);

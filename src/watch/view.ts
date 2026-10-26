@@ -12,6 +12,7 @@ import { formatMoney, type Cents } from '../sim/money.ts';
 import { energyWord, hungerWord } from '../sim/perception.ts';
 import { GROWN_AGE, MR_LIM_ID, VILLAGER_NAMES, type Goods, type Resident, type Shop, type World } from '../sim/state.ts';
 import { jobsToday, MR_LIM, mrLimAt, whatOf, workingAt } from '../sim/mr-lim.ts';
+import { PROJECT_JOBS } from '../sim/projects.ts';
 import { dateAt, MONTHS, shortStamp } from '../sim/calendar.ts';
 import { dayIndex, minuteOfDay, sgtHour, sgtMinute } from '../sim/time.ts';
 import type { GameEvent } from '../sim/events.ts';
@@ -186,6 +187,9 @@ export class FrameBuilder {
       })),
       notes: w.state.notes.map((n) => ({ authorId: n.authorId, text: n.text, t: n.t, stamp: shortStamp(w.state, n.t) })),
       villagers: [villagerView(w, t)],
+      built: w.state.projects.filter((p) => p.builtDay !== null).map((p) => p.id),
+      fires: w.state.fires.filter((f) => f.until > t).map((f) => ({ x: f.x, y: f.y })),
+      building: Object.fromEntries(w.state.projects.map((p) => [p.id, p.builtDay !== null ? 'built' : `being built: ${p.done.length} of ${PROJECT_JOBS[p.id]?.length ?? 0} jobs done`])),
     };
   }
 }
@@ -239,7 +243,7 @@ export function placeCardOf(frame: Frame, layout: Layout, id: string): PlaceCard
   const name = (rid: string | null | undefined) => (rid ? frame.residents.find((r) => r.id === rid)?.name ?? VILLAGER_NAMES[rid] ?? rid : null);
   const inside = (r: { x: number; y: number }) => r.x >= place.rect.x && r.x < place.rect.x + place.rect.w && r.y >= place.rect.y && r.y < place.rect.y + place.rect.h;
   const people = frame.residents.filter(inside);
-  const card: PlaceCard = { id, kind: place.kind, name: place.name, here: people.map((r) => r.name), shop: null, notes: null, beds: null, fishing: null, lorry: null, home: null };
+  const card: PlaceCard = { id, kind: place.kind, name: place.name, here: people.map((r) => r.name), shop: null, notes: null, beds: null, fishing: null, lorry: null, home: null, building: frame.building?.[id] ?? null };
   const shop = frame.shops.find((s) => s.id === id);
   if (shop) {
     card.shop = {
