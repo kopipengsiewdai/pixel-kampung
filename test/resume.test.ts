@@ -115,7 +115,7 @@ describe('downtime', () => {
     expect(events.filter((e) => e.type === 'lorry_arrived')).toHaveLength(2);
   });
 
-  it('a gap while the lorry is in: he drives off at his time, and nothing else happens', async () => {
+  it('a gap while the lorry is in: he has driven off by the end of it, and nothing else happens', async () => {
     const events: GameEvent[] = [];
     const town = Town.create(3, START, { onEvent: (e) => events.push(e) });
     await town.runUntil(sgt(10, 0));

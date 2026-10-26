@@ -589,7 +589,7 @@ function economyView(e: Economy): Node[] {
     ? `${money(Math.round(e.spend.usd * 100))} of the ${money(Math.round(e.spend.cap * 100))} daily cap (US dollars, by the real day).`
     : 'No thinking for real in this town (free fake brains): nothing spent.';
   return [
-    el('p', { class: 'note' }, 'GDP is what the town made: sales in town and to the lorry, less what it bought in off the lorry. Value traded counts every sale. Money in and out is every cent across the edge of town, from the ledger.'),
+    el('p', { class: 'note' }, `GDP is what the town made: sales in town and to the lorry, less what it bought in off the lorry. Value traded counts every sale. ${e.fromLedger ? 'Money in and out is every cent across the edge of town, from the ledger.' : 'Money in and out is across the edge of town: the lorry pays in, what is bought off it goes out.'}`),
     ...(e.edges.length ? [
       el('h4', {}, 'Across the edge of town (these days)'),
       el('table', { class: 'econ' },

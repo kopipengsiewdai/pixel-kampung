@@ -128,6 +128,7 @@ export function economyOf(
     spend: extras.spend ?? null,
     accounts: [...(extras.shops ?? []), ...now.residents.map((r) => ({ id: r.id, name: r.name }))],
     edges: [...edges.values()].sort((a, b) => b.paidIn + b.tookOut - a.paidIn - a.tookOut),
+    fromLedger: !!extras.ledger,
   };
 }
 

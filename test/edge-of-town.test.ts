@@ -33,5 +33,7 @@ describe('the economy page counts money across the edge of town from the ledger'
     expect(lorry).toMatchObject({ name: 'Pak Osman (the lorry)', paidIn: 170, tookOut: 350 });
     expect(e.edges.find((x) => x.id === FUND_ID)).toMatchObject({ tookOut: 50 });
     expect(e.edges.some((x) => x.id === OPENING_ID)).toBe(false);
+    expect(e.fromLedger).toBe(true);
+    expect(economyOf([], { t: day(100, 12), residents }, cal, {}).fromLedger).toBe(false);
   });
 });
