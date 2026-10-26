@@ -4,13 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## 0.24.3 (2026-10-26): the English button, and no blinking
-
-- **The English button works again:** the page sent up to 60 lines at once, the server refused anything over 4 KB by dropping the connection, and the page then took every line in that batch as having no English for the rest of the visit. The server now takes up to 64 KB for English (and answers "too much" plainly over that), the page asks 20 lines at a time, and a failed ask is tried again a little later instead of given up on. Speech bubbles on the map are now shown in English too.
-- **No more blinking on the watch page:** Mdm Tan and Mak Esah vanished for half of every step as they walked. Their sprite (one pack character) has two walking steps, not four, and the missing two were blank; they now repeat the two.
-- **Living town:** nothing to upgrade; the page shows it on the next load.
-
-## 0.24.2 (2026-10-26): the lorry every day until noon
+## Unreleased
 
 Making a living ([subsistence.md](docs/design/subsistence.md)), part one:
 - **Foraging:** anyone can spend half an hour looking for something to eat: wild kangkong or a hand of bananas past the farm plot, a coconut off the palms behind the jetty. Twice a day each, a snack or two, not a living. Bananas and coconuts are new, eaten as they are.
@@ -18,6 +12,14 @@ Making a living ([subsistence.md](docs/design/subsistence.md)), part one:
 - **Sickness from hunger, never death:** about a day faint with hunger and a resident falls ill. Ill, they can't work a shift, do chores or fish (and aren't offered them), they tire quickly and are drawn to rest at home; others see "looking ill", and family remember it. About six hours after hunger first falls below hungry they're well again, unless they go faint again meanwhile. The watch card says "ill from hunger".
 - **Shopkeepers see lost sales:** "Travellers who left unserved today would have paid about $1.20", never more than travellers could still have spent that day or the stock there was to sell them.
 - **Living town:** upgrades to save v20. Nobody has foraged or is ill; anyone already faint with hunger starts their day's count from the upgrade, so nobody falls ill for at least a day. A time the town is away doesn't count towards falling ill.
+
+## 0.24.3 (2026-10-26): the English button, and no blinking
+
+- **The English button works again:** the page sent up to 60 lines at once, the server refused anything over 4 KB by dropping the connection, and the page then took every line in that batch as having no English for the rest of the visit. The server now takes up to 64 KB for English (and answers "too much" plainly over that), the page asks 20 lines at a time, and a failed ask is tried again a little later instead of given up on. Speech bubbles on the map are now shown in English too.
+- **No more blinking on the watch page:** Mdm Tan and Mak Esah vanished for half of every step as they walked. Their sprite (one pack character) has two walking steps, not four, and the missing two were blank; they now repeat the two.
+- **Living town:** nothing to upgrade; the page shows it on the next load.
+
+## 0.24.2 (2026-10-26): the lorry every day until noon
 
 ## 0.24.2 (2026-10-26): the lorry every day until noon
 
