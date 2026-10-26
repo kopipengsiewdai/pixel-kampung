@@ -31,7 +31,7 @@ const thinks = (w: World, head: OsmanHead | null = null) => osmanThinks(w, head,
 const regular = (w: World, id: string) => { w.state.osman.accounts[id] = { owes: 0, since: null, days: REGULAR_DAYS, lastDay: null, cheated: false }; };
 
 describe('Pak Osman: his comings and goings', () => {
-  it('comes about 06:30 every day but Sunday and stays about an hour and a half', () => {
+  it('comes about 06:30 every day but Sunday and stays until about noon', () => {
     const w = newWorld(6, 0);
     const today = dayIndex(w.t);
     for (let d = 0; d < 21; d++) {

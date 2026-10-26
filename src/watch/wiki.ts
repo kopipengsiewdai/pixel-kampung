@@ -1,3 +1,5 @@
+import { FUND_ID, LORRY_ID, MR_LIM_ID, OPENING_ID, OUTSIDE, TRAVELLERS_ID } from '../sim/state.ts';
+import type { LedgerEntry } from '../sim/events.ts';
 /**
  * The Kampung wiki on the watch page: who lives here, the places, how the
  * kampung works (from the rules as they are in the code), its economy day by
@@ -26,7 +28,7 @@ import { placeCardOf } from './view.ts';
 export const ECONOMY_DAYS = 8;
 
 /** The events the Economy section reads: money changing hands. */
-export const ECONOMY_EVENTS: ReadonlySet<string> = new Set(['bought', 'sold', 'lorry_sale', 'lorry_order', 'wages_paid', 'gave', 'traded', 'debt_agreed', 'repaid', 'traveller_bought']);
+export const ECONOMY_EVENTS: ReadonlySet<string> = new Set(['bought', 'sold', 'lorry_sale', 'lorry_order', 'lorry_bought', 'lorry_collected', 'wages_paid', 'gave', 'traded', 'debt_agreed', 'repaid', 'traveller_bought']);
 
 const dayStart = (d: number) => d * MINUTES_PER_DAY - SGT_OFFSET_MIN;
 
@@ -36,6 +38,8 @@ function dayLabel(w: { calendar: Calendar }, t: number): string {
 }
 
 export interface EconomyExtras {
+  /** The money ledger since the first day shown: money across the edge of town is counted from it. */
+  ledger?: readonly LedgerEntry[];
   debts?: readonly { debtor: string; creditor: string; cents: Cents }[];
   audit?: string | null;
   spend?: { usd: number; cap: number } | null;
@@ -78,6 +82,8 @@ export function economyOf(
       case 'lorry_sale': sale(e.cents); row.moneyIn += e.cents; if (isToday) earn(e.who, e.cents); break;
       case 'traveller_bought': sale(e.cents); row.moneyIn += e.cents; if (isToday) earn(e.owner, e.cents); break;
       case 'lorry_order': sale(e.cents, -e.cents); row.moneyOut += e.cents; break;
+      case 'lorry_bought': sale(e.cents, -e.cents); if (!e.later) row.moneyOut += e.cents; break;
+      case 'lorry_collected': if (e.cents > 0) sale(e.cents, -e.cents); break;
       case 'wages_paid': if (isToday) earn(e.to, e.cents); break;
       case 'gave': if (isToday && e.cents > 0) earn(e.to, e.cents); break;
       case 'traded':
@@ -87,6 +93,22 @@ export function economyOf(
         }
         break;
       default: break;
+    }
+  }
+  // Across the edge of town, from the ledger when there is one: every cent to or from an outside party.
+  const edges = new Map<string, { id: string; name: string; paidIn: Cents; tookOut: Cents }>();
+  if (extras.ledger) {
+    for (const d of days) { d.moneyIn = 0; d.moneyOut = 0; }
+    for (const l of extras.ledger) {
+      const d = dayIndex(l.t);
+      if (d < first || d > today || l.t > now.t || l.from === OPENING_ID) continue;
+      const inbound = OUTSIDE.has(l.from) && !OUTSIDE.has(l.to);
+      const outbound = OUTSIDE.has(l.to) && !OUTSIDE.has(l.from);
+      if (!inbound && !outbound) continue;
+      const party = inbound ? l.from : l.to;
+      const edge = edges.get(party) ?? { id: party, name: EDGE_NAMES[party] ?? party, paidIn: 0, tookOut: 0 };
+      edges.set(party, edge);
+      if (inbound) { days[d - first]!.moneyIn += l.cents; edge.paidIn += l.cents; } else { days[d - first]!.moneyOut += l.cents; edge.tookOut += l.cents; }
     }
   }
   // Money only enters or leaves town across its edge: each earlier day ended where now stands, less what came in since.
@@ -107,8 +129,14 @@ export function economyOf(
     audit: extras.audit ?? null,
     spend: extras.spend ?? null,
     accounts: [...(extras.shops ?? []), ...now.residents.map((r) => ({ id: r.id, name: r.name }))],
+    edges: [...edges.values()].sort((a, b) => b.paidIn + b.tookOut - a.paidIn - a.tookOut),
   };
 }
+
+/** Who each outside account is, as the owner reads it. */
+const EDGE_NAMES: Record<string, string> = {
+  [LORRY_ID]: 'Pak Osman (the lorry)', [TRAVELLERS_ID]: 'Travellers on the road', [FUND_ID]: 'Village fund (Mr Lim)', [MR_LIM_ID]: 'Mr Lim',
+};
 
 /** The kinds of money a resident or shop sees, in the order shown. */
 export const MONEY_KINDS = ['Sales', 'Purchases', 'Wages', 'Gifts', 'Trades', 'Loans', 'Repayments', 'Lorry'] as const;
@@ -312,7 +340,7 @@ export function howItWorks(): WikiSection[] {
     {
       title: 'The lorry',
       paras: [
-        `Pak Osman's lorry comes about ${hhmm(LORRY_ARRIVES)} every morning but Sunday and stays about an hour and a half at the lorry stop: the town's link with the outside. One lorry's room is shared between what he brings and what he buys; town supply varies, so a shelf can run short.`,
+        `Pak Osman's lorry comes about ${hhmm(LORRY_ARRIVES)} every morning but Sunday and stays until about noon at the lorry stop: the town's link with the outside. One lorry's room is shared between what he brings and what he buys; town supply varies, so a shelf can run short.`,
         `He sells (money leaves town) at about: ${prices(LORRY_SELLS)}; an owner's stock is left at their shop. He buys fish and vegetables (money comes into town) at about: ${prices(LORRY_BUYS)}.`,
         `He sets his prices each visit, within bounds of the town price, and haggles. He gives regulars credit (debts last a week; one left to run marks the debtor), and takes orders for next time with a deposit, refunding whatever he couldn't bring.`,
       ],

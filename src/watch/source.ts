@@ -1,3 +1,4 @@
+import type { LedgerEntry } from '../sim/events.ts';
 /**
  * Where the watch page's pictures come from: the live town as it runs, or a
  * recorded trial played back. Either way the page gets a hello (layout, the
@@ -138,6 +139,8 @@ export interface LiveOptions {
   moneyEvents?: (sinceT: number) => GameEvent[];
   /** The last ledger check's line, if the town keeps one. */
   audit?: () => string | null;
+  /** The money ledger from game minute t on, for money across the edge of town. */
+  ledgerSince?: (sinceT: number) => LedgerEntry[];
   /** Today's thinking spend and the town's daily cap, if the town thinks for real. */
   spend?: () => { usd: number; cap: number } | null;
 }
@@ -274,6 +277,7 @@ export class LiveSource implements WatchSource {
     const events = this.opts.moneyEvents ? this.opts.moneyEvents(since) : this.money_;
     return wikiOf(this.frame, this.layout, events, this.world.state, {
       audit: this.opts.audit?.() ?? null, spend: this.opts.spend?.() ?? null, debts: this.world.state.debts,
+      ...(this.opts.ledgerSince ? { ledger: this.opts.ledgerSince(this.frame.t - ECONOMY_DAYS * MINUTES_PER_DAY) } : {}),
     });
   }
 

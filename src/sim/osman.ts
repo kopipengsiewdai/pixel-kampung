@@ -25,7 +25,8 @@ export const OSMAN_ID = 'pak-osman';
 /** About when he comes (06:30, give or take ten minutes) and how long he stays (about 90 minutes). */
 export const ARRIVES = 6 * 60 + 30;
 export const ARRIVE_SPREAD = 10;
-export const STAYS = 90;
+/** The first half of the day: about half past six to about noon (owner, 2026-10-26). */
+export const STAYS = 330;
 export const STAY_SPREAD = 10;
 /** The kampung's day of rest: no lorry. */
 export const NO_LORRY_DAY = 'Sunday';
