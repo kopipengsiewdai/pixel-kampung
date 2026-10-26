@@ -48,7 +48,7 @@ Kopi stays a drink.
    - Pay is about 50¢ a job, at most one job a day each, so about $1.50 a day comes
      into town.
    - Mr Lim himself is seen pinning them, which starts his visible body.
-2. **Selling to the lorry, made visible.** The horn says what Pak Osman is
+2. **Pak Osman comes every day, Sundays too** (owner, 2026-10-26), from about half past six to about noon. **Selling to the lorry is made visible.** The horn says what Pak Osman is
    buying as well as what he brings ("…and he's buying fish and vegetables").
 3. **Shopkeepers need help.** An owner sees, in money, what the travellers who
    left unserved would have paid ("Travellers who left unserved today would have
