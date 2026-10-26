@@ -100,10 +100,10 @@ describe('downtime', () => {
   it('a long gap passes quietly: no replay, nobody starving, the town carries on', async () => {
     const events: GameEvent[] = [];
     const town = Town.create(3, START, { onEvent: (e) => events.push(e) });
-    await town.runUntil(sgt(10, 0));
+    await town.runUntil(sgt(13, 0)); // the lorry has gone
     const money = town.world.state.residents.reduce((s, r) => s + r.money, 0);
     const mark = events.length;
-    const now = sgt(20, 30); // the PC slept for ten and a half hours
+    const now = sgt(20, 30); // the PC slept for seven and a half hours
     await town.catchUp(now);
     expect(town.t).toBe(now);
     const during = events.slice(mark).filter((e) => e.t < now);
@@ -113,6 +113,21 @@ describe('downtime', () => {
     for (const r of town.world.state.residents) expect(r.hunger).toBeLessThanOrEqual(820);
     await town.runUntil(now + 1440);
     expect(events.filter((e) => e.type === 'lorry_arrived')).toHaveLength(2);
+  });
+
+  it('a gap while the lorry is in: he has driven off by the end of it, and nothing else happens', async () => {
+    const events: GameEvent[] = [];
+    const town = Town.create(3, START, { onEvent: (e) => events.push(e) });
+    await town.runUntil(sgt(10, 0));
+    expect(town.world.state.lorryHere).toBe(true);
+    const mark = events.length;
+    const now = sgt(20, 30);
+    await town.catchUp(now);
+    const during = events.slice(mark).filter((e) => e.t < now);
+    expect(during.filter((e) => e.type === 'lorry_left')).toHaveLength(1);
+    expect(during.map((e) => e.type).filter((t) => !['quiet_spell', 'shift_ended', 'fell_asleep', 'woke', 'lorry_left'].includes(t))).toEqual([]);
+    expect(town.world.state.lorryHere).toBe(false);
+    expect(town.world.state.osman.visit).toBeNull();
   });
 
   it('resuming into the night puts everyone to bed at home', async () => {

@@ -27,7 +27,7 @@ const KEY_TYPES: ReadonlySet<string> = new Set([
   'job_offered', 'hired', 'quit', 'let_go', 'wages_paid',
   'gave', 'trade_offered', 'traded', 'trade_declined', 'note_pinned', 'price_set', 'found_place',
   'travellers_hour', 'errand_taken', 'errand_done', 'skill_up', 'lesson_agreed', 'helped', 'price_offered', 'price_refused', 'debt_offered', 'debt_agreed', 'debt_refused', 'repaid', 'let_off',
-  'kampung_quiet', 'quiet_spell',
+  'kampung_quiet', 'quiet_spell', 'odd_job_done',
 ]);
 
 /** Whether an event is a key moment: a key kind, anything notable, or talk claiming a deal done in words. */
@@ -96,6 +96,10 @@ export function feedText(e: GameEvent, n: Names): { text: string; notable: boole
     case 'withered': return line(`${n(e.who)}'s ${e.crop === 'papaya' ? 'papaya tree' : e.crop} in bed ${e.bed} withered.`);
     case 'harvested': return line(`${n(e.who)} harvested ${quantityLabel(e.item ?? 'vegetables', e.qty)}.`, true);
     case 'ate': return line(`${n(e.who)} had ${quantityLabel(e.item, 1)}.`);
+    case 'foraged': return line(`${n(e.who)} foraged ${quantityLabel(e.item, 1)}.`);
+    case 'odd_job_done': return line(`${n(e.who)} did an odd job for Mr Lim (${e.what}), for ${formatMoney(e.cents)}.`, true);
+    case 'fell_ill': return line(`${n(e.who)} has fallen ill from hunger.`, true);
+    case 'got_well': return line(`${n(e.who)} is well again.`, true);
     case 'fell_asleep':
       if (e.reason === 'collapse') return line(`${n(e.who)} is so worn out they doze off on the spot.`, true);
       if (e.reason === 'nap') return line(`${n(e.who)} lies down for a nap.`);

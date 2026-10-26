@@ -3,9 +3,10 @@
  * owner clicks, and replay controls. Read-only: it only listens to the town.
  * Everything residents said or thought is shown as text, never as HTML.
  */
-import type { Card, Economy, FeedLine, Hello, MoneyView, PlaceCard, ReplayState, TalkView, Thought, Update, Wiki } from '../types.ts';
+import type { Card, Economy, FeedLine, Hello, MoneyView, PlaceCard, ReplayState, TalkView, Thought, Update, VillagerView, Wiki } from '../types.ts';
 import { startGame, type TownScene } from './scene.ts';
 import { looksForeign } from '../foreign.ts';
+import { EnglishAsker } from './english.ts';
 
 const FEED_KEPT = 200;
 
@@ -42,6 +43,8 @@ const probe = {
   openCard: (id: string) => pick(id),
   /** Where to click on the page to pick a place, clear of anyone in it. */
   placePoint: (id: string) => scene?.screenPointOf(id) ?? null,
+  /** Where on the page someone is drawn (a resident or Mr Lim), or null if they're not to be seen. */
+  personPoint: (id: string) => scene?.screenPointOfPerson(id) ?? null,
   /** What residents are idling at, and how many speech bubbles are showing. */
   liveliness: () => scene?.liveliness() ?? null,
 };
@@ -63,45 +66,30 @@ try {
 } catch {
   // Off, then.
 }
-/** English for a line; null when there's none to be had (already English, or not now). */
-const englishOf = new Map<string, string | null>();
-const asking = new Set<string>();
-let askTimer: number | null = null;
+/** Asks the server for English a small batch at a time, and again after a failure. */
+const englishAsker = new EnglishAsker(async (texts) => {
+  const res = await fetch('/api/translate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ texts }) });
+  if (!res.ok) throw new Error(`translate: ${res.status}`);
+  return ((await res.json()) as { english: (string | null)[] }).english;
+}, () => {
+  drawFeed();
+  if (lastCard) renderCard(lastCard);
+  scene?.refreshBubbles();
+});
+
+/** A line in English when that's on and it's to hand; otherwise as said (and asked for). */
+function englishText(text: string): string {
+  if (!english || !looksForeign(text)) return text;
+  const got = englishAsker.get(text);
+  if (got) return got;
+  if (got === undefined) englishAsker.want(text);
+  return text;
+}
 
 /** A line as it should show: in English when that's on and it's to hand (the original on hover). */
 function said(text: string, wrap: (t: string) => string = (t) => t): Node | string {
-  if (!english || !looksForeign(text)) return wrap(text);
-  const got = englishOf.get(text);
-  if (got) return el('span', { class: 'english', title: wrap(text) }, wrap(got));
-  if (got === undefined && !asking.has(text)) {
-    asking.add(text);
-    askSoon();
-  }
-  return wrap(text);
-}
-
-function askSoon(): void {
-  if (askTimer !== null) return;
-  askTimer = window.setTimeout(() => void ask(), 400);
-}
-
-async function ask(): Promise<void> {
-  const texts = [...asking].slice(0, 60);
-  let out: unknown[] = [];
-  try {
-    const res = await fetch('/api/translate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ texts }) });
-    if (res.ok) out = ((await res.json()) as { english?: unknown[] }).english ?? [];
-  } catch {
-    // Shown as said, then.
-  }
-  texts.forEach((t, i) => {
-    asking.delete(t);
-    englishOf.set(t, typeof out[i] === 'string' ? out[i] as string : null);
-  });
-  askTimer = null;
-  drawFeed();
-  if (lastCard) renderCard(lastCard);
-  if (asking.size) askSoon();
+  const shown = englishText(text);
+  return shown !== text ? el('span', { class: 'english', title: wrap(text) }, wrap(shown)) : wrap(text);
 }
 
 function setEnglish(on: boolean): void {
@@ -114,6 +102,7 @@ function setEnglish(on: boolean): void {
   $('english').setAttribute('aria-pressed', String(on));
   drawFeed();
   if (lastCard) renderCard(lastCard);
+  scene?.refreshBubbles();
 }
 
 /** The town's calendar: its 1 January, Year 0 (a Monday), from the server. */
@@ -325,7 +314,7 @@ function moneySection(): Node[] {
 /** "walking to the jetty, very hungry, rested", with where they are when that isn't already said. */
 function nowLine(c: Card): string {
   const where = c.place && !c.doing.includes(c.place) ? ` at ${c.place}` : '';
-  return `${c.doing}${where}, ${c.hungerWord}, ${c.energyWord}`;
+  return `${c.doing}${where}, ${c.hungerWord}, ${c.energyWord}${c.ill ? ', ill from hunger' : ''}`;
 }
 
 function renderCard(c: Card): void {
@@ -436,9 +425,27 @@ function placeCardView(c: PlaceCard): void {
   showCard(parts);
 }
 
+/** A village character's card (Mr Lim), from the frame itself: who, what he's doing, and today's odd jobs. */
+function villagerCardView(v: VillagerView): void {
+  const close = el('button', { class: 'close', type: 'button', 'aria-label': 'Close' }, '×');
+  close.addEventListener('click', () => pick(null));
+  showCard([
+    el('header', {}, el('h3', {}, v.name), el('span', { class: 'role' }, v.role), close),
+    el('p', { class: 'now' }, el('b', {}, 'Now: '), v.out ? v.doing : 'indoors at his house'),
+    el('h4', {}, 'Odd jobs today'),
+    v.jobs.length ? el('ul', {}, ...v.jobs.map((j) => el('li', {}, j))) : el('p', { class: 'note' }, 'None pinned yet today.'),
+    el('footer', {}, "Owner's view. Nothing on this card ever reaches a resident."),
+  ]);
+}
+
 let cardAsked = 0;
 
 async function refreshCard(): Promise<void> {
+  const villager = selected ? latest?.frame.villagers?.find((v) => v.id === selected) : undefined;
+  if (villager) {
+    villagerCardView(villager);
+    return;
+  }
   if (selectedPlace) {
     const id = selectedPlace;
     const ask = ++cardAsked;
@@ -589,7 +596,13 @@ function economyView(e: Economy): Node[] {
     ? `${money(Math.round(e.spend.usd * 100))} of the ${money(Math.round(e.spend.cap * 100))} daily cap (US dollars, by the real day).`
     : 'No thinking for real in this town (free fake brains): nothing spent.';
   return [
-    el('p', { class: 'note' }, 'From the saved events. GDP is what the town made: sales in town and to the lorry, less what it ordered in off the lorry. Value traded counts every sale. Money in and out is across the edge of town: the lorry pays in, orders off it go out.'),
+    el('p', { class: 'note' }, `GDP is what the town made: sales in town and to the lorry, less what it bought in off the lorry. Value traded counts every sale. ${e.fromLedger ? 'Money in and out is every cent across the edge of town, from the ledger.' : 'Money in and out is across the edge of town: the lorry pays in, what is bought off it goes out.'}`),
+    ...(e.edges.length ? [
+      el('h4', {}, 'Across the edge of town (these days)'),
+      el('table', { class: 'econ' },
+        el('thead', {}, el('tr', {}, ...['Who', 'Paid into town', 'Took out of town'].map((h) => el('th', {}, h)))),
+        el('tbody', {}, ...e.edges.map((x) => el('tr', {}, el('td', {}, x.name), el('td', {}, money(x.paidIn)), el('td', {}, money(x.tookOut)))))),
+    ] : []),
     el('h4', {}, 'Day by day'),
     el('div', { class: 'scroll' }, table),
     el('h4', {}, 'Earned today'), bars(e.income, 'Nobody has earned anything yet today.'),
@@ -762,7 +775,7 @@ function onHello(h: Hello): void {
   const first: Update = { frame: h.frame, feed: [], snap: true };
   $('version').textContent = `v${h.version}`;
   $('map').style.setProperty('--map-aspect', `${h.layout.w} / ${h.layout.h}`);
-  if (!scene) scene = startGame($('stage'), h.layout, { onPick: (id) => { if (!dragged) pick(id); }, onPickPlace: (id) => { if (!dragged) pickPlace(id); } });
+  if (!scene) scene = startGame($('stage'), h.layout, { onPick: (id) => { if (!dragged) pick(id); }, onPickPlace: (id) => { if (!dragged) pickPlace(id); }, shown: englishText });
   onUpdate(first);
 }
 

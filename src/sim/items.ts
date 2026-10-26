@@ -4,7 +4,7 @@ export type ItemId =
   | 'fish' | 'vegetables' | 'rice' | 'coffee' | 'bread'
   | 'kopi' | 'fish porridge' | 'vegetable rice' | 'water'
   | 'red snapper' | 'chilli' | 'papaya' | 'sambal kangkong' | 'kerosene' | 'bubur'
-  | 'firewood' | 'grilled fish' | 'boiled kangkong';
+  | 'firewood' | 'grilled fish' | 'boiled kangkong' | 'banana' | 'coconut';
 
 export interface ItemDef {
   id: ItemId;
@@ -12,7 +12,12 @@ export interface ItemDef {
   one: string;
   many: string;
   aliases: string[];
-  /** How much hunger a serving takes away (needs run 0–1000), and energy it gives. */
+  /**
+   * How much hunger a serving takes away (needs run 0–1000), and energy it gives.
+   * Hunger rises about 1,100–1,160 over a day: a proper meal takes off about a
+   * third of that (360–380, in the agreed 330–380), a snack 100–220, a drink
+   * less (subsistence.md Q2).
+   */
   food?: { hunger: number; energy?: number };
   /** In-world reason it can't be eaten as it is. */
   inedible?: string;
@@ -32,12 +37,12 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     id: 'coffee', one: 'a tin of coffee powder', many: '{n} tins of coffee powder',
     aliases: ['coffee powder', 'kopi powder'], inedible: 'Dry coffee powder? It needs brewing first.',
   },
-  bread: { id: 'bread', one: 'a loaf of bread', many: '{n} loaves of bread', aliases: ['loaf', 'loaves'], food: { hunger: 250 } },
+  bread: { id: 'bread', one: 'a loaf of bread', many: '{n} loaves of bread', aliases: ['loaf', 'loaves'], food: { hunger: 200 } },
   water: {
     id: 'water', one: 'a pail of water', many: '{n} pails of water', aliases: ['pail', 'pails', 'pail of water', 'pails of water'],
     inedible: "You'd want to boil it first.",
   },
-  'red snapper': { id: 'red snapper', one: 'a red snapper', many: '{n} red snappers', aliases: ['snapper', 'snappers', 'red snappers', 'ikan merah'], food: { hunger: 250 } },
+  'red snapper': { id: 'red snapper', one: 'a red snapper', many: '{n} red snappers', aliases: ['snapper', 'snappers', 'red snappers', 'ikan merah'], food: { hunger: 220 } },
   chilli: {
     id: 'chilli', one: 'a handful of chillies', many: '{n} handfuls of chillies', aliases: ['chillies', 'chili', 'chilies', 'cili'],
     inedible: 'Chillies on their own? They would burn your mouth.',
@@ -45,18 +50,18 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   papaya: { id: 'papaya', one: 'a papaya', many: '{n} papayas', aliases: ['papayas', 'betik'], food: { hunger: 150 } },
   'sambal kangkong': {
     id: 'sambal kangkong', one: 'a plate of sambal kangkong', many: '{n} plates of sambal kangkong',
-    aliases: ['sambal', 'kangkong belacan'], food: { hunger: 300 },
+    aliases: ['sambal', 'kangkong belacan'], food: { hunger: 370 },
   },
   bubur: {
     id: 'bubur', one: 'a bowl of bubur', many: '{n} bowls of bubur',
-    aliases: ['plain rice', 'rice porridge', 'plain porridge', 'congee', 'boiled rice', 'cooked rice', 'nasi', 'bowl of rice', 'rice bowl', 'nasi putih', 'bubur kosong', 'soft rice', 'plain rice porridge', 'white rice'], food: { hunger: 300 },
+    aliases: ['plain rice', 'rice porridge', 'plain porridge', 'congee', 'boiled rice', 'cooked rice', 'nasi', 'bowl of rice', 'rice bowl', 'nasi putih', 'bubur kosong', 'soft rice', 'plain rice porridge', 'white rice'], food: { hunger: 370 },
   },
   firewood: {
     id: 'firewood', one: 'a bundle of firewood', many: '{n} bundles of firewood', aliases: ['wood', 'kayu api', 'sticks', 'bundle of firewood', 'bundles of firewood'],
     inedible: "You can't eat firewood.",
   },
   'grilled fish': {
-    id: 'grilled fish', one: 'a grilled fish', many: '{n} grilled fish', aliases: ['ikan bakar', 'fried fish', 'cooked fish', 'grilled fishes'], food: { hunger: 250 },
+    id: 'grilled fish', one: 'a grilled fish', many: '{n} grilled fish', aliases: ['ikan bakar', 'fried fish', 'cooked fish', 'grilled fishes'], food: { hunger: 360 },
   },
   'boiled kangkong': {
     id: 'boiled kangkong', one: 'a plate of boiled kangkong', many: '{n} plates of boiled kangkong',
@@ -66,14 +71,16 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     id: 'kerosene', one: 'a tin of kerosene', many: '{n} tins of kerosene', aliases: ['minyak tanah', 'lamp oil', 'paraffin'],
     inedible: "Kerosene? That's for the lamp, not for drinking.",
   },
+  banana: { id: 'banana', one: 'a hand of bananas', many: '{n} hands of bananas', aliases: ['bananas', 'pisang', 'hand of bananas', 'hands of bananas'], food: { hunger: 150 } },
+  coconut: { id: 'coconut', one: 'a coconut', many: '{n} coconuts', aliases: ['coconuts', 'kelapa', 'young coconut'], food: { hunger: 180 } },
   kopi: { id: 'kopi', one: 'a cup of kopi', many: '{n} cups of kopi', aliases: ['kopi o', 'kopi-o', 'kopi susu'], food: { hunger: 50, energy: 120 } },
   'fish porridge': {
     id: 'fish porridge', one: 'a bowl of fish porridge', many: '{n} bowls of fish porridge',
-    aliases: ['porridge', 'fish congee'], food: { hunger: 450 },
+    aliases: ['porridge', 'fish congee'], food: { hunger: 380 },
   },
   'vegetable rice': {
     id: 'vegetable rice', one: 'a plate of vegetable rice', many: '{n} plates of vegetable rice',
-    aliases: ['veg rice', 'vegetables rice'], food: { hunger: 400 },
+    aliases: ['veg rice', 'vegetables rice'], food: { hunger: 380 },
   },
 };
 

@@ -56,6 +56,8 @@ export interface ResidentView {
   energy: number;
   hungerWord: string;
   energyWord: string;
+  /** Ill from hunger. (Absent in frames recorded before 0.25.) */
+  ill?: boolean;
   /** "Works at the kopitiam for Ah Huat, 7am to 11am, $1.20 a shift"; "Runs the kopitiam"; null. */
   job: string | null;
   carrying: Carried[];
@@ -107,7 +109,12 @@ export interface Frame {
   beds: BedView[];
   /** The notes pinned on the notice board, oldest first. (Absent in frames recorded before place cards.) */
   notes?: NoteView[];
+  /** Village characters out and about (Mr Lim). (Absent in frames recorded before 0.26.) */
+  villagers?: VillagerView[];
 }
+
+/** A village character on the page: where, what they're doing, whether they're out to be seen, and (Mr Lim) today's odd jobs. */
+export interface VillagerView { id: string; name: string; role: string; x: number; y: number; out: boolean; doing: string; jobs: string[] }
 
 /** Everything the card shows when the owner clicks a place. Owner's view only. */
 export interface PlaceCard {
@@ -242,6 +249,10 @@ export interface Economy {
   spend: { usd: number; cap: number } | null;
   /** The shops, then the residents, whose money can be opened up (GET /api/money/<id>). */
   accounts: { id: string; name: string }[];
+  /** Each party outside the town (Pak Osman, travellers, the village fund), over the days shown: what it paid in and took out. */
+  edges: { id: string; name: string; paidIn: number; tookOut: number }[];
+  /** Whether money in and out came from the ledger (the live town) or only from the events (a recorded trial). */
+  fromLedger: boolean;
 }
 
 /** The whole wiki, as the page asks for it. */

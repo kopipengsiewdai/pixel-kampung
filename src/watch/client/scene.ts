@@ -7,13 +7,13 @@
  */
 import * as Phaser from 'phaser';
 import { lightAt } from '../light.ts';
-import type { Frame, Layout, LayoutPlace, ResidentView, Update } from '../types.ts';
+import type { Frame, Layout, LayoutPlace, ResidentView, Update, VillagerView } from '../types.ts';
 import { BUILDINGS, PEOPLE_ORDER, PLANTS, PROPS, bedTile, type Prop } from './decor.ts';
 import { bubbleText, idleKindOf, idlePose, type IdleKind } from './idle.ts';
 
 const T = 16;
 const ZOOM = 2;
-const PEOPLE_COLS = 4 * 13; // people.png is 13 residents × 4 directions wide
+const PEOPLE_COLS = 4 * PEOPLE_ORDER.length; // people.png is one column of 4 directions for each, in PEOPLE_ORDER
 /** Children are drawn at this size. */
 const CHILD_SCALE = 0.75;
 const DOWN = 0;
@@ -36,8 +36,9 @@ interface Mover {
   label: Phaser.GameObjects.Text;
   zz: Phaser.GameObjects.Image;
   bubble: Phaser.GameObjects.Text;
-  /** The game minute of the line in the bubble, and until when (page clock) it shows. */
+  /** The game minute of the line in the bubble, the line as said, and until when (page clock) it shows. */
   saidT: number;
+  saidText: string;
   bubbleUntil: number;
   idle: IdleKind;
   look: number;
@@ -49,10 +50,21 @@ interface Mover {
   dur: number;
 }
 
+/** A village character drawn as a resident is: standing, or walking (no talk, no sleep). */
+function villagerAsResident(v: VillagerView): ResidentView {
+  return {
+    id: v.id, name: v.name, role: 'family', age: 60, child: false, skills: [], homeId: 'village-head', x: v.x, y: v.y,
+    route: [{ x: v.x, y: v.y }], activity: /^(on his way|going round)/.test(v.doing) ? 'walking' : null, sleep: null, doing: v.doing,
+    place: null, money: 0, hunger: 0, energy: 1000, hungerWord: '', energyWord: '', job: null, carrying: [], said: null,
+  } as unknown as ResidentView;
+}
+
 export interface TownHooks {
   onPick(id: string): void;
   /** A click on a place (not on anyone in it). */
   onPickPlace(id: string): void;
+  /** A line as the page shows it (in English, when that's on and to hand). */
+  shown?(text: string): string;
 }
 
 function hash(x: number, y: number): number {
@@ -69,6 +81,8 @@ export class TownScene extends Phaser.Scene {
   private layout: Layout;
   private hooks: TownHooks;
   private movers = new Map<string, Mover>();
+  /** Village characters indoors just now: not drawn. */
+  private offstage = new Set<string>();
   private ready = false;
   private pending: { u: Update; msPerMinute: number } | null = null;
   private frame: Frame | null = null;
@@ -94,7 +108,8 @@ export class TownScene extends Phaser.Scene {
   preload(): void {
     this.load.atlas('k', '/assets/art/kampung/kampung.png', '/assets/art/kampung/kampung.json');
     this.load.atlas('p', '/assets/art/ninja-adventure/tiles.png', '/assets/art/ninja-adventure/tiles.json');
-    this.load.spritesheet('people', '/assets/art/ninja-adventure/people.png', { frameWidth: 16, frameHeight: 16 });
+    // The column count in the URL: a sheet cached from before a new column can't be drawn with the wrong frames.
+    this.load.spritesheet('people', `/assets/art/ninja-adventure/people.png?cols=${PEOPLE_ORDER.length}`, { frameWidth: 16, frameHeight: 16 });
   }
 
   create(): void {
@@ -241,7 +256,13 @@ export class TownScene extends Phaser.Scene {
       spread.set(r.id, { x: offs[0]!, y: offs[1]! });
     }
 
-    for (const r of f.residents) {
+    // Village characters (Mr Lim) walk among them, and go in when they're not out.
+    this.offstage.clear();
+    const villagers = (f.villagers ?? []).map((v) => {
+      if (!v.out) this.offstage.add(v.id);
+      return villagerAsResident(v);
+    });
+    for (const r of [...f.residents, ...villagers]) {
       let m = this.movers.get(r.id);
       if (!m) {
         m = this.makeMover(r);
@@ -251,7 +272,8 @@ export class TownScene extends Phaser.Scene {
       m.idle = idleKindOf(r, this.placeKindAt(r.x, r.y));
       if (r.said && r.said.t !== m.saidT) {
         m.saidT = r.said.t;
-        m.bubble.setText(bubbleText(r.said.text));
+        m.saidText = r.said.text;
+        m.bubble.setText(bubbleText(this.hooks.shown?.(r.said.text) ?? r.said.text));
         m.bubbleUntil = snap ? 0 : now + BUBBLE_MS;
       }
       const off = spread.get(r.id) ?? { x: 0, y: 0 };
@@ -315,7 +337,12 @@ export class TownScene extends Phaser.Scene {
       fontFamily: 'ui-monospace, Consolas, monospace', fontSize: '7px', color: '#1d1d1d', backgroundColor: '#fdf6e3',
       padding: { x: 3, y: 2 }, resolution: 4, wordWrap: { width: 110 },
     }).setOrigin(0.5, 1).setDepth(OVERLAY_DEPTH + 6).setVisible(false);
-    return { view: r, sprite, label, zz, bubble, saidT: r.said?.t ?? -1, bubbleUntil: 0, idle: 'none', look, lift, facing: DOWN, pts: [p], start: 0, dur: 1 };
+    return { view: r, sprite, label, zz, bubble, saidT: r.said?.t ?? -1, saidText: r.said?.text ?? '', bubbleUntil: 0, idle: 'none', look, lift, facing: DOWN, pts: [p], start: 0, dur: 1 };
+  }
+
+  /** Speech bubbles redrawn as the page now shows their lines (the English button, or English just arrived). */
+  refreshBubbles(): void {
+    for (const m of this.movers.values()) if (m.saidText) m.bubble.setText(bubbleText(this.hooks.shown?.(m.saidText) ?? m.saidText));
   }
 
   /** A tap or click, not the end of a finger dragging the zoomed map about. */
@@ -387,6 +414,15 @@ export class TownScene extends Phaser.Scene {
     return { x: canvas.left + (best.x + 0.5) * T * k, y: canvas.top + (best.y + 0.5) * T * k };
   }
 
+  /** Where on the page someone is drawn (the middle of their sprite), or null if they're not to be seen. */
+  screenPointOfPerson(id: string): { x: number; y: number } | null {
+    const m = this.movers.get(id);
+    if (!m || !m.sprite.visible) return null;
+    const canvas = this.game.canvas.getBoundingClientRect();
+    const k = canvas.width / (this.layout.w * T);
+    return { x: canvas.left + m.sprite.x * k, y: canvas.top + (m.sprite.y - 8) * k };
+  }
+
   /** The kind of place a tile is in, or null out on the footpaths. */
   private placeKindAt(x: number, y: number): string | null {
     const p = this.layout.places.find((pl) => x >= pl.rect.x && x < pl.rect.x + pl.rect.w && y >= pl.rect.y && y < pl.rect.y + pl.rect.h);
@@ -419,13 +455,14 @@ export class TownScene extends Phaser.Scene {
       }
       const row = moving || idle?.stepping ? Math.floor(time / (moving ? 140 : 220)) % 4 : 0;
       const asleep = r.activity === 'sleeping';
-      const inside = asleep && this.isInside(r, r.homeId);
+      const offstage = this.offstage.has(r.id);
+      const inside = offstage || (asleep && this.isInside(r, r.homeId));
       m.sprite.setPosition(pos.x, pos.y).setFrame(row * PEOPLE_COLS + m.look * 4 + m.facing);
       m.bubble.setPosition(pos.x, pos.y - 27).setVisible(!inside && time < m.bubbleUntil);
       m.sprite.setVisible(!inside).setAngle(asleep && !inside ? 90 : 0).setDepth(PEOPLE_DEPTH + pos.y);
-      m.label.setPosition(pos.x, pos.y - m.lift).setVisible(!inside || r.id === this.selected);
+      m.label.setPosition(pos.x, pos.y - m.lift).setVisible(!inside || (r.id === this.selected && !offstage));
       const bob = Math.sin(time / 500 + m.look) * 1.5;
-      if (inside) {
+      if (inside && !offstage) {
         const home = this.homes.get(r.homeId)!;
         m.zz.setPosition(home.rect.x * T + 18 + (m.look % 3) * 6, home.rect.y * T - 6 + bob);
       } else m.zz.setPosition(pos.x + 6, pos.y - 18 + bob);

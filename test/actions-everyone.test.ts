@@ -287,7 +287,7 @@ describe('eat', () => {
     siti.items.bread = 1;
     siti.hunger = 600;
     accepted(act(w, siti.id, { verb: 'eat', item: 'bread' }));
-    expect(siti.hunger).toBe(350);
+    expect(siti.hunger).toBe(400);
     expect(siti.items.bread).toBeUndefined();
   });
   it("refuses what you don't have, can't eat, or when full", () => {

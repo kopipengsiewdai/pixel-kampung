@@ -31,17 +31,15 @@ const thinks = (w: World, head: OsmanHead | null = null) => osmanThinks(w, head,
 const regular = (w: World, id: string) => { w.state.osman.accounts[id] = { owes: 0, since: null, days: REGULAR_DAYS, lastDay: null, cheated: false }; };
 
 describe('Pak Osman: his comings and goings', () => {
-  it('comes about 06:30 every day but Sunday and stays about an hour and a half', () => {
+  it('comes about 06:30 every day, Sundays too, and stays until about noon', () => {
     const w = newWorld(6, 0);
     const today = dayIndex(w.t);
     for (let d = 0; d < 21; d++) {
       const s = scheduleFor(w, today + d);
-      const sunday = weekdayAt(w.state, w.t + d * 1440) === 'Sunday';
-      if (sunday) { expect(s).toBeNull(); continue; }
       expect(s!.arrives).toBeGreaterThanOrEqual(6 * 60 + 20);
       expect(s!.arrives).toBeLessThanOrEqual(6 * 60 + 40);
-      expect(s!.leaves - s!.arrives).toBeGreaterThanOrEqual(80);
-      expect(s!.leaves - s!.arrives).toBeLessThanOrEqual(100);
+      expect(s!.leaves).toBeGreaterThanOrEqual(11 * 60 + 40);
+      expect(s!.leaves).toBeLessThanOrEqual(12 * 60 + 20);
     }
   });
 
@@ -49,20 +47,20 @@ describe('Pak Osman: his comings and goings', () => {
     const w = newWorld(6, 0);
     const s = scheduleFor(w, dayIndex(w.t))!;
     const types: { type: string; mod: number }[] = [];
-    while (minuteOfDay(w.t) < 9 * 60) {
+    while (minuteOfDay(w.t) < 13 * 60) {
       advance(w);
       for (const e of w.takeEvents()) if (e.type === 'lorry_arrived' || e.type === 'lorry_left') types.push({ type: e.type, mod: minuteOfDay(e.t) });
     }
     expect(types).toEqual([{ type: 'lorry_arrived', mod: s.arrives }, { type: 'lorry_left', mod: s.leaves }]);
   });
 
-  it("doesn't come on a Sunday", () => {
+  it('comes on a Sunday too', () => {
     const w = newWorld(6, 0);
     w.state.t = sgt(6, 0, 6);
     expect(weekdayAt(w.state, w.t)).toBe('Sunday');
     while (minuteOfDay(w.t) < 9 * 60) advance(w);
-    expect(w.state.osman.lastDay).not.toBe(dayIndex(w.t));
-    expect(w.state.lorryHere).toBe(false);
+    expect(w.state.osman.lastDay).toBe(dayIndex(w.t));
+    expect(w.state.lorryHere).toBe(true);
   });
 });
 

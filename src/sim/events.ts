@@ -35,6 +35,10 @@ export type EventBody =
   | { type: 'withered'; who: string; bed: number; crop: Crop }
   | { type: 'harvested'; who: string; qty: number; item?: ItemId }
   | { type: 'ate'; who: string; item: ItemId }
+  | { type: 'foraged'; who: string; item: ItemId }
+  | { type: 'odd_job_done'; who: string; what: string; cents: Cents }
+  | { type: 'fell_ill'; who: string }
+  | { type: 'got_well'; who: string }
   | { type: 'fell_asleep'; who: string; reason: 'night' | 'nap' | 'collapse' }
   | { type: 'woke'; who: string }
   | { type: 'job_offered'; who: string; to: string; wage: Cents; startHour: number; hours: number }

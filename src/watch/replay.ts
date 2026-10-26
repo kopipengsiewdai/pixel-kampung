@@ -13,7 +13,7 @@ import { ECONOMY_EVENTS } from './wiki.ts';
 import type { MemoryKind } from '../mind/memory.ts';
 import type { GameEvent } from '../sim/events.ts';
 import { createWorld } from '../sim/seed.ts';
-import { World } from '../sim/state.ts';
+import { VILLAGER_NAMES, World } from '../sim/state.ts';
 import { shortStamp, type Calendar } from '../sim/calendar.ts';
 import { dayIndex } from '../sim/time.ts';
 import type { TownOptions } from '../town.ts';
@@ -189,7 +189,7 @@ export class ReplayReader {
     return rows.map((r) => this.decode(r)!);
   }
 
-  private name = (id: string): string => this.names[id] ?? id;
+  private name = (id: string): string => this.names[id] ?? VILLAGER_NAMES[id] ?? id;
 
   /** Feed lines after t0, up to and including t1, in order. */
   feedBetween(t0: number, t1: number): FeedLine[] {

@@ -4,6 +4,34 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## 0.26.0 (2026-10-26): making a living, part two
+
+Making a living ([subsistence.md](docs/design/subsistence.md)), part two:
+- **Mr Lim is seen about:** the village head stands on his doorstep by day, walks to the notice board each morning, and goes round the houses on Monday mornings for the rent. He's indoors before a quarter past seven and from six in the evening. Click him on the watch page for a card with what he's doing and today's odd jobs.
+- **Mr Lim's odd jobs:** each morning he pins two or three on the board (mend the jetty planks, clear the path up to his house, sweep the lorry stop, scrub out the well's trough, clear the ditches past the farm plot). Each is an hour's work at its place, paid 50¢ from his own purse when it's done, so money comes into the kampung through work. One a day each; not for anyone too ill. Unfinished ones come down the next morning.
+- **Living town:** upgrades to save v21. No jobs are pinned until his next walk to the board (the same day, if the town starts before 5pm).
+
+## 0.25.0 (2026-10-26): making a living, part one
+
+Making a living ([subsistence.md](docs/design/subsistence.md)), part one:
+- **Foraging:** anyone can spend half an hour looking for something to eat: wild kangkong or a hand of bananas past the farm plot, a coconut off the palms behind the jetty. Twice a day each, a snack or two, not a living. Bananas and coconuts are new, eaten as they are.
+- **Three meals a day:** a proper meal (bubur, fish porridge, vegetable rice, grilled fish, sambal kangkong) now takes off about a third of a day's hunger, 360–380; a snack (raw fish, a banana, a coconut, bread, boiled kangkong) 100–220. Fish porridge fills a little less than before, the other proper meals more, bread a little less.
+- **Sickness from hunger, never death:** about a day faint with hunger and a resident falls ill. Ill, they can't work a shift, do chores or fish (and aren't offered them), they tire quickly and are drawn to rest at home; others see "looking ill", and family remember it. About six hours after hunger first falls below hungry they're well again, unless they go faint again meanwhile. The watch card says "ill from hunger".
+- **Shopkeepers see lost sales:** "Travellers who left unserved today would have paid about $1.20", never more than travellers could still have spent that day or the stock there was to sell them.
+- **Living town:** upgrades to save v20. Nobody has foraged or is ill; anyone already faint with hunger starts their day's count from the upgrade, so nobody falls ill for at least a day. A time the town is away doesn't count towards falling ill.
+
+## 0.24.3 (2026-10-26): the English button, and no blinking
+
+- **The English button works again:** the page sent up to 60 lines at once, the server refused anything over 4 KB by dropping the connection, and the page then took every line in that batch as having no English for the rest of the visit. The server now takes up to 64 KB for English (and answers "too much" plainly over that), the page asks 20 lines at a time, and a failed ask is tried again a little later instead of given up on. Speech bubbles on the map are now shown in English too.
+- **No more blinking on the watch page:** Mdm Tan and Mak Esah vanished for half of every step as they walked. Their sprite (one pack character) has two walking steps, not four, and the missing two were blank; they now repeat the two.
+- **Living town:** nothing to upgrade; the page shows it on the next load.
+
+## 0.24.2 (2026-10-26): the lorry every day until noon
+
+- **Pak Osman comes every day, Sundays too, and stays the first half of the day:** about half past six to about noon, not an hour and a half, so anyone busy first thing can still meet the lorry. His horn now says what he's buying as well as what he's brought ("…and he's buying fish and vegetables").
+- **The economy page shows him:** money in and out across the edge of town is now counted from the money ledger, every cent, and a new table shows who outside the town (Pak Osman, travellers, the village fund) paid how much in and took how much out over the days shown. GDP and value traded now also count what residents buy off the lorry for themselves (not only shop orders), so past days' figures shift a little.
+- **Living town:** nothing to upgrade; from the next lorry morning he stays until about noon and comes on Sundays too (a lorry already in when the town restarts keeps the time it was due to leave).
+
 ## 0.24.1 (2026-10-26): their own languages
 
 - **Each resident speaks their own languages** ([cast.md](docs/design/cast.md#languages-owner-2026-10-26)): Hokkien, Teochew, Hakka, Tamil or Malay at home, bazaar Malay with neighbours, some English for the young. They think to themselves in English, and say things aloud in the language they'd really use with that person, in Roman letters. (Everyone had drifted into Malay, starting with Mak Esah: the model answers in whatever language its notes are full of, and no card said what anyone speaks.) The English button now also recognises Hokkien and Tamil.

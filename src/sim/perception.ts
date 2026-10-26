@@ -9,9 +9,10 @@ import { newestOfEach, type DealKind } from './talk.ts';
 import { availableActions } from './actions/index.ts';
 import { ITEMS, quantityLabel, type ItemId } from './items.ts';
 import { HAGGLES_PER_VISIT, OSMAN, priceFor, room } from './osman.ts';
-import { PLACES, PLACE_BY_ID, type Place } from './map.ts';
+import { distance, PLACES, PLACE_BY_ID, type Place } from './map.ts';
+import { doneToday, mrLimAt, openJobHere, whatOf } from './mr-lim.ts';
 import { formatMoney, type Cents } from './money.ts';
-import { CIRCLE_LINES, SAID_ALL_LINES, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, UNANSWERED_LINES, WORD_MINUTES, type Bond, type Debt, type Goods, type Observation, type Resident, type Shop, type TalkRecord, type World } from './state.ts';
+import { CIRCLE_LINES, NEARBY_TILES, SAID_ALL_LINES, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, UNANSWERED_LINES, WORD_MINUTES, type Bond, type Debt, type Goods, type Observation, type Resident, type Shop, type TalkRecord, type World } from './state.ts';
 import { nowLabel } from './calendar.ts';
 import { dayIndex, sgtHour, sgtMinute } from './time.ts';
 
@@ -78,8 +79,14 @@ export interface Perception {
   carrying: { item: ItemId; qty: number }[];
   /** Hunger that hurts, in words, from 800; null below. */
   hungerPang: string | null;
+  /** Ill from hunger. */
+  ill: boolean;
   /** Rent owed, and what can be had at the village head's house. */
   household: string[];
+  /** Mr Lim, when he's near: what he's doing. */
+  villageHead: string | null;
+  /** Mr Lim's odd job here, open to them. */
+  oddJob: { what: string; pay: Cents } | null;
   /** Hungry with nothing to eat: the ways to food they know of. */
   foodWays: string[];
   hunger: HungerWord;
@@ -100,7 +107,7 @@ export interface Perception {
     owed: { name: string; cents: Cents }[];
     /** Travellers waiting now, and today's (seen only at the shop): served, left unserved, and turned away by price (by item). */
     waiting: number;
-    today: { served: number; left: number; tooDear: { item: ItemId; n: number }[] };
+    today: { served: number; left: number; lost: Cents; tooDear: { item: ItemId; n: number }[] };
   } | null;
   shop: { name: string; staffed: boolean; sells: PriceTag[]; buys: PriceTag[] } | null;
   /** At the lorry stop: the lorry man (by name, once met), his prices for you today, his room, your slate and what you asked him to bring. */
@@ -181,7 +188,8 @@ function foodWays(w: World, r: Resident): string[] {
   }
   const out: string[] = [];
   if (shops.length) out.push(`You could get something to eat at ${shops.length === 1 ? shops[0] : `${shops.slice(0, -1).join(', ')} or ${shops.at(-1)}`}.`);
-  if (here !== 'jetty' && r.knownPlaces.includes('jetty')) out.push('You could catch a fish at the jetty.');
+  // Too ill to fish, the sea is no use to them.
+  if (here !== 'jetty' && r.knownPlaces.includes('jetty') && !r.ill) out.push('You could catch a fish at the jetty.');
   return out;
 }
 
@@ -208,6 +216,7 @@ function goodsList(g: Goods): { item: ItemId; qty: number }[] {
 
 /** How hungry someone looks to anyone nearby. */
 function looks(o: Resident): string {
+  if (o.ill && o.activity?.kind !== 'sleeping') return o.hunger >= FAINT_HUNGER ? 'looking ill and faint with hunger' : o.hunger >= LOOKS_HUNGRY ? 'looking ill and hungry' : 'looking ill';
   return o.activity?.kind === 'sleeping' ? '' : o.hunger >= FAINT_HUNGER ? 'looking faint with hunger' : o.hunger >= LOOKS_HUNGRY ? 'looking hungry' : '';
 }
 const LOOKS_HUNGRY = 700;
@@ -290,8 +299,11 @@ export function perceive(w: World, r: Resident): Perception {
     carrying: goodsList(r.items),
     hunger: hungerWord(r.hunger),
     hungerPang: hungerPang(r.hunger),
+    ill: r.ill !== null,
     foodWays: foodWays(w, r),
     household: householdLines(w, r, w.isAt(r, 'village-head')),
+    villageHead: (() => { const m = mrLimAt(w, w.t); return m.out && distance(m.pos, r.pos) <= NEARBY_TILES ? m.doing : null; })(),
+    oddJob: (() => { const j = doneToday(w, r) ? null : openJobHere(w, r); return j ? { what: whatOf(j.kind), pay: j.pay } : null; })(),
     energy: energyWord(r.energy),
     job: jobRow ? {
       place: PLACE_BY_ID.get(jobRow.placeId)!.name,
@@ -318,8 +330,9 @@ export function perceive(w: World, r: Resident): Perception {
         served: own.today.served,
         // Unserved: gave up in the queue, or found nobody serving.
         left: own.today.left + own.today.away,
+        lost: own.today.lost,
         tooDear: (Object.entries(own.today.tooDear) as [ItemId, number][]).filter(([, n]) => n > 0).map(([item, n]) => ({ item, n })),
-      } : { served: 0, left: 0, tooDear: [] },
+      } : { served: 0, left: 0, lost: 0, tooDear: [] },
     } : null,
     shop: shop && shop.ownerId !== r.id ? {
       name: PLACE_BY_ID.get(shop.id)!.name,
@@ -452,8 +465,11 @@ export function describe(p: Perception): string {
   for (const n of p.unanswered) lines.push(`${n} hasn't answered you.`);
   if (p.atHome && HUNGRY.has(p.hunger) && !p.carrying.some((c) => ITEMS[c.item].food)) lines.push("There's no food in the house.");
   if (p.hungerPang) lines.push(p.hungerPang);
+  if (p.ill) lines.push("You're ill: feverish and weak. You need to eat, and rest.");
   lines.push(...p.foodWays);
   lines.push(...p.household);
+  if (p.villageHead) lines.push(`Mr Lim, the village head, is here, ${p.villageHead}.`);
+  if (p.oddJob) lines.push(`Mr Lim wants someone to ${p.oddJob.what} here: ${formatMoney(p.oddJob.pay)} for an hour's work.`);
   lines.push(`You feel ${p.hunger} and ${p.energy}. You have ${formatMoney(p.money)}${p.carrying.length ? ` and you're carrying ${p.carrying.map((c) => quantityLabel(c.item, c.qty)).join(', ')}` : ''}.`);
   // What's owed, every moment, next to their money: so talk of debts meets what's true.
   const bracket = (what: string | null) => (what ? ` (${what})` : '');
@@ -482,6 +498,7 @@ export function describe(p: Perception): string {
     }
     const t = p.business.today;
     if (t.served || t.left) lines.push(`Today you've served ${t.served}; ${t.left} left without being served.`);
+    if (t.lost > 0) lines.push(`Travellers who left unserved today would have paid about ${formatMoney(t.lost)}.`);
     for (const d of t.tooDear) lines.push(`${count(d.n, true)} ${d.n === 1 ? 'person' : 'people'} turned away at your ${d.item} price.`);
   }
   if (p.shop) {

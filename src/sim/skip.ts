@@ -50,6 +50,8 @@ export function skipQuietly(w: World, to: number): void {
       r.energy = Math.min(1000, r.energy + gap * 3);
     }
     if (r.hunger < QUIET_HUNGER_CAP) r.hunger = Math.min(QUIET_HUNGER_CAP, r.hunger + Math.floor(gap / 3));
+    // A quiet spell doesn't count towards falling ill: the day at faint picks up where it left off.
+    if (r.faintFrom !== null) r.faintFrom += gap;
     if (longRest) r.energy = Math.max(r.energy, RESTED);
     if (isNight(to)) {
       r.activity = null;

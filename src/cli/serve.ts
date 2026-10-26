@@ -52,7 +52,7 @@ console.log(`Dials (${settingsPath(home)}): ${JSON.stringify(settings.dials)}`);
 
 let town: Town;
 const print = (e: GameEvent) => {
-  const line = feedLine(e, (id) => town.world.resident(id).name);
+  const line = feedLine(e, (id) => town.world.nameOf(id));
   if (line) console.log(formatFeedLine(line, town.world.state));
 };
 
@@ -90,6 +90,7 @@ const live = new LiveSource({
   extras: mem ? (id, t) => extrasFrom((r, k, up, n) => mem.latest(r, k, up, n), id, t, town.world.state) : undefined,
   said: (id, n, since) => store.saidBy(id, n, since),
   moneyEvents: (since) => store.eventsSince(since, [...ECONOMY_EVENTS]),
+  ledgerSince: (since) => store.ledgerSince(since),
   audit: () => lastAudit,
   spend: () => (costs ? { usd: costs.spentOn(costs.dayKey(clock.nowMs())), cap: dayCap(costs, clock.nowMs()) } : null),
 });

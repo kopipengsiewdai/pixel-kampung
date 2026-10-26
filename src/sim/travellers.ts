@@ -54,7 +54,7 @@ export function travellerPays(shop: Shop, item: ItemId): Cents {
 
 /** A fresh day's counts for a shop. */
 export function freshDay(day: number): Shop['today'] {
-  return { day, served: 0, cents: 0, left: 0, away: 0, awayTold: 0, tooDear: {}, servedBy: {}, masterCooked: false };
+  return { day, served: 0, cents: 0, left: 0, away: 0, awayTold: 0, tooDear: {}, servedBy: {}, masterCooked: false, lost: 0 };
 }
 
 /** How often a traveller comes to this shop at this minute of the day, or null if none come now. */
@@ -91,6 +91,18 @@ function wanted(w: World, shop: Shop): ItemId | null {
   return null;
 }
 
+/**
+ * A traveller left unserved: what they'd have paid counts as lost, but never
+ * more than the shop's travellers could still spend today, nor more than the
+ * stock it had there to sell them.
+ */
+function lost(w: World, shop: Shop, item: ItemId): void {
+  const price = shop.sellPrices[item] ?? 0;
+  const stock = (Object.entries(shop.sellPrices) as [ItemId, number][])
+    .reduce((n, [i, p]) => n + p * Math.max(0, countGoods(shop.stock, i) - w.dials.travellerReserve), 0);
+  shop.today.lost = Math.max(shop.today.lost, Math.min(shop.today.lost + price, w.dials.travellerBudgetCents - shop.today.cents, stock));
+}
+
 /** One minute of travellers at every shop: arrivals, the queue, serving, and the hourly line. */
 export function travellersMinute(w: World): void {
   const mod = minuteOfDay(w.t);
@@ -113,12 +125,15 @@ export function travellersMinute(w: World): void {
       } else {
         shop.today.left++;
         shop.hour.left++;
+        lost(w, shop, s.item);
       }
     }
     shop.serving = shop.serving.filter((x) => x.until > w.t);
     // Tired of waiting.
     const wait = shop.sweptDay === day ? SWEPT_WAIT_MINUTES : WAIT_MINUTES;
-    const gaveUp = shop.queue.filter((c) => w.t - c.t > wait).length;
+    const gone = shop.queue.filter((c) => w.t - c.t > wait);
+    const gaveUp = gone.length;
+    for (const c of gone) lost(w, shop, c.item);
     if (gaveUp) {
       shop.queue = shop.queue.filter((c) => w.t - c.t <= wait);
       shop.today.left += gaveUp;
@@ -134,10 +149,12 @@ export function travellersMinute(w: World): void {
         else if (!free.length) {
           shop.today.away++;
           shop.hour.left++;
+          lost(w, shop, item);
         }
         else if (shop.queue.length >= QUEUE_MAX) {
           shop.today.left++;
           shop.hour.left++;
+          lost(w, shop, item);
         } else shop.queue.push({ item, t: w.t });
       }
     }

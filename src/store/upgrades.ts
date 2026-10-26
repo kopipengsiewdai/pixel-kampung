@@ -369,6 +369,26 @@ export const UPGRADES: readonly Upgrade[] = [
       return { world: { ...world, residents, stoves, property, rentFrom, rentNoticed: false, lastRoundDay: 0, arrears: {}, evictedWith: {}, fund: 0 }, brains };
     },
   },
+  {
+    from: 19,
+    why: "Making a living: anyone can forage a little (wild kangkong or bananas past the farm plot, a coconut off the jetty's palms, twice a day), a day faint with hunger brings sickness (never death; well again about six hours after eating enough), and shopkeepers see what travellers who left unserved would have paid. Nobody has foraged or is ill yet; anyone already faint starts their day's count from now.",
+    save: ({ world, brains }) => {
+      const t = world.t as number;
+      // Faint with hunger was 950 and over at v19.
+      const residents = (world.residents as { hunger: number }[]).map((r) => ({ ...r, foraged: null, faintFrom: r.hunger >= 950 ? t : null, ill: null }));
+      const shops = (world.shops as { today: Record<string, unknown> }[]).map((s) => ({ ...s, today: { ...s.today, lost: 0 } }));
+      return { world: { ...world, residents, shops, illSeen: world.illSeen ?? {} }, brains };
+    },
+  },
+  {
+    from: 20,
+    why: "Mr Lim is seen about: at his door by day, out to the notice board each morning, round the houses on Monday mornings. Each morning he pins two or three paid odd jobs, an hour's work each at its place, paid from his own purse when done, one a day each. None is pinned yet; anyone at a chore is at no job of his.",
+    save: ({ world, brains }) => {
+      const residents = (world.residents as { activity: Record<string, unknown> | null }[]).map((r) =>
+        (r.activity && r.activity.kind === 'chore' && !('job' in r.activity) ? { ...r, activity: { ...r.activity, job: null } } : r));
+      return { world: { ...world, residents, oddJobs: world.oddJobs ?? [], oddJobsDay: world.oddJobsDay ?? -1 }, brains };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */
