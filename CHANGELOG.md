@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.31.0 (2026-10-27): Mr Lim helps
 
 Mr Lim's thinking head, part one (with rent about to start and many in the kampung broke):
 - **He varies his odd jobs:** each morning he decides how much paid work to put up, two to four ordinary jobs at 40 to 80 cents each, from his own purse, by how many are broke and hungry (a small thinking head, once a morning within the town's daily cap; more jobs when more are broke, his own way, otherwise).
