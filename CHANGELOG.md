@@ -4,6 +4,11 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **Each resident speaks their own languages** ([cast.md](docs/design/cast.md#languages-owner-2026-10-26)): Hokkien, Teochew, Hakka, Tamil or Malay at home, bazaar Malay with neighbours, some English for the young. They think to themselves in English, and say things aloud in the language they'd really use with that person, in Roman letters. (Everyone had drifted into Malay, starting with Mak Esah: the model answers in whatever language its notes are full of, and no card said what anyone speaks.) The English button now also recognises Hokkien and Tamil.
+- **Living town:** nothing to upgrade; the next thought each resident has is in English, and their talk follows who they're talking to.
+
 ## 0.24.0 (2026-10-26): households
 
 - **Households** ([docs/design/households.md](docs/design/households.md), build plan [households-build.md](docs/design/households-build.md)):

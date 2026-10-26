@@ -72,3 +72,15 @@ describe('the cast', () => {
     expect(huat).toContain('You own the kopitiam.');
   });
 });
+
+describe('languages', () => {
+  it('every card names the languages its person speaks, and residents think in English', async () => {
+    const { CARDS } = await import('../src/seed/cards.ts');
+    const { systemPrompt } = await import('../src/mind/prompt.ts');
+    for (const c of CARDS) expect(c.languages, c.name).toMatch(/^You speak /);
+    const huat = CARDS.find((c) => c.name === 'Ah Huat')!;
+    const sys = systemPrompt(huat, 'owner', 'the kopitiam');
+    expect(sys).toContain('You speak Hokkien at home');
+    expect(sys).toContain('Think to yourself in English.');
+  });
+});

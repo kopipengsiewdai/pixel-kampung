@@ -53,7 +53,7 @@ export class Mind {
 
   /** allowance: their share of the hourly thinking allowance (1 is a full one). */
   brainFor(residentId: string, name: string, role: Role, shop: string | null, t: number, allowance = 1, age?: number): MindBrain {
-    const card = this.cards.find((c) => c.name === name) ?? { name, age: 30, personality: 'Ordinary.', want: 'a decent life', worry: 'about hard times', knows: '' };
+    const card = this.cards.find((c) => c.name === name) ?? { name, age: 30, personality: 'Ordinary.', want: 'a decent life', worry: 'about hard times', knows: '', languages: '' };
     return new MindBrain(this, residentId, systemPrompt(card, role, shop, age ?? card.age), t, allowance);
   }
 

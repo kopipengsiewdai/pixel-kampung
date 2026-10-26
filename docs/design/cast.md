@@ -147,3 +147,17 @@ it. Each is told to the resident word for word, below.
 - Siti looks after her mother on what she earns, and Mak Esah hates being a burden.
 - Aminah wants to stay in school while money at home is short; Hassan would rather fish.
 - Ah Kow is a newcomer who trusts no one.
+
+## Languages (owner, 2026-10-26)
+
+Every resident had drifted into Malay within two game days: it began with Mak
+Esah, and the model answers in the language its notes are full of. The owner
+chose real languages over English for all. Each card says what the person
+speaks: Hokkien (Ah Huat, Ah Seng), Teochew (Mdm Tan, Mei Ling), Hakka (Ah Kow),
+Tamil (Muthu, Raju), Malay (Rahim, Fatimah, Siti, Mak Esah, Aminah, Hassan), and
+bazaar Malay with neighbours, with some English for the young. They think to
+themselves in English and say things aloud in the language they would really
+use with that person, in Roman letters. The watch page's English button turns
+the rest into English for the owner. (Claude's drafts, under the owner's "you
+draft, be sensible".)
+
