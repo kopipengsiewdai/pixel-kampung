@@ -4,6 +4,11 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **No more blinking on the watch page:** Mdm Tan and Mak Esah vanished for half of every step as they walked. Their sprite (one pack character) has two walking steps, not four, and the missing two were blank; they now repeat the two.
+- **Living town:** nothing to upgrade; the page shows it on the next load.
+
 ## 0.24.2 (2026-10-26): the lorry every day until noon
 
 - **Pak Osman comes every day, Sundays too, and stays the first half of the day:** about half past six to about noon, not an hour and a half, so anyone busy first thing can still meet the lorry. His horn now says what he's buying as well as what he's brought ("…and he's buying fish and vegetables").
