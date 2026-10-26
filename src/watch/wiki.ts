@@ -338,7 +338,7 @@ export function howItWorks(): WikiSection[] {
     {
       title: 'The lorry',
       paras: [
-        `Pak Osman's lorry comes about ${hhmm(LORRY_ARRIVES)} every morning but Sunday and stays until about noon at the lorry stop: the town's link with the outside. One lorry's room is shared between what he brings and what he buys; town supply varies, so a shelf can run short.`,
+        `Pak Osman's lorry comes about ${hhmm(LORRY_ARRIVES)} every morning, Sundays too, and stays until about noon at the lorry stop: the town's link with the outside. One lorry's room is shared between what he brings and what he buys; town supply varies, so a shelf can run short.`,
         `He sells (money leaves town) at about: ${prices(LORRY_SELLS)}; an owner's stock is left at their shop. He buys fish and vegetables (money comes into town) at about: ${prices(LORRY_BUYS)}.`,
         `He sets his prices each visit, within bounds of the town price, and haggles. He gives regulars credit (debts last a week; one left to run marks the debtor), and takes orders for next time with a deposit, refunding whatever he couldn't bring.`,
       ],

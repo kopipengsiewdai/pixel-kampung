@@ -17,14 +17,14 @@ const nextMorning = (w: World) => {
   while (!w.state.osman.visit) advance(w);
 };
 
-describe('the horn says what he has brought', () => {
+describe('the horn says what he has brought, and what he is buying', () => {
   it('everyone awake hears what is on the lorry, in-world', () => {
     const w = newWorld(6, 0);
     const rahim = put(w, 'Rahim', 'market-stall');
     while (!w.state.osman.visit) advance(w);
     const heard = rahim.recent.find((o) => /horn/.test(o.text))!.text;
-    expect(heard).toMatch(/^You hear the lorry's horn from the lorry stop: the lorry man is in from town with .*(rice|bread)/);
-    expect(heard).not.toMatch(/fish/);
+    expect(heard).toMatch(/^You hear the lorry's horn from the lorry stop: the lorry man is in from town with .*(rice|bread).*, and he's buying fish and vegetables\.$/);
+    expect(heard.split(', and he')[0]).not.toMatch(/fish|vegetables/);
     expectInWorld(heard);
   });
 });

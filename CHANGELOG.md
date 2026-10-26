@@ -6,7 +6,7 @@ never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
 ## Unreleased
 
-- **Pak Osman stays the first half of the day:** about half past six to about noon, not an hour and a half, so anyone busy first thing can still meet the lorry.
+- **Pak Osman comes every day, Sundays too, and stays the first half of the day:** about half past six to about noon, not an hour and a half, so anyone busy first thing can still meet the lorry. His horn now says what he's buying as well as what he's brought ("…and he's buying fish and vegetables").
 - **The economy page shows him:** money in and out across the edge of town is now counted from the money ledger, every cent, and a new table shows who outside the town (Pak Osman, travellers, the village fund) paid how much in and took how much out over the days shown.
 - **Living town:** nothing to upgrade; from the next lorry morning he stays until about noon (a lorry already in when the town restarts keeps the time it was due to leave).
 

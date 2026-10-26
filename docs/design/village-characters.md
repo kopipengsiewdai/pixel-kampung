@@ -58,8 +58,8 @@ prompt.
   market. Widowed, he saves every spare cent for his daughter's schooling in
   town. A hard but fair haggler, soft on regulars, who never forgets a debt
   and brings the kampung its gossip from town.
-- **Schedule:** arrives at about 06:30 every day except Sunday (the kampung
-  calendar's weekday), parks at the lorry stop, stays until about noon (the
+- **Schedule:** arrives at about 06:30 every day, Sundays too (owner,
+  2026-10-26; Sunday used to be his day off), parks at the lorry stop, stays until about noon (the
   first half of the day, owner 2026-10-26; it was about 90 game minutes),
   then drives away. On festival days he may not come.
 - **A limited lorry.** He is **not an unlimited resource**. One fixed load
