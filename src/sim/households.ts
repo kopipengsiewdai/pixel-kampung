@@ -59,7 +59,7 @@ function placeLabel(id: string): string {
 }
 
 /** What an offer is for, as the one who made it thinks of it. */
-export const placeWords = (o: Pick<PlaceOffer, 'placeId'>) => (o.placeId === null ? 'a house' : o.placeId.startsWith('house-') ? 'your house' : `your ${PLACE_BY_ID.get(o.placeId)?.name ?? 'stall'}`);
+export const placeWords = (o: Pick<PlaceOffer, 'placeId'>) => (o.placeId === null ? 'a house' : o.placeId.startsWith('house-') ? 'your house' : `your ${(PLACE_BY_ID.get(o.placeId)?.name ?? 'stall').replace(/^the /, '')}`);
 /** "50¢ a week for a house", "$20.00 to buy your house". */
 export const offerWords = (o: Pick<PlaceOffer, 'placeId' | 'kind' | 'cents'>) => (o.kind === 'rent' ? `${formatMoney(o.cents)} a week for ${placeWords(o)}` : `${formatMoney(o.cents)} to buy ${placeWords(o)}`);
 
@@ -265,8 +265,8 @@ export function payRent(w: World, r: Resident, money: Cents | null): { ok: boole
   return { ok: true, reply: `You pay Mr Lim ${formatMoney(paid)}.${still > 0 ? ` You still owe Mr Lim ${formatMoney(still)}.` : ' You owe Mr Lim nothing now.'}` };
 }
 
-/** Mr Lim lets or sells a place on an offer he's taken: the first week's rent, or the price, paid into the fund now; a new house is home to the household. */
-export function letTo(w: World, r: Resident, placeId: string, kind: 'rent' | 'buy', cents: Cents): void {
+/** Mr Lim lets or sells a place on an offer he's taken: the first week's rent, or the price, paid into the fund now; a new house is home to the household. Who moved in. */
+export function letTo(w: World, r: Resident, placeId: string, kind: 'rent' | 'buy', cents: Cents): string[] {
   const p = w.state.property[placeId]!;
   const moving = p.holder !== r.id;
   if (cents > 0) {
@@ -276,9 +276,10 @@ export function letTo(w: World, r: Resident, placeId: string, kind: 'rent' | 'bu
   w.emit(kind === 'buy' ? { type: 'bought_place', who: r.id, place: placeId, cents } : { type: 'rent_paid', who: r.id, place: placeId, cents });
   Object.assign(p, { holder: r.id, owned: kind === 'buy', rentToOwn: null, owing: 0, since: null, grace: null, freeSince: null });
   if (kind === 'rent') p.rent = cents;
-  if (!moving || !placeId.startsWith('house-')) return;
-  // Whoever was turned out with them comes home too.
-  const family = w.state.residents.filter((o) => o.id === r.id || (o.homeId === ROUGH && w.state.evictedWith[o.id] === r.id));
+  if (!moving || !placeId.startsWith('house-')) return [];
+  // Whoever was turned out with them (from the same house) comes home too.
+  const group = w.state.evictedWith[r.id] ?? r.id;
+  const family = w.state.residents.filter((o) => o.id === r.id || (o.homeId === ROUGH && (w.state.evictedWith[o.id] === group || w.state.evictedWith[o.id] === r.id)));
   for (const o of family) {
     o.homeId = placeId;
     delete w.state.evictedWith[o.id];
@@ -286,4 +287,5 @@ export function letTo(w: World, r: Resident, placeId: string, kind: 'rent' | 'bu
     if (o.id !== r.id) w.remember(o.id, `${r.name} has a house from Mr Lim: it's home now.`);
     w.emit({ type: 'moved_in', who: o.id, place: placeId });
   }
+  return family.map((o) => o.id);
 }

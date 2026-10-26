@@ -267,8 +267,9 @@ export interface WorldState {
   bonds: Record<string, Bond>;
   /** Every house and stall, by place id, and who holds it (households.md). */
   property: Record<string, Property>;
-  /** Offers waiting on Mr Lim's answer, one a person. */
+  /** Offers waiting on Mr Lim's answer, one a person, and the last day he answered them. */
   placeOffers: PlaceOffer[];
+  offersDay: number;
   /** The day rent is first due (a Monday), and whether everyone has been told. */
   rentFrom: number;
   rentNoticed: boolean;
@@ -401,7 +402,7 @@ export class World {
   /** The owner's dials, from the private settings (not saved with the town). */
   dials: Dials = { ...DEFAULT_DIALS };
   /** Mr Lim's plan for the day's odd jobs, from his head or his own way (not saved: a restart plans again). */
-  mrLim: { day: number; plan: { jobs: number; pay: number }; asks: { who: string; said: string | null }[]; asked: Record<string, number>; decided: number } = { day: -1, plan: { jobs: 2, pay: 50 }, asks: [], asked: {}, decided: -1 };
+  mrLim: { day: number; plan: { jobs: number; pay: number }; asks: { who: string; said: string | null }[]; asked: Record<string, number> } = { day: -1, plan: { jobs: 2, pay: 50 }, asks: [], asked: {} };
   /** What's been said to the teacher, waiting for her answer, and her day's calls, openings and answers to each (not saved: a restart forgets them, and her head counts its calls from the cost log). */
   teacher: { asks: { who: string; text: string }[]; day: number; calls: number; opened: string[]; answered: Record<string, number> } = { asks: [], day: -1, calls: 0, opened: [], answered: {} };
 

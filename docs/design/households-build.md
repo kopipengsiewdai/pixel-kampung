@@ -103,9 +103,11 @@ Built in four parts:
   - At his door, a grown-up offers a rent a week, or a price to buy, for a house standing free, or a price for the place they hold. The offer has no floor, but they must have the money (the first week's rent, or the price). One offer per person: a new one replaces the last.
   - At 17:00 he answers. For houses standing free, he weighs the best offer first, a price against a year's rent. For each offer to buy a held place, he answers on its own.
   - His head accepts one offer, counters, or waits (at most three calls an evening). His own way when there's no head:
-    - for a free house, accept at least half the old rent (half a year's rent to buy), or the best offer once it has stood free three days;
+    - for a free house, accept at least half the old rent (half a year's rent to buy), or the best rent offer once it has stood free three days. He never sells below half a year's rent on his own;
     - for your own place, accept half a year's rent, or counter with that.
-  - Accepted: the first week, or the price, is paid into the fund, and the household moves in. Offers that weren't taken are told when the houses are gone.
+  - Accepted: the first week, or the price, is paid into the fund, and the household moves in (everyone turned out of the same house comes home together). Offers that weren't taken are told when the houses are gone.
+  - A place already being bought week by week can't be offered for. An offer from someone owing rent by the evening isn't taken.
+  - The day he last answered is saved, so a restart doesn't make him answer twice.
   - Stalls stand free only once (d) lets one go.
 - (b) A sitting tenant's rent changes with notice and agreement.
 - (c) Selling or letting between residents.

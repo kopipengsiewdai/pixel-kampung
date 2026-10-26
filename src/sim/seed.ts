@@ -106,6 +106,7 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
     bonds: seedBonds({ residents }),
     property: startingProperty({ residents, shops }, dayIndex(t)),
     placeOffers: [],
+    offersDay: -1,
     rentFrom: firstRentDay({ calendar: { firstDay: dayIndex(t) } }, dayIndex(t)),
     rentNoticed: false,
     rentToldTo: [],

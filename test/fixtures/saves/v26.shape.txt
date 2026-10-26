@@ -136,6 +136,7 @@ src/sim/state.ts WorldState {
     project: null | string
   }[]
   oddJobsDay: number
+  offersDay: number
   osman: {
     accounts: {
       [key: string]: {

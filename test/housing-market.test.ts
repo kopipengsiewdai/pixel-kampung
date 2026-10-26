@@ -91,7 +91,7 @@ describe('offers at his door; he decides in the evening', () => {
     expect(kow.recent.some((o) => /forty-five/.test(o.text))).toBe(true);
     accepted(offer(w, 'Ah Kow', 45));
     w.state.t = sgt(10, 0, 2);
-    await evening(w, { plan: async () => null, decide: async (b) => ({ answer: 'accept', offer: b.offers[0]!.id }) });
+    await evening(w, { plan: async () => null, decide: async (b) => ({ answer: 'accept', offer: b.offers[0]!.n }) });
     expect(w.state.property[kow.homeId]?.rent).toBe(45);
   });
 
@@ -100,7 +100,7 @@ describe('offers at his door; he decides in the evening', () => {
     const tan = who(w, 'Mdm Tan');
     tan.money = 100_000;
     accepted(offer(w, 'Mdm Tan', 3000, 'my house', 'buy'));
-    await evening(w, { plan: async () => null, decide: async (b) => ({ answer: 'accept', offer: b.offers[0]!.id }) });
+    await evening(w, { plan: async () => null, decide: async (b) => ({ answer: 'accept', offer: b.offers[0]!.n }) });
     expect(w.state.property[tan.homeId]!.owned).toBe(true);
     expect(tan.money).toBe(100_000 - 3000);
     const fund = w.state.fund;
@@ -150,6 +150,138 @@ describe('his head held to what he can do', () => {
     expect(who(w, 'Ah Kow').homeId).toBe('rough');
     for (const name of ['Ah Kow', 'Raju', 'Siti', 'Rahim']) for (const o of who(w, name).recent) expectInWorld(o.text);
     expect(w.state.placeOffers.length).toBe(4);
+  });
+});
+
+describe('review fixes', () => {
+  const lim = (decide: MrLimHead['decide']): MrLimHead => ({ plan: async () => null, decide });
+
+  it('a counter is for one kind: a rent counter is not quoted to someone offering to buy', async () => {
+    const w = tuesday();
+    for (const [name, cents, side] of [['Ah Kow', 10, 'rent'], ['Raju', 500, 'buy']] as const) {
+      const r = who(w, name);
+      r.homeId = 'rough';
+      r.money = 1000;
+      accepted(offer(w, name, cents, 'house', side));
+    }
+    await evening(w, lim(async () => ({ answer: 'counter', cents: 40, kind: 'rent' })));
+    expect(who(w, 'Ah Kow').recent.some((o) => /40¢ a week/.test(o.text))).toBe(true);
+    expect(who(w, 'Raju').recent.some((o) => /40¢/.test(o.text))).toBe(false);
+    expect(w.state.placeOffers.map((o) => o.who)).toEqual([who(w, 'Raju').id]);
+  });
+
+  it('his own way never sells a house for a song, however long it stands free', async () => {
+    const w = tuesday();
+    const raju = who(w, 'Raju');
+    raju.homeId = 'rough';
+    raju.money = 1000;
+    accepted(offer(w, 'Raju', 40, 'house', 'buy'));
+    for (let d = 0; d <= WAIT_DAYS + 1; d++) {
+      w.state.t = sgt(10, 0, 1 + d);
+      await evening(w);
+    }
+    expect(raju.homeId).toBe('rough');
+  });
+
+  it('buying week by week already, no offer to buy: the deal finishes on its terms', () => {
+    const w = tuesday();
+    w.state.property[who(w, 'Siti').homeId]!.rentToOwn = { paid: 100, of: 3300 };
+    who(w, 'Siti').money = 5000;
+    expectInWorld(refused(offer(w, 'Siti', 2000, 'my house', 'buy'), /week by week/));
+  });
+
+  it('a stall is named as people say it', () => {
+    const w = tuesday();
+    who(w, 'Mdm Tan').money = 100_000;
+    const reply = accepted(offer(w, 'Mdm Tan', 3000, 'my shop', 'buy')).reply!;
+    expect(reply).not.toMatch(/your the|the the/);
+  });
+
+  it('"a house for my family", from someone holding nothing, is an offer for a free house', () => {
+    const w = tuesday();
+    const mei = who(w, 'Mei Ling');
+    mei.money = 500;
+    mei.born = who(w, 'Mdm Tan').born;
+    accepted(offer(w, 'Mei Ling', 50, 'a house for my family'));
+    expect(w.state.placeOffers[0]!.placeId).toBeNull();
+  });
+
+  it('owing him rent by the evening, an offer to buy is not taken (no debt wiped)', async () => {
+    const w = tuesday();
+    const tan = who(w, 'Mdm Tan');
+    tan.money = 100_000;
+    accepted(offer(w, 'Mdm Tan', 3000, 'my house', 'buy'));
+    w.state.property[tan.homeId]!.owing = 50;
+    await evening(w);
+    expect(w.state.property[tan.homeId]!.owned).toBe(false);
+    expect(w.state.property[tan.homeId]!.owing).toBe(50);
+    expect(tan.recent.some((o) => /owe him rent/.test(o.text))).toBe(true);
+  });
+
+  it('he answers once an evening, even across a restart', async () => {
+    const w = tuesday();
+    const kow = who(w, 'Ah Kow');
+    kow.homeId = 'rough';
+    kow.money = 500;
+    accepted(offer(w, 'Ah Kow', 5));
+    let calls = 0;
+    const head = lim(async () => { calls++; return { answer: 'wait' }; });
+    await evening(w, head);
+    w.mrLim = { ...w.mrLim, day: -1 };
+    await mrLimDecides(w, head, 0);
+    expect(calls).toBe(1);
+    // Offered after his answers, it waits for tomorrow's.
+    expect(accepted(offer(w, 'Ah Kow', 6)).reply).toMatch(/tomorrow evening/);
+  });
+
+  it('offers are numbered for him; his words go only with what he decides', async () => {
+    const w = tuesday();
+    const kow = who(w, 'Ah Kow');
+    kow.homeId = 'rough';
+    kow.money = 500;
+    accepted(offer(w, 'Ah Kow', 50));
+    const seenBy: number[] = [];
+    await evening(w, lim(async (b) => { seenBy.push(...b.offers.map((o) => o.n)); return { answer: 'accept', offer: 7, words: 'Offer seven it is.' }; }));
+    expect(seenBy).toEqual([1]);
+    // His answer named no offer he had: his own way (fifty cents will do), and not his words.
+    expect(kow.homeId).toMatch(/^house-/);
+    expect(kow.recent.some((o) => /seven/.test(o.text))).toBe(false);
+  });
+
+  it('a household turned out together comes home together, whoever makes the offer, and takes one house', async () => {
+    const w = tuesday();
+    const fat = who(w, 'Fatimah');
+    const home = fat.homeId;
+    // Turned out: Fatimah held the house; Aminah and Hassan with her.
+    for (const name of ['Fatimah', 'Aminah', 'Hassan']) {
+      const r = who(w, name);
+      r.homeId = 'rough';
+      w.state.evictedWith[r.id] = fat.id;
+    }
+    Object.assign(w.state.property[home]!, { holder: null, freeSince: 0 });
+    fat.money = 500;
+    const aminah = who(w, 'Aminah');
+    aminah.money = 500;
+    aminah.born = fat.born;
+    accepted(offer(w, 'Aminah', 50));
+    accepted(offer(w, 'Fatimah', 50));
+    const free = freeHouses(w).length;
+    await evening(w);
+    for (const name of ['Fatimah', 'Aminah', 'Hassan']) expect(who(w, name).homeId).toMatch(/^house-/);
+    expect(new Set(['Fatimah', 'Aminah', 'Hassan'].map((n) => who(w, n).homeId)).size).toBe(1);
+    expect(freeHouses(w).length).toBe(free - 1);
+  });
+
+  it('his note says how many stand free through the day', () => {
+    const w = newWorld(6, 0);
+    while (w.t < sgt(9, 0)) advance(w);
+    const before = freeHouses(w).length;
+    const home = who(w, 'Siti').homeId;
+    Object.assign(w.state.property[home]!, { holder: null, freeSince: dayIndex(w.t) });
+    advance(w);
+    const notes = w.state.notes.filter((n) => n.authorId === MR_LIM_ID && /^To let/.test(n.text));
+    expect(notes.length).toBe(1);
+    expect(notes[0]!.text).toMatch(new RegExp(`${before + 1} houses`));
   });
 });
 

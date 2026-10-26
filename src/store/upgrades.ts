@@ -451,7 +451,7 @@ export const UPGRADES: readonly Upgrade[] = [
       const today = Math.floor(((world.t as number) + 480) / 1440);
       const property = Object.fromEntries(Object.entries(world.property as Record<string, Record<string, unknown>>)
         .map(([id, p]) => [id, 'freeSince' in p ? p : { ...p, freeSince: p.holder === null ? today : null }]));
-      return { world: { ...world, property, placeOffers: world.placeOffers ?? [] }, brains };
+      return { world: { ...world, property, placeOffers: world.placeOffers ?? [], offersDay: world.offersDay ?? -1 }, brains };
     },
   },
 ];

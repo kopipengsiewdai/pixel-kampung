@@ -50,8 +50,9 @@ export const DECIDE_TOOL: Anthropic.Tool = {
     type: 'object',
     properties: {
       answer: { type: 'string', enum: ['accept', 'counter', 'wait'] },
-      offer: { type: 'integer', description: 'The number of the offer you accept, or answer with a counter (leave out to counter them all).' },
+      offer: { type: 'integer', description: 'The number of the offer you accept, or answer with a counter (leave out to counter every offer of that kind).' },
       cents: { type: 'integer', description: 'For a counter: what you would take, in cents.' },
+      kind: { type: 'string', enum: ['rent', 'buy'], description: 'For a counter: a rent a week, or a price to buy outright.' },
       words: { type: 'string', description: 'What you say to them, one short line.' },
     },
     required: ['answer'],
@@ -108,7 +109,7 @@ export class ModelMrLimHead implements MrLimHead {
     const free = b.freeDays === null ? '' : ` It has stood empty ${b.freeDays === 0 ? 'since today' : `${b.freeDays} day${b.freeDays === 1 ? '' : 's'}`}.`;
     const user = [
       `This evening you look over the offers for ${b.place}.${free} Its rent has been ${formatMoney(b.rent)} a week.`,
-      ...b.offers.map((o) => `Offer ${o.id}: ${o.name} offers ${formatMoney(o.cents)}${o.kind === 'rent' ? ' a week to rent it' : ' to buy it outright'}.`),
+      ...b.offers.map((o) => `Offer ${o.n}: ${o.name} offers ${formatMoney(o.cents)}${o.kind === 'rent' ? ' a week to rent it' : ' to buy it outright'}.`),
       'You may accept one offer, counter with what you would take, or wait for better. Decide, and say a few words.',
     ].join('\n');
     return this.ask(user, at, DECIDE_TOOL);
