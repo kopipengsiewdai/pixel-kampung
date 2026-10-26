@@ -119,15 +119,15 @@ export function travellersMinute(w: World): void {
       if (price && countGoods(shop.stock, s.item) > w.dials.travellerReserve && price <= travellerPays(shop, s.item)) {
         addGoods(shop.stock, s.item, -1);
         w.transfer(TRAVELLERS_ID, shop.ownerId, price, `travellers bought ${s.item}`);
-        w.emit({ type: 'traveller_bought', shop: shop.id, owner: shop.ownerId, by: s.by, item: s.item, cents: price });
         // Clerks and servicemen on the road pay a little more where they're served in English (school.md).
         const server = w.state.residents.find((r) => r.id === s.by);
-        const tip = server && skillLevel(server, 'english') >= ENGLISH_SERVES ? Math.max(1, Math.round(price / 10)) : 0;
+        const tip = server && skillLevel(server, 'english') >= ENGLISH_SERVES ? Math.round(price / 10) : 0;
         if (tip) {
           w.transfer(TRAVELLERS_ID, shop.ownerId, tip, 'travellers, a little more for being served in English');
           shop.today.cents += tip;
           shop.hour.cents += tip;
         }
+        w.emit({ type: 'traveller_bought', shop: shop.id, owner: shop.ownerId, by: s.by, item: s.item, cents: price + tip });
         shop.today.served++;
         shop.today.cents += price;
         shop.today.servedBy[s.by] = (shop.today.servedBy[s.by] ?? 0) + 1;

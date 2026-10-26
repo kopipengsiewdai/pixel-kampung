@@ -88,7 +88,7 @@ const NO_ANSWER = / hasn't answered you\.$/;
 /** A kitchen or a pot short of something, or a stove with no fuel: trying again this minute won't fill it. */
 const SHORT_OF = / short of [a-z ]+\.$/;
 const NO_FUEL = /^The stove needs firewood or kerosene/;
-const MR_LIM_BUSY = /^Mr Lim nods to you, but he's busy/;
+const MR_LIM_BUSY = /^Mr Lim nods to you, but he's busy|^Miss de Souza smiles at you, but|^Miss de Souza isn't here\.$/;
 
 /** The person an action is aimed at, lower-cased, if any. */
 function personOf(i: Intent): string | null {

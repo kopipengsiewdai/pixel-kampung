@@ -127,6 +127,9 @@ export interface TeacherHead {
   speak(brief: { moment: 'morning' | 'evening' | 'answer'; pupils: string[]; asker?: string; said?: string }, at: { t: number; realMs: number }): Promise<string | null>;
 }
 
+/** She opens a lesson within this many minutes of its start. */
+export const OPENING_WINDOW = 15;
+
 /** Her head's calls a weekday, at most (school.md: a few cheap lines a day). */
 export const TEACHER_CALLS_A_DAY = 4;
 
@@ -137,14 +140,23 @@ const SCRIPTED = {
   answer: 'Ask me again in English, slowly, and I will help you. And do send the children to school.',
 };
 
-/** Whether r means the teacher. */
-export const meansTeacher = (name: unknown) => typeof name === 'string' && /^(miss\.? ?de souza|de souza|miss|teacher|the teacher|cikgu|teacher de souza)$/i.test(name.trim());
+/** Whether r means the teacher ("Miss de Souza", "Cikgu de Souza", "the teacher", …). */
+export const meansTeacher = (name: unknown) => typeof name === 'string'
+  && /^((miss|ms|mrs|cikgu|teacher)\.?\s*)?(de souza|teacher|cikgu|miss)$|^the teacher$/i.test(name.trim().replace(/[.!?,]+$/, ''));
+
+/** Times a day she'll stop to answer the same person; after that she has her lessons to see to. */
+export const ANSWERS_A_DAY = 2;
+export const TEACHER_BUSY = `${TEACHER} smiles at you, but she has her lessons to see to just now.`;
 
 /** Something said to her where she is: it waits for her answer (in the town's next step). */
 export function sayToTeacher(w: World, r: Resident, text: string): ActionResult {
   const m = teacherAt(w, w.t);
   if (!m.out || !w.isAt(r, SCHOOL_ID)) return no(`${TEACHER} isn't here.`);
+  if (w.teacher.day === dayIndex(w.t) && (w.teacher.answered[r.id] ?? 0) >= ANSWERS_A_DAY) return no(TEACHER_BUSY);
   w.emit({ type: 'said', who: r.id, to: TEACHER_ID, text });
+  w.remember(r.id, `You say to ${TEACHER}: "${text}"`, true);
+  // Others there overhear, without being called on to answer.
+  for (const o of atSchool(w)) if (o.id !== r.id) w.hear(o.id, `${r.name} says to ${TEACHER}: "${text}"`);
   w.teacher.asks.push({ who: r.id, text });
   return ok(`You say to ${TEACHER}: "${text}"`);
 }
@@ -152,11 +164,14 @@ export function sayToTeacher(w: World, r: Resident, text: string): ActionResult 
 /** Who's at the schoolhouse now, awake. */
 const atSchool = (w: World) => w.state.residents.filter((r) => w.isAt(r, SCHOOL_ID) && r.activity?.kind !== 'sleeping');
 
-/** She speaks: the one spoken to hears it as to them, everyone else there overhears. */
+/** She speaks: the one spoken to hears it as to them (and may answer); a word to the class is heard by all; anyone else overhears. */
 function teacherSays(w: World, line: string, to: Resident | null): void {
   w.emit({ type: 'said', who: TEACHER_ID, to: to?.id ?? null, text: line });
   for (const r of atSchool(w)) {
-    w.notify(r.id, to?.id === r.id ? `${TEACHER} says to you: "${line}"` : to ? `${TEACHER} says to ${to.name}: "${line}"` : `${TEACHER} says: "${line}"`, true);
+    if (to && to.id !== r.id) w.hear(r.id, `${TEACHER} says to ${to.name}: "${line}"`);
+    else if (to) w.notify(r.id, `${TEACHER} says to you: "${line}"`, true);
+    // At the start of a lesson, those at it are busy: they hear it, and aren't woken.
+    else w.hear(r.id, `${TEACHER} says: "${line}"`, true);
   }
 }
 
@@ -167,7 +182,7 @@ function teacherSays(w: World, line: string, to: Resident | null): void {
  */
 export async function teacherThinks(w: World, head: TeacherHead | null, realMs: number): Promise<void> {
   const day = dayIndex(w.t);
-  if (w.teacher.day !== day) w.teacher = { asks: w.teacher.asks, day, calls: 0, opened: [] };
+  if (w.teacher.day !== day) w.teacher = { asks: w.teacher.asks, day, calls: 0, opened: [], answered: {} };
   const m = teacherAt(w, w.t);
   if (!m.out) {
     w.teacher.asks = [];
@@ -184,7 +199,8 @@ export async function teacherThinks(w: World, head: TeacherHead | null, realMs: 
   };
   const mod = minuteOfDay(w.t);
   for (const [moment, from, to, adult] of [['morning', SCHOOL_FROM, SCHOOL_TO, false], ['evening', CLASS_FROM, CLASS_TO, true]] as const) {
-    if (mod < from || mod >= to || w.teacher.opened.includes(moment)) continue;
+    // Only as a lesson begins (a town restarting mid-lesson doesn't hear her begin again).
+    if (mod < from || mod >= Math.min(to, from + OPENING_WINDOW) || w.teacher.opened.includes(moment)) continue;
     const pupils = w.state.residents.filter((r) => r.activity?.kind === 'school' && r.activity.adult === adult);
     if (!pupils.length) continue;
     w.teacher.opened.push(moment);
@@ -194,6 +210,7 @@ export async function teacherThinks(w: World, head: TeacherHead | null, realMs: 
   for (const a of asks) {
     const r = w.state.residents.find((x) => x.id === a.who);
     if (!r || !w.isAt(r, SCHOOL_ID)) continue;
+    w.teacher.answered[r.id] = (w.teacher.answered[r.id] ?? 0) + 1;
     teacherSays(w, await say({ moment: 'answer', pupils: [], asker: r.name, said: a.text }), r);
   }
 }

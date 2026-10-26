@@ -613,7 +613,8 @@ export function scriptedGossip(w: World, brief: { mood: Mood; short: string[]; p
 /** Words a line of news must never have: it's a lorry man's talk, nothing about how things work. */
 export const UNWORLDLY = /\b(game|simulation|simulated|agent|AI|API|system|feature|implemented|tool|JSON|token|model|prompt|player|npc|engine|server|database|code|bounds?|clamp|percent|%)\b|_/i;
 
-function cleanLine(text: unknown, max = 200): string | null {
+/** A line fit to be heard in the kampung: one line, not too long, nothing of the machinery. */
+export function cleanLine(text: unknown, max = 200): string | null {
   if (typeof text !== 'string') return null;
   const s = text.replace(/\s+/g, ' ').trim().replace(/^"|"$/g, '');
   return s && s.length <= max && !UNWORLDLY.test(s) ? s : null;

@@ -6,7 +6,9 @@
  * or a call failing she speaks her own scripted words.
  */
 import type Anthropic from '@anthropic-ai/sdk';
-import { TEACHER_ID, type TeacherHead } from '../sim/school.ts';
+import { cleanLine } from '../sim/osman.ts';
+import { TEACHER_CALLS_A_DAY, TEACHER_ID, type TeacherHead } from '../sim/school.ts';
+import { dayIndex, MINUTES_PER_DAY, SGT_OFFSET_MIN } from '../sim/time.ts';
 import { dayCap, ESTIMATE } from './budget.ts';
 import type { CostLog } from './cost-log.ts';
 import type { ModelClient } from './model.ts';
@@ -23,6 +25,8 @@ export class ModelTeacherHead implements TeacherHead {
   private readonly client: ModelClient;
   private readonly costs: CostLog;
   private readonly onError: (err: unknown) => void;
+  /** Her calls this game day: counted from the cost log on the day's first call, so a restart doesn't give her more. */
+  private day = { day: -1, calls: 0 };
 
   constructor(opts: { client: ModelClient; costs: CostLog; onError?: (err: unknown) => void }) {
     this.client = opts.client;
@@ -32,6 +36,14 @@ export class ModelTeacherHead implements TeacherHead {
 
   async speak(b: Parameters<TeacherHead['speak']>[0], at: { t: number; realMs: number }): Promise<string | null> {
     if (this.costs.spentOn(this.costs.dayKey(at.realMs)) + ESTIMATE.routine > dayCap(this.costs, at.realMs)) return null;
+    const day = dayIndex(at.t);
+    if (this.day.day !== day) {
+      const since = day * MINUTES_PER_DAY - SGT_OFFSET_MIN;
+      const realDays = [this.costs.dayKey(at.realMs - 86_400_000), this.costs.dayKey(at.realMs)];
+      this.day = { day, calls: this.costs.callsSince(TEACHER_ID, since, realDays) };
+    }
+    if (this.day.calls >= TEACHER_CALLS_A_DAY) return null;
+    this.day.calls++;
     const user = b.moment === 'answer'
       ? `${b.asker} says to you at the schoolhouse: "${b.said}". Answer them briefly.`
       : b.moment === 'morning'
@@ -41,7 +53,8 @@ export class ModelTeacherHead implements TeacherHead {
       const res = await this.client.think({ tier: 'routine', kind: 'trader', residentId: TEACHER_ID, t: at.t, system: TEACHER_SYSTEM, user, tools: [SPEAK_TOOL], hint: { fake: null } });
       for (const a of res.attempts) this.costs.add({ t: at.t, realMs: at.realMs, resident: TEACHER_ID, kind: 'trader', model: a.model, usage: a.usage });
       const words = (res.toolCall?.input as { words?: unknown } | undefined)?.words;
-      return !res.refused && typeof words === 'string' && words.trim() ? words.trim().slice(0, 300) : null;
+      // Only in-world words reach the kampung (as with Pak Osman's).
+      return res.refused ? null : cleanLine(words, 240);
     } catch (err) {
       this.onError(err);
       this.costs.add({ t: at.t, realMs: at.realMs, resident: TEACHER_ID, kind: 'trader', model: 'failed', usage: { input_tokens: 0, output_tokens: 0 }, estimatedUsd: ESTIMATE.routine });
