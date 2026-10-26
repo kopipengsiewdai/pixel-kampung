@@ -6,6 +6,7 @@
 import type { Card, Economy, FeedLine, Hello, MoneyView, PlaceCard, ReplayState, TalkView, Thought, Update, Wiki } from '../types.ts';
 import { startGame, type TownScene } from './scene.ts';
 import { looksForeign } from '../foreign.ts';
+import { EnglishAsker } from './english.ts';
 
 const FEED_KEPT = 200;
 
@@ -63,45 +64,30 @@ try {
 } catch {
   // Off, then.
 }
-/** English for a line; null when there's none to be had (already English, or not now). */
-const englishOf = new Map<string, string | null>();
-const asking = new Set<string>();
-let askTimer: number | null = null;
+/** Asks the server for English a small batch at a time, and again after a failure. */
+const englishAsker = new EnglishAsker(async (texts) => {
+  const res = await fetch('/api/translate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ texts }) });
+  if (!res.ok) throw new Error(`translate: ${res.status}`);
+  return ((await res.json()) as { english: (string | null)[] }).english;
+}, () => {
+  drawFeed();
+  if (lastCard) renderCard(lastCard);
+  scene?.refreshBubbles();
+});
+
+/** A line in English when that's on and it's to hand; otherwise as said (and asked for). */
+function englishText(text: string): string {
+  if (!english || !looksForeign(text)) return text;
+  const got = englishAsker.get(text);
+  if (got) return got;
+  if (got === undefined) englishAsker.want(text);
+  return text;
+}
 
 /** A line as it should show: in English when that's on and it's to hand (the original on hover). */
 function said(text: string, wrap: (t: string) => string = (t) => t): Node | string {
-  if (!english || !looksForeign(text)) return wrap(text);
-  const got = englishOf.get(text);
-  if (got) return el('span', { class: 'english', title: wrap(text) }, wrap(got));
-  if (got === undefined && !asking.has(text)) {
-    asking.add(text);
-    askSoon();
-  }
-  return wrap(text);
-}
-
-function askSoon(): void {
-  if (askTimer !== null) return;
-  askTimer = window.setTimeout(() => void ask(), 400);
-}
-
-async function ask(): Promise<void> {
-  const texts = [...asking].slice(0, 60);
-  let out: unknown[] = [];
-  try {
-    const res = await fetch('/api/translate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ texts }) });
-    if (res.ok) out = ((await res.json()) as { english?: unknown[] }).english ?? [];
-  } catch {
-    // Shown as said, then.
-  }
-  texts.forEach((t, i) => {
-    asking.delete(t);
-    englishOf.set(t, typeof out[i] === 'string' ? out[i] as string : null);
-  });
-  askTimer = null;
-  drawFeed();
-  if (lastCard) renderCard(lastCard);
-  if (asking.size) askSoon();
+  const shown = englishText(text);
+  return shown !== text ? el('span', { class: 'english', title: wrap(text) }, wrap(shown)) : wrap(text);
 }
 
 function setEnglish(on: boolean): void {
@@ -114,6 +100,7 @@ function setEnglish(on: boolean): void {
   $('english').setAttribute('aria-pressed', String(on));
   drawFeed();
   if (lastCard) renderCard(lastCard);
+  scene?.refreshBubbles();
 }
 
 /** The town's calendar: its 1 January, Year 0 (a Monday), from the server. */
@@ -768,7 +755,7 @@ function onHello(h: Hello): void {
   const first: Update = { frame: h.frame, feed: [], snap: true };
   $('version').textContent = `v${h.version}`;
   $('map').style.setProperty('--map-aspect', `${h.layout.w} / ${h.layout.h}`);
-  if (!scene) scene = startGame($('stage'), h.layout, { onPick: (id) => { if (!dragged) pick(id); }, onPickPlace: (id) => { if (!dragged) pickPlace(id); } });
+  if (!scene) scene = startGame($('stage'), h.layout, { onPick: (id) => { if (!dragged) pick(id); }, onPickPlace: (id) => { if (!dragged) pickPlace(id); }, shown: englishText });
   onUpdate(first);
 }
 
