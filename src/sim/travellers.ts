@@ -103,6 +103,9 @@ function lost(w: World, shop: Shop, item: ItemId): void {
   shop.today.lost = Math.max(shop.today.lost, Math.min(shop.today.lost + price, w.dials.travellerBudgetCents - shop.today.cents, stock));
 }
 
+/** English enough to talk with the road's clerks and servicemen (school.md). */
+export const ENGLISH_SERVES = 2;
+
 /** One minute of travellers at every shop: arrivals, the queue, serving, and the hourly line. */
 export function travellersMinute(w: World): void {
   const mod = minuteOfDay(w.t);
@@ -116,7 +119,15 @@ export function travellersMinute(w: World): void {
       if (price && countGoods(shop.stock, s.item) > w.dials.travellerReserve && price <= travellerPays(shop, s.item)) {
         addGoods(shop.stock, s.item, -1);
         w.transfer(TRAVELLERS_ID, shop.ownerId, price, `travellers bought ${s.item}`);
-        w.emit({ type: 'traveller_bought', shop: shop.id, owner: shop.ownerId, by: s.by, item: s.item, cents: price });
+        // Clerks and servicemen on the road pay a little more where they're served in English (school.md).
+        const server = w.state.residents.find((r) => r.id === s.by);
+        const tip = server && skillLevel(server, 'english') >= ENGLISH_SERVES ? Math.round(price / 10) : 0;
+        if (tip) {
+          w.transfer(TRAVELLERS_ID, shop.ownerId, tip, 'travellers, a little more for being served in English');
+          shop.today.cents += tip;
+          shop.hour.cents += tip;
+        }
+        w.emit({ type: 'traveller_bought', shop: shop.id, owner: shop.ownerId, by: s.by, item: s.item, cents: price + tip });
         shop.today.served++;
         shop.today.cents += price;
         shop.today.servedBy[s.by] = (shop.today.servedBy[s.by] ?? 0) + 1;

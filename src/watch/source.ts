@@ -291,7 +291,7 @@ export class LiveSource implements WatchSource {
     const r = w?.state.residents.find((x) => x.id === id);
     if (!w || !r) return null;
     const events = this.opts.said ? this.opts.said(id, TALK_LINES, w.t - TALK_DAYS * MINUTES_PER_DAY) : this.said;
-    const name = (x: string) => w.state.residents.find((o) => o.id === x)?.name ?? x;
+    const name = (x: string) => w.nameOf(x);
     return { name: r.name, talks: talkOf(events, id, name, w.state) };
   }
 

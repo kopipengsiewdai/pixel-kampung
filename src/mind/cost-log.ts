@@ -69,6 +69,26 @@ export class CostLog {
     return usd;
   }
 
+  /** How many calls `resident` made from game minute `sinceT` on, in the given real days' logs (none kept in memory only). */
+  callsSince(resident: string, sinceT: number, days: readonly string[]): number {
+    if (!this.dir) return 0;
+    let n = 0;
+    for (const day of days) {
+      const file = join(this.dir, `${day}.jsonl`);
+      if (!existsSync(file)) continue;
+      for (const line of readFileSync(file, 'utf8').split('\n')) {
+        if (!line) continue;
+        try {
+          const e = JSON.parse(line) as { resident?: string; t?: number };
+          if (e.resident === resident && (e.t ?? -1) >= sinceT) n++;
+        } catch {
+          // A torn last line: skip it.
+        }
+      }
+    }
+    return n;
+  }
+
   spentOn(day: string): number {
     const known = this.totals.get(day);
     if (known !== undefined) return known;

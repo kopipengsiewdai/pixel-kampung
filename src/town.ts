@@ -13,6 +13,7 @@ import { MAX_REPLAY_MINUTES, skipQuietly } from './sim/skip.ts';
 import { World, type Resident, type WorldState } from './sim/state.ts';
 import { advance } from './sim/tick.ts';
 import { osmanThinks, priceFor, type OsmanHead } from './sim/osman.ts';
+import { teacherThinks, type TeacherHead } from './sim/school.ts';
 import { isNight, minuteOfDay, realMsAt } from './sim/time.ts';
 import type { SqliteStore } from './store/sqlite-store.ts';
 import { SCHEMA_VERSION } from './store/upgrades.ts';
@@ -87,7 +88,7 @@ const NO_ANSWER = / hasn't answered you\.$/;
 /** A kitchen or a pot short of something, or a stove with no fuel: trying again this minute won't fill it. */
 const SHORT_OF = / short of [a-z ]+\.$/;
 const NO_FUEL = /^The stove needs firewood or kerosene/;
-const MR_LIM_BUSY = /^Mr Lim nods to you, but he's busy/;
+const MR_LIM_BUSY = /^Mr Lim nods to you, but he's busy|^Miss de Souza smiles at you, but|^Miss de Souza isn't here\.$/;
 
 /** The person an action is aimed at, lower-cased, if any. */
 function personOf(i: Intent): string | null {
@@ -133,6 +134,8 @@ export interface TownOptions {
   dials?: Partial<Dials>;
   /** Pak Osman's bounded head (src/mind/osman-head.ts); without one he trades by his scripted ways. */
   osman?: OsmanHead | null;
+  /** Miss de Souza's bounded head (src/mind/teacher-head.ts); without one she speaks her own words. */
+  teacher?: TeacherHead | null;
 }
 
 /** The running kampung: world + brains + optional store, advanced a minute at a time. */
@@ -143,6 +146,7 @@ export class Town {
   private onEvent?: (e: GameEvent) => void;
   private onTick?: (world: World) => void;
   private osman: OsmanHead | null;
+  private teacher: TeacherHead | null;
 
   private constructor(state: WorldState, opts: TownOptions, savedBrains?: Record<string, unknown>) {
     this.world = new World(state);
@@ -152,6 +156,7 @@ export class Town {
     this.onEvent = opts.onEvent;
     this.onTick = opts.onTick;
     this.osman = opts.osman ?? null;
+    this.teacher = opts.teacher ?? null;
     const make = opts.brains ?? fakeBrains;
     this.brains = new Map(state.residents.map((r, i) => [r.id, make(r, i, state.seed, state)]));
     if (savedBrains) for (const [id, b] of this.brains) if (savedBrains[id] !== undefined) b.load(savedBrains[id]);
@@ -198,6 +203,7 @@ export class Town {
     const mod = minuteOfDay(w.t);
     // The lorry man answers before anyone thinks: his prices, his news, and any offer from last minute.
     await osmanThinks(w, this.osman, realMs);
+    await teacherThinks(w, this.teacher, realMs);
     if (mod >= EVENING_FROM) {
       for (const r of w.state.residents) {
         const brain = this.brains.get(r.id)!;
