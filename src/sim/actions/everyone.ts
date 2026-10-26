@@ -232,7 +232,8 @@ export function say(w: World, r: Resident, i: Intent): ActionResult {
     // talk meant for someone else is only overheard.
     const forYou = !to || to.id === o.id;
     if (forYou && !runsLong(o)) w.notify(o.id, line, true);
-    else w.remember(o.id, line, forYou);
+    else if (forYou) w.remember(o.id, line, true);
+    else w.hear(o.id, line);
   }
   w.remember(r.id, to ? `You say to ${to.name}: "${text}"` : `You say: "${text}"`, true);
   return ok();

@@ -156,3 +156,19 @@ export function talkMeasures(events: readonly GameEvent[], opts: { gap?: number;
     circles,
   };
 }
+
+/**
+ * Which exchange a remembered line belongs to ("Mei Ling>Mdm Tan", "you>Mdm Tan"),
+ * so a line said over and over is kept once, the newest; null for anything else.
+ */
+export function exchangeOf(text: string): string | null {
+  const m = /^(You say|.+? says)(?: to (.+?))?: "/.exec(text);
+  return m ? `${m[1]}>${m[2] ?? ''}` : null;
+}
+
+/** Only the newest line of each exchange, everything else as it was, in order. */
+export function newestOfEach<T>(items: readonly T[], text: (x: T) => string): T[] {
+  const last = new Map<string, number>();
+  items.forEach((x, i) => { const k = exchangeOf(text(x)); if (k) last.set(k, i); });
+  return items.filter((x, i) => { const k = exchangeOf(text(x)); return !k || last.get(k) === i; });
+}

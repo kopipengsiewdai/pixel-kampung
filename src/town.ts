@@ -28,7 +28,7 @@ export const TRIES_PER_THOUGHT = 3;
  * residents short of thinking money think about a sixth less per game hour
  * (owner: accepted).
  */
-export const QUIET_THINK_MINUTES = 10;
+export const QUIET_THINK_MINUTES = 30;
 /** After something they did goes through, the next thought comes this many game minutes later (being spoken to still wakes them the next minute). */
 export const AFTER_ACTION_MINUTES = 2;
 /**

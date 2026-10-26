@@ -4,7 +4,7 @@ import { CHORE_DOING, errandLines } from './actions/chores.ts';
 import { FEELINGS_SHOWN, feelingLine, strength } from './bonds.ts';
 import { offersFor } from './actions/haggle.ts';
 import { servers } from './travellers.ts';
-import type { DealKind } from './talk.ts';
+import { newestOfEach, type DealKind } from './talk.ts';
 import { availableActions } from './actions/index.ts';
 import { ITEMS, quantityLabel, type ItemId } from './items.ts';
 import { HAGGLES_PER_VISIT, OSMAN, priceFor, room } from './osman.ts';
@@ -77,6 +77,8 @@ export interface Perception {
   carrying: { item: ItemId; qty: number }[];
   /** Hunger that hurts, in words, from 800; null below. */
   hungerPang: string | null;
+  /** Hungry with nothing to eat: the ways to food they know of. */
+  foodWays: string[];
   hunger: HungerWord;
   energy: EnergyWord;
   job: {
@@ -158,6 +160,28 @@ export const ACHING_HUNGER = 800;
 export const FAINT_HUNGER = 950;
 
 /** Hunger that matters, in words: eating (or going where food is) is the next thing to do. */
+/**
+ * Hungry with nothing to eat in hand: where they know food can be had right
+ * now (a shop being minded with food they can pay for, the lorry while it's in),
+ * and the sea, which always has fish. Only places they know.
+ */
+function foodWays(w: World, r: Resident): string[] {
+  if (r.hunger < HUNGRY_FROM || (Object.keys(r.items) as ItemId[]).some((i) => ITEMS[i]?.food && (r.items[i] ?? 0) > 0)) return [];
+  const here = w.placeOf(r)?.id ?? null;
+  const shops = w.state.shops.filter((s) => s.id !== here && r.knownPlaces.includes(s.id) && isStaffed(w, s)
+    && (Object.entries(s.sellPrices) as [ItemId, number][]).some(([i, price]) => ITEMS[i].food && (s.stock[i] ?? 0) > 0 && price <= r.money))
+    .map((s) => w.placeName(PLACE_BY_ID.get(s.id)!));
+  const v = w.state.osman.visit;
+  if (v && here !== 'lorry-stop' && r.knownPlaces.includes('lorry-stop')
+    && (Object.keys(v.goods) as ItemId[]).some((i) => ITEMS[i].food && (v.goods[i] ?? 0) > 0 && (priceFor(w, r, 'sells', i) ?? Infinity) <= r.money)) {
+    shops.push(w.placeName(PLACE_BY_ID.get('lorry-stop')!));
+  }
+  const out: string[] = [];
+  if (shops.length) out.push(`You could get something to eat at ${shops.length === 1 ? shops[0] : `${shops.slice(0, -1).join(', ')} or ${shops.at(-1)}`}.`);
+  if (here !== 'jetty' && r.knownPlaces.includes('jetty')) out.push('You could catch a fish at the jetty.');
+  return out;
+}
+
 export function hungerPang(h: number): string | null {
   if (h >= FAINT_HUNGER) return "You're faint with hunger. You must eat now.";
   if (h >= ACHING_HUNGER) return 'Your stomach aches; you need to eat soon.';
@@ -263,6 +287,7 @@ export function perceive(w: World, r: Resident): Perception {
     carrying: goodsList(r.items),
     hunger: hungerWord(r.hunger),
     hungerPang: hungerPang(r.hunger),
+    foodWays: foodWays(w, r),
     energy: energyWord(r.energy),
     job: jobRow ? {
       place: PLACE_BY_ID.get(jobRow.placeId)!.name,
@@ -397,7 +422,7 @@ function priceLine(t: PriceTag): string {
 /** The last few things they saw or heard, besides the talk shown on its own. */
 export function latelyLines(p: Perception): string[] {
   const talk = new Set(p.talk);
-  return p.recent.filter((l) => !talk.has(l)).slice(-5);
+  return newestOfEach(p.recent.filter((l) => !talk.has(l)), (l) => l).slice(-5);
 }
 
 /**
@@ -423,6 +448,7 @@ export function describe(p: Perception): string {
   for (const n of p.unanswered) lines.push(`${n} hasn't answered you.`);
   if (p.atHome && HUNGRY.has(p.hunger) && !p.carrying.some((c) => ITEMS[c.item].food)) lines.push("There's no food in the house.");
   if (p.hungerPang) lines.push(p.hungerPang);
+  lines.push(...p.foodWays);
   lines.push(`You feel ${p.hunger} and ${p.energy}. You have ${formatMoney(p.money)}${p.carrying.length ? ` and you're carrying ${p.carrying.map((c) => quantityLabel(c.item, c.qty)).join(', ')}` : ''}.`);
   // What's owed, every moment, next to their money: so talk of debts meets what's true.
   const bracket = (what: string | null) => (what ? ` (${what})` : '');

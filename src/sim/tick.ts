@@ -13,7 +13,7 @@ import { addGoods, NEED_MAX, OLD_AGE, type Resident, type World } from './state.
 import { lookAbout } from './discovery.ts';
 import { ARRIVES, osmanMinute, STAYS } from './osman.ts';
 import { ITEMS, type ItemId } from './items.ts';
-import { FAINT_HUNGER } from './perception.ts';
+import { FAINT_HUNGER, HUNGRY_FROM } from './perception.ts';
 import { dayIndex, isNight, minuteOfDay } from './time.ts';
 import { kinOf } from '../seed/cast.ts';
 
@@ -25,7 +25,16 @@ function clamp(v: number): number {
   return Math.max(0, Math.min(NEED_MAX, v));
 }
 
+/** Hunger that crosses one of these brings a thought on: the stomach is news. */
+const HUNGER_LINES = [HUNGRY_FROM, 800, FAINT_HUNGER];
+
 function updateNeeds(w: World, r: Resident): void {
+  const before = r.hunger;
+  feelNeeds(w, r);
+  if (r.activity?.kind !== 'sleeping' && HUNGER_LINES.some((l) => before < l && r.hunger >= l)) r.thinkAt = Math.min(r.thinkAt, w.t + 1);
+}
+
+function feelNeeds(w: World, r: Resident): void {
   const kind = r.activity?.kind;
   if (kind === 'sleeping') {
     if (w.t % 3 === 0) r.hunger += 1;
@@ -52,7 +61,11 @@ function progress(w: World, r: Resident): void {
         r.activity = null;
         r.thinkAt = w.t;
         const dest = a.dest ? PLACE_BY_ID.get(a.dest) : null;
-        if (dest) w.emit({ type: 'arrived', who: r.id, at: dest.id });
+        if (dest) {
+          w.emit({ type: 'arrived', who: r.id, at: dest.id });
+          // Someone turning up is something new for whoever is there.
+          for (const o of w.state.residents) if (o.id !== r.id && !o.activity && w.isAt(o, dest.id)) o.thinkAt = Math.min(o.thinkAt, w.t + 1);
+        }
         if (a.thenSleep && w.isAt(r, r.homeId)) startSleep(w, r, isNight(w.t) ? 'night' : 'nap');
       }
       return;

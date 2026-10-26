@@ -1,4 +1,10 @@
 import { LEVEL_UP_LINES } from '../sim/skills.ts';
+import { newestOfEach } from '../sim/talk.ts';
+
+/** Passing thoughts recalled at most (the newest). */
+export const THOUGHTS_RECALLED = 2;
+/** "Mei Ling says to Mdm Tan: ...": a line between two others. */
+const OVERHEARD = /^(?!You )[^"\n]+? says to (?!you:)[^"\n]+?: "/;
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -92,9 +98,14 @@ export class MemoryStore {
   recall(resident: string, now: number, cue: string, k = RECALL_COUNT): Memory[] {
     const cueWords = words(cue);
     // Who was nearby then isn't who is nearby now: those lines aren't recalled.
-    const kept = this.all(resident)
+    // A line said over and over is one memory, the newest: repeats crowded out everything else.
+    const all = newestOfEach(this.all(resident)
       .map((m) => ({ ...m, text: m.text.split('\n').filter((l) => !/^\s*Nearby:/.test(l)).join('\n').trim() }))
-      .filter((m) => m.text);
+      .filter((m) => m.text), (m) => m.text);
+    // Passing thoughts, only the newest few: fed back each time, one idea chewed over filled the mind.
+    const thoughts = all.filter((m) => m.kind === 'thought').slice(-THOUGHTS_RECALLED);
+    // Talk between two others was only overheard: it was never theirs to keep (older saves kept it).
+    const kept = all.filter((m) => (m.kind !== 'thought' || thoughts.includes(m)) && !OVERHEARD.test(m.text));
     const scored = kept.map((m) => {
       const hours = Math.max(0, now - m.t) / 60;
       const recency = Math.pow(0.99, hours);
