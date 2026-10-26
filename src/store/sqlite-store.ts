@@ -157,6 +157,13 @@ export class SqliteStore {
     return rows.map((r) => JSON.parse(r.data) as GameEvent);
   }
 
+  /** Ledger entries from game minute t on. */
+  ledgerSince(t: number): LedgerEntry[] {
+    const rows = this.db.prepare('SELECT seq, t, from_id, to_id, cents, reason FROM ledger WHERE t >= ? ORDER BY seq').all(t) as
+      { seq: number; t: number; from_id: string; to_id: string; cents: number; reason: string }[];
+    return rows.map((r) => ({ seq: r.seq, t: r.t, from: r.from_id, to: r.to_id, cents: r.cents, reason: r.reason }));
+  }
+
   ledger(): LedgerEntry[] {
     const rows = this.db.prepare('SELECT seq, t, from_id, to_id, cents, reason FROM ledger ORDER BY seq').all() as
       { seq: number; t: number; from_id: string; to_id: string; cents: number; reason: string }[];

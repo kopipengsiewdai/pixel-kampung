@@ -589,7 +589,13 @@ function economyView(e: Economy): Node[] {
     ? `${money(Math.round(e.spend.usd * 100))} of the ${money(Math.round(e.spend.cap * 100))} daily cap (US dollars, by the real day).`
     : 'No thinking for real in this town (free fake brains): nothing spent.';
   return [
-    el('p', { class: 'note' }, 'From the saved events. GDP is what the town made: sales in town and to the lorry, less what it ordered in off the lorry. Value traded counts every sale. Money in and out is across the edge of town: the lorry pays in, orders off it go out.'),
+    el('p', { class: 'note' }, `GDP is what the town made: sales in town and to the lorry, less what it bought in off the lorry. Value traded counts every sale. ${e.fromLedger ? 'Money in and out is every cent across the edge of town, from the ledger.' : 'Money in and out is across the edge of town: the lorry pays in, what is bought off it goes out.'}`),
+    ...(e.edges.length ? [
+      el('h4', {}, 'Across the edge of town (these days)'),
+      el('table', { class: 'econ' },
+        el('thead', {}, el('tr', {}, ...['Who', 'Paid into town', 'Took out of town'].map((h) => el('th', {}, h)))),
+        el('tbody', {}, ...e.edges.map((x) => el('tr', {}, el('td', {}, x.name), el('td', {}, money(x.paidIn)), el('td', {}, money(x.tookOut)))))),
+    ] : []),
     el('h4', {}, 'Day by day'),
     el('div', { class: 'scroll' }, table),
     el('h4', {}, 'Earned today'), bars(e.income, 'Nobody has earned anything yet today.'),

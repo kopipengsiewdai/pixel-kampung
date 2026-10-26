@@ -12,7 +12,6 @@
  * What residents owe him and how well he knows them is his own ledger
  * (`OsmanState.accounts`), not memory.
  */
-import { weekdayAt } from './calendar.ts';
 import { ITEMS, quantityLabel, type ItemId } from './items.ts';
 import { formatMoney, type Cents } from './money.ts';
 import { Rng } from './rng.ts';
@@ -22,13 +21,12 @@ import { dayIndex, minuteOfDay } from './time.ts';
 export const OSMAN = 'Pak Osman';
 export const OSMAN_ID = 'pak-osman';
 
-/** About when he comes (06:30, give or take ten minutes) and how long he stays (about 90 minutes). */
+/** About when he comes (06:30, give or take ten minutes) and how long he stays. */
 export const ARRIVES = 6 * 60 + 30;
 export const ARRIVE_SPREAD = 10;
-export const STAYS = 90;
+/** The first half of the day: about half past six to about noon (owner, 2026-10-26). */
+export const STAYS = 330;
 export const STAY_SPREAD = 10;
-/** The kampung's day of rest: no lorry. */
-export const NO_LORRY_DAY = 'Sunday';
 
 /** One lorry's room a day, in sacks and baskets: what he brings and what he buys share it. */
 export const LOAD = 120;
@@ -149,9 +147,8 @@ export function dayRng(w: World, day: number, salt = 0): Rng {
   return new Rng((Math.imul(w.state.seed ^ 0x5f3759df, 2654435761) ^ Math.imul(day + 1, 40503) ^ salt) >>> 0);
 }
 
-/** When he comes and goes on a day (minutes of the day), or null on the day of rest. */
-export function scheduleFor(w: World, day: number): { arrives: number; leaves: number } | null {
-  if (weekdayAt(w.state, day * 1440 - 8 * 60) === NO_LORRY_DAY) return null;
+/** When he comes and goes on a day (minutes of the day): every day, Sundays too (owner, 2026-10-26). */
+export function scheduleFor(w: World, day: number): { arrives: number; leaves: number } {
   const rng = dayRng(w, day, 1);
   const arrives = ARRIVES + rng.int(-ARRIVE_SPREAD, ARRIVE_SPREAD);
   return { arrives, leaves: arrives + STAYS + rng.int(-STAY_SPREAD, STAY_SPREAD) };
@@ -332,13 +329,15 @@ export function arrive(w: World, leaves: number): void {
   o.visit = v;
   w.state.lorryHere = true;
   w.emit({ type: 'lorry_arrived' });
-  // The horn tells the kampung what's on the back today.
-  const names = BRINGS.filter((g) => countGoods(v.goods, g) + countGoods(v.held, g) > 0).map((g) => ITEMS[g].many.replace(/^\{n\} (?:tins of |loaves of |bags of )?/, ''));
-  const aboard = names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
+  // The horn tells the kampung what's on the back today, and what he's buying.
+  const plain = (g: ItemId) => ITEMS[g].many.replace(/^\{n\} (?:tins of |loaves of |bags of |bunches of )?/, '');
+  const and = (names: string[]) => names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`;
+  const aboard = and(BRINGS.filter((g) => countGoods(v.goods, g) + countGoods(v.held, g) > 0).map(plain));
+  const buying = and(TAKES.map(plain));
   for (const r of w.state.residents) {
     if (w.isAsleep(r)) continue;
     w.learnPlace(r, 'lorry-stop');
-    w.notify(r.id, aboard ? `You hear the lorry's horn from the lorry stop: the lorry man is in from town with ${aboard}.` : "You hear the lorry's horn from the lorry stop.");
+    w.notify(r.id, `You hear the lorry's horn from the lorry stop${aboard ? `: the lorry man is in from town with ${aboard}, and he's buying ${buying}.` : `: the lorry man is buying ${buying}.`}`);
   }
 }
 

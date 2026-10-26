@@ -242,6 +242,10 @@ export interface Economy {
   spend: { usd: number; cap: number } | null;
   /** The shops, then the residents, whose money can be opened up (GET /api/money/<id>). */
   accounts: { id: string; name: string }[];
+  /** Each party outside the town (Pak Osman, travellers, the village fund), over the days shown: what it paid in and took out. */
+  edges: { id: string; name: string; paidIn: number; tookOut: number }[];
+  /** Whether money in and out came from the ledger (the live town) or only from the events (a recorded trial). */
+  fromLedger: boolean;
 }
 
 /** The whole wiki, as the page asks for it. */

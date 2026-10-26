@@ -90,6 +90,7 @@ const live = new LiveSource({
   extras: mem ? (id, t) => extrasFrom((r, k, up, n) => mem.latest(r, k, up, n), id, t, town.world.state) : undefined,
   said: (id, n, since) => store.saidBy(id, n, since),
   moneyEvents: (since) => store.eventsSince(since, [...ECONOMY_EVENTS]),
+  ledgerSince: (since) => store.ledgerSince(since),
   audit: () => lastAudit,
   spend: () => (costs ? { usd: costs.spentOn(costs.dayKey(clock.nowMs())), cap: dayCap(costs, clock.nowMs()) } : null),
 });

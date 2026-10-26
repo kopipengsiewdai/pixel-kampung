@@ -4,6 +4,12 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **Pak Osman comes every day, Sundays too, and stays the first half of the day:** about half past six to about noon, not an hour and a half, so anyone busy first thing can still meet the lorry. His horn now says what he's buying as well as what he's brought ("…and he's buying fish and vegetables").
+- **The economy page shows him:** money in and out across the edge of town is now counted from the money ledger, every cent, and a new table shows who outside the town (Pak Osman, travellers, the village fund) paid how much in and took how much out over the days shown. GDP and value traded now also count what residents buy off the lorry for themselves (not only shop orders), so past days' figures shift a little.
+- **Living town:** nothing to upgrade; from the next lorry morning he stays until about noon and comes on Sundays too (a lorry already in when the town restarts keeps the time it was due to leave).
+
 ## 0.24.1 (2026-10-26): their own languages
 
 - **Each resident speaks their own languages** ([cast.md](docs/design/cast.md#languages-owner-2026-10-26)): Hokkien, Teochew, Hakka, Tamil or Malay at home, bazaar Malay with neighbours, some English for the young. They think to themselves in English, and say things aloud in the language they'd really use with that person, in Roman letters. (Everyone had drifted into Malay, starting with Mak Esah: the model answers in whatever language its notes are full of, and no card said what anyone speaks.) The English button now also recognises Hokkien and Tamil.

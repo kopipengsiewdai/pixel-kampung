@@ -7,7 +7,7 @@
 import { VERSION } from '../version.ts';
 import { basename } from 'node:path';
 import { feedLine, keepFeed, type FeedLine } from '../feed/feed.ts';
-import type { GameEvent } from '../sim/events.ts';
+import type { GameEvent, LedgerEntry } from '../sim/events.ts';
 import type { Point } from '../sim/map.ts';
 import { createWorld } from '../sim/seed.ts';
 import { World } from '../sim/state.ts';
@@ -138,6 +138,8 @@ export interface LiveOptions {
   moneyEvents?: (sinceT: number) => GameEvent[];
   /** The last ledger check's line, if the town keeps one. */
   audit?: () => string | null;
+  /** The money ledger from game minute t on, for money across the edge of town. */
+  ledgerSince?: (sinceT: number) => LedgerEntry[];
   /** Today's thinking spend and the town's daily cap, if the town thinks for real. */
   spend?: () => { usd: number; cap: number } | null;
 }
@@ -274,6 +276,7 @@ export class LiveSource implements WatchSource {
     const events = this.opts.moneyEvents ? this.opts.moneyEvents(since) : this.money_;
     return wikiOf(this.frame, this.layout, events, this.world.state, {
       audit: this.opts.audit?.() ?? null, spend: this.opts.spend?.() ?? null, debts: this.world.state.debts,
+      ...(this.opts.ledgerSince ? { ledger: this.opts.ledgerSince(this.frame.t - ECONOMY_DAYS * MINUTES_PER_DAY) } : {}),
     });
   }
 
