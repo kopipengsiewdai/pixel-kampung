@@ -432,9 +432,8 @@ function villagerCardView(v: VillagerView): void {
   close.addEventListener('click', () => pick(null));
   showCard([
     el('header', {}, el('h3', {}, v.name), el('span', { class: 'role' }, v.role), close),
-    el('p', { class: 'now' }, el('b', {}, 'Now: '), v.out ? v.doing : 'indoors at his house'),
-    el('h4', {}, 'Odd jobs today'),
-    v.jobs.length ? el('ul', {}, ...v.jobs.map((j) => el('li', {}, j))) : el('p', { class: 'note' }, 'None pinned yet today.'),
+    el('p', { class: 'now' }, el('b', {}, 'Now: '), v.out ? v.doing : v.doing === 'indoors' ? 'indoors at his house' : v.doing),
+    ...(v.id === 'mr-lim' ? [el('h4', {}, 'Odd jobs today'), v.jobs.length ? el('ul', {}, ...v.jobs.map((j) => el('li', {}, j))) : el('p', { class: 'note' }, 'None pinned yet today.')] : []),
     el('footer', {}, "Owner's view. Nothing on this card ever reaches a resident."),
   ]);
 }

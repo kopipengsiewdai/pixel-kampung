@@ -61,7 +61,7 @@ export function doOddJob(w: World, r: Resident): ActionResult {
   if (!here.length) return no("There's no work for Mr Lim here today.");
   if (doneToday(w, r)) return no("You've already done a job for Mr Lim today.");
   const job = openJobHere(w, r);
-  if (!job && here.every((j) => !fitFor(r, j.kind))) return no('Mr Lim wants someone who reads and writes English well for that.');
+  if (!job && here.every((j) => !fitFor(w, r, j.kind))) return no('Mr Lim wants someone who reads and writes English well for that.');
   if (!job) return no(`${workingAt(w, here.find((j) => workingAt(w, j.id))!.id)!.name} is already at it.`);
   start(w, r, 'odd_job', null, null);
   if (r.activity?.kind === 'chore') r.activity.job = job.id;

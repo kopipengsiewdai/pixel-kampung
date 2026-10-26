@@ -7,7 +7,7 @@
  * skill like any other, and it pays.
  */
 import { type ActionResult, no, ok } from './actions/common.ts';
-import { interrupt } from './activities.ts';
+import { FAINT_HUNGER } from './perception.ts';
 import { weekdayAt } from './calendar.ts';
 import { findPath, PLACE_BY_ID, type Point } from './map.ts';
 import { formatMoney, type Cents } from './money.ts';
@@ -62,21 +62,27 @@ function begin(w: World, r: Resident, adult: boolean, until: number): void {
   r.activity = { kind: 'school', until, adult, learnt: 0 };
 }
 
-/** Each minute: children sent off and started at school on weekday mornings. */
+/** The last a child is sent off: an hour before school ends. */
+export const SEND_UNTIL = SCHOOL_TO - 60;
+
+/**
+ * Each minute of a weekday morning: children of school age, well and not
+ * faint with hunger, are sent off to school once they're free (from twenty to
+ * eight), and start their lessons as soon as they're there, so they stay.
+ */
 export function schoolMinute(w: World): void {
   if (!schoolOpen(w) || !isWeekday(w, w.t)) return;
   const mod = minuteOfDay(w.t);
+  if (mod < SEND_AT || mod >= SCHOOL_TO) return;
   for (const r of w.state.residents) {
-    if (!ofSchoolAge(w, r) || r.ill) continue;
-    if (mod === SEND_AT && r.activity?.kind !== 'sleeping' && !w.isAt(r, SCHOOL_ID)) {
+    if (!ofSchoolAge(w, r) || r.ill || r.hunger >= FAINT_HUNGER || r.activity) continue;
+    if (w.isAt(r, SCHOOL_ID)) {
+      begin(w, r, false, dayStart(w.t) + SCHOOL_TO);
+      w.remember(r.id, `${TEACHER} has the children sit down for their lessons.`);
+    } else if (mod < SEND_UNTIL) {
       // Off to school, as families sent their children.
-      interrupt(w, r);
       r.activity = { kind: 'walking', path: findPath(r.pos, SPOT) ?? [], dest: SCHOOL_ID, thenSleep: false };
       w.remember(r.id, "It's a school morning: you're sent off to the schoolhouse.");
-    }
-    if (mod >= SCHOOL_FROM && mod < SCHOOL_TO && !r.activity && w.isAt(r, SCHOOL_ID)) {
-      begin(w, r, false, dayStart(w.t) + SCHOOL_TO);
-      w.remember(r.id, `${TEACHER} starts the morning's lessons.`);
     }
   }
 }
@@ -87,6 +93,13 @@ export function schoolProgress(w: World, r: Resident): void {
   if (a?.kind !== 'school') return;
   a.learnt += 1;
   if (a.learnt % LEARN_EVERY === 0) practise(w, r, 'english', 1);
+  // Faint with hunger, a child can't keep their mind on lessons, and is let go.
+  if (!a.adult && r.hunger >= FAINT_HUNGER) {
+    r.activity = null;
+    r.thinkAt = Math.min(r.thinkAt, w.t);
+    w.remember(r.id, `You're too faint with hunger to keep your mind on the lessons, and ${TEACHER} lets you go.`);
+    return;
+  }
   if (w.t < a.until) return;
   r.activity = null;
   r.thinkAt = Math.min(r.thinkAt, w.t);

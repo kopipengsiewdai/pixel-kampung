@@ -15,7 +15,7 @@ import { weekdayAt } from './calendar.ts';
 import { findPath, isWalkable, PLACE_BY_ID, type Point } from './map.ts';
 import { formatMoney, type Cents } from './money.ts';
 import { Rng } from './rng.ts';
-import { MR_LIM_ID, type Resident, type World } from './state.ts';
+import { GROWN_AGE, MR_LIM_ID, type Resident, type World } from './state.ts';
 import { dayIndex, minuteOfDay } from './time.ts';
 import { skillLevel } from './skills.ts';
 import { PROJECT_JOBS, PROJECT_JOBS_A_DAY, PROJECT_NAMES, PROJECTS, projectJobDone, projectJobOf, projectKind } from './projects.ts';
@@ -49,7 +49,7 @@ export const ODD_JOB_KINDS: readonly { kind: string; placeId: string; what: stri
 export const LEDGER_JOB = { kind: 'keep_ledger', placeId: 'village-head', what: "keep Mr Lim's ledger", pay: 100, english: 3 } as const;
 
 /** Whether r is fit for a job (the ledger wants good English). */
-export const fitFor = (r: Resident, kind: string) => kind !== LEDGER_JOB.kind || skillLevel(r, 'english') >= LEDGER_JOB.english;
+export const fitFor = (w: World, r: Resident, kind: string) => kind !== LEDGER_JOB.kind || (w.ageOf(r) >= GROWN_AGE && skillLevel(r, 'english') >= LEDGER_JOB.english);
 
 const pts = (from: Point, to: Point): Point[] => [from, ...(findPath(from, to) ?? [])];
 const minutes = (path: Point[]) => Math.ceil((path.length - 1) / WALK_TILES_PER_MINUTE);
@@ -109,7 +109,9 @@ export const doneToday = (w: World, r: Resident) => jobsToday(w).some((j) => j.d
 
 /** Today's job at r's place that nobody has done or is doing, if there is one. */
 export function openJobHere(w: World, r: Resident): World['state']['oddJobs'][number] | null {
-  return jobsToday(w).find((j) => j.doneBy === null && w.isAt(r, j.placeId) && !workingAt(w, j.id) && fitFor(r, j.kind)) ?? null;
+  // The best-paid first: someone who can keep the ledger is offered it before the path.
+  return jobsToday(w).filter((j) => j.doneBy === null && w.isAt(r, j.placeId) && !workingAt(w, j.id) && fitFor(w, r, j.kind))
+    .sort((a, b) => b.pay - a.pay)[0] ?? null;
 }
 
 export const whatOf = (kind: string) => (kind === LEDGER_JOB.kind ? LEDGER_JOB.what : ODD_JOB_KINDS.find((k) => k.kind === kind)?.what ?? projectJobOf(kind)?.what ?? 'odd work');
@@ -141,7 +143,7 @@ export function mrLimMinute(w: World): void {
     w.emit({ type: 'note_pinned', who: MR_LIM_ID, text });
   }
   // Someone in the kampung reads and writes English well: his ledger wants keeping.
-  if (w.state.residents.some((r) => fitFor(r, LEDGER_JOB.kind))) {
+  if (w.state.residents.some((r) => fitFor(w, r, LEDGER_JOB.kind))) {
     const text = `Wanted: someone with good English to ${LEDGER_JOB.what}. An hour's work, ${formatMoney(LEDGER_JOB.pay)} when it's done. Mr Lim.`;
     const noteId = w.nextId();
     w.state.notes.push({ id: noteId, authorId: MR_LIM_ID, text, t: w.t });
@@ -153,14 +155,15 @@ export function mrLimMinute(w: World): void {
   for (const p of w.state.projects) {
     if (p.builtDay !== null) continue;
     const next = (PROJECT_JOBS[p.id] ?? []).map((j, i) => ({ ...j, i })).filter((j) => !p.done.includes(j.i)).slice(0, PROJECT_JOBS_A_DAY);
-    for (const j of next) {
-      const text = `Wanted, for ${PROJECT_NAMES[p.id] ?? 'the new building'}: someone to ${j.what}. An hour's work, ${formatMoney(ODD_JOB_PAY)} when it's done. Mr Lim.`;
-      const noteId = w.nextId();
-      w.state.notes.push({ id: noteId, authorId: MR_LIM_ID, text, t: w.t });
-      if (w.state.notes.length > BOARD_MAX) w.state.notes.shift();
-      w.state.oddJobs.push({ id: w.nextId(), kind: projectKind(p.id, j.i), placeId: j.placeId, pay: ODD_JOB_PAY, day: today, doneBy: null, noteId, project: p.id });
-      w.emit({ type: 'note_pinned', who: MR_LIM_ID, text });
-    }
+    if (!next.length) continue;
+    // One note a building, so the board keeps room for everyone else's.
+    const wanted = next.map((j) => `someone to ${j.what}`);
+    const text = `Wanted, for ${PROJECT_NAMES[p.id] ?? 'the new building'}: ${wanted.join(', and ')}. An hour's work each, ${formatMoney(ODD_JOB_PAY)} when it's done. Mr Lim.`;
+    const noteId = w.nextId();
+    w.state.notes.push({ id: noteId, authorId: MR_LIM_ID, text, t: w.t });
+    if (w.state.notes.length > BOARD_MAX) w.state.notes.shift();
+    for (const j of next) w.state.oddJobs.push({ id: w.nextId(), kind: projectKind(p.id, j.i), placeId: j.placeId, pay: ODD_JOB_PAY, day: today, doneBy: null, noteId, project: p.id });
+    w.emit({ type: 'note_pinned', who: MR_LIM_ID, text });
   }
 }
 
@@ -169,7 +172,8 @@ export function finishOddJob(w: World, r: Resident, id: number | null): void {
   const job = w.state.oddJobs.find((j) => j.id === id);
   if (!job || job.doneBy !== null) return;
   job.doneBy = r.id;
-  w.state.notes = w.state.notes.filter((n) => n.id !== job.noteId);
+  // The note comes down once nothing on it is still wanted.
+  if (!w.state.oddJobs.some((j) => j.noteId === job.noteId && j.doneBy === null)) w.state.notes = w.state.notes.filter((n) => n.id !== job.noteId);
   w.transfer(MR_LIM_ID, r.id, job.pay, 'odd job for Mr Lim');
   const what = whatOf(job.kind);
   w.emit({ type: 'odd_job_done', who: r.id, what, cents: job.pay });

@@ -14,6 +14,7 @@ import {
   addGoods, type Bed, type Crop, CIRCLE_LINES, countGoods, REPEAT_MINUTES, REPEAT_WORDS, SAID_KEPT, type Resident, type Shop, type World, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, SAID_ALL_LINES, type TalkRecord, UNANSWERED_LINES,
 } from '../state.ts';
 import { atTimeOfDay, dayIndex, sgtHour } from '../time.ts';
+import { looksForeign } from '../../watch/foreign.ts';
 import {
   type ActionResult, type Intent, SAY_NOTHING_SENSIBLE, bundleLabel, bundleOf, isEmptyBundle, itemOf,
   lacks, moneyOf, no, ok, personNearby, qtyOf, quoted, textOf, hasMoney, saysLater,
@@ -22,6 +23,8 @@ import {
 export const MAX_SAY = 300;
 /** A gift of no money, or none of something. */
 export const GIVING_NOTHING = "You'd be giving nothing.";
+/** Talking in English with someone who has more of it teaches this much a day, at most (a school morning teaches eight). */
+export const TALK_ENGLISH_A_DAY = 2;
 export const MAX_NOTE = 200;
 export const MAX_NOTES = 12;
 export const TRADE_OFFER_MINUTES = 30;
@@ -201,7 +204,9 @@ export function say(w: World, r: Resident, i: Intent): ActionResult {
   }
   w.emit({ type: 'said', who: r.id, to: to?.id ?? null, text });
   // Talking with someone who has more English than you teaches you a little (school.md).
-  if (to && skillLevel(to, 'english') > skillLevel(r, 'english')) practise(w, r, 'english', 1);
+  const eng = r.skills.english;
+  const talkedToday = eng && eng.today.day === dayIndex(w.t) ? eng.today.xp : 0;
+  if (to && skillLevel(to, 'english') > skillLevel(r, 'english') && !looksForeign(text) && talkedToday < TALK_ENGLISH_A_DAY) practise(w, r, 'english', 1);
   const said = to ? dealKind(text) : null;
   // Thanks for a job already given, or one just offered, isn't an empty promise of one.
   const claim = said === 'job' && to && w.workBetween(r.id, to.id) ? null : said;

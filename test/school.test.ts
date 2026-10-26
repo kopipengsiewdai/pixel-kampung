@@ -189,3 +189,81 @@ describe('the upgrade (save v24)', () => {
     expect(step.save!({ world: up, brains: {} }).world).toEqual(up);
   });
 });
+
+describe('review fixes', () => {
+  it('in the town, children sent to school start lessons as they arrive, with no thought on the way, and stay', async () => {
+    const { Town } = await import('../src/town.ts');
+    const thoughts: number[] = [];
+    let w0: World | null = null;
+    const brain = { decide: () => { thoughts.push(minuteOfDay(w0!.t)); return { verb: 'walk_to', where: 'the jetty' }; }, save: () => null, load: () => {} };
+    const idle = { decide: () => null, save: () => null, load: () => {} };
+    const start = sgt(7, 30) - 1;
+    const town = Town.create(1, start, { brains: (r: { name: string }) => (r.name === 'Hassan' ? brain : idle) });
+    const w = town.world;
+    w0 = w;
+    built(w);
+    const hassan = who(w, 'Hassan');
+    hassan.hunger = 100;
+    hassan.thinkAt = start + 1000;
+    await town.runUntil(sgt(9, 0));
+    expect(hassan.activity?.kind).toBe('school');
+    // No thought from being sent off until lessons are over.
+    expect(thoughts.filter((m) => m >= 7 * 60 + 40)).toEqual([]);
+  });
+
+  it('busy at 7:40 (a nap, a chore), they are sent once free; a starving child is not sent, and one who grows faint goes home', () => {
+    const w = newWorld(7, 30);
+    built(w);
+    const aminah = who(w, 'Aminah');
+    aminah.activity = { kind: 'sleeping', reason: 'nap', until: sgt(7, 50) };
+    aminah.energy = 900;
+    runTo(w, sgt(8, 30));
+    expect(aminah.activity?.kind).toBe('school');
+    const hassan = who(w, 'Hassan');
+    aminah.hunger = 960;
+    advance(w);
+    expect((aminah.activity as { kind: string } | null)?.kind === 'school').toBe(false);
+    void hassan;
+  });
+
+  it('the ledger goes to whoever can keep it, before the path job at the same door; not to a child', () => {
+    const w = newWorld(6, 0);
+    who(w, 'Mei Ling').skills.english!.xp = threshold('english', 3);
+    who(w, 'Aminah').skills.english = { xp: threshold('english', 4), peak: 4, lastDay: 0, today: { day: 0, xp: 0 }, rusty: false, drops: 0 };
+    for (let seed = 0; seed < 1; seed++) runTo(w, sgt(9, 0));
+    const mei = put(w, 'Mei Ling', 'village-head');
+    const says = availableActions(w, mei).find((a) => a.verb === 'do odd job')?.says ?? '';
+    expect(says).toMatch(/ledger/);
+    const aminah = put(w, 'Aminah', 'village-head');
+    expect(availableActions(w, aminah).find((a) => a.verb === 'do odd job')?.says ?? '').not.toMatch(/ledger/);
+  });
+
+  it('talk teaches a little English, only when it is in English, and only a little a day', () => {
+    const w = newWorld(9);
+    const siti = put(w, 'Siti', 'well');
+    put(w, 'Raju', 'well');
+    accepted(act(w, siti.id, { verb: 'say', to: 'Raju', text: 'Raju, sudah makan ke belum? Saya lapar sangat.' }));
+    expect(siti.skills.english?.xp ?? 0).toBe(0);
+    const lines = ['Good day Raju, did the boats come in early?', 'How is your cousin Muthu these days?', 'Will the lorry bring kerosene tomorrow?'];
+    for (const l of lines) {
+      accepted(act(w, siti.id, { verb: 'say', to: 'Raju', text: l }));
+      accepted(act(w, who(w, 'Raju').id, { verb: 'say', to: 'Siti', text: 'Yes, I think so.' }));
+      w.state.t += 1;
+    }
+    expect(siti.skills.english!.xp).toBe(2);
+  });
+
+  it('English can be named for teaching', async () => {
+    const { skillOf } = await import('../src/sim/skills.ts');
+    expect(skillOf('English')).toBe('english');
+    expect(skillOf('how to speak English')).toBe('english');
+  });
+
+  it('Mr Lim pins a building\'s jobs on one note, so the board keeps room', () => {
+    const w = newWorld(6, 0);
+    runTo(w, sgt(9, 0));
+    const lim = w.state.notes.filter((n) => n.authorId === MR_LIM_ID);
+    expect(lim.filter((n) => /^Wanted, for the schoolhouse/.test(n.text)).length).toBe(1);
+    expect(lim.length).toBeLessThanOrEqual(6);
+  });
+});

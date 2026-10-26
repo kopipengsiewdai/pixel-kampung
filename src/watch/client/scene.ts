@@ -345,7 +345,8 @@ export class TownScene extends Phaser.Scene {
 
   private makeMover(r: ResidentView): Mover {
     const idx = PEOPLE_ORDER.indexOf(r.id);
-    const look = idx >= 0 ? idx : hash(r.id.length, r.id.charCodeAt(0)) % PEOPLE_ORDER.length;
+    // Anyone not in the list wears one of the residents' looks (never Mr Lim's or the teacher's).
+    const look = idx >= 0 ? idx : hash(r.id.length, r.id.charCodeAt(0)) % (PEOPLE_ORDER.length - 2);
     const p = tileCentre(r);
     const sprite = this.add.sprite(p.x, p.y, 'people', look * 4).setOrigin(0.5, 1).setScale(r.child ? CHILD_SCALE : 1);
     const lift = r.child ? Math.round(16 * CHILD_SCALE) : 16;

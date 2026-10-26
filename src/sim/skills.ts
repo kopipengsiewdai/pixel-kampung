@@ -285,6 +285,7 @@ export const LESSON_OFFER_MINUTES = 30;
 export function skillOf(v: unknown): SkillId | null {
   if (typeof v !== 'string') return null;
   const s = v.toLowerCase();
+  if (/english|inggeris/.test(s)) return 'english';
   if (/fish|line|net/.test(s)) return 'fishing';
   if (/farm|grow|plant|bed|vegetable|kangkong|soil/.test(s)) return 'farming';
   if (/cook|kitchen|stove|kopi|porridge|rice/.test(s)) return 'cooking';
