@@ -64,3 +64,22 @@ Kopi stays a drink.
 - **Getting well:** about six hours after hunger falls below hungry, they're well again.
 - **Never death.**
 - Being ill is saved state, so it takes the next save version.
+
+## Where cooking happens (owner, 2026-10-26: "all three")
+
+Residents kept inventing cooking that didn't exist ("Hassan's fire" at the
+jetty, porridge "already cooked") and paid each other for it. The owner chose all
+three answers, so the stories come true when someone does the work:
+
+1. **Outdoor fires are real.**
+   - Anyone with a bundle of firewood can light a cooking fire outdoors, at the
+     jetty or the beach, and it burns about an hour.
+   - Anyone at it can cook simple food from what they carry: grilled fish, or
+     bubur if they have a pot.
+   - *Drafted:* a cooking pot is a new item, sold off the lorry for a few cents, and lasts.
+2. **Stoves and the kopitiam stay where cooking otherwise happens,** and the notes
+   make it plain: a resident sees a fire or a stove only where one is really burning.
+3. **A shared village kitchen.** Mr Lim builds it through paid odd jobs, as with
+   the school. Anyone can cook there, bringing their own ingredients and a few
+   cents of firewood or fuel.
+
