@@ -15,7 +15,9 @@ import { weekdayAt } from './calendar.ts';
 import { findPath, isWalkable, PLACE_BY_ID, type Point } from './map.ts';
 import { formatMoney, type Cents } from './money.ts';
 import { Rng } from './rng.ts';
-import { GROWN_AGE, MR_LIM_ID, type Resident, type World } from './state.ts';
+import { FUND_ID, GROWN_AGE, MR_LIM_ID, type Resident, type World } from './state.ts';
+import { type ActionResult, no, ok } from './actions/common.ts';
+import { cleanLine } from './osman.ts';
 import { dayIndex, minuteOfDay } from './time.ts';
 import { skillLevel } from './skills.ts';
 import { PROJECT_JOBS, PROJECT_JOBS_A_DAY, PROJECT_NAMES, PROJECTS, projectJobDone, projectJobOf, projectKind } from './projects.ts';
@@ -53,6 +55,7 @@ export const JOB_PAY_BOUNDS: [Cents, Cents] = [40, 80];
 export interface MrLimBrief { residents: number; broke: number; hungry: number; fund: Cents; yesterday: { posted: number; done: number } }
 export interface MrLimHead {
   plan(brief: MrLimBrief, at: { t: number; realMs: number }): Promise<{ jobs?: unknown; pay?: unknown } | null>;
+  help?(brief: HelpBrief, at: { t: number; realMs: number }): Promise<HelpAnswer | null>;
 }
 
 const clamp = (n: number, [lo, hi]: [number, number]) => Math.max(lo, Math.min(hi, Math.round(n)));
@@ -69,7 +72,7 @@ export async function mrLimThinks(w: World, head: MrLimHead | null, realMs: numb
   const mod = minuteOfDay(w.t);
   if (w.mrLim.day === today || mod < PIN_FROM || mod >= PIN_AT) return;
   const plan = scriptedPlan(w);
-  w.mrLim = { day: today, plan };
+  w.mrLim = { ...w.mrLim, day: today, plan };
   if (!head) return;
   const yesterday = w.state.oddJobs.filter((j) => j.project === null);
   const brief: MrLimBrief = {
@@ -82,7 +85,68 @@ export async function mrLimThinks(w: World, head: MrLimHead | null, realMs: numb
   const got = await head.plan(brief, { t: w.t, realMs });
   const jobs = typeof got?.jobs === 'number' && Number.isFinite(got.jobs) ? clamp(got.jobs, JOBS_A_DAY_BOUNDS) : plan.jobs;
   const pay = typeof got?.pay === 'number' && Number.isFinite(got.pay) ? clamp(got.pay, JOB_PAY_BOUNDS) : plan.pay;
-  w.mrLim = { day: today, plan: { jobs, pay } };
+  w.mrLim = { ...w.mrLim, day: today, plan: { jobs, pay } };
+}
+
+/** Hardship help (village-characters.md power 8): a loan of at most this many weeks' rent, a week's grace once in this many days. */
+export const LOAN_WEEKS = 4;
+export const GRACE_EVERY_DAYS = 28;
+export const GRACE_DAYS = 7;
+
+/** What his head is told of someone asking for help, and what it may answer. */
+export interface HelpBrief { name: string; money: Cents; owing: Cents; canGrace: boolean; canLend: Cents; said: string | null }
+export type HelpAnswer = { answer?: unknown; amount?: unknown; words?: unknown };
+
+/** Whether r may ask him for help here and now (at his door, once a day). */
+export function canAskHelp(w: World, r: Resident): boolean {
+  const m = mrLimAt(w, w.t);
+  return m.out && m.doing === 'at his door' && w.isAt(r, 'village-head') && w.mrLim.asked[r.id] !== dayIndex(w.t);
+}
+
+export function askForHelp(w: World, r: Resident): ActionResult {
+  if (!w.isAt(r, 'village-head')) return no("You'd have to see Mr Lim at the village head's house.");
+  if (!canAskHelp(w, r)) return no(w.mrLim.asked[r.id] === dayIndex(w.t) ? "You've already asked Mr Lim today." : "Mr Lim isn't at his door just now.");
+  w.mrLim.asked[r.id] = dayIndex(w.t);
+  w.mrLim.asks.push(r.id);
+  return ok('You tell Mr Lim how things stand with you, and ask if he can help.');
+}
+
+/** The place r holds that has rent owing, if any. */
+const owingPlace = (w: World, r: Resident) => Object.values(w.state.property).find((p) => p.holder === r.id && !p.owned && p.owing > 0) ?? null;
+
+/** Answers to anyone who asked for help: his head chooses grace, a loan or no, within his bounds; his own way otherwise. */
+export async function mrLimHelps(w: World, head: MrLimHead | null, realMs: number): Promise<void> {
+  const today = dayIndex(w.t);
+  for (const who of w.mrLim.asks.splice(0)) {
+    const r = w.state.residents.find((x) => x.id === who);
+    if (!r) continue;
+    const place = owingPlace(w, r);
+    const canGrace = !!place && (place.grace === null || today - place.grace.given >= GRACE_EVERY_DAYS);
+    const rent = Object.values(w.state.property).find((p) => p.holder === r.id && !p.owned)?.rent ?? w.state.property[r.homeId]?.rent ?? 50;
+    const canLend = w.state.loans.some((l) => l.who === r.id) ? 0 : LOAN_WEEKS * rent;
+    const scripted: { answer: 'grace' | 'loan' | 'no'; amount: Cents } = canGrace ? { answer: 'grace', amount: 0 }
+      : canLend > 0 && r.money < canLend ? { answer: 'loan', amount: canLend } : { answer: 'no', amount: 0 };
+    const got = head?.help ? await head.help({ name: r.name, money: r.money, owing: place?.owing ?? 0, canGrace, canLend, said: null }, { t: w.t, realMs }) : null;
+    let answer = got && ['grace', 'loan', 'no'].includes(got.answer as string) ? got.answer as 'grace' | 'loan' | 'no' : scripted.answer;
+    if ((answer === 'grace' && !canGrace) || (answer === 'loan' && canLend <= 0)) answer = scripted.answer;
+    const amount = answer === 'loan' ? Math.max(1, Math.min(canLend, typeof got?.amount === 'number' && got.amount > 0 ? Math.round(got.amount) : canLend)) : 0;
+    const words = typeof got?.words === 'string' ? cleanLine(got.words, 200) : null;
+    if (answer === 'grace' && place) {
+      place.grace = { until: today + GRACE_DAYS, given: today };
+      w.emit({ type: 'helped_by_mr_lim', who: r.id, how: 'grace', cents: 0 });
+      w.notify(r.id, `${words ? `Mr Lim says to you: "${words}" ` : ''}Mr Lim gives you a week's grace on the rent you owe.`);
+    } else if (answer === 'loan') {
+      // From the fund while it has enough; out of his own purse while it's short. Either way it's owed back to the fund.
+      const fromFund = w.state.fund >= amount;
+      w.transfer(fromFund ? FUND_ID : MR_LIM_ID, r.id, amount, "Mr Lim's hardship loan");
+      if (fromFund) w.state.fund -= amount;
+      w.state.loans.push({ who: r.id, owed: amount });
+      w.emit({ type: 'helped_by_mr_lim', who: r.id, how: 'loan', cents: amount });
+      w.notify(r.id, `${words ? `Mr Lim says to you: "${words}" ` : ''}Mr Lim lends you ${formatMoney(amount)}, to be paid back a little at a time when he comes round on Mondays.`);
+    } else {
+      w.notify(r.id, words ? `Mr Lim says to you: "${words}"` : "Mr Lim shakes his head: he can't help you just now.");
+    }
+  }
 }
 
 /** A better-paid job for someone with good English (school.md): keeping Mr Lim's ledger, at his house. */

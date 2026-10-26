@@ -435,6 +435,15 @@ export const UPGRADES: readonly Upgrade[] = [
       return { world: { ...world, residents, projects }, brains };
     },
   },
+  {
+    from: 24,
+    why: "Mr Lim helps in hard times: anyone may ask at his door for a small loan (paid back a little at each Monday round) or, owing rent, a week's grace. Nobody owes him a loan yet, and no grace has been given.",
+    save: ({ world, brains }) => {
+      const property = Object.fromEntries(Object.entries(world.property as Record<string, Record<string, unknown>>)
+        .map(([id, p]) => [id, 'grace' in p ? p : { ...p, grace: null }]));
+      return { world: { ...world, property, loans: world.loans ?? [] }, brains };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

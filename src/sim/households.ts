@@ -46,9 +46,9 @@ export function startingProperty(state: Pick<WorldState, 'residents' | 'shops'>)
   const out: Record<string, Property> = {};
   for (const p of PLACES) {
     if (p.kind !== 'house') continue;
-    out[p.id] = { holder: state.residents.find((r) => r.homeId === p.id)?.id ?? null, rent: HOUSE_RENT, owned: false, rentToOwn: null, owing: 0, since: null };
+    out[p.id] = { holder: state.residents.find((r) => r.homeId === p.id)?.id ?? null, rent: HOUSE_RENT, owned: false, rentToOwn: null, owing: 0, since: null, grace: null };
   }
-  for (const s of state.shops) if (SHOP_IDS.includes(s.id)) out[s.id] = { holder: s.ownerId, rent: STALL_RENT, owned: false, rentToOwn: null, owing: 0, since: null };
+  for (const s of state.shops) if (SHOP_IDS.includes(s.id)) out[s.id] = { holder: s.ownerId, rent: STALL_RENT, owned: false, rentToOwn: null, owing: 0, since: null, grace: null };
   return out;
 }
 
@@ -125,7 +125,9 @@ export function rentRound(w: World): void {
     p.owing = short;
     const oldLeft = Math.max(0, before - paid);
     // A house still owing from a Monday a week or more ago: the household is out (a stall is let go later, by Mr Lim himself).
-    if (id.startsWith('house-') && oldLeft > 0 && oldSince !== null && today - oldSince >= GRACE_DAYS) {
+    // Unless Mr Lim has given them a week's grace (hardship help).
+    const graced = p.grace !== null && today <= p.grace.until;
+    if (id.startsWith('house-') && oldLeft > 0 && oldSince !== null && today - oldSince >= GRACE_DAYS && !graced) {
       // Only the old debt follows them, not this week's rent on a house they're leaving.
       p.owing = oldLeft;
       evict(w, id, p);
@@ -139,7 +141,21 @@ export function rentRound(w: World): void {
       ? `Mr Lim comes round for the rent: you pay ${formatMoney(paid)} for ${placeLabel(id)}.`
       : `Mr Lim comes round for the rent. You can't pay it all: you owe Mr Lim ${formatMoney(short)} for ${placeLabel(id)}.`);
   }
+  // His loans: a little back each round, into the fund, as they can.
+  for (const loan of w.state.loans) {
+    const r = w.state.residents.find((x) => x.id === loan.who);
+    const amount = r ? Math.min(loan.owed, LOAN_INSTALMENT, r.money) : 0;
+    if (!r || amount <= 0) continue;
+    w.transfer(r.id, FUND_ID, amount, "paying back Mr Lim's loan");
+    w.state.fund += amount;
+    loan.owed -= amount;
+    w.remember(r.id, `You pay Mr Lim back ${formatMoney(amount)} of his loan.${loan.owed > 0 ? ` You still owe ${formatMoney(loan.owed)}.` : ' It is paid off.'}`);
+  }
+  w.state.loans = w.state.loans.filter((l) => l.owed > 0);
 }
+
+/** A loan is paid back this much a round, at most. */
+export const LOAN_INSTALMENT: Cents = HOUSE_RENT;
 
 /** Each minute: the notice of rent (once), and Mr Lim's Monday round. */
 export function householdsMinute(w: World): void {
@@ -171,6 +187,8 @@ export function householdsMinute(w: World): void {
 /** What someone sees at the village head's house, and anywhere while they owe. */
 export function householdLines(w: World, r: Resident, atHead: boolean): string[] {
   const out: string[] = [];
+  const loan = w.state.loans.find((l) => l.who === r.id);
+  if (loan) out.push(`You owe Mr Lim ${formatMoney(loan.owed)} on his loan.`);
   const owing = heldBy(w, r.id).reduce((n, [, p]) => n + p.owing, 0) + (w.state.arrears[r.id] ?? 0);
   if (owing > 0) out.push(`You owe Mr Lim ${formatMoney(owing)} in rent.`);
   if (!atHead) return out;

@@ -8,7 +8,7 @@
  */
 import type Anthropic from '@anthropic-ai/sdk';
 import { formatMoney } from '../sim/money.ts';
-import { JOB_PAY_BOUNDS, JOBS_A_DAY_BOUNDS, type MrLimBrief, type MrLimHead } from '../sim/mr-lim.ts';
+import { type HelpAnswer, type HelpBrief, JOB_PAY_BOUNDS, JOBS_A_DAY_BOUNDS, type MrLimBrief, type MrLimHead } from '../sim/mr-lim.ts';
 import { MR_LIM_ID } from '../sim/state.ts';
 import { dayCap, ESTIMATE } from './budget.ts';
 import type { CostLog } from './cost-log.ts';
@@ -29,6 +29,20 @@ export const PLAN_TOOL: Anthropic.Tool = {
   },
 };
 
+export const HELP_TOOL: Anthropic.Tool = {
+  name: 'help',
+  description: 'Answer someone asking for help.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      answer: { type: 'string', enum: ['grace', 'loan', 'no'] },
+      amount: { type: 'integer', description: 'For a loan: how much, in cents.' },
+      words: { type: 'string', description: 'What you say to them, one short line.' },
+    },
+    required: ['answer'],
+  },
+};
+
 export class ModelMrLimHead implements MrLimHead {
   private readonly client: ModelClient;
   private readonly costs: CostLog;
@@ -41,10 +55,10 @@ export class ModelMrLimHead implements MrLimHead {
   }
 
   /** One short call within the town's cap; the tool's input, or null to fall back. */
-  private async ask(user: string, at: { t: number; realMs: number }): Promise<Record<string, unknown> | null> {
+  private async ask(user: string, at: { t: number; realMs: number }, tool: Anthropic.Tool = PLAN_TOOL): Promise<Record<string, unknown> | null> {
     if (this.costs.spentOn(this.costs.dayKey(at.realMs)) + ESTIMATE.routine > dayCap(this.costs, at.realMs)) return null;
     try {
-      const res = await this.client.think({ tier: 'routine', kind: 'trader', residentId: MR_LIM_ID, t: at.t, system: MR_LIM_SYSTEM, user, tools: [PLAN_TOOL], hint: { fake: null } });
+      const res = await this.client.think({ tier: 'routine', kind: 'trader', residentId: MR_LIM_ID, t: at.t, system: MR_LIM_SYSTEM, user, tools: [tool], hint: { fake: null } });
       for (const a of res.attempts) this.costs.add({ t: at.t, realMs: at.realMs, resident: MR_LIM_ID, kind: 'trader', model: a.model, usage: a.usage });
       const input = res.toolCall?.input;
       return !res.refused && input && typeof input === 'object' ? input as Record<string, unknown> : null;
@@ -63,5 +77,15 @@ export class ModelMrLimHead implements MrLimHead {
       `How many odd jobs will you put up today (${JOBS_A_DAY_BOUNDS[0]} to ${JOBS_A_DAY_BOUNDS[1]}), and what will each pay (${formatMoney(JOB_PAY_BOUNDS[0])} to ${formatMoney(JOB_PAY_BOUNDS[1])})?`,
     ].join('\n');
     return this.ask(user, at);
+  }
+
+  async help(b: HelpBrief, at: { t: number; realMs: number }): Promise<HelpAnswer | null> {
+    const choices = [b.canGrace ? `a week's grace on the ${formatMoney(b.owing)} rent they owe` : '', b.canLend > 0 ? `a loan of up to ${formatMoney(b.canLend)}, paid back a little each Monday` : '', 'no'].filter(Boolean);
+    const user = [
+      `${b.name} comes to your door asking for help. They have ${formatMoney(b.money)}${b.owing ? ` and owe ${formatMoney(b.owing)} in rent` : ''}.`,
+      `You could give: ${choices.join('; or ')}.`,
+      'Decide, and say a few words to them.',
+    ].join('\n');
+    return this.ask(user, at, HELP_TOOL);
   }
 }

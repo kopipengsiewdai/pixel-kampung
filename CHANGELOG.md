@@ -4,6 +4,13 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+Mr Lim's thinking head, part one (with rent about to start and many in the kampung broke):
+- **He varies his odd jobs:** each morning he decides how much paid work to put up, two to four ordinary jobs at 40 to 80 cents each, from his own purse, by how many are broke and hungry (a small thinking head, once a morning within the town's daily cap; more jobs when more are broke, his own way, otherwise).
+- **Hardship help at his door:** anyone may ask Mr Lim for help while he's at his door, once a day. He may lend a little (at most four weeks' rent), out of the village fund, or his own purse while the fund is short, paid back a little at each Monday round; or, to someone owing rent, give a week's grace in which they aren't turned out (once in four weeks); or say no, in his own words. What they owe him shows in their notes.
+- **Living town:** upgrades to save v25. Nobody owes him a loan yet, and no grace has been given.
+
 ## 0.30.0 (2026-10-27): Miss de Souza speaks
 
 - **Miss de Souza speaks:** she opens the morning lessons and the evening class with a word to those there, and answers anyone who speaks to her at the schoolhouse (twice a day each; after that she has her lessons to see to). Her lines come from a small thinking head, at most four a weekday within the town's daily cap, even across a restart; otherwise she uses her own words. Others there overhear her answers without being called on. Naming her anywhere else gets "Miss de Souza isn't here."

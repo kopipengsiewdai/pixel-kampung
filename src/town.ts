@@ -14,7 +14,7 @@ import { World, type Resident, type WorldState } from './sim/state.ts';
 import { advance } from './sim/tick.ts';
 import { osmanThinks, priceFor, type OsmanHead } from './sim/osman.ts';
 import { teacherThinks, type TeacherHead } from './sim/school.ts';
-import { mrLimThinks, type MrLimHead } from './sim/mr-lim.ts';
+import { mrLimHelps, mrLimThinks, type MrLimHead } from './sim/mr-lim.ts';
 import { isNight, minuteOfDay, realMsAt } from './sim/time.ts';
 import type { SqliteStore } from './store/sqlite-store.ts';
 import { SCHEMA_VERSION } from './store/upgrades.ts';
@@ -210,6 +210,7 @@ export class Town {
     await osmanThinks(w, this.osman, realMs);
     await teacherThinks(w, this.teacher, realMs);
     await mrLimThinks(w, this.mrLim, realMs);
+    await mrLimHelps(w, this.mrLim, realMs);
     if (mod >= EVENING_FROM) {
       for (const r of w.state.residents) {
         const brain = this.brains.get(r.id)!;
