@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.28.0 (2026-10-26): where cooking happens
 
 Where cooking happens ([subsistence.md](docs/design/subsistence.md)), so stories of cooking come true when someone does the work:
 - **Outdoor fires:** anyone with a bundle of firewood can light a cooking fire at the jetty or on the beach. It burns about an hour, and anyone at it can cook from what they carry: grilled fish, or bubur if they have a pot. A fire is seen only where one is really burning; with none, the reply says firewood would light one.
