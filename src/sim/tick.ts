@@ -18,6 +18,7 @@ import { ACHING_HUNGER, FAINT_HUNGER, HUNGRY_FROM } from './perception.ts';
 import { dayIndex, isNight, minuteOfDay } from './time.ts';
 import { kinOf } from '../seed/cast.ts';
 import { noticeIllKin, sicknessMinute } from './sickness.ts';
+import { mrLimMinute } from './mr-lim.ts';
 
 /** About when the lorry comes and goes (Pak Osman's own day varies a little: src/sim/osman.ts). */
 export const LORRY_ARRIVES = ARRIVES;
@@ -190,6 +191,7 @@ export function advance(w: World): void {
   if (mod === 0) witherBeds(w);
   bondsMinute(w);
   householdsMinute(w);
+  mrLimMinute(w);
 }
 
 export function advanceTo(w: World, t: number): void {

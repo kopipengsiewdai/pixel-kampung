@@ -4,6 +4,24 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+Behaviour fixes from watching the living town:
+- **No more circling at an empty kitchen:** a cook told the kitchen is short of something, or that the stove needs fuel, stops trying for that thought (Ah Huat had tried fish porridge with no rice 170 times). At the kitchen, the cook now sees what it has none of ("The kitchen has no rice: no fish porridge, vegetable rice or bubur without it.") and whether the lorry has it today.
+- **Where fuel comes from:** a stove with no fuel says so in-world: dry wood to gather past the farm plot, and kerosene off the lorry.
+- **Talk going round in circles is told by what is said:** a chat now lasts an hour of quiet, not half an hour (longer than the pause between thoughts); the same thing said again within three hours carries on the same chat and its count, even after a walk or a gift; giving the same thing again settles nothing new. The six-line point is unchanged.
+- **Plans that go stale are let go:** the morning plan is made from where they are and what they hold, and after three thoughts in a row that come to nothing it isn't brought up again that day.
+- **Languages:** when someone is with them, the ask names the language to use with each (their shared home language, else bazaar Malay); their own old thoughts and plans not in English no longer come back to mind; "think to myself" no longer creeps into thoughts.
+- **Word of the rent reaches everyone:** each holder hears when rent starts once, awake, in one message for all they hold.
+- **Living town:** upgrades to save v22. Everyone holding a place hears about the rent once more (some were asleep when word first went round); everything else starts fresh.
+
+## 0.26.0 (2026-10-26): making a living, part two
+
+Making a living ([subsistence.md](docs/design/subsistence.md)), part two:
+- **Mr Lim is seen about:** the village head stands on his doorstep by day, walks to the notice board each morning, and goes round the houses on Monday mornings for the rent. He's indoors before a quarter past seven and from six in the evening. Click him on the watch page for a card with what he's doing and today's odd jobs.
+- **Mr Lim's odd jobs:** each morning he pins two or three on the board (mend the jetty planks, clear the path up to his house, sweep the lorry stop, scrub out the well's trough, clear the ditches past the farm plot). Each is an hour's work at its place, paid 50¢ from his own purse when it's done, so money comes into the kampung through work. One a day each; not for anyone too ill. Unfinished ones come down the next morning.
+- **Living town:** upgrades to save v21. No jobs are pinned until his next walk to the board (the same day, if the town starts before 5pm).
+
 ## 0.25.0 (2026-10-26): making a living, part one
 
 Making a living ([subsistence.md](docs/design/subsistence.md)), part one:

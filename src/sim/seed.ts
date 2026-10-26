@@ -97,6 +97,8 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
     osman: freshOsman(),
     stoves: {},
     faintSeen: {},
+    oddJobs: [],
+    oddJobsDay: -1,
     illSeen: {},
     bonds: seedBonds({ residents }),
     property: startingProperty({ residents, shops }),

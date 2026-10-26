@@ -56,9 +56,14 @@ export function whoIsHere(w: World, r: Resident): string {
   return `Here with you: ${here.length === 1 ? here[0] : `${here.slice(0, -1).join(', ')} and ${here.at(-1)}`}.`;
 }
 
+/** Asked of Mr Lim by name: he's busy, and asking again won't change it. */
+export const MR_LIM_BUSY = "Mr Lim nods to you, but he's busy with his own affairs just now.";
+
 /** Someone the resident can deal with face to face, or the in-world reason they can't. */
 export function personNearby(w: World, r: Resident, name: unknown, opts: { awake?: boolean } = {}): Resident | string {
   const o = w.residentByName(name, r);
+  // Mr Lim is someone, but not one to stand and chat or deal with in passing.
+  if (!o && typeof name === 'string' && /^(mr\.? ?lim|lim|the village head|village head|penghulu)$/i.test(name.trim())) return MR_LIM_BUSY;
   if (!o) return `You don't know anyone called ${quoted(name)}; there's nobody by that name in the kampung.`;
   if (o.id === r.id) return "That's you.";
   if (!w.isNear(r, o)) return `${o.name} isn't nearby. ${whoIsHere(w, r)}`;

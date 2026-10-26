@@ -31,9 +31,9 @@ export type Activity =
   | { kind: 'working'; jobId: number; until: number; worked: number }
   | { kind: 'sleeping'; reason: 'night' | 'nap' | 'collapse'; until: number | null }
   /** A chore (daily-life.md C): fetching water, mending nets (their own, or helping someone's), sweeping a shop. A worker on shift keeps the shift held in it. */
-  | { kind: 'chore'; chore: ChoreKind; until: number; shopId: string | null; forId: string | null; shift: { jobId: number; until: number; worked: number } | null };
+  | { kind: 'chore'; chore: ChoreKind; until: number; shopId: string | null; forId: string | null; shift: { jobId: number; until: number; worked: number } | null; job: number | null };
 
-export type ChoreKind = 'fetch_water' | 'mend_nets' | 'sweep' | 'cast_net' | 'gather_wood' | 'forage';
+export type ChoreKind = 'fetch_water' | 'mend_nets' | 'sweep' | 'cast_net' | 'gather_wood' | 'forage' | 'odd_job';
 /** What a bed grows: kangkong, or for the skilled chilli, and for a master a papaya tree. */
 export type Crop = 'kangkong' | 'chilli' | 'papaya';
 
@@ -213,6 +213,9 @@ export interface Bed {
 
 export interface Note { id: number; authorId: string; text: string; t: number }
 
+/** One of Mr Lim's paid odd jobs (subsistence.md Q3.1): what, where, its pay, the day it was pinned, who did it, and its note. */
+export interface OddJob { id: number; kind: string; placeId: string; pay: Cents; day: number; doneBy: string | null; noteId: number }
+
 export interface WorldState {
   /** The save version (SCHEMA_VERSION); older saves are upgraded on load (docs/design/upgrades.md). */
   version: number;
@@ -269,6 +272,9 @@ export interface WorldState {
   evictedWith: Record<string, string>;
   /** What the village fund holds, in cents. */
   fund: number;
+  /** Mr Lim's odd jobs pinned today (and any done), and the day he last pinned them. */
+  oddJobs: OddJob[];
+  oddJobsDay: number;
   /** Keys of one-off notable things that already happened (e.g. a shop's first sale). */
   firsts: string[];
   /** Lines spoken between each pair lately ("a|b" sorted), for the talk soft limit. */
@@ -337,6 +343,8 @@ export const TRAVELLERS_ID = 'travellers';
 export const FUND_ID = 'village-fund';
 export const MR_LIM_ID = 'mr-lim';
 export const OUTSIDE: ReadonlySet<string> = new Set([LORRY_ID, OPENING_ID, TRAVELLERS_ID, FUND_ID, MR_LIM_ID]);
+/** Village characters who aren't residents but can be named (a note's author, someone in the feed). */
+export const VILLAGER_NAMES: Readonly<Record<string, string>> = { [MR_LIM_ID]: 'Mr Lim' };
 export const FARM_BEDS = 8;
 export const MAX_RECENT = 12;
 export const NEARBY_TILES = 3;
@@ -453,6 +461,11 @@ export class World {
     return structuredClone(this.state);
   }
 
+  /** A resident's name, or a village character's. */
+  nameOf(id: string): string {
+    return this.state.residents.find((x) => x.id === id)?.name ?? VILLAGER_NAMES[id] ?? id;
+  }
+
   resident(id: string): Resident {
     const r = this.state.residents.find((x) => x.id === id);
     if (!r) throw new Error(`no resident ${id}`);
@@ -553,6 +566,7 @@ export class World {
   }
 
   learnPerson(r: Resident, otherId: string): void {
+    if (!this.state.residents.some((o) => o.id === otherId)) return;
     if (otherId !== r.id && !r.knownPeople.includes(otherId)) r.knownPeople.push(otherId);
   }
 

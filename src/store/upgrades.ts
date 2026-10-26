@@ -380,6 +380,30 @@ export const UPGRADES: readonly Upgrade[] = [
       return { world: { ...world, residents, shops, illSeen: world.illSeen ?? {} }, brains };
     },
   },
+  {
+    from: 20,
+    why: "Mr Lim is seen about: at his door by day, out to the notice board each morning, round the houses on Monday mornings. Each morning he pins two or three paid odd jobs, an hour's work each at its place, paid from his own purse when done, one a day each. None is pinned yet; anyone at a chore is at no job of his.",
+    save: ({ world, brains }) => {
+      const residents = (world.residents as { activity: Record<string, unknown> | null }[]).map((r) =>
+        (r.activity && r.activity.kind === 'chore' && !('job' in r.activity) ? { ...r, activity: { ...r.activity, job: null } } : r));
+      return { world: { ...world, residents, oddJobs: world.oddJobs ?? [], oddJobsDay: world.oddJobsDay ?? -1 }, brains };
+    },
+  },
+  {
+    from: 21,
+    why: "Talk that goes round in circles is told by what is said, not only by the clock; a day's plan that keeps coming to nothing is let go; word of the rent reaches each holder awake (everyone holding a place hears it once more, so nobody who was asleep misses it).",
+    save: ({ world, brains }) => {
+      // Rent word again for every holder, if rent hasn't started yet.
+      const today = Math.floor(((world.t as number) + 8 * 60) / 1440);
+      const before = today < (world.rentFrom as number);
+      const told = (world.rentToldTo as string[] | undefined) ?? [];
+      const out = { ...world, rentToldTo: told, rentNoticed: before ? false : world.rentNoticed };
+      // A thinking resident's saved mind counts misses against today's plan, from none.
+      const minds = Object.fromEntries(Object.entries(brains as Record<string, unknown>).map(([id, b]) =>
+        [id, b && typeof b === 'object' && 'budget' in b && !('planMisses' in b) ? { ...(b as object), planMisses: 0 } : b]));
+      return { world: out, brains: minds };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */
