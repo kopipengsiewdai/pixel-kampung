@@ -101,7 +101,7 @@ export class MemoryStore {
     // A line said over and over is one memory, the newest: repeats crowded out everything else.
     const all = newestOfEach(this.all(resident)
       .map((m) => ({ ...m, text: m.text.split('\n').filter((l) => !/^\s*Nearby:/.test(l)).join('\n').trim() }))
-      .filter((m) => m.text), (m) => m.text);
+      .filter((m) => m.text), (m) => m.text, (m) => m.importance >= 6);
     // Passing thoughts, only the newest few: fed back each time, one idea chewed over filled the mind.
     const thoughts = all.filter((m) => m.kind === 'thought').slice(-THOUGHTS_RECALLED);
     // Talk between two others was only overheard: it was never theirs to keep (older saves kept it).

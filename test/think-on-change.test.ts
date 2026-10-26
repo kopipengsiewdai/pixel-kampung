@@ -6,6 +6,7 @@ import type { Brain } from '../src/brain/brain.ts';
 import { MemoryStore } from '../src/mind/memory.ts';
 import { describe as describePerception, latelyLines, perceive } from '../src/sim/perception.ts';
 import { advance } from '../src/sim/tick.ts';
+import { minuteOfDay } from '../src/sim/time.ts';
 import { QUIET_THINK_MINUTES, Town } from '../src/town.ts';
 import { accepted, act, expectInWorld, newWorld, put, sgt, who } from './helpers.ts';
 
@@ -132,3 +133,40 @@ function kow0(w: ReturnType<typeof newWorld>): string {
 
 // keep advance referenced for helpers that tick
 void advance;
+
+describe('what is due soon still brings a thought on', () => {
+  it("a worker is woken when their shift starts, and someone with an offer before it lapses", async () => {
+    const w = newWorld(9, 50);
+    const huat = put(w, 'Ah Huat', 'kopitiam');
+    const siti = put(w, 'Siti', 'kopitiam');
+    accepted(act(w, huat.id, { verb: 'offer_job', to: 'Siti', wage: 200, startHour: 10, hours: 2 }));
+    accepted(act(w, siti.id, { verb: 'accept_job', from: 'Ah Huat' }));
+    siti.thinkAt = w.t + 1000;
+    siti.hunger = 100;
+    const limit = w.t + 60;
+    while (siti.thinkAt > w.t && w.t < limit) advance(w);
+    expect(minuteOfDay(w.t)).toBe(10 * 60);
+    const raju = put(w, 'Raju', 'kopitiam');
+    raju.items = { fish: 1 };
+    accepted(act(w, raju.id, { verb: 'offer_trade', to: 'Siti', give: { items: { fish: 1 } }, want: { money: 10 } }));
+    const offer = w.state.trades.at(-1)!;
+    siti.thinkAt = w.t + 1000;
+    while (w.t < offer.expires - 10) advance(w);
+    expect(siti.thinkAt).toBeLessThanOrEqual(w.t);
+  });
+});
+
+describe('collapsing repeats never loses what matters', () => {
+  it('different things said between the same two stay; a promise is never collapsed', () => {
+    const mem = new MemoryStore(join(tmp(), 'm.db'));
+    mem.add('siti', 100, 'noticed', 'Mdm Tan says to you: "I will pay you back the $5 on Friday, I promise."');
+    mem.add('siti', 110, 'did', 'You say to Mdm Tan: "Then I will lend you $5."');
+    mem.add('siti', 300, 'noticed', 'Mdm Tan says to you: "Good morning!"');
+    mem.add('siti', 310, 'noticed', 'Mdm Tan says to you: "Good morning to you!"');
+    const got = mem.recall('siti', 400, 'Mdm Tan', 16).map((m) => m.text);
+    expect(got).toContain('Mdm Tan says to you: "I will pay you back the $5 on Friday, I promise."');
+    expect(got).toContain('You say to Mdm Tan: "Then I will lend you $5."');
+    expect(got.filter((t) => /Good morning/.test(t))).toEqual(['Mdm Tan says to you: "Good morning to you!"']);
+    mem.close();
+  });
+});

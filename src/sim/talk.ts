@@ -166,9 +166,40 @@ export function exchangeOf(text: string): string | null {
   return m ? `${m[1]}>${m[2] ?? ''}` : null;
 }
 
-/** Only the newest line of each exchange, everything else as it was, in order. */
-export function newestOfEach<T>(items: readonly T[], text: (x: T) => string): T[] {
-  const last = new Map<string, number>();
-  items.forEach((x, i) => { const k = exchangeOf(text(x)); if (k) last.set(k, i); });
-  return items.filter((x, i) => { const k = exchangeOf(text(x)); return !k || last.get(k) === i; });
+/** The words of what was said: the first quote, lower-cased, without numbers or punctuation. */
+function quoteWords(text: string): Set<string> {
+  const q = /: "([^"]*)"/.exec(text)?.[1] ?? '';
+  return new Set(q.toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter((x) => x.length > 2));
+}
+
+/** How alike two lines' words are (shared over all): 1 is the same words. */
+function alike(a: Set<string>, b: Set<string>): number {
+  if (!a.size || !b.size) return 0;
+  let shared = 0;
+  for (const x of a) if (b.has(x)) shared++;
+  return shared / (a.size + b.size - shared);
+}
+
+/** Lines between the same two people this alike are the same thing said again. */
+export const SAID_AGAIN = 0.6;
+
+/**
+ * A line said over and over is kept once, the newest; different things said
+ * between the same two people all stay, and so does anything keep(x) holds on to.
+ */
+export function newestOfEach<T>(items: readonly T[], text: (x: T) => string, keep: (x: T) => boolean = () => false): T[] {
+  const later = new Map<string, Set<string>[]>();
+  const out: T[] = [];
+  for (let i = items.length - 1; i >= 0; i--) {
+    const x = items[i]!;
+    const k = exchangeOf(text(x));
+    if (!k) { out.push(x); continue; }
+    const words = quoteWords(text(x));
+    const seen = later.get(k) ?? [];
+    if (!keep(x) && seen.some((w) => alike(w, words) >= SAID_AGAIN)) continue;
+    seen.push(words);
+    later.set(k, seen);
+    out.push(x);
+  }
+  return out.reverse();
 }

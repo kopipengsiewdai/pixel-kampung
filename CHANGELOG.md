@@ -6,9 +6,9 @@ never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
 ## Unreleased
 
-- **Residents think when something changes, not on a clock.** Measured in the living town: 70% of thoughts came with nothing new since the last one, and asked "what now?" with nothing new, they talked, and talked in circles. Now someone turning up where they are, being spoken to, getting hungry (crossing into hungry, aching or faint) or finishing what they were doing brings a thought on; otherwise the next one is half an hour off, not ten minutes.
-- **Memory without the echo.** Talk between two other people is heard in the moment but not kept in long-term memory, and isn't recalled from before. A line said over and over is remembered once, the newest, and only the newest two passing thoughts come back. (Ah Kow's mind held five copies of Mei Ling asking Mdm Tan if the rice was ready, and his own same thought four times.)
-- **Food in sight.** Hungry with nothing to eat, a resident now sees where they could get food each time they think (a shop being minded, the lorry while it's in, the jetty for a fish), not only when idle.
+- **Residents think when something changes, not on a clock.** Measured in the living town: 70% of thoughts came with nothing new since the last one, and asked "what now?" with nothing new, they talked, and talked in circles. Now someone turning up where they are (for a worker at the counter too), being spoken to, getting hungry (crossing into hungry, aching or faint), finishing what they were doing, their shift starting, or an offer to them ten minutes from lapsing brings a thought on; otherwise the next one is half an hour off, not ten minutes.
+- **Memory without the echo.** Talk between two other people is heard in the moment but not kept in long-term memory, and isn't recalled from before. The same thing said over and over to the same person is remembered once, the newest (different things, and anything that matters like a promise or a debt, all stay), and only the newest two passing thoughts come back. (Ah Kow's mind held five copies of Mei Ling asking Mdm Tan if the rice was ready, and his own same thought four times.)
+- **Food in sight.** Hungry with nothing to eat, a resident now sees where they could get food each time they think (a shop being minded, the lorry while it's in, the jetty for a fish), not only when idle. When idle and hungry, they think of family in another house.
 - **Living town:** nothing to upgrade; memories already kept are recalled the new way at once.
 
 ## 0.22.0 (2026-10-26): less wasted thinking
