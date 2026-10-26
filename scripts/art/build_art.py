@@ -704,6 +704,10 @@ def people_sheet(pack):
             im = recolour(im, HAIR[n])
         if i in LOOKS:
             im = recolour(im, LOOKS[i])
+        # Some characters (4) walk in two steps, not four: repeat them, or the
+        # walker vanishes for half of every step on the page.
+        if im.crop((0, 32, 64, 64)).getbbox() is None:
+            im.paste(im.crop((0, 0, 64, 32)), (0, 32))
         sheet.paste(im, (64 * i, 0))
     return sheet
 
