@@ -158,7 +158,8 @@ export function sayToTeacher(w: World, r: Resident, text: string): ActionResult 
   // Others there overhear, without being called on to answer.
   for (const o of atSchool(w)) if (o.id !== r.id) w.hear(o.id, `${r.name} says to ${TEACHER}: "${text}"`);
   w.teacher.asks.push({ who: r.id, text });
-  return ok(`You say to ${TEACHER}: "${text}"`);
+  // Remembered once, as talk (above), as say() does.
+  return ok();
 }
 
 /** Who's at the schoolhouse now, awake. */
