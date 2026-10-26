@@ -1,6 +1,8 @@
 import type { Card } from '../seed/cards.ts';
 import type { Role } from '../sim/state.ts';
 import { describe, type Perception } from '../sim/perception.ts';
+import { quantityLabel } from '../sim/items.ts';
+import { languageBetween } from '../seed/languages.ts';
 import type { ThinkKind } from './model.ts';
 import type { Memory } from './memory.ts';
 import { POTTER } from './tools.ts';
@@ -43,6 +45,21 @@ const ASK: Record<ThinkKind, string> = {
   reflect: 'The day is nearly over. In a few short lines to yourself: what happened today that matters, and what have you learned?',
 };
 
+/** Which language to use with each person here (from both their ways of speaking): " (Say things to Mdm Tan in Teochew.)" */
+function speakAs(p: Perception): string {
+  const here = p.people.filter((o) => o.doing !== 'asleep').slice(0, 4);
+  if (!here.length) return '';
+  const each = here.map((o) => `to ${o.name} in ${languageBetween(p.name, o.name)}`);
+  return ` (Say things ${each.length === 1 ? each[0] : `${each.slice(0, -1).join(', ')} and ${each.at(-1)}`}.)`;
+}
+
+/** The morning plan, asked from where they are and what they hold, so it starts from what's real. */
+function planAsk(p: Perception): string {
+  const where = p.atHome ? 'at home' : p.placeId ? `at ${p.where}` : p.where;
+  const holding = p.carrying.length ? p.carrying.map((c) => quantityLabel(c.item, c.qty)).join(', ') : 'nothing';
+  return `A new day. You're ${where}, carrying ${holding}. In a few short lines, what do you mean to do today, starting from here and with what you have? (Just plan; don't act yet.)`;
+}
+
 /** The changing part of a call: this moment, in the resident's own terms. */
 export function userPrompt(kind: ThinkKind, p: Perception, memories: readonly Memory[], plan: string | null): string {
   const parts = [describe(p)];
@@ -54,6 +71,6 @@ export function userPrompt(kind: ThinkKind, p: Perception, memories: readonly Me
     const doable = [...p.actions.map((a) => `- ${a.verb}: ${a.says}`), `- ${POTTER}`];
     parts.push(`\nThings you could do right now:\n${doable.join('\n')}`);
   }
-  parts.push(`\n${ASK[kind]}`);
+  parts.push(`\n${kind === 'plan' ? planAsk(p) : `${ASK[kind]}${kind === 'act' || kind === 'business' ? speakAs(p) : ''}`}`);
   return parts.filter(Boolean).join('\n');
 }

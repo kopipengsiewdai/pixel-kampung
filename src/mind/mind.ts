@@ -11,6 +11,7 @@ import { MemoryStore, type MemoryKind } from './memory.ts';
 import type { ModelClient, ThinkKind, ThinkResponse, Tier } from './model.ts';
 import { systemPrompt, userPrompt } from './prompt.ts';
 import { DO_TOOL, toIntent } from './tools.ts';
+import { looksForeign } from '../watch/foreign.ts';
 
 /** Owners get the bigger model for at most this many business moments a day (spec §5). */
 export const BUSINESS_CALLS_PER_DAY = 3;
@@ -80,10 +81,25 @@ export class Mind {
   }
 }
 
+/** A thought with any echo of the instruction to think in English taken off its front. */
+export function cleanThought(text: string): string {
+  return text.replace(/^\s*[*_(]*\s*(?:think(?:ing)? to (?:myself|yourself))\s*[:)]*\s*[*_)]*\s*:?\s*/i, '').trim();
+}
+
+/** Their own thoughts, plans and reflections that aren't in English (from before they thought in English) don't come back to mind; things heard do. */
+export function englishOwnWords<T extends { kind: string; text: string }>(memories: readonly T[]): T[] {
+  return memories.filter((m) => !['thought', 'plan', 'reflection'].includes(m.kind) || !looksForeign(m.text.replace(/^My plan for today:\s*/, '')));
+}
+
+/** Thoughts in a row that come to nothing before today's plan is let go. */
+export const PLAN_MISSES = 3;
+
 interface MindState {
   budget: BudgetState;
   planDay: number | null;
   plan: string | null;
+  /** Thoughts in a row whose last try came to nothing, while today's plan stands. */
+  planMisses: number;
   businessDay: number | null;
   businessCalls: number;
   reflectedDay: number | null;
@@ -112,7 +128,7 @@ export class MindBrain implements Brain {
     this.system = system;
     this.allowance = allowance;
     this.budget = new Budget(t, undefined, allowance);
-    this.s = { budget: this.budget.save(), planDay: null, plan: null, businessDay: null, businessCalls: 0, reflectedDay: null };
+    this.s = { budget: this.budget.save(), planDay: null, plan: null, planMisses: 0, businessDay: null, businessCalls: 0, reflectedDay: null };
   }
 
   save(): unknown {
@@ -123,7 +139,7 @@ export class MindBrain implements Brain {
     // A save from a fake-brain town carries no mind state: start fresh.
     if (!saved || typeof saved !== 'object' || !('budget' in saved)) return;
     const s = saved as MindState;
-    this.s = { ...s };
+    this.s = { ...s, planMisses: s.planMisses ?? 0 };
     this.budget = Budget.load(s.budget, this.allowance);
     if (s.model !== undefined) this.mind.client.loadFor?.(this.id, s.model);
   }
@@ -137,14 +153,23 @@ export class MindBrain implements Brain {
       this.s.planDay = today;
       const res = await this.call('plan', 'big', p, ctx);
       if (res?.text) {
-        this.s.plan = res.text;
-        this.remember(ctx.t, 'plan', `My plan for today: ${res.text}`);
+        this.s.plan = cleanThought(res.text);
+        this.s.planMisses = 0;
+        this.remember(ctx.t, 'plan', `My plan for today: ${this.s.plan}`);
+      }
+    }
+    // A plan that keeps coming to nothing has plainly failed: it isn't brought up again today.
+    if (this.s.plan && p.reply) {
+      this.s.planMisses = p.refused ? this.s.planMisses + 1 : 0;
+      if (this.s.planMisses >= PLAN_MISSES) {
+        this.s.plan = null;
+        this.s.planMisses = 0;
       }
     }
     const kind = this.canThink('big', ctx) && this.businessMoment(p, today) ? 'business' : 'act';
     const res = await this.call(kind, kind === 'business' ? 'big' : 'routine', p, ctx);
     if (!res) return needsOnly(p);
-    if (res.text) this.remember(ctx.t, 'thought', res.text);
+    if (res.text && cleanThought(res.text)) this.remember(ctx.t, 'thought', cleanThought(res.text));
     return res.toolCall?.name === 'do' ? toIntent(res.toolCall.input) : null;
   }
 
@@ -153,7 +178,7 @@ export class MindBrain implements Brain {
     if (this.s.reflectedDay === today || !this.canThink('big', ctx)) return;
     this.s.reflectedDay = today;
     const res = await this.call('reflect', 'big', p, ctx);
-    if (res?.text) this.remember(ctx.t, 'reflection', res.text);
+    if (res?.text) this.remember(ctx.t, 'reflection', cleanThought(res.text));
   }
 
   private remember(t: number, kind: MemoryKind, text: string): void {
@@ -188,7 +213,7 @@ export class MindBrain implements Brain {
     const cue = [p.place, ...p.people.map((x) => x.name), ...p.recent.slice(-3), p.reply ?? ''].join(' ');
     // Leave out only what the notes already show, so older things heard can still come back.
     const seen = new Set([...latelyLines(p), ...p.talk]);
-    const memories = this.mind.memory.recall(this.id, ctx.t, cue, 16)
+    const memories = englishOwnWords(this.mind.memory.recall(this.id, ctx.t, cue, 16))
       .filter((m, i, all) => !seen.has(m.text) && all.findIndex((x) => x.text === m.text) === i)
       .slice(-8);
     const user = userPrompt(kind, p, memories, this.s.plan);

@@ -144,13 +144,19 @@ export function rentRound(w: World): void {
 /** Each minute: the notice of rent (once), and Mr Lim's Monday round. */
 export function householdsMinute(w: World): void {
   const mod = minuteOfDay(w.t);
-  if (!w.state.rentNoticed && mod >= 8 * 60) {
-    w.state.rentNoticed = true;
+  // Word of the rent goes round from eight, before it starts: each holder hears it once, awake, of all they hold.
+  if (!w.state.rentNoticed && mod >= 8 * 60 && dayIndex(w.t) < w.state.rentFrom) {
     const when = dateLabel(dateAt(w.state, dayStart(w.state.rentFrom)));
+    const held = new Map<string, string[]>();
     for (const [id, p] of Object.entries(w.state.property)) {
-      if (!p.holder || p.owned) continue;
-      w.remember(p.holder, `Mr Lim, the village head, has let it be known: from ${when}, rent is due each Monday. ${formatMoney(p.rent)} a week for ${placeLabel(id)}.`);
+      if (p.holder && !p.owned) held.set(p.holder, [...(held.get(p.holder) ?? []), `${formatMoney(p.rent)} a week for ${placeLabel(id)}`]);
     }
+    for (const [holder, rents] of held) {
+      if (w.state.rentToldTo.includes(holder) || w.isAsleep(w.resident(holder))) continue;
+      w.state.rentToldTo.push(holder);
+      w.remember(holder, `Mr Lim, the village head, has let it be known: from ${when}, rent is due each Monday. ${rents.join(', and ')}.`);
+    }
+    w.state.rentNoticed = [...held.keys()].every((h) => w.state.rentToldTo.includes(h));
   }
   // Every Monday round due since the last (one missed while the kampung was away is caught up).
   const today = dayIndex(w.t);

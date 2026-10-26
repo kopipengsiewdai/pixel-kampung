@@ -259,6 +259,8 @@ export interface WorldState {
   /** The day rent is first due (a Monday), and whether everyone has been told. */
   rentFrom: number;
   rentNoticed: boolean;
+  /** The holders who have heard when rent starts (each hears it awake). */
+  rentToldTo: string[];
   /** The last Monday Mr Lim came round. */
   lastRoundDay: number;
   /** Rent still owed from a house lost, by who held it. */
