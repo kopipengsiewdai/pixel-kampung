@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.21.1 (2026-10-26): the month's limit holds
 
 - **The month's limit holds:** the town's daily cap is now what's left of the month's US$100 shared over the days left (today included), never above US$3.33 a day and never below nothing. A 31-day month can no longer reach US$103 at the daily cap; a costly start leaves less for the rest of the month. The residents, Pak Osman and the watch page's English all share it.
 - **Living town:** nothing to upgrade.
