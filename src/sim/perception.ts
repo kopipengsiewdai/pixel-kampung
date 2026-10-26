@@ -10,7 +10,7 @@ import { ITEMS, quantityLabel, type ItemId } from './items.ts';
 import { HAGGLES_PER_VISIT, OSMAN, priceFor, room } from './osman.ts';
 import { PLACES, PLACE_BY_ID, type Place } from './map.ts';
 import { formatMoney, type Cents } from './money.ts';
-import { CIRCLE_LINES, SAID_ALL_LINES, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, WORD_MINUTES, type Bond, type Debt, type Goods, type Observation, type Resident, type Shop, type TalkRecord, type World } from './state.ts';
+import { CIRCLE_LINES, SAID_ALL_LINES, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, UNANSWERED_LINES, WORD_MINUTES, type Bond, type Debt, type Goods, type Observation, type Resident, type Shop, type TalkRecord, type World } from './state.ts';
 import { nowLabel } from './calendar.ts';
 import { dayIndex, sgtHour, sgtMinute } from './time.ts';
 
@@ -140,6 +140,8 @@ export interface Perception {
   unbacked: { name: string; kind: DealKind; mine: boolean }[];
   /** People nearby you keep going round in circles with. */
   circles: string[];
+  /** People nearby you've said several things to in a row, with no answer. */
+  unanswered: string[];
   /** People nearby you've gone round in circles with twice over: you've said all there is to say. */
   saidAll: string[];
   /** What happened when they last tried something. */
@@ -335,6 +337,7 @@ export function perceive(w: World, r: Resident): Perception {
         && !(rec.word.kind === 'job' && w.workBetween(r.id, o.id)))
       .map(({ o, rec }) => ({ name: o.name, kind: rec.word!.kind, mine: rec.word!.by === r.id })),
     circles: chatsOf(w, r).filter(({ o, rec }) => rec.idle >= CIRCLE_LINES && rec.idle < SAID_ALL_LINES && w.isNear(r, o) && !w.isAsleep(o)).map(({ o }) => o.name),
+    unanswered: chatsOf(w, r).filter(({ o, rec }) => rec.unanswered?.by === r.id && rec.unanswered.n >= UNANSWERED_LINES && w.isNear(r, o) && !w.isAsleep(o)).map(({ o }) => o.name),
     saidAll: chatsOf(w, r).filter(({ o, rec }) => rec.idle >= SAID_ALL_LINES && w.isNear(r, o) && !w.isAsleep(o)).map(({ o }) => o.name),
     actions: availableActions(w, r),
     placesYouKnow: PLACES.filter((pl) => w.knowsPlace(r, pl.id)).flatMap((pl) => {
@@ -416,6 +419,7 @@ export function describe(p: Perception): string {
     ? `Nearby: ${p.people.map((x) => `${x.name} (${x.doing}${x.looks ? `, ${x.looks}` : ''})`).join(', ')}.`
     : "There's nobody else around.");
   lines.push(...p.feelings);
+  for (const n of p.unanswered) lines.push(`${n} hasn't answered you.`);
   if (p.atHome && HUNGRY.has(p.hunger) && !p.carrying.some((c) => ITEMS[c.item].food)) lines.push("There's no food in the house.");
   if (p.hungerPang) lines.push(p.hungerPang);
   lines.push(`You feel ${p.hunger} and ${p.energy}. You have ${formatMoney(p.money)}${p.carrying.length ? ` and you're carrying ${p.carrying.map((c) => quantityLabel(c.item, c.qty)).join(', ')}` : ''}.`);

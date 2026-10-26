@@ -328,6 +328,11 @@ export const UPGRADES: readonly Upgrade[] = [
       return { world: { ...world, bonds, talk, owed }, brains };
     },
   },
+  {
+    from: 17,
+    why: "Someone who has said three things in a row to a person who hasn't answered can see they aren't answering. Nobody's count has started yet.",
+    save: ({ world, brains }) => ({ world, brains }),
+  },
 ];
 
 /** The save version this code writes and reads. */

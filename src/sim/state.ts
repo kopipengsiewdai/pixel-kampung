@@ -270,7 +270,12 @@ export interface TalkRecord {
   idle: number;
   /** A deal one of them talked of as done, with nothing done yet: who said it, what kind, and when first. */
   word: { by: string; kind: DealKind; t: number; broken?: boolean; awake?: number } | null;
+  /** Lines one of them has said to the other in a row with no answer. */
+  unanswered?: { by: string; n: number };
 }
+
+/** After this many lines to someone with no answer, a speaker can see they aren't answering. */
+export const UNANSWERED_LINES = 3;
 
 export const LORRY_ID = 'lorry';
 /** Where each purse's money stood when the ledger began: a town's start, or the upgrade that began it. */
@@ -332,6 +337,8 @@ export class World {
       const rec = this.state.talk[talkKey(a, b)];
       if (!rec) return;
       rec.idle = 0;
+      // Doing something together is an answer too.
+      delete rec.unanswered;
       if (rec.word && settles(rec.word.kind, kind)) rec.word = null;
     };
     const s = settledBy(e);

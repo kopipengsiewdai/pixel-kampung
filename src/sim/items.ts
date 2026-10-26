@@ -26,7 +26,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   },
   rice: {
     id: 'rice', one: 'a bag of rice', many: '{n} bags of rice', aliases: ['bag of rice', 'bags of rice'],
-    inedible: "You can't eat raw rice. It needs cooking.",
+    inedible: "You can't eat raw rice. It needs cooking on a stove.",
   },
   coffee: {
     id: 'coffee', one: 'a tin of coffee powder', many: '{n} tins of coffee powder',
@@ -49,7 +49,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   },
   bubur: {
     id: 'bubur', one: 'a bowl of bubur', many: '{n} bowls of bubur',
-    aliases: ['plain rice', 'rice porridge', 'plain porridge', 'congee', 'boiled rice', 'cooked rice', 'nasi', 'bowl of rice', 'rice bowl'], food: { hunger: 300 },
+    aliases: ['plain rice', 'rice porridge', 'plain porridge', 'congee', 'boiled rice', 'cooked rice', 'nasi', 'bowl of rice', 'rice bowl', 'nasi putih', 'bubur kosong', 'soft rice', 'plain rice porridge', 'white rice'], food: { hunger: 300 },
   },
   firewood: {
     id: 'firewood', one: 'a bundle of firewood', many: '{n} bundles of firewood', aliases: ['wood', 'kayu api', 'sticks', 'bundle of firewood', 'bundles of firewood'],
@@ -79,16 +79,34 @@ export const ITEMS: Record<ItemId, ItemDef> = {
 
 export const ITEM_IDS = Object.keys(ITEMS) as ItemId[];
 
-export function findItem(name: string): ItemId | null {
-  // Also the game's own labels ("a cup of kopi", "2 loaves of bread"), so residents can name what they see.
-  const s = name.trim().toLowerCase().replace(/^(?:a|an|the|some|one|\d+)\s+/, '');
-  for (const def of Object.values(ITEMS)) {
-    if (def.id === s || def.aliases.includes(s)) return def.id;
-    const one = def.one.replace(/^(?:a|an)\s+/, '');
-    const many = def.many.replace(/^\{n\}\s+/, '');
-    if (s === one || s === many) return def.id;
-  }
+/** Every name a thing goes by: its own, its other names, and the game's labels ("a cup of kopi", "2 loaves of bread"). */
+function namesOf(def: ItemDef): string[] {
+  return [def.id, ...def.aliases, def.one.replace(/^(?:a|an)\s+/, ''), def.many.replace(/^\{n\}\s+/, '')];
+}
+
+function exactItem(s: string): ItemId | null {
+  for (const def of Object.values(ITEMS)) if (namesOf(def).includes(s)) return def.id;
   return null;
+}
+
+export function findItem(name: string): ItemId | null {
+  const s = name.trim().toLowerCase().replace(/^(?:a|an|the|some|one|\d+)\s+/, '');
+  const exact = exactItem(s);
+  if (exact) return exact;
+  // People say more than the name: "bubur kosong (plain rice porridge)", "water from my pail".
+  const bare = s.replace(/\([^)]*\)/g, ' ').replace(/\s(?:from|in|out of|with|for)\s.*$/, '').replace(/\s+/g, ' ').trim();
+  const again = bare ? exactItem(bare) : null;
+  if (again) return again;
+  // Otherwise the longest name of a thing found inside what they said ("a small bowl of soft rice").
+  let best: { id: ItemId; len: number } | null = null;
+  for (const def of Object.values(ITEMS)) {
+    for (const n of namesOf(def)) {
+      const at = s.indexOf(n);
+      const whole = at >= 0 && !/[a-z]/.test(s[at - 1] ?? '') && !/[a-z]/.test(s[at + n.length] ?? '');
+      if (whole && (!best || n.length > best.len)) best = { id: def.id, len: n.length };
+    }
+  }
+  return best?.id ?? null;
 }
 
 export function quantityLabel(item: ItemId, n: number): string {

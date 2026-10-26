@@ -24,6 +24,8 @@ interface ActionDef {
 }
 
 const atShop = (w: World, r: Resident) => everyone.shopHere(w, r) !== null;
+/** At someone else's shop while it's being minded: only then is there anyone to buy from or sell to. */
+const atServedShop = (w: World, r: Resident) => { const s = everyone.shopHere(w, r); return !!s && s.ownerId !== r.id && everyone.isStaffed(w, s); };
 const atLorry = (w: World, r: Resident) => w.isAt(r, 'lorry-stop') && w.state.lorryHere;
 const at = (id: string) => (w: World, r: Resident) => w.isAt(r, id);
 const withPeople = (w: World, r: Resident) => w.nearby(r).some((o) => !w.isAsleep(o));
@@ -42,7 +44,7 @@ export const ACTIONS: Record<string, ActionDef> = {
   look_around: { run: everyone.lookAround, ownersOnly: false, says: 'look around', here: () => false },
   say: { run: everyone.say, ownersOnly: false, says: 'say something (words, and person if it is meant for someone)' },
   buy: {
-    run: everyone.buy, ownersOnly: false, here: (w, r) => atShop(w, r) || atLorry(w, r),
+    run: everyone.buy, ownersOnly: false, here: (w, r) => atServedShop(w, r) || atLorry(w, r),
     says: (w, r) => (atLorry(w, r) ? 'buy something off the lorry (item, amount; money if you offer less than he asks; later: true to ask to pay him another day)'
       : 'buy something here (item, amount, and money if you offer less than the price)'),
   },
