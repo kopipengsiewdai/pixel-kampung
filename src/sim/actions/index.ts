@@ -10,6 +10,8 @@ import * as owners from './owners.ts';
 import * as teach from './teach.ts';
 import * as households from '../households.ts';
 import { TOO_ILL, TOO_ILL_FOR } from '../sickness.ts';
+import { doneToday, openJobHere, whatOf } from '../mr-lim.ts';
+import { formatMoney } from '../money.ts';
 import { moneyOf, ok as yes } from './common.ts';
 
 const res = (x: { ok: boolean; reply: string }): ActionResult => (x.ok ? yes(x.reply) : no(x.reply));
@@ -119,6 +121,11 @@ export const ACTIONS: Record<string, ActionDef> = {
     run: chores.askErrand, ownersOnly: false, says: 'ask someone to run an errand for pay (person; words: "fetch water", or "take something to someone"; money)', here: withPeople,
   },
   gather_firewood: { run: (w, r) => chores.gatherFirewood(w, r), ownersOnly: false, says: 'gather firewood', here: at('farm') },
+  do_odd_job: {
+    run: (w, r) => chores.doOddJob(w, r), ownersOnly: false,
+    says: (w, r) => { const j = openJobHere(w, r); return j ? `do Mr Lim's odd job here (${whatOf(j.kind)}, ${formatMoney(j.pay)})` : "do Mr Lim's odd job here"; },
+    here: (w, r) => !!openJobHere(w, r) && !doneToday(w, r),
+  },
   forage: {
     run: (w, r) => chores.forage(w, r), ownersOnly: false, here: (w, r) => (w.isAt(r, 'farm') || w.isAt(r, 'jetty')) && chores.canForageToday(w, r),
     says: (w, r) => (w.isAt(r, 'jetty') ? 'look for a coconut on the palms' : 'look for wild kangkong or bananas'),

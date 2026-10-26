@@ -3,7 +3,7 @@
  * owner clicks, and replay controls. Read-only: it only listens to the town.
  * Everything residents said or thought is shown as text, never as HTML.
  */
-import type { Card, Economy, FeedLine, Hello, MoneyView, PlaceCard, ReplayState, TalkView, Thought, Update, Wiki } from '../types.ts';
+import type { Card, Economy, FeedLine, Hello, MoneyView, PlaceCard, ReplayState, TalkView, Thought, Update, VillagerView, Wiki } from '../types.ts';
 import { startGame, type TownScene } from './scene.ts';
 import { looksForeign } from '../foreign.ts';
 import { EnglishAsker } from './english.ts';
@@ -43,6 +43,8 @@ const probe = {
   openCard: (id: string) => pick(id),
   /** Where to click on the page to pick a place, clear of anyone in it. */
   placePoint: (id: string) => scene?.screenPointOf(id) ?? null,
+  /** Where on the page someone is drawn (a resident or Mr Lim), or null if they're not to be seen. */
+  personPoint: (id: string) => scene?.screenPointOfPerson(id) ?? null,
   /** What residents are idling at, and how many speech bubbles are showing. */
   liveliness: () => scene?.liveliness() ?? null,
 };
@@ -423,9 +425,27 @@ function placeCardView(c: PlaceCard): void {
   showCard(parts);
 }
 
+/** A village character's card (Mr Lim), from the frame itself: who, what he's doing, and today's odd jobs. */
+function villagerCardView(v: VillagerView): void {
+  const close = el('button', { class: 'close', type: 'button', 'aria-label': 'Close' }, '×');
+  close.addEventListener('click', () => pick(null));
+  showCard([
+    el('header', {}, el('h3', {}, v.name), el('span', { class: 'role' }, v.role), close),
+    el('p', { class: 'now' }, el('b', {}, 'Now: '), v.out ? v.doing : 'indoors at his house'),
+    el('h4', {}, 'Odd jobs today'),
+    v.jobs.length ? el('ul', {}, ...v.jobs.map((j) => el('li', {}, j))) : el('p', { class: 'note' }, 'None pinned yet today.'),
+    el('footer', {}, "Owner's view. Nothing on this card ever reaches a resident."),
+  ]);
+}
+
 let cardAsked = 0;
 
 async function refreshCard(): Promise<void> {
+  const villager = selected ? latest?.frame.villagers?.find((v) => v.id === selected) : undefined;
+  if (villager) {
+    villagerCardView(villager);
+    return;
+  }
   if (selectedPlace) {
     const id = selectedPlace;
     const ask = ++cardAsked;

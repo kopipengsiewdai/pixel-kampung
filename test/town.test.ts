@@ -16,14 +16,17 @@ async function runDays(seed: number, days: number) {
 }
 
 describe('the fake-brain town', () => {
-  it('runs 3 game days on a fixed seed: no exceptions, money conserved except through the lorry and travellers', async () => {
+  it('runs 3 game days on a fixed seed: no exceptions, money conserved except through the lorry, travellers and Mr Lim odd jobs', async () => {
     const { town, events, before } = await runDays(42, 3);
     const after = town.world.state.residents.reduce((s, r) => s + r.money, 0);
     const lorryIn = events.filter((e) => e.type === 'lorry_sale').reduce((s, e) => s + (e.type === 'lorry_sale' ? e.cents : 0), 0);
     const lorryOut = events.filter((e) => e.type === 'lorry_order').reduce((s, e) => s + (e.type === 'lorry_order' ? e.cents : 0), 0);
     // Travellers from the road pay in from outside too.
     const travellersIn = events.reduce((s, e) => s + (e.type === 'traveller_bought' ? e.cents : 0), 0);
-    expect(after - before).toBe(lorryIn - lorryOut + travellersIn);
+    // Mr Lim pays for odd jobs from his own purse, outside the town.
+    const oddJobsIn = events.reduce((s, e) => s + (e.type === 'odd_job_done' ? e.cents : 0), 0);
+    expect(oddJobsIn).toBeGreaterThan(0);
+    expect(after - before).toBe(lorryIn - lorryOut + travellersIn + oddJobsIn);
     for (const r of town.world.state.residents) {
       expect(r.money, r.name).toBeGreaterThanOrEqual(0);
       expect(Number.isInteger(r.money)).toBe(true);
@@ -44,7 +47,7 @@ describe('the fake-brain town', () => {
     const nightActs = events.filter((e) => isNight(e.t) && ['bought', 'sold', 'said', 'went_fishing', 'ate'].includes(e.type));
     expect(nightActs).toEqual([]);
     // Every event renders (or is deliberately silent) without throwing.
-    const names = (id: string) => town.world.resident(id).name;
+    const names = (id: string) => town.world.nameOf(id);
     const lines = events.map((e) => feedLine(e, names)).filter(Boolean);
     expect(lines.length).toBeGreaterThan(100);
   });

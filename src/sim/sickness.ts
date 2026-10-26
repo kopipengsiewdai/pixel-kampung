@@ -15,7 +15,7 @@ export const ILL_AFTER = 24 * 60;
 /** Below hungry this long, and they're well again. */
 export const WELL_AFTER = 6 * 60;
 /** What the ill are too weak for: shifts, chores and fishing. */
-export const TOO_ILL_FOR: ReadonlySet<string> = new Set(['work_shift', 'fish', 'cast_net', 'fetch_water', 'mend_nets', 'sweep', 'help', 'gather_firewood', 'forage']);
+export const TOO_ILL_FOR: ReadonlySet<string> = new Set(['work_shift', 'fish', 'cast_net', 'fetch_water', 'mend_nets', 'sweep', 'help', 'gather_firewood', 'forage', 'do_odd_job']);
 export const TOO_ILL = "You feel too ill for that. You need to eat, and rest.";
 
 /** One minute of it: the faint clock, falling ill, and getting better. */

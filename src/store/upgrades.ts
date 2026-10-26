@@ -380,6 +380,15 @@ export const UPGRADES: readonly Upgrade[] = [
       return { world: { ...world, residents, shops, illSeen: world.illSeen ?? {} }, brains };
     },
   },
+  {
+    from: 20,
+    why: "Mr Lim is seen about: at his door by day, out to the notice board each morning, round the houses on Monday mornings. Each morning he pins two or three paid odd jobs, an hour's work each at its place, paid from his own purse when done, one a day each. None is pinned yet; anyone at a chore is at no job of his.",
+    save: ({ world, brains }) => {
+      const residents = (world.residents as { activity: Record<string, unknown> | null }[]).map((r) =>
+        (r.activity && r.activity.kind === 'chore' && !('job' in r.activity) ? { ...r, activity: { ...r.activity, job: null } } : r));
+      return { world: { ...world, residents, oddJobs: world.oddJobs ?? [], oddJobsDay: world.oddJobsDay ?? -1 }, brains };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

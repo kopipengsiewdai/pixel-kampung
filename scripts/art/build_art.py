@@ -658,7 +658,7 @@ PACK_TILES = {
 # The pack has no older woman, girl or boy, so the last three (Mak Esah, Aminah,
 # Hassan) are recoloured from their family's looks (LOOKS); the page draws the
 # children smaller.
-PEOPLE = ['10', '4', '3', '17', '22', '12', '25', '6', '5', '16', '4', '5', '3']
+PEOPLE = ['10', '4', '3', '17', '22', '12', '25', '6', '5', '16', '4', '5', '3', '25']
 # Hair recoloured toward black for a 1960s kampung (sheet: {from: to}).
 HAIR = {
     '6': {(192, 58, 36): (44, 34, 36), (151, 44, 38): (26, 20, 24)},
@@ -667,12 +667,14 @@ HAIR = {
 
 
 # Recolours by column: Mak Esah's hair greyed and her dress maroon; Aminah in
-# green; Hassan with black hair and a red headband.
+# green; Hassan with black hair and a red headband; Mr Lim greyed, in white.
 LOOKS = {
     10: {(145, 87, 139): (118, 116, 120), (211, 162, 206): (196, 194, 198),
          (54, 124, 152): (128, 44, 52), (35, 53, 93): (78, 26, 34), (45, 89, 123): (104, 34, 44)},
     11: {(146, 30, 101): (30, 104, 66), (224, 31, 76): (58, 160, 92)},
     12: {(44, 49, 38): (26, 22, 26), (72, 84, 61): (48, 40, 44), (111, 128, 91): (196, 64, 52)},
+    # Mr Lim, the village head (not a resident): grey hair, a white shirt, dark trousers.
+    13: {(68, 49, 49): (170, 170, 174), (36, 28, 27): (120, 120, 126), (30, 146, 57): (236, 234, 224), (20, 83, 91): (176, 172, 160), (155, 167, 170): (72, 64, 60)},
 }
 
 

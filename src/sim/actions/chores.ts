@@ -13,9 +13,10 @@ import { addDebt } from './debts.ts';
 import { waterBed } from './everyone.ts';
 import { practise, skillLevel } from '../skills.ts';
 import { TRAVELLER_PAYS } from '../travellers.ts';
+import { doneToday, finishOddJob, jobsToday, ODD_JOB_MINUTES, openJobHere, whatOf, workingAt } from '../mr-lim.ts';
 
 /** How long each chore takes, in game minutes. */
-export const CHORE_MINUTES: Record<ChoreKind, number> = { fetch_water: 10, mend_nets: 30, sweep: 15, cast_net: 45, gather_wood: 20, forage: 30 };
+export const CHORE_MINUTES: Record<ChoreKind, number> = { fetch_water: 10, mend_nets: 30, sweep: 15, cast_net: 45, gather_wood: 20, forage: 30, odd_job: ODD_JOB_MINUTES };
 /** Forages a day each (subsistence.md Q1): a meal or two, not a living. */
 export const FORAGES_A_DAY = 2;
 /** Mended nets bring one more fish on this many catches, the same day. */
@@ -24,11 +25,11 @@ export const MENDED_CATCHES = 3;
 export const ERRAND_OFFER_MINUTES = 30;
 
 /** What someone at a chore is doing, as others see it (and the watch page). */
-export const CHORE_DOING: Record<ChoreKind, string> = { fetch_water: 'fetching water', mend_nets: 'mending nets', sweep: 'sweeping', cast_net: 'casting a net', gather_wood: 'gathering firewood', forage: 'foraging' };
+export const CHORE_DOING: Record<ChoreKind, string> = { fetch_water: 'fetching water', mend_nets: 'mending nets', sweep: 'sweeping', cast_net: 'casting a net', gather_wood: 'gathering firewood', forage: 'foraging', odd_job: 'doing a job for Mr Lim' };
 
 /** What they're told if they try something else meanwhile. */
 export function busyAt(chore: ChoreKind): string {
-  return { fetch_water: "You're fetching water.", mend_nets: "You're mending nets.", sweep: "You're sweeping.", cast_net: "You're casting your net.", gather_wood: "You're gathering firewood.", forage: "You're looking for something to eat." }[chore];
+  return { fetch_water: "You're fetching water.", mend_nets: "You're mending nets.", sweep: "You're sweeping.", cast_net: "You're casting your net.", gather_wood: "You're gathering firewood.", forage: "You're looking for something to eat.", odd_job: "You're in the middle of a job for Mr Lim." }[chore];
 }
 
 /** The start of the next day: when a taken errand lapses. */
@@ -39,7 +40,7 @@ function endOfDay(t: number): number {
 function start(w: World, r: Resident, chore: ChoreKind, shopId: string | null, forId: string | null): void {
   const a = r.activity;
   const shift = a?.kind === 'working' ? { jobId: a.jobId, until: a.until, worked: a.worked } : null;
-  r.activity = { kind: 'chore', chore, until: w.t + CHORE_MINUTES[chore], shopId, forId, shift };
+  r.activity = { kind: 'chore', chore, until: w.t + CHORE_MINUTES[chore], shopId, forId, shift, job: null };
 }
 
 export function fetchWater(w: World, r: Resident): ActionResult {
@@ -52,6 +53,18 @@ export function gatherFirewood(w: World, r: Resident): ActionResult {
   if (!w.isAt(r, 'farm')) return no('The fallen wood is out past the farm plot.');
   start(w, r, 'gather_wood', null, null);
   return ok('You go out past the farm plot to pick up fallen branches.');
+}
+
+/** One of Mr Lim's odd jobs, here (subsistence.md Q3.1): an hour's work, paid when it's done. */
+export function doOddJob(w: World, r: Resident): ActionResult {
+  const here = jobsToday(w).filter((j) => w.isAt(r, j.placeId) && j.doneBy === null);
+  if (!here.length) return no("There's no work for Mr Lim here today.");
+  if (doneToday(w, r)) return no("You've already done a job for Mr Lim today.");
+  const job = openJobHere(w, r);
+  if (!job) return no(`${workingAt(w, here[0]!.id)!.name} is already at it.`);
+  start(w, r, 'odd_job', null, null);
+  if (r.activity?.kind === 'chore') r.activity.job = job.id;
+  return ok(`You set to work for Mr Lim: ${whatOf(job.kind)}. ${formatMoney(job.pay)} when it's done.`);
 }
 
 /** Whether r has a forage left today. */
@@ -152,6 +165,8 @@ export function finishChore(w: World, r: Resident): void {
     addGoods(r.items, 'firewood', 1);
     w.emit({ type: 'chore_done', who: r.id, chore: a.chore, for: null });
     w.remember(r.id, 'You tie up a bundle of firewood.');
+  } else if (a.chore === 'odd_job') {
+    finishOddJob(w, r, a.job);
   } else if (a.chore === 'forage') {
     const item: ItemId = w.isAt(r, 'jetty') ? 'coconut' : w.rng.next() < 0.5 ? 'vegetables' : 'banana';
     addGoods(r.items, item, 1);

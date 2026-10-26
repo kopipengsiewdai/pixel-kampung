@@ -52,7 +52,7 @@ console.log(`Dials (${settingsPath(home)}): ${JSON.stringify(settings.dials)}`);
 
 let town: Town;
 const print = (e: GameEvent) => {
-  const line = feedLine(e, (id) => town.world.resident(id).name);
+  const line = feedLine(e, (id) => town.world.nameOf(id));
   if (line) console.log(formatFeedLine(line, town.world.state));
 };
 
