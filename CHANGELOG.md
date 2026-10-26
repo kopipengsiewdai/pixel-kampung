@@ -4,6 +4,12 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **Hungry, they know the land has a little to give:** with no food to hand, a resident now also thinks of the coconuts on the palms by the jetty and the bananas and wild kangkong past the farm plot (the places they know; not once they've foraged their two for the day, nor when ill). Nobody had foraged since 0.25.0.
+- **Cooks know what they could make:** in the kopitiam's kitchen, and at home, a cook sees the dishes they could make right now from what's there and what they carry ("With what's here you could make kopi or grilled fish."), and the cook action names them; at home, whether the stove has anything to burn and where fuel comes from. Ah Huat, with 16 fish, had kept trying fish porridge without rice.
+- **Living town:** nothing to upgrade.
+
 ## 0.27.0 (2026-10-26): behaviour fixes
 
 Behaviour fixes from watching the living town:
