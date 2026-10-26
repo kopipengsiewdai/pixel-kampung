@@ -1,24 +1,24 @@
 /**
  * Houses, stalls and rent (docs/design/households.md, households-build.md):
  * Mr Lim the village head owns every house and stall; each household pays
- * him rent on his Monday round, into the village fund. A place can be bought
- * outright or rent-to-own, and then it's never taken. Rent unpaid for over a
- * week, and the household is out, sleeping rough at the jetty. Scripted and
- * free: Mr Lim's thinking head comes later.
+ * him rent on his Monday round, into the village fund. A place is let or sold
+ * for what someone offers and Mr Lim accepts (src/sim/mr-lim.ts); once bought,
+ * it's never taken, and a rent-to-own already running finishes on its terms.
+ * Rent unpaid for over a week, and the household is out, sleeping rough at the
+ * jetty.
  */
 import { dateAt, dateLabel, weekdayAt } from './calendar.ts';
 import { PLACES, PLACE_BY_ID } from './map.ts';
 import { formatMoney, type Cents } from './money.ts';
-import { FUND_ID, type Property, type Resident, type World, type WorldState } from './state.ts';
+import { FUND_ID, type PlaceOffer, type Property, type Resident, type World, type WorldState } from './state.ts';
 import { dayIndex, minuteOfDay, SGT_OFFSET_MIN, MINUTES_PER_DAY } from './time.ts';
 
 export const HOUSE_RENT: Cents = 50;
 export const STALL_RENT: Cents = 100;
-/** Buying outright costs a year's rent. */
+/** How Mr Lim weighs a price to buy against a rent: a year of it. */
 export const BUY_WEEKS = 52;
-/** Rent-to-own: one and a half times the rent a week, theirs after this many weeks (about a quarter more than buying outright). */
+/** Rent-to-own, no longer offered: a deal already running pays one and a half times the rent a week until it's paid. */
 export const RENT_TO_OWN_RATE = 1.5;
-export const RENT_TO_OWN_WEEKS = 44;
 /** Rent owing longer than this after the Monday it was missed, and the household is out. */
 export const GRACE_DAYS = 7;
 /** The first rent is due at least this many days after households begin. */
@@ -41,14 +41,15 @@ export function firstRentDay(w: { calendar: WorldState['calendar'] }, day: numbe
   return d;
 }
 
-/** Every house and stall with who holds it: a house's first resident (in the order the kampung knows them), a stall's shopkeeper. */
-export function startingProperty(state: Pick<WorldState, 'residents' | 'shops'>): Record<string, Property> {
+/** Every house and stall with who holds it: a house's first resident (in the order the kampung knows them), a stall's shopkeeper; the rest free from today. */
+export function startingProperty(state: Pick<WorldState, 'residents' | 'shops'>, today: number): Record<string, Property> {
   const out: Record<string, Property> = {};
   for (const p of PLACES) {
     if (p.kind !== 'house') continue;
-    out[p.id] = { holder: state.residents.find((r) => r.homeId === p.id)?.id ?? null, rent: HOUSE_RENT, owned: false, rentToOwn: null, owing: 0, since: null, grace: null };
+    const holder = state.residents.find((r) => r.homeId === p.id)?.id ?? null;
+    out[p.id] = { holder, rent: HOUSE_RENT, owned: false, rentToOwn: null, owing: 0, since: null, grace: null, freeSince: holder ? null : today };
   }
-  for (const s of state.shops) if (SHOP_IDS.includes(s.id)) out[s.id] = { holder: s.ownerId, rent: STALL_RENT, owned: false, rentToOwn: null, owing: 0, since: null, grace: null };
+  for (const s of state.shops) if (SHOP_IDS.includes(s.id)) out[s.id] = { holder: s.ownerId, rent: STALL_RENT, owned: false, rentToOwn: null, owing: 0, since: null, grace: null, freeSince: null };
   return out;
 }
 
@@ -57,8 +58,10 @@ function placeLabel(id: string): string {
   return id.startsWith('house-') ? 'the house' : PLACE_BY_ID.get(id)?.name ?? id;
 }
 
-/** Rent-to-own, in cents: what's been paid towards it, and what makes it theirs. */
-export const rentToOwnPrice = (rent: Cents) => Math.round(rent * RENT_TO_OWN_RATE) * RENT_TO_OWN_WEEKS;
+/** What an offer is for, as the one who made it thinks of it. */
+export const placeWords = (o: Pick<PlaceOffer, 'placeId'>) => (o.placeId === null ? 'a house' : o.placeId.startsWith('house-') ? 'your house' : `your ${PLACE_BY_ID.get(o.placeId)?.name ?? 'stall'}`);
+/** "50¢ a week for a house", "$20.00 to buy your house". */
+export const offerWords = (o: Pick<PlaceOffer, 'placeId' | 'kind' | 'cents'>) => (o.kind === 'rent' ? `${formatMoney(o.cents)} a week for ${placeWords(o)}` : `${formatMoney(o.cents)} to buy ${placeWords(o)}`);
 
 /** What a week costs for a place: its rent, or the rent-to-own instalment. */
 export function weekly(p: Property): Cents {
@@ -107,6 +110,7 @@ function evict(w: World, placeId: string, p: Property): void {
   p.owing = 0;
   p.since = null;
   p.rentToOwn = null;
+  p.freeSince = dayIndex(w.t);
 }
 
 /** Mr Lim's Monday round: rent from every holder, or owed; a house owing over a week, and the household is out. */
@@ -189,6 +193,8 @@ export function householdLines(w: World, r: Resident, atHead: boolean): string[]
   if (loan) out.push(`You owe Mr Lim ${formatMoney(loan.owed)} on his loan.`);
   const owing = heldBy(w, r.id).reduce((n, [, p]) => n + p.owing, 0) + (w.state.arrears[r.id] ?? 0);
   if (owing > 0) out.push(`You owe Mr Lim ${formatMoney(owing)} in rent.`);
+  const offered = w.state.placeOffers.find((o) => o.who === r.id);
+  if (offered) out.push(`You've offered Mr Lim ${offerWords(offered)}; he gives his answers in the evening.`);
   if (!atHead) return out;
   out.push("This is Mr Lim's house. Mr Lim is the village head; the houses and stalls are Mr Lim's to let.");
   const arrears = w.state.arrears[r.id] ?? 0;
@@ -196,10 +202,10 @@ export function householdLines(w: World, r: Resident, atHead: boolean): string[]
   for (const [id, p] of Object.entries(w.state.property).filter(([, p]) => p.holder === r.id)) {
     if (p.owned) out.push(`${cap(placeLabel(id))} is yours: you own it.`);
     else if (p.rentToOwn) out.push(`You're buying ${placeLabel(id)} week by week: ${formatMoney(p.rentToOwn.paid)} of ${formatMoney(p.rentToOwn.of)} paid, ${formatMoney(weekly(p))} a week.`);
-    else out.push(`You rent ${placeLabel(id)} for ${formatMoney(p.rent)} a week. To buy it outright: ${formatMoney(p.rent * BUY_WEEKS)}.`);
+    else out.push(`You rent ${placeLabel(id)} for ${formatMoney(p.rent)} a week.`);
   }
   const free = Object.entries(w.state.property).filter(([id, p]) => id.startsWith('house-') && p.holder === null);
-  if (free.length) out.push(`${free.length === 1 ? 'A house stands free' : `${free.length} houses stand free`}, to rent at ${formatMoney(HOUSE_RENT)} a week.`);
+  if (free.length) out.push(`${free.length === 1 ? 'A house stands free' : `${free.length} houses stand free`}: Mr Lim takes offers, a rent a week or a price to buy.`);
   if (dayIndex(w.t) < w.state.rentFrom) out.push(`Rent is due each Monday from ${dateLabel(dateAt(w.state, dayStart(w.state.rentFrom)))}.`);
   return out;
 }
@@ -207,7 +213,7 @@ export function householdLines(w: World, r: Resident, atHead: boolean): string[]
 const cap = (s: string) => s[0]!.toUpperCase() + s.slice(1);
 
 /** Which of their places they mean: a house by default, a stall if they say so. */
-function placeMeant(w: World, r: Resident, item: unknown): [string, Property] | null {
+export function placeMeant(w: World, r: Resident, item: unknown): [string, Property] | null {
   const held = Object.entries(w.state.property).filter(([, p]) => p.holder === r.id);
   const s = typeof item === 'string' ? item.toLowerCase() : '';
   const stall = /stall|shop|kopitiam/.test(s);
@@ -259,60 +265,25 @@ export function payRent(w: World, r: Resident, money: Cents | null): { ok: boole
   return { ok: true, reply: `You pay Mr Lim ${formatMoney(paid)}.${still > 0 ? ` You still owe Mr Lim ${formatMoney(still)}.` : ' You owe Mr Lim nothing now.'}` };
 }
 
-export function buyPlace(w: World, r: Resident, item: unknown): { ok: boolean; reply: string } {
-  if (!w.isAt(r, 'village-head')) return { ok: false, reply: "You'd have to see Mr Lim at the village head's house about that." };
-  const held = placeMeant(w, r, item);
-  if (!held) return { ok: false, reply: "You don't rent anything like that from Mr Lim." };
-  const [id, p] = held;
-  if (p.owned) return { ok: false, reply: `${cap(placeLabel(id))} is already yours.` };
-  // What was paid week by week counts towards it.
-  const price = Math.max(0, p.rent * BUY_WEEKS - (p.rentToOwn?.paid ?? 0)) + p.owing;
-  if (r.money < price) return { ok: false, reply: `Mr Lim wants ${formatMoney(price)} for ${placeLabel(id)}${p.owing ? ', with what you owe' : ''}. You haven't that much.` };
-  w.transfer(r.id, FUND_ID, price, `bought ${placeLabel(id)}`);
-  w.state.fund += price;
-  p.owned = true;
-  p.owing = 0;
-  p.since = null;
-  p.rentToOwn = null;
-  w.emit({ type: 'bought_place', who: r.id, place: id, cents: price });
-  return { ok: true, reply: `You pay Mr Lim ${formatMoney(price)}. ${cap(placeLabel(id))} is yours now, and nobody can take it.` };
-}
-
-export function rentToOwn(w: World, r: Resident, item: unknown): { ok: boolean; reply: string } {
-  if (!w.isAt(r, 'village-head')) return { ok: false, reply: "You'd have to see Mr Lim at the village head's house about that." };
-  const held = placeMeant(w, r, item);
-  if (!held) return { ok: false, reply: "You don't rent anything like that from Mr Lim." };
-  const [id, p] = held;
-  if (p.owned) return { ok: false, reply: `${cap(placeLabel(id))} is already yours.` };
-  if (p.rentToOwn) return { ok: false, reply: `You're already buying ${placeLabel(id)} week by week.` };
-  p.rentToOwn = { paid: 0, of: rentToOwnPrice(p.rent) };
-  return { ok: true, reply: `Mr Lim agrees: ${formatMoney(weekly(p))} a week instead of ${formatMoney(p.rent)}, and after ${RENT_TO_OWN_WEEKS} weeks ${placeLabel(id)} is yours.` };
-}
-
-export function rentHouse(w: World, r: Resident): { ok: boolean; reply: string } {
-  if (!w.isAt(r, 'village-head')) return { ok: false, reply: "You'd have to see Mr Lim at the village head's house about that." };
-  // A house of your own is one you live in and hold (living with family, or sleeping rough, you can take one).
-  if (w.state.property[r.homeId]?.holder === r.id) return { ok: false, reply: 'You already have a house of your own.' };
-  const arrears = w.state.arrears[r.id] ?? 0;
-  if (arrears > 0) return { ok: false, reply: `Mr Lim won't let you a house while you still owe Mr Lim ${formatMoney(arrears)}.` };
-  const free = Object.entries(w.state.property).find(([id, p]) => id.startsWith('house-') && p.holder === null);
-  if (!free) return { ok: false, reply: 'Mr Lim has no house free just now.' };
-  const [id, p] = free;
-  if (r.money < p.rent) return { ok: false, reply: `Mr Lim wants a week's rent, ${formatMoney(p.rent)}, before letting you a house.` };
-  w.transfer(r.id, FUND_ID, p.rent, 'a week\'s rent for a house, up front');
-  w.state.fund += p.rent;
-  p.holder = r.id;
-  p.owing = 0;
-  p.since = null;
-  p.rentToOwn = null;
+/** Mr Lim lets or sells a place on an offer he's taken: the first week's rent, or the price, paid into the fund now; a new house is home to the household. */
+export function letTo(w: World, r: Resident, placeId: string, kind: 'rent' | 'buy', cents: Cents): void {
+  const p = w.state.property[placeId]!;
+  const moving = p.holder !== r.id;
+  if (cents > 0) {
+    w.transfer(r.id, FUND_ID, cents, kind === 'buy' ? `bought ${placeLabel(placeId)}` : `a week's rent for ${placeLabel(placeId)}, up front`);
+    w.state.fund += cents;
+  }
+  w.emit(kind === 'buy' ? { type: 'bought_place', who: r.id, place: placeId, cents } : { type: 'rent_paid', who: r.id, place: placeId, cents });
+  Object.assign(p, { holder: r.id, owned: kind === 'buy', rentToOwn: null, owing: 0, since: null, grace: null, freeSince: null });
+  if (kind === 'rent') p.rent = cents;
+  if (!moving || !placeId.startsWith('house-')) return;
   // Whoever was turned out with them comes home too.
   const family = w.state.residents.filter((o) => o.id === r.id || (o.homeId === ROUGH && w.state.evictedWith[o.id] === r.id));
   for (const o of family) {
-    o.homeId = id;
+    o.homeId = placeId;
     delete w.state.evictedWith[o.id];
-    w.learnPlace(o, id);
+    w.learnPlace(o, placeId);
     if (o.id !== r.id) w.remember(o.id, `${r.name} has a house from Mr Lim: it's home now.`);
-    w.emit({ type: 'moved_in', who: o.id, place: id });
+    w.emit({ type: 'moved_in', who: o.id, place: placeId });
   }
-  return { ok: true, reply: `You pay Mr Lim a week's rent, ${formatMoney(p.rent)}, and Mr Lim lets you a house. It's your home now.` };
 }

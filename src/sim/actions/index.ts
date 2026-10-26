@@ -12,7 +12,7 @@ import * as households from '../households.ts';
 import { TOO_ILL, TOO_ILL_FOR } from '../sickness.ts';
 import { fireGround, fireNear, KITCHEN_ID, kitchenBuilt, lightFire } from '../cooking.ts';
 import { canJoinClass, CLASS_FEE, joinClass } from '../school.ts';
-import { askForHelp, canAskHelp, doneToday, openJobHere, whatOf } from '../mr-lim.ts';
+import { askForHelp, canAskHelp, canOffer, doneToday, offerForPlace, openJobHere, whatOf } from '../mr-lim.ts';
 import { formatMoney } from '../money.ts';
 import { moneyOf, ok as yes } from './common.ts';
 
@@ -160,18 +160,10 @@ export const ACTIONS: Record<string, ActionDef> = {
     ownersOnly: false, says: 'pay Mr Lim the rent you owe (money for only part)',
     here: (w, r) => w.isAt(r, 'village-head') && (households.heldBy(w, r.id).some(([, p]) => p.owing > 0) || (w.state.arrears[r.id] ?? 0) > 0 || w.state.loans.some((l) => l.who === r.id)),
   },
-  buy_place: {
-    run: (w, r, i) => res(households.buyPlace(w, r, i.item)), ownersOnly: false, says: 'buy your house from Mr Lim outright (item: house, or stall)',
-    here: (w, r) => w.isAt(r, 'village-head') && households.heldBy(w, r.id).length > 0,
-  },
-  rent_to_own: {
-    run: (w, r, i) => res(households.rentToOwn(w, r, i.item)), ownersOnly: false, says: 'ask Mr Lim to let you buy your house week by week (item: house, or stall)',
-    here: (w, r) => w.isAt(r, 'village-head') && households.heldBy(w, r.id).some(([, p]) => !p.rentToOwn),
-  },
-  rent_house: {
-    run: (w, r) => res(households.rentHouse(w, r)), ownersOnly: false, says: 'rent a free house from Mr Lim',
-    here: (w, r) => w.isAt(r, 'village-head') && Object.entries(w.state.property).some(([id, p]) => id.startsWith('house-') && p.holder === null)
-      && w.state.property[r.homeId]?.holder !== r.id,
+  offer_for_place: {
+    run: (w, r, i) => offerForPlace(w, r, i.item, i.money, i.side === 'buy'), ownersOnly: false,
+    says: 'make Mr Lim an offer for a house standing free, or to buy your own (item: a house, or my house; money: the rent a week, or the price; buying: true to buy)',
+    here: (w, r) => canOffer(w, r),
   },
   accept_job: {
     run: everyone.acceptJob, ownersOnly: false, says: 'accept a job someone offered you (person)',

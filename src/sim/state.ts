@@ -267,6 +267,8 @@ export interface WorldState {
   bonds: Record<string, Bond>;
   /** Every house and stall, by place id, and who holds it (households.md). */
   property: Record<string, Property>;
+  /** Offers waiting on Mr Lim's answer, one a person. */
+  placeOffers: PlaceOffer[];
   /** The day rent is first due (a Monday), and whether everyone has been told. */
   rentFrom: number;
   rentNoticed: boolean;
@@ -299,6 +301,8 @@ export interface WorldState {
 export interface Property {
   /** A week's grace Mr Lim has given on rent owing: until which day, and the day he gave it (hardship help). */
   grace: { until: number; given: number } | null;
+  /** The day it was last left free (null while someone holds it). */
+  freeSince: number | null;
   holder: string | null;
   rent: Cents;
   owned: boolean;
@@ -306,6 +310,9 @@ export interface Property {
   owing: Cents;
   since: number | null;
 }
+
+/** An offer made at Mr Lim's door (households-build.md "Housing market"): for a house standing free (no place), or to buy the place they hold. */
+export interface PlaceOffer { id: number; placeId: string | null; who: string; kind: 'rent' | 'buy'; cents: Cents; t: number }
 
 /** One resident's view of another: trust (money, keeping your word) and fondness (company, kindness), -100 to 100. */
 export interface Bond {
@@ -394,7 +401,7 @@ export class World {
   /** The owner's dials, from the private settings (not saved with the town). */
   dials: Dials = { ...DEFAULT_DIALS };
   /** Mr Lim's plan for the day's odd jobs, from his head or his own way (not saved: a restart plans again). */
-  mrLim: { day: number; plan: { jobs: number; pay: number }; asks: { who: string; said: string | null }[]; asked: Record<string, number> } = { day: -1, plan: { jobs: 2, pay: 50 }, asks: [], asked: {} };
+  mrLim: { day: number; plan: { jobs: number; pay: number }; asks: { who: string; said: string | null }[]; asked: Record<string, number>; decided: number } = { day: -1, plan: { jobs: 2, pay: 50 }, asks: [], asked: {}, decided: -1 };
   /** What's been said to the teacher, waiting for her answer, and her day's calls, openings and answers to each (not saved: a restart forgets them, and her head counts its calls from the cost log). */
   teacher: { asks: { who: string; text: string }[]; day: number; calls: number; opened: string[]; answered: Record<string, number> } = { asks: [], day: -1, calls: 0, opened: [], answered: {} };
 

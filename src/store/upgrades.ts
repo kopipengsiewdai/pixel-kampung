@@ -444,6 +444,16 @@ export const UPGRADES: readonly Upgrade[] = [
       return { world: { ...world, property, loans: world.loans ?? [] }, brains };
     },
   },
+  {
+    from: 25,
+    why: "Houses go by offer: Mr Lim takes offers at his door for a house standing free (a rent a week, or a price to buy) or to buy the place you hold, and answers each evening. No fixed prices, and no new rent-to-own; deals already running finish on their terms. No offers yet; every free house counts as free from the day of the upgrade.",
+    save: ({ world, brains }) => {
+      const today = Math.floor(((world.t as number) + 480) / 1440);
+      const property = Object.fromEntries(Object.entries(world.property as Record<string, Record<string, unknown>>)
+        .map(([id, p]) => [id, 'freeSince' in p ? p : { ...p, freeSince: p.holder === null ? today : null }]));
+      return { world: { ...world, property, placeOffers: world.placeOffers ?? [] }, brains };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

@@ -15,8 +15,9 @@ import { weekdayAt } from './calendar.ts';
 import { findPath, isWalkable, PLACE_BY_ID, type Point } from './map.ts';
 import { formatMoney, type Cents } from './money.ts';
 import { Rng } from './rng.ts';
-import { FUND_ID, GROWN_AGE, MR_LIM_ID, type Resident, type World } from './state.ts';
-import { type ActionResult, no, ok } from './actions/common.ts';
+import { FUND_ID, GROWN_AGE, MR_LIM_ID, type PlaceOffer, type Resident, type World } from './state.ts';
+import { type ActionResult, moneyOf, no, ok } from './actions/common.ts';
+import { BUY_WEEKS, heldBy, letTo, offerWords, placeMeant, placeWords } from './households.ts';
 import { cleanLine } from './osman.ts';
 import { dayIndex, minuteOfDay } from './time.ts';
 import { skillLevel } from './skills.ts';
@@ -56,6 +57,7 @@ export interface MrLimBrief { residents: number; broke: number; hungry: number; 
 export interface MrLimHead {
   plan(brief: MrLimBrief, at: { t: number; realMs: number }): Promise<{ jobs?: unknown; pay?: unknown } | null>;
   help?(brief: HelpBrief, at: { t: number; realMs: number }): Promise<HelpAnswer | null>;
+  decide?(brief: DecideBrief, at: { t: number; realMs: number }): Promise<DecideAnswer | null>;
 }
 
 const clamp = (n: number, [lo, hi]: [number, number]) => Math.max(lo, Math.min(hi, Math.round(n)));
@@ -150,6 +152,180 @@ export async function mrLimHelps(w: World, head: MrLimHead | null, realMs: numbe
       w.notify(r.id, words ? `Mr Lim says to you: "${words}"` : "Mr Lim shakes his head: he can't help you just now.");
     }
   }
+}
+
+/**
+ * The housing market (households-build.md "Housing market", Q1–Q3): at his door
+ * anyone grown may offer a rent a week, or a price to buy, for a house standing
+ * free, or a price for the place they hold. There's no floor. Each evening his
+ * head accepts one, counters, or waits for better; his own way otherwise.
+ */
+export const DECIDE_AT = 17 * 60;
+/** His own way: a place free this many days, he takes the best offer he has. */
+export const WAIT_DAYS = 3;
+/** His head's calls an evening, at most. */
+const DECIDE_CALLS = 3;
+
+/** What his head is told of the offers for a place, and what it may answer (an offer by its number). */
+export interface DecideBrief { place: string; freeDays: number | null; rent: Cents; offers: { id: number; name: string; kind: 'rent' | 'buy'; cents: Cents }[] }
+export type DecideAnswer = { answer?: unknown; offer?: unknown; cents?: unknown; words?: unknown };
+
+const atHisDoor = (w: World) => { const m = mrLimAt(w, w.t); return m.out && m.doing === 'at his door'; };
+/** Houses standing free, the longest free first. */
+const freeHouses = (w: World) => Object.entries(w.state.property).filter(([id, p]) => id.startsWith('house-') && p.holder === null)
+  .sort(([, a], [, b]) => (a.freeSince ?? Infinity) - (b.freeSince ?? Infinity));
+/** Whether r holds the house they live in. */
+const housed = (w: World, r: Resident) => w.state.property[r.homeId]?.holder === r.id;
+
+/** Whether r has anything to make him an offer for, here and now. */
+export function canOffer(w: World, r: Resident): boolean {
+  return w.isAt(r, 'village-head') && atHisDoor(w) && w.ageOf(r) >= GROWN_AGE
+    && ((freeHouses(w).length > 0 && !housed(w, r)) || heldBy(w, r.id).length > 0);
+}
+
+export function offerForPlace(w: World, r: Resident, item: unknown, money: unknown, buying: boolean): ActionResult {
+  if (!w.isAt(r, 'village-head')) return no("You'd have to see Mr Lim at the village head's house about that.");
+  if (!atHisDoor(w)) return no("Mr Lim isn't at his door just now.");
+  if (w.ageOf(r) < GROWN_AGE) return no('Mr Lim smiles: houses are for your elders to see to.');
+  const cents = moneyOf(money);
+  if (cents === null || cents === 0) return no("That doesn't sound like money.");
+  const s = typeof item === 'string' ? item.toLowerCase() : '';
+  const stall = /stall|shop|kopitiam|market/.test(s);
+  const own = /\b(my|mine|own|our|ours)\b/.test(s) || (buying && !stall && housed(w, r));
+  let placeId: string | null = null;
+  if (own) {
+    const held = placeMeant(w, r, item);
+    if (!held) return no("You don't rent anything like that from Mr Lim.");
+    const [id, p] = held;
+    if (p.owned) return no('That is yours already.');
+    if (!buying) return no('You rent it already: Mr Lim would only hear an offer to buy it.');
+    if (p.owing > 0 || (w.state.arrears[r.id] ?? 0) > 0) return no("Mr Lim won't hear an offer while you owe him rent.");
+    placeId = id;
+  } else if (stall) {
+    return no('Mr Lim has no stall free just now.');
+  } else {
+    if (housed(w, r)) return no('You already have a house of your own.');
+    const arrears = w.state.arrears[r.id] ?? 0;
+    if (arrears > 0) return no(`Mr Lim won't let you a house while you still owe Mr Lim ${formatMoney(arrears)}.`);
+    if (!freeHouses(w).length) return no('Mr Lim has no house free just now.');
+  }
+  const offer: PlaceOffer = { id: w.nextId(), placeId, who: r.id, kind: buying ? 'buy' : 'rent', cents, t: w.t };
+  if (r.money < cents) {
+    return no(buying ? `You haven't ${formatMoney(cents)} to pay him.` : `Mr Lim wants the first week paid when he lets a house, and you haven't ${formatMoney(cents)}.`);
+  }
+  // One offer a person: a new one takes the place of the last.
+  w.state.placeOffers = [...w.state.placeOffers.filter((o) => o.who !== r.id), offer];
+  return ok(`You offer Mr Lim ${offerWords(offer)}. He says he'll give you his answer in the evening.`);
+}
+
+type Decision = { answer: 'accept'; offer: PlaceOffer } | { answer: 'counter'; cents: Cents; to: PlaceOffer[] } | { answer: 'wait' };
+
+/** His head's answer held to what he can do; his own way when it fails. His words only when they go with what he does. */
+function resolve(got: DecideAnswer | null, offers: PlaceOffer[], scripted: Decision): { d: Decision; words: string | null } {
+  const named = offers.find((o) => o.id === got?.offer);
+  let d: Decision = scripted;
+  if (got?.answer === 'accept' && named) d = { answer: 'accept', offer: named };
+  else if (got?.answer === 'counter' && typeof got.cents === 'number' && Number.isFinite(got.cents) && got.cents >= 1) d = { answer: 'counter', cents: Math.min(Math.round(got.cents), 1_000_000), to: named ? [named] : offers };
+  else if (got?.answer === 'wait') d = { answer: 'wait' };
+  const words = got && got.answer === d.answer && typeof got.words === 'string' ? cleanLine(got.words, 200) : null;
+  return { d, words };
+}
+
+/** Each evening (or the first time the town is awake after five): his answers to the offers made at his door. */
+export async function mrLimDecides(w: World, head: MrLimHead | null, realMs: number): Promise<void> {
+  const today = dayIndex(w.t);
+  if (w.mrLim.decided === today || minuteOfDay(w.t) < DECIDE_AT) return;
+  w.mrLim.decided = today;
+  const byId = (id: string) => w.state.residents.find((x) => x.id === id);
+  // Offers that no longer stand go: a house found meanwhile, a place no longer theirs.
+  w.state.placeOffers = w.state.placeOffers.filter((o) => {
+    const r = byId(o.who);
+    if (!r) return false;
+    if (o.placeId === null) return !housed(w, r);
+    const p = w.state.property[o.placeId];
+    return !!p && p.holder === r.id && !p.owned;
+  });
+  if (!w.state.placeOffers.length) return;
+  let calls = 0;
+  const ask = async (place: string, freeDays: number | null, rent: Cents, offers: PlaceOffer[]) => {
+    if (!head?.decide || calls >= DECIDE_CALLS) return null;
+    calls++;
+    return head.decide({ place, freeDays, rent, offers: offers.map((o) => ({ id: o.id, name: w.nameOf(o.who), kind: o.kind, cents: o.cents })) }, { t: w.t, realMs });
+  };
+  const drop = (o: PlaceOffer) => { w.state.placeOffers = w.state.placeOffers.filter((x) => x !== o); };
+  const says = (words: string | null) => (words ? `Mr Lim says to you: "${words}" ` : '');
+  let let_ = false;
+  /** Carries out an answer for a place; true when he let or sold it (or the offer fell through), so the next may be weighed. */
+  const settle = ({ d, words }: { d: Decision; words: string | null }, placeId: string, offers: PlaceOffer[]): boolean => {
+    if (d.answer === 'wait') {
+      if (words) for (const o of offers) w.notify(o.who, `Mr Lim says to you: "${words}"`);
+      return false;
+    }
+    if (d.answer === 'counter') {
+      for (const o of d.to) {
+        drop(o);
+        w.notify(o.who, `${says(words)}Mr Lim won't take ${offerWords(o)}: he'd take ${formatMoney(d.cents)}${o.kind === 'rent' ? ' a week' : ''}.`);
+      }
+      return false;
+    }
+    const o = d.offer;
+    const r = byId(o.who)!;
+    drop(o);
+    if (r.money < o.cents) {
+      w.notify(r.id, `Mr Lim would have taken your offer of ${offerWords(o)}, but you haven't the money now.`);
+      return true;
+    }
+    letTo(w, r, placeId, o.kind, o.cents);
+    let_ = true;
+    w.notify(r.id, `${says(words)}Mr Lim takes your offer of ${offerWords(o)}. ${o.kind === 'rent' ? 'You pay the first week now, and the house is your home.'
+      : `You pay him ${formatMoney(o.cents)}, and ${o.placeId === null ? 'the house is yours, and your home' : `${placeWords(o).replace(/^your /, 'the ')} is yours now`}: nobody can take it.`}`);
+    return true;
+  };
+  // How he weighs offers: a price to buy against a year's rent.
+  const worth = (o: PlaceOffer) => (o.kind === 'buy' ? o.cents : o.cents * BUY_WEEKS);
+  // Houses standing free: the best offer first, one house at a time.
+  for (;;) {
+    const free = freeHouses(w);
+    const offers = w.state.placeOffers.filter((o) => o.placeId === null).sort((a, b) => worth(b) - worth(a) || a.t - b.t);
+    if (!free.length || !offers.length) break;
+    const [houseId, house] = free[0]!;
+    const freeDays = today - (house.freeSince ?? today);
+    // His own way: half the old rent will do (or half a year's to buy); after a few days free, the best he has.
+    const fair = freeDays >= WAIT_DAYS || worth(offers[0]!) * 2 >= house.rent * BUY_WEEKS;
+    const scripted: Decision = fair ? { answer: 'accept', offer: offers[0]! } : { answer: 'wait' };
+    const got = await ask('a house standing free', freeDays, house.rent, offers);
+    if (!settle(resolve(got, offers, scripted), houseId, offers)) break;
+  }
+  if (!freeHouses(w).length) {
+    for (const o of w.state.placeOffers.filter((x) => x.placeId === null)) {
+      drop(o);
+      w.notify(o.who, 'Mr Lim has let the house to someone else: he has none free now.');
+    }
+  }
+  // Offers to buy the place they hold, each on its own.
+  for (const o of w.state.placeOffers.filter((x) => x.placeId !== null)) {
+    const p = w.state.property[o.placeId!]!;
+    // His own way: half a year's rent.
+    const price = Math.ceil((p.rent * BUY_WEEKS) / 2);
+    const scripted: Decision = o.cents >= price ? { answer: 'accept', offer: o } : { answer: 'counter', cents: price, to: [o] };
+    const place = o.placeId!.startsWith('house-') ? 'the house they rent from you' : `the ${PLACE_BY_ID.get(o.placeId!)?.name ?? 'stall'} they rent from you`;
+    const got = await ask(place, null, p.rent, [o]);
+    settle(resolve(got, [o], scripted), o.placeId!, [o]);
+  }
+  if (let_) pinToLet(w);
+}
+
+const TO_LET = 'To let, or for sale:';
+
+/** His note on the board of the houses standing free, kept up to date. */
+export function pinToLet(w: World): void {
+  w.state.notes = w.state.notes.filter((n) => !(n.authorId === MR_LIM_ID && n.text.startsWith(TO_LET)));
+  const n = freeHouses(w).length;
+  if (!n) return;
+  const text = `${TO_LET} ${n === 1 ? 'a house' : `${n} houses`}, standing free. Make Mr Lim an offer at his door, a rent a week or a price to buy. Mr Lim.`;
+  w.state.notes.push({ id: w.nextId(), authorId: MR_LIM_ID, text, t: w.t });
+  if (w.state.notes.length > BOARD_MAX) w.state.notes.shift();
+  w.emit({ type: 'note_pinned', who: MR_LIM_ID, text });
 }
 
 /** A better-paid job for someone with good English (school.md): keeping Mr Lim's ledger, at his house. */
@@ -274,6 +450,8 @@ export function mrLimMinute(w: World): void {
     for (const j of next) w.state.oddJobs.push({ id: w.nextId(), kind: projectKind(p.id, j.i), placeId: j.placeId, pay: ODD_JOB_PAY, day: today, doneBy: null, noteId, project: p.id });
     w.emit({ type: 'note_pinned', who: MR_LIM_ID, text });
   }
+  // And what stands free, for offers.
+  pinToLet(w);
 }
 
 /** A job finished: paid from his purse, its note taken down. */

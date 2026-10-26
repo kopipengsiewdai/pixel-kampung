@@ -4,6 +4,16 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+Mr Lim's thinking head, part two: a free market in houses, step one ([households-build.md](docs/design/households-build.md) "Housing market"):
+- **Houses go by offer, with no fixed prices.** Each morning Mr Lim pins a note of the houses standing free.
+  - At his door, any grown-up may offer a rent a week, or a price to buy, for a house standing free, or a price to buy the place they hold. There's no floor.
+  - Each evening he answers: he takes the best offer, counters with what he'd take, or waits for better. A small thinking head decides, within the town's daily cap. His own way otherwise: half the old rent, or the best he has once a house has stood free three days.
+  - A rent taken is paid a week up front, and the house is home.
+- **No new rent-to-own, and no fixed prices to buy or rent.** A rent-to-own already running finishes on its terms, and a place already bought stays bought.
+- **Living town:** upgrades to save v26. There are no offers yet, and every free house counts as free from the day of the upgrade.
+
 ## 0.31.0 (2026-10-27): Mr Lim helps
 
 Mr Lim's thinking head, part one (with rent about to start and many in the kampung broke):

@@ -8,7 +8,7 @@
  */
 import type Anthropic from '@anthropic-ai/sdk';
 import { formatMoney } from '../sim/money.ts';
-import { type HelpAnswer, type HelpBrief, JOB_PAY_BOUNDS, JOBS_A_DAY_BOUNDS, type MrLimBrief, type MrLimHead } from '../sim/mr-lim.ts';
+import { type DecideAnswer, type DecideBrief, type HelpAnswer, type HelpBrief, JOB_PAY_BOUNDS, JOBS_A_DAY_BOUNDS, type MrLimBrief, type MrLimHead } from '../sim/mr-lim.ts';
 import { MR_LIM_ID } from '../sim/state.ts';
 import { dayCap, ESTIMATE } from './budget.ts';
 import type { CostLog } from './cost-log.ts';
@@ -37,6 +37,21 @@ export const HELP_TOOL: Anthropic.Tool = {
     properties: {
       answer: { type: 'string', enum: ['grace', 'loan', 'no'] },
       amount: { type: 'integer', description: 'For a loan: how much, in cents.' },
+      words: { type: 'string', description: 'What you say to them, one short line.' },
+    },
+    required: ['answer'],
+  },
+};
+
+export const DECIDE_TOOL: Anthropic.Tool = {
+  name: 'decide',
+  description: 'Answer the offers for a place.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      answer: { type: 'string', enum: ['accept', 'counter', 'wait'] },
+      offer: { type: 'integer', description: 'The number of the offer you accept, or answer with a counter (leave out to counter them all).' },
+      cents: { type: 'integer', description: 'For a counter: what you would take, in cents.' },
       words: { type: 'string', description: 'What you say to them, one short line.' },
     },
     required: ['answer'],
@@ -87,5 +102,15 @@ export class ModelMrLimHead implements MrLimHead {
       'Decide, and say a few words to them.',
     ].join('\n');
     return this.ask(user, at, HELP_TOOL);
+  }
+
+  async decide(b: DecideBrief, at: { t: number; realMs: number }): Promise<DecideAnswer | null> {
+    const free = b.freeDays === null ? '' : ` It has stood empty ${b.freeDays === 0 ? 'since today' : `${b.freeDays} day${b.freeDays === 1 ? '' : 's'}`}.`;
+    const user = [
+      `This evening you look over the offers for ${b.place}.${free} Its rent has been ${formatMoney(b.rent)} a week.`,
+      ...b.offers.map((o) => `Offer ${o.id}: ${o.name} offers ${formatMoney(o.cents)}${o.kind === 'rent' ? ' a week to rent it' : ' to buy it outright'}.`),
+      'You may accept one offer, counter with what you would take, or wait for better. Decide, and say a few words.',
+    ].join('\n');
+    return this.ask(user, at, DECIDE_TOOL);
   }
 }
