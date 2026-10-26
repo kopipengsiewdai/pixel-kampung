@@ -84,7 +84,11 @@ export function bundleOf(v: unknown): Bundle | string {
   const items: Goods = {};
   if (o.items !== undefined) {
     if (typeof o.items !== 'object' || o.items === null) return "You're not sure what you meant to trade.";
-    for (const [name, n] of Object.entries(o.items as Record<string, unknown>)) {
+    // A list ("fish", "bread") is one of each; { item, qty } entries count as given.
+    const entries: [string, unknown][] = Array.isArray(o.items)
+      ? o.items.map((x): [string, unknown] => (typeof x === 'string' ? [x, 1] : x && typeof x === 'object' ? [String((x as { item?: unknown }).item ?? ''), (x as { qty?: unknown; amount?: unknown }).qty ?? (x as { amount?: unknown }).amount ?? 1] : ['', 0]))
+      : Object.entries(o.items as Record<string, unknown>);
+    for (const [name, n] of entries) {
       const item = findItem(name);
       if (!item) return `You don't know what ${quoted(name)} is.`;
       const q = qtyOf(n, 0);

@@ -97,6 +97,7 @@ const NUDGE_FIRST = ['jetty', 'farm'];
 const NOT_NEARBY = / isn't nearby\. /;
 const SAID_ALL = / have said all there is to say\.$/;
 const NOBODY_MINDING = /^Nobody's minding /;
+const NO_ANSWER = / hasn't answered you\.$/;
 
 /** The person an action is aimed at, lower-cased, if any. */
 function personOf(i: Intent): string | null {
@@ -238,7 +239,7 @@ export class Town {
             break;
           }
           // Two who have said all there is to say won't find more this minute either.
-          if (!res.ok && (SAID_ALL.test(res.reply ?? '') || NOBODY_MINDING.test(res.reply ?? ''))) break;
+          if (!res.ok && (SAID_ALL.test(res.reply ?? '') || NOBODY_MINDING.test(res.reply ?? '') || NO_ANSWER.test(res.reply ?? ''))) break;
           if (res.ok) {
             const what = sameness(intent);
             const before = r.lastDone;

@@ -12,7 +12,7 @@ import { fromIntent, toIntent } from '../src/mind/tools.ts';
 import { CARDS } from '../src/seed/cards.ts';
 import { Town, fakeBrains } from '../src/town.ts';
 import { realMsAt } from '../src/sim/time.ts';
-import { CIRCLE_LINES } from '../src/sim/state.ts';
+import { CIRCLE_LINES, talkKey } from '../src/sim/state.ts';
 import type { GameEvent } from '../src/sim/events.ts';
 import { perceive } from '../src/sim/perception.ts';
 import { act, accepted, newWorld, put, sgt, who } from './helpers.ts';
@@ -97,6 +97,8 @@ describe('talk is line by line, with a soft limit', () => {
       raju.thinkAt = w.t + 99;
       accepted(act(w, siti.id, { verb: 'say', text: `Line ${i}`, to: 'Raju' }));
       expect(raju.thinkAt).toBe(w.t + 1);
+      // Raju nods along: this is about waking, not about going unanswered.
+      delete w.state.talk[talkKey(siti.id, raju.id)]!.unanswered;
       // Something done together keeps the chat from going round in circles; the 8-line limit still holds.
       if (i === 3) accepted(act(w, siti.id, { verb: 'give', to: 'Raju', money: 10 }));
     }

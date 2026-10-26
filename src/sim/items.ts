@@ -26,7 +26,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   },
   rice: {
     id: 'rice', one: 'a bag of rice', many: '{n} bags of rice', aliases: ['bag of rice', 'bags of rice'],
-    inedible: "You can't eat raw rice. It needs cooking.",
+    inedible: "You can't eat raw rice. It needs cooking on a stove.",
   },
   coffee: {
     id: 'coffee', one: 'a tin of coffee powder', many: '{n} tins of coffee powder',
@@ -49,7 +49,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   },
   bubur: {
     id: 'bubur', one: 'a bowl of bubur', many: '{n} bowls of bubur',
-    aliases: ['plain rice', 'rice porridge', 'plain porridge', 'congee', 'boiled rice', 'cooked rice', 'nasi', 'bowl of rice', 'rice bowl'], food: { hunger: 300 },
+    aliases: ['plain rice', 'rice porridge', 'plain porridge', 'congee', 'boiled rice', 'cooked rice', 'nasi', 'bowl of rice', 'rice bowl', 'nasi putih', 'bubur kosong', 'soft rice', 'plain rice porridge', 'white rice'], food: { hunger: 300 },
   },
   firewood: {
     id: 'firewood', one: 'a bundle of firewood', many: '{n} bundles of firewood', aliases: ['wood', 'kayu api', 'sticks', 'bundle of firewood', 'bundles of firewood'],
@@ -66,7 +66,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     id: 'kerosene', one: 'a tin of kerosene', many: '{n} tins of kerosene', aliases: ['minyak tanah', 'lamp oil', 'paraffin'],
     inedible: "Kerosene? That's for the lamp, not for drinking.",
   },
-  kopi: { id: 'kopi', one: 'a cup of kopi', many: '{n} cups of kopi', aliases: [], food: { hunger: 50, energy: 120 } },
+  kopi: { id: 'kopi', one: 'a cup of kopi', many: '{n} cups of kopi', aliases: ['kopi o', 'kopi-o', 'kopi susu'], food: { hunger: 50, energy: 120 } },
   'fish porridge': {
     id: 'fish porridge', one: 'a bowl of fish porridge', many: '{n} bowls of fish porridge',
     aliases: ['porridge', 'fish congee'], food: { hunger: 450 },
@@ -79,16 +79,31 @@ export const ITEMS: Record<ItemId, ItemDef> = {
 
 export const ITEM_IDS = Object.keys(ITEMS) as ItemId[];
 
-export function findItem(name: string): ItemId | null {
-  // Also the game's own labels ("a cup of kopi", "2 loaves of bread"), so residents can name what they see.
-  const s = name.trim().toLowerCase().replace(/^(?:a|an|the|some|one|\d+)\s+/, '');
-  for (const def of Object.values(ITEMS)) {
-    if (def.id === s || def.aliases.includes(s)) return def.id;
-    const one = def.one.replace(/^(?:a|an)\s+/, '');
-    const many = def.many.replace(/^\{n\}\s+/, '');
-    if (s === one || s === many) return def.id;
-  }
+/** Every name a thing goes by: its own, its other names, and the game's labels ("a cup of kopi", "2 loaves of bread"). */
+function namesOf(def: ItemDef): string[] {
+  return [def.id, ...def.aliases, def.one.replace(/^(?:a|an)\s+/, ''), def.many.replace(/^\{n\}\s+/, '')];
+}
+
+function exactItem(s: string): ItemId | null {
+  for (const def of Object.values(ITEMS)) if (namesOf(def).includes(s)) return def.id;
   return null;
+}
+
+/** Words around a name that don't change what it is ("my", "two", "fresh"). */
+const FILLER = /^(?:a|an|the|some|one|two|three|four|five|six|my|your|our|his|her|their|fresh|small|big|little|\d+)\s+/;
+
+export function findItem(name: string): ItemId | null {
+  let s = name.trim().toLowerCase();
+  const exact = exactItem(s.replace(/^(?:a|an|the|some|one|\d+)\s+/, ''));
+  if (exact) return exact;
+  // People say more than the name: "bubur kosong (plain rice porridge)", "water from my pail", "my two fresh fish".
+  // Only words that can't change what it is are dropped: anything else ("a cup of coffee", "fried rice") stays unknown.
+  s = s.replace(/\([^)]*\)/g, ' ').replace(/\s(?:from|in|out of)\s.*$/, '').replace(/\s+/g, ' ').trim();
+  for (let prev = ''; prev !== s;) {
+    prev = s;
+    s = s.replace(FILLER, '');
+  }
+  return s ? exactItem(s) : null;
 }
 
 export function quantityLabel(item: ItemId, n: number): string {
