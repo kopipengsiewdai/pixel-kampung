@@ -366,7 +366,7 @@ export const UPGRADES: readonly Upgrade[] = [
       const today = Math.floor(((world.t as number) + 8 * 60) / 1440);
       let rentFrom = today + 28;
       while ((((rentFrom - firstDay) % 7) + 7) % 7 !== 0) rentFrom++;
-      return { world: { ...world, residents, stoves, property, rentFrom, rentNoticed: false, fund: 0 }, brains };
+      return { world: { ...world, residents, stoves, property, rentFrom, rentNoticed: false, lastRoundDay: 0, arrears: {}, evictedWith: {}, fund: 0 }, brains };
     },
   },
 ];

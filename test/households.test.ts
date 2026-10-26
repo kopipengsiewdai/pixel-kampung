@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { BUY_WEEKS, HOUSE_RENT, RENT_TO_OWN_WEEKS, rentRound, STALL_RENT } from '../src/sim/households.ts';
+import { BUY_WEEKS, HOUSE_RENT, householdsMinute, RENT_TO_OWN_WEEKS, rentRound, rentToOwnPrice, STALL_RENT } from '../src/sim/households.ts';
+import { skipQuietly } from '../src/sim/skip.ts';
+import { weekdayAt } from '../src/sim/calendar.ts';
 import { PLACE_BY_ID } from '../src/sim/map.ts';
 import { describe as describePerception, perceive } from '../src/sim/perception.ts';
 import { FUND_ID, type World } from '../src/sim/state.ts';
@@ -107,7 +109,7 @@ describe('buying instead of renting', () => {
     const siti = put(w, 'Siti', 'village-head');
     accepted(act(w, siti.id, { verb: 'rent_to_own' }));
     const place = w.state.property[siti.homeId]!;
-    expect(place.rentToOwn).toEqual({ paid: 0, of: RENT_TO_OWN_WEEKS });
+    expect(place.rentToOwn).toEqual({ paid: 0, of: rentToOwnPrice(HOUSE_RENT) });
     rentDueNow(w);
     siti.money = 100_000;
     for (let k = 0; k < RENT_TO_OWN_WEEKS; k++) rentRound(w);
@@ -164,5 +166,93 @@ describe('a free house', () => {
     expect(kow.homeId).toMatch(/^house-/);
     expect(w.state.property[kow.homeId]!.holder).toBe(kow.id);
     for (const line of seen(w, 'Ah Kow').split('\n')) expectInWorld(line);
+  });
+});
+
+describe('the review: rent that holds up', () => {
+  it('the evicted keep their debt, and must pay it and a week up front before Mr Lim lets them another house; their family comes home with them', () => {
+    const w = newWorld(9);
+    rentDueNow(w);
+    const fat = who(w, 'Fatimah');
+    fat.money = 0;
+    rentRound(w);
+    w.state.t += 7 * 1440;
+    rentRound(w);
+    expect(fat.homeId).toBe('rough');
+    expect(w.state.arrears[fat.id]).toBe(HOUSE_RENT);
+    put(w, 'Fatimah', 'village-head');
+    refused(act(w, fat.id, { verb: 'rent_house' }), /still owe Mr Lim/);
+    fat.money = 1000;
+    accepted(act(w, fat.id, { verb: 'pay_rent' }));
+    accepted(act(w, fat.id, { verb: 'rent_house' }));
+    expect(fat.money).toBe(1000 - 2 * HOUSE_RENT);
+    for (const name of ['Aminah', 'Hassan']) expect(who(w, name).homeId).toBe(fat.homeId);
+  });
+
+  it('with no money, no house: a week up front', () => {
+    const w = newWorld(9);
+    const kow = put(w, 'Ah Kow', 'village-head');
+    kow.homeId = 'rough';
+    w.state.property[who(w, 'Ah Kow').homeId === 'rough' ? 'house-5' : 'house-5']!.holder = null;
+    kow.money = 10;
+    refused(act(w, kow.id, { verb: 'rent_house' }), /a week's rent/);
+  });
+
+  it('rent-to-own counts every cent paid, part payments and paying what was owed too', () => {
+    const w = newWorld(9);
+    const siti = put(w, 'Siti', 'village-head');
+    accepted(act(w, siti.id, { verb: 'rent_to_own' }));
+    const place = w.state.property[siti.homeId]!;
+    rentDueNow(w);
+    siti.money = 50;
+    rentRound(w);
+    siti.money = 100;
+    rentRound(w);
+    expect(place.rentToOwn!.paid).toBe(150);
+    siti.money = 0;
+    rentRound(w);
+    siti.money = 75;
+    accepted(act(w, siti.id, { verb: 'pay_rent' }));
+    expect(place.rentToOwn!.paid).toBe(225);
+  });
+
+  it("grace runs from the oldest week still owed, and the next Monday after a missed one, they're out", () => {
+    const w = newWorld(9);
+    rentDueNow(w);
+    const siti = who(w, 'Siti');
+    const home = siti.homeId;
+    siti.money = 0;
+    rentRound(w);
+    w.state.t += 7 * 1440;
+    siti.money = HOUSE_RENT;
+    rentRound(w);
+    // The old week is paid; this week's grace starts now.
+    expect(siti.homeId).toBe(home);
+    expect(w.state.property[home]!.since).toBe(dayIndex(w.t));
+  });
+
+  it('a Monday round the kampung slept through is caught up, once', () => {
+    const w = newWorld(8, 0);
+    while (weekdayAt(w.state, w.t) !== 'Monday') w.state.t += 1440;
+    w.state.rentFrom = dayIndex(w.t);
+    w.state.lastRoundDay = 0;
+    const huat = who(w, 'Ah Huat');
+    huat.money = 10_000;
+    skipQuietly(w, w.t + 3 * 60);
+    householdsMinute(w);
+    householdsMinute(w);
+    expect(huat.money).toBe(10_000 - HOUSE_RENT - STALL_RENT);
+  });
+
+  it("money Mr Lim can't make out is turned down, not taken in full", () => {
+    const w = newWorld(9);
+    rentDueNow(w);
+    const rahim = who(w, 'Rahim');
+    rahim.money = 0;
+    rentRound(w);
+    put(w, 'Rahim', 'village-head');
+    rahim.money = 500;
+    refused(act(w, rahim.id, { verb: 'pay_rent', money: 'half' }), /doesn't sound like money/);
+    expect(rahim.money).toBe(500);
   });
 });

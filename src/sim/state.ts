@@ -251,6 +251,12 @@ export interface WorldState {
   /** The day rent is first due (a Monday), and whether everyone has been told. */
   rentFrom: number;
   rentNoticed: boolean;
+  /** The last Monday Mr Lim came round. */
+  lastRoundDay: number;
+  /** Rent still owed from a house lost, by who held it. */
+  arrears: Record<string, Cents>;
+  /** Who each person sleeping rough was turned out with (the holder), so they come home together. */
+  evictedWith: Record<string, string>;
   /** What the village fund holds, in cents. */
   fund: number;
   /** Keys of one-off notable things that already happened (e.g. a shop's first sale). */

@@ -53,7 +53,8 @@ function pottered(w: World, r: Resident, p: Perception): void {
   if (own && p.placeId === own.id) return;
   // Hungry with nothing to eat: where food is to be had is in their notes (foodWays); the idle nudge thinks of family.
   if (r.hunger >= HUNGRY_FROM && !Object.keys(r.items).some((i) => ITEMS[i as ItemId].food && (r.items[i as ItemId] ?? 0) > 0)) {
-    const kin = kinOf(r.id).find((k) => w.state.residents.some((o) => o.id === k.id && o.homeId !== r.homeId) && w.knowsPerson(r, k.id));
+    // Kin in another house (two sleeping rough share no roof).
+    const kin = kinOf(r.id).find((k) => w.state.residents.some((o) => o.id === k.id && (o.homeId !== r.homeId || o.homeId === 'rough')) && w.knowsPerson(r, k.id));
     if (kin) {
       r.reply = { ok: true, text: `You're hungry. You could ask your ${kin.word} ${w.resident(kin.id).name} for something to eat.` };
       return;

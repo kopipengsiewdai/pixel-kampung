@@ -138,8 +138,13 @@ export const ACTIONS: Record<string, ActionDef> = {
   },
   sleep: { run: everyone.sleep, ownersOnly: false, says: 'sleep', here: (w, r) => w.isAt(r, w.home(r).id) },
   pay_rent: {
-    run: (w, r, i) => res(households.payRent(w, r, moneyOf(i.money))), ownersOnly: false, says: 'pay Mr Lim the rent you owe (money for only part)',
-    here: (w, r) => w.isAt(r, 'village-head') && households.heldBy(w, r.id).some(([, p]) => p.owing > 0),
+    run: (w, r, i) => {
+      if (i.money === undefined || i.money === null || i.money === '') return res(households.payRent(w, r, null));
+      const m = moneyOf(i.money);
+      return m === null || m === 0 ? no("That doesn't sound like money.") : res(households.payRent(w, r, m));
+    },
+    ownersOnly: false, says: 'pay Mr Lim the rent you owe (money for only part)',
+    here: (w, r) => w.isAt(r, 'village-head') && (households.heldBy(w, r.id).some(([, p]) => p.owing > 0) || (w.state.arrears[r.id] ?? 0) > 0),
   },
   buy_place: {
     run: (w, r, i) => res(households.buyPlace(w, r, i.item)), ownersOnly: false, says: 'buy your house from Mr Lim outright (item: house, or stall)',
