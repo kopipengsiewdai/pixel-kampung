@@ -114,6 +114,7 @@ src/sim/state.ts WorldState {
   }[]
   loans: {
     owed: number
+    weekly: number
     who: string
   }[]
   lorryHere: false | true

@@ -100,14 +100,15 @@ export type HelpAnswer = { answer?: unknown; amount?: unknown; words?: unknown }
 /** Whether r may ask him for help here and now (at his door, once a day). */
 export function canAskHelp(w: World, r: Resident): boolean {
   const m = mrLimAt(w, w.t);
-  return m.out && m.doing === 'at his door' && w.isAt(r, 'village-head') && w.mrLim.asked[r.id] !== dayIndex(w.t);
+  return m.out && m.doing === 'at his door' && w.isAt(r, 'village-head') && w.ageOf(r) >= GROWN_AGE && w.mrLim.asked[r.id] !== dayIndex(w.t);
 }
 
-export function askForHelp(w: World, r: Resident): ActionResult {
+export function askForHelp(w: World, r: Resident, said: string | null = null): ActionResult {
   if (!w.isAt(r, 'village-head')) return no("You'd have to see Mr Lim at the village head's house.");
+  if (w.ageOf(r) < GROWN_AGE) return no('Mr Lim pats your head: that is for your elders to ask.');
   if (!canAskHelp(w, r)) return no(w.mrLim.asked[r.id] === dayIndex(w.t) ? "You've already asked Mr Lim today." : "Mr Lim isn't at his door just now.");
   w.mrLim.asked[r.id] = dayIndex(w.t);
-  w.mrLim.asks.push(r.id);
+  w.mrLim.asks.push({ who: r.id, said });
   return ok('You tell Mr Lim how things stand with you, and ask if he can help.');
 }
 
@@ -117,7 +118,7 @@ const owingPlace = (w: World, r: Resident) => Object.values(w.state.property).fi
 /** Answers to anyone who asked for help: his head chooses grace, a loan or no, within his bounds; his own way otherwise. */
 export async function mrLimHelps(w: World, head: MrLimHead | null, realMs: number): Promise<void> {
   const today = dayIndex(w.t);
-  for (const who of w.mrLim.asks.splice(0)) {
+  for (const { who, said } of w.mrLim.asks.splice(0)) {
     const r = w.state.residents.find((x) => x.id === who);
     if (!r) continue;
     const place = owingPlace(w, r);
@@ -126,13 +127,15 @@ export async function mrLimHelps(w: World, head: MrLimHead | null, realMs: numbe
     const canLend = w.state.loans.some((l) => l.who === r.id) ? 0 : LOAN_WEEKS * rent;
     const scripted: { answer: 'grace' | 'loan' | 'no'; amount: Cents } = canGrace ? { answer: 'grace', amount: 0 }
       : canLend > 0 && r.money < canLend ? { answer: 'loan', amount: canLend } : { answer: 'no', amount: 0 };
-    const got = head?.help ? await head.help({ name: r.name, money: r.money, owing: place?.owing ?? 0, canGrace, canLend, said: null }, { t: w.t, realMs }) : null;
+    const got = head?.help ? await head.help({ name: r.name, money: r.money, owing: place?.owing ?? 0, canGrace, canLend, said }, { t: w.t, realMs }) : null;
     let answer = got && ['grace', 'loan', 'no'].includes(got.answer as string) ? got.answer as 'grace' | 'loan' | 'no' : scripted.answer;
     if ((answer === 'grace' && !canGrace) || (answer === 'loan' && canLend <= 0)) answer = scripted.answer;
     const amount = answer === 'loan' ? Math.max(1, Math.min(canLend, typeof got?.amount === 'number' && got.amount > 0 ? Math.round(got.amount) : canLend)) : 0;
-    const words = typeof got?.words === 'string' ? cleanLine(got.words, 200) : null;
+    // His own words only when they go with what he does.
+    const words = got?.answer === answer && typeof got.words === 'string' ? cleanLine(got.words, 200) : null;
     if (answer === 'grace' && place) {
-      place.grace = { until: today + GRACE_DAYS, given: today };
+      // A week: through the next six days (asked on a Monday before the round, that round only).
+      place.grace = { until: today + GRACE_DAYS - 1, given: today };
       w.emit({ type: 'helped_by_mr_lim', who: r.id, how: 'grace', cents: 0 });
       w.notify(r.id, `${words ? `Mr Lim says to you: "${words}" ` : ''}Mr Lim gives you a week's grace on the rent you owe.`);
     } else if (answer === 'loan') {
@@ -140,7 +143,7 @@ export async function mrLimHelps(w: World, head: MrLimHead | null, realMs: numbe
       const fromFund = w.state.fund >= amount;
       w.transfer(fromFund ? FUND_ID : MR_LIM_ID, r.id, amount, "Mr Lim's hardship loan");
       if (fromFund) w.state.fund -= amount;
-      w.state.loans.push({ who: r.id, owed: amount });
+      w.state.loans.push({ who: r.id, owed: amount, weekly: rent });
       w.emit({ type: 'helped_by_mr_lim', who: r.id, how: 'loan', cents: amount });
       w.notify(r.id, `${words ? `Mr Lim says to you: "${words}" ` : ''}Mr Lim lends you ${formatMoney(amount)}, to be paid back a little at a time when he comes round on Mondays.`);
     } else {

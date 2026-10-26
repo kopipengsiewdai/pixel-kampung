@@ -92,3 +92,61 @@ describe('the upgrade (save v25)', () => {
     expect(step.save!({ world: up, brains: {} }).world).toEqual(up);
   });
 });
+
+describe('review fixes', () => {
+  it("a week's grace given on a Monday morning covers that day's round only", async () => {
+    const { rentRound } = await import('../src/sim/households.ts');
+    const w = atDoor();
+    // The Monday a fortnight on, before the round.
+    w.state.rentFrom = 0;
+    const mon = sgt(8, 30, 7);
+    w.state.t = mon;
+    const huat = who(w, 'Ah Huat');
+    const house = w.state.property[huat.homeId]!;
+    house.owing = 50;
+    house.since = dayIndex(mon) - 7;
+    huat.money = 0;
+    await ask(w, 'Ah Huat', { plan: async () => null, help: async () => ({ answer: 'grace' }) });
+    w.state.t = sgt(9, 0, 7);
+    rentRound(w);
+    expect(huat.homeId).not.toBe('rough');
+    w.state.t = sgt(9, 0, 14);
+    rentRound(w);
+    expect(huat.homeId).toBe('rough');
+  });
+
+  it('a loan can be paid back early at his door; repaid a week of their rent at a time at the rounds', async () => {
+    const { rentRound } = await import('../src/sim/households.ts');
+    const w = atDoor();
+    w.state.t = sgt(10, 0, 1);
+    const siti = who(w, 'Siti');
+    siti.money = 0;
+    await ask(w, 'Siti');
+    const owed = w.state.loans[0]!.owed;
+    siti.money = 30;
+    accepted(act(w, siti.id, { verb: 'pay_rent', money: 30 }));
+    expect(w.state.loans[0]!.owed).toBe(owed - 30);
+    w.state.rentFrom = 0;
+    siti.money = 1000;
+    w.state.t = sgt(9, 0, 7);
+    const fund = w.state.fund;
+    rentRound(w);
+    expect(w.state.fund - fund).toBeGreaterThanOrEqual(w.state.property[siti.homeId]!.rent);
+  });
+
+  it('a child is not one to ask Mr Lim for a loan', () => {
+    const w = atDoor();
+    w.state.t = sgt(10, 0, 1);
+    const hassan = put(w, 'Hassan', 'village-head');
+    expect(availableActions(w, hassan).map((a) => a.verb)).not.toContain('ask mr lim for help');
+  });
+
+  it('his words go with what he does: a head that picks what he cannot give is not quoted', async () => {
+    const w = atDoor();
+    w.state.t = sgt(10, 0, 1);
+    const siti = who(w, 'Siti');
+    siti.money = 0;
+    await ask(w, 'Siti', { plan: async () => null, help: async () => ({ answer: 'grace', words: 'Take another week on the rent.' }) });
+    expect(siti.recent.some((o) => /another week/.test(o.text))).toBe(false);
+  });
+});

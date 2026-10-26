@@ -158,7 +158,7 @@ export const ACTIONS: Record<string, ActionDef> = {
       return m === null || m === 0 ? no("That doesn't sound like money.") : res(households.payRent(w, r, m));
     },
     ownersOnly: false, says: 'pay Mr Lim the rent you owe (money for only part)',
-    here: (w, r) => w.isAt(r, 'village-head') && (households.heldBy(w, r.id).some(([, p]) => p.owing > 0) || (w.state.arrears[r.id] ?? 0) > 0),
+    here: (w, r) => w.isAt(r, 'village-head') && (households.heldBy(w, r.id).some(([, p]) => p.owing > 0) || (w.state.arrears[r.id] ?? 0) > 0 || w.state.loans.some((l) => l.who === r.id)),
   },
   buy_place: {
     run: (w, r, i) => res(households.buyPlace(w, r, i.item)), ownersOnly: false, says: 'buy your house from Mr Lim outright (item: house, or stall)',
@@ -211,7 +211,7 @@ export const ACTIONS: Record<string, ActionDef> = {
       || (!r.activity && owners.cookable(w, r) !== null),
   },
   ask_mr_lim_for_help: {
-    run: (w, r) => askForHelp(w, r), ownersOnly: false, says: 'ask Mr Lim for help (a little time on the rent, or a small loan)',
+    run: (w, r, i) => askForHelp(w, r, typeof i.text === 'string' ? i.text.slice(0, 200) : null), ownersOnly: false, says: 'ask Mr Lim for help (a little time on the rent, or a small loan)',
     here: (w, r) => canAskHelp(w, r),
   },
   join_english_class: {

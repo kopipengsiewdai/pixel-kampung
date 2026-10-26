@@ -437,7 +437,7 @@ export const UPGRADES: readonly Upgrade[] = [
   },
   {
     from: 24,
-    why: "Mr Lim helps in hard times: anyone may ask at his door for a small loan (paid back a little at each Monday round) or, owing rent, a week's grace. Nobody owes him a loan yet, and no grace has been given.",
+    why: "Mr Lim helps in hard times: any grown-up may ask at his door for a small loan (paid back a little at each Monday round) or, owing rent, a week's grace. Nobody owes him a loan yet, and no grace has been given.",
     save: ({ world, brains }) => {
       const property = Object.fromEntries(Object.entries(world.property as Record<string, Record<string, unknown>>)
         .map(([id, p]) => [id, 'grace' in p ? p : { ...p, grace: null }]));

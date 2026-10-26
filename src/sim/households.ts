@@ -144,7 +144,7 @@ export function rentRound(w: World): void {
   // His loans: a little back each round, into the fund, as they can.
   for (const loan of w.state.loans) {
     const r = w.state.residents.find((x) => x.id === loan.who);
-    const amount = r ? Math.min(loan.owed, LOAN_INSTALMENT, r.money) : 0;
+    const amount = r ? Math.min(loan.owed, loan.weekly, r.money) : 0;
     if (!r || amount <= 0) continue;
     w.transfer(r.id, FUND_ID, amount, "paying back Mr Lim's loan");
     w.state.fund += amount;
@@ -154,8 +154,6 @@ export function rentRound(w: World): void {
   w.state.loans = w.state.loans.filter((l) => l.owed > 0);
 }
 
-/** A loan is paid back this much a round, at most. */
-export const LOAN_INSTALMENT: Cents = HOUSE_RENT;
 
 /** Each minute: the notice of rent (once), and Mr Lim's Monday round. */
 export function householdsMinute(w: World): void {
@@ -220,7 +218,8 @@ export function payRent(w: World, r: Resident, money: Cents | null): { ok: boole
   if (!w.isAt(r, 'village-head')) return { ok: false, reply: "You pay rent at the village head's house." };
   const owed = heldBy(w, r.id).filter(([, p]) => p.owing > 0);
   const arrears = w.state.arrears[r.id] ?? 0;
-  const total = owed.reduce((n, [, p]) => n + p.owing, 0) + arrears;
+  const loan = w.state.loans.find((l) => l.who === r.id);
+  const total = owed.reduce((n, [, p]) => n + p.owing, 0) + arrears + (loan?.owed ?? 0);
   if (total === 0) return { ok: false, reply: "You don't owe Mr Lim anything." };
   if (r.money === 0) return { ok: false, reply: `You owe Mr Lim ${formatMoney(total)}, and you haven't the money.` };
   let left = Math.min(money ?? total, total, r.money);
@@ -245,6 +244,16 @@ export function payRent(w: World, r: Resident, money: Cents | null): { ok: boole
     left -= amount;
     paid += amount;
     ownIfPaid(w, r, id, p);
+  }
+  // Then his loan, early, if they've money over.
+  if (loan && left > 0) {
+    const amount = Math.min(left, loan.owed);
+    w.transfer(r.id, FUND_ID, amount, "paying back Mr Lim's loan");
+    w.state.fund += amount;
+    loan.owed -= amount;
+    if (loan.owed === 0) w.state.loans = w.state.loans.filter((l) => l !== loan);
+    left -= amount;
+    paid += amount;
   }
   const still = total - paid;
   return { ok: true, reply: `You pay Mr Lim ${formatMoney(paid)}.${still > 0 ? ` You still owe Mr Lim ${formatMoney(still)}.` : ' You owe Mr Lim nothing now.'}` };
