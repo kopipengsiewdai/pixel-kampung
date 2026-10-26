@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.24.2 (2026-10-26): the lorry every day until noon
 
 Making a living ([subsistence.md](docs/design/subsistence.md)), part one:
 - **Foraging:** anyone can spend half an hour looking for something to eat: wild kangkong or a hand of bananas past the farm plot, a coconut off the palms behind the jetty. Twice a day each, a snack or two, not a living. Bananas and coconuts are new, eaten as they are.
