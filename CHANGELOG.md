@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.26.0 (2026-10-26): making a living, part two
 
 Making a living ([subsistence.md](docs/design/subsistence.md)), part two:
 - **Mr Lim is seen about:** the village head stands on his doorstep by day, walks to the notice board each morning, and goes round the houses on Monday mornings for the rent. He's indoors before a quarter past seven and from six in the evening. Click him on the watch page for a card with what he's doing and today's odd jobs.
