@@ -80,7 +80,7 @@ export interface Resident {
   foraged: { day: number; n: number } | null;
   /** Since when they've been faint with hunger without a break (subsistence.md Q4). */
   faintFrom: number | null;
-  /** Ill from hunger: since when, and since when they've been eating well enough to get better (null while still hungry). */
+  /** Ill from hunger: since when, and since when they've been getting better (hunger first fell below hungry; null until then, or since going faint again). */
   ill: { since: number; better: number | null } | null;
 }
 

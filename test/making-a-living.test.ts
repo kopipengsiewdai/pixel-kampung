@@ -93,6 +93,18 @@ describe('owners see what unserved travellers would have paid (Q3.3)', () => {
     expect(s).toMatch(/Travellers who left unserved today would have paid about \$\d+\.\d\d\./);
     for (const line of s.split('\n')) expectInWorld(line);
   });
+
+  it('never more than the travellers could still spend today, nor more than the stock that was there to sell', () => {
+    const w = newWorld(6, 0);
+    put(w, 'Ah Huat', 'well');
+    const shop = w.shop('kopitiam')!;
+    shop.stock = { kopi: 10, 'fish porridge': 4 };
+    shop.sellPrices = { kopi: 20, 'fish porridge': 50 };
+    const sellable = (10 - w.dials.travellerReserve) * 20 + (4 - w.dials.travellerReserve) * 50;
+    for (let i = 0; i < 15 * 60; i++) advance(w);
+    expect(shop.today.lost).toBeGreaterThan(0);
+    expect(shop.today.lost).toBeLessThanOrEqual(Math.min(sellable, w.dials.travellerBudgetCents));
+  });
 });
 
 describe('sickness from hunger (Q4): never death', () => {
@@ -137,6 +149,51 @@ describe('sickness from hunger (Q4): never death', () => {
     expect(siti.energy).toBeLessThan(well.energy);
   });
 
+  it('the ill are not offered, nor pointed to, what they are too ill for', async () => {
+    const { availableActions } = await import('../src/sim/actions/index.ts');
+    const w = newWorld(9);
+    const siti = put(w, 'Siti', 'jetty');
+    siti.ill = { since: w.t, better: null };
+    siti.hunger = 800;
+    siti.items = {};
+    siti.money = 0;
+    const verbs = availableActions(w, siti).map((a) => a.verb);
+    for (const v of ['fish', 'forage', 'mend nets']) expect(verbs).not.toContain(v);
+    put(w, 'Siti', 'well');
+    expect(seen(w, 'Siti')).not.toMatch(/catch a fish/);
+  });
+
+  it('foraging is not offered once the day\'s two are done', async () => {
+    const { availableActions } = await import('../src/sim/actions/index.ts');
+    const w = newWorld(9);
+    const siti = put(w, 'Siti', 'farm');
+    siti.foraged = { day: Math.floor((w.t + 480) / 1440), n: FORAGES_A_DAY };
+    expect(availableActions(w, siti).map((a) => a.verb)).not.toContain('forage');
+  });
+
+  it('three proper meals a day see an ill resident well within about a day', () => {
+    const w = newWorld(6, 0);
+    const siti = put(w, 'Siti', 'well');
+    siti.ill = { since: w.t, better: null };
+    siti.hunger = 1000;
+    siti.items = {};
+    for (let i = 0; i < 3 * 1440 && siti.ill; i++) {
+      const mod = (w.t + 480) % 1440;
+      if (mod === 7 * 60 || mod === 12 * 60 || mod === 18 * 60) siti.hunger = Math.max(0, siti.hunger - ITEMS['grilled fish'].food!.hunger);
+      advance(w);
+    }
+    expect(siti.ill).toBeNull();
+  });
+
+  it('ill and faint with hunger, both show', () => {
+    const w = newWorld(9);
+    const aminah = put(w, 'Aminah', 'well');
+    aminah.ill = { since: w.t, better: null };
+    aminah.hunger = 980;
+    put(w, 'Siti', 'well');
+    expect(seen(w, 'Siti')).toMatch(/Aminah \([^)]*looking ill and faint with hunger/);
+  });
+
   it('others see it, and kin remember it', () => {
     const w = newWorld(9);
     const aminah = put(w, 'Aminah', 'well');
@@ -147,15 +204,20 @@ describe('sickness from hunger (Q4): never death', () => {
     expect(fatimah.recent.some((o) => o.text === 'Aminah looked ill.')).toBe(true);
   });
 
-  it('well again about six hours after hunger falls below hungry; hungry again, the clock starts over', () => {
+  it('well again about six hours after hunger falls below hungry, getting hungry again meanwhile; faint again, the clock starts over', () => {
     const w = newWorld(9);
     const siti = put(w, 'Siti', 'well');
     siti.ill = { since: w.t, better: null };
     siti.hunger = 100;
     siti.items = {};
-    for (let i = 0; i < WELL_AFTER - 10; i++) { siti.hunger = 100; advance(w); }
+    for (let i = 0; i < 60; i++) { siti.hunger = 100; advance(w); }
+    for (let i = 0; i < WELL_AFTER - 70; i++) { siti.hunger = 600; advance(w); }
     expect(siti.ill).not.toBeNull();
-    siti.hunger = 600;
+    for (let i = 0; i < 20; i++) { siti.hunger = 600; advance(w); }
+    expect(siti.ill).toBeNull();
+    siti.ill = { since: w.t, better: null };
+    for (let i = 0; i < WELL_AFTER - 10; i++) { siti.hunger = 100; advance(w); }
+    siti.hunger = 960;
     advance(w);
     for (let i = 0; i < 20; i++) { siti.hunger = 100; advance(w); }
     expect(siti.ill).not.toBeNull();

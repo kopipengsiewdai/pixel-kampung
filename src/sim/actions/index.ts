@@ -120,7 +120,7 @@ export const ACTIONS: Record<string, ActionDef> = {
   },
   gather_firewood: { run: (w, r) => chores.gatherFirewood(w, r), ownersOnly: false, says: 'gather firewood', here: at('farm') },
   forage: {
-    run: (w, r) => chores.forage(w, r), ownersOnly: false, here: (w, r) => w.isAt(r, 'farm') || w.isAt(r, 'jetty'),
+    run: (w, r) => chores.forage(w, r), ownersOnly: false, here: (w, r) => (w.isAt(r, 'farm') || w.isAt(r, 'jetty')) && chores.canForageToday(w, r),
     says: (w, r) => (w.isAt(r, 'jetty') ? 'look for a coconut on the palms' : 'look for wild kangkong or bananas'),
   },
   fish: { run: everyone.fish, ownersOnly: false, says: 'fish', here: at('jetty') },
@@ -237,6 +237,7 @@ export function act(w: World, residentId: string, intent: unknown): ActionResult
 export function availableActions(w: World, r: Resident): { verb: string; says: string }[] {
   const working = r.activity?.kind === 'working';
   return Object.entries(ACTIONS)
-    .filter(([verb, d]) => (!d.ownersOnly || r.role === 'owner') && (!d.here || d.here(w, r)) && (!working || ON_SHIFT.has(verb)) && (!r.stove || AT_STOVE.has(verb)))
+    .filter(([verb, d]) => (!d.ownersOnly || r.role === 'owner') && (!d.here || d.here(w, r)) && (!working || ON_SHIFT.has(verb)) && (!r.stove || AT_STOVE.has(verb))
+      && !(r.ill && TOO_ILL_FOR.has(verb)))
     .map(([verb, d]) => ({ verb: verb.replace(/_/g, ' '), says: typeof d.says === 'string' ? d.says : d.says(w, r) }));
 }

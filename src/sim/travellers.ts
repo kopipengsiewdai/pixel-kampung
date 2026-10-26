@@ -91,6 +91,18 @@ function wanted(w: World, shop: Shop): ItemId | null {
   return null;
 }
 
+/**
+ * A traveller left unserved: what they'd have paid counts as lost, but never
+ * more than the shop's travellers could still spend today, nor more than the
+ * stock it had there to sell them.
+ */
+function lost(w: World, shop: Shop, item: ItemId): void {
+  const price = shop.sellPrices[item] ?? 0;
+  const stock = (Object.entries(shop.sellPrices) as [ItemId, number][])
+    .reduce((n, [i, p]) => n + p * Math.max(0, countGoods(shop.stock, i) - w.dials.travellerReserve), 0);
+  shop.today.lost = Math.max(shop.today.lost, Math.min(shop.today.lost + price, w.dials.travellerBudgetCents - shop.today.cents, stock));
+}
+
 /** One minute of travellers at every shop: arrivals, the queue, serving, and the hourly line. */
 export function travellersMinute(w: World): void {
   const mod = minuteOfDay(w.t);
@@ -113,7 +125,7 @@ export function travellersMinute(w: World): void {
       } else {
         shop.today.left++;
         shop.hour.left++;
-        shop.today.lost += price ?? 0;
+        lost(w, shop, s.item);
       }
     }
     shop.serving = shop.serving.filter((x) => x.until > w.t);
@@ -121,7 +133,7 @@ export function travellersMinute(w: World): void {
     const wait = shop.sweptDay === day ? SWEPT_WAIT_MINUTES : WAIT_MINUTES;
     const gone = shop.queue.filter((c) => w.t - c.t > wait);
     const gaveUp = gone.length;
-    for (const c of gone) shop.today.lost += shop.sellPrices[c.item] ?? 0;
+    for (const c of gone) lost(w, shop, c.item);
     if (gaveUp) {
       shop.queue = shop.queue.filter((c) => w.t - c.t <= wait);
       shop.today.left += gaveUp;
@@ -137,12 +149,12 @@ export function travellersMinute(w: World): void {
         else if (!free.length) {
           shop.today.away++;
           shop.hour.left++;
-          shop.today.lost += shop.sellPrices[item] ?? 0;
+          lost(w, shop, item);
         }
         else if (shop.queue.length >= QUEUE_MAX) {
           shop.today.left++;
           shop.hour.left++;
-          shop.today.lost += shop.sellPrices[item] ?? 0;
+          lost(w, shop, item);
         } else shop.queue.push({ item, t: w.t });
       }
     }

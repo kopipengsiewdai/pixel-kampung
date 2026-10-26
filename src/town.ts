@@ -59,7 +59,7 @@ function pottered(w: World, r: Resident, p: Perception): void {
       r.reply = { ok: true, text: `You're hungry. You could ask your ${kin.word} ${w.resident(kin.id).name} for something to eat.` };
       return;
     }
-    if (p.foodWays.length) return;
+    if (p.foodWays.length && !r.ill) return;
   }
   // Ill (from hunger): rest is what they need.
   if (r.ill) {

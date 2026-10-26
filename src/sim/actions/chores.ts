@@ -54,11 +54,16 @@ export function gatherFirewood(w: World, r: Resident): ActionResult {
   return ok('You go out past the farm plot to pick up fallen branches.');
 }
 
+/** Whether r has a forage left today. */
+export function canForageToday(w: World, r: Resident): boolean {
+  return !(r.foraged?.day === dayIndex(w.t) && r.foraged.n >= FORAGES_A_DAY);
+}
+
 /** Foraging (subsistence.md Q1): wild kangkong or bananas past the farm plot, a coconut off the jetty's palms. */
 export function forage(w: World, r: Resident): ActionResult {
   const farm = w.isAt(r, 'farm');
   if (!farm && !w.isAt(r, 'jetty')) return no("There's nothing to be found to eat here.");
-  if (r.foraged?.day === dayIndex(w.t) && r.foraged.n >= FORAGES_A_DAY) return no("You've already picked over what there is to be had today.");
+  if (!canForageToday(w, r)) return no("You've already picked over what there is to be had today.");
   start(w, r, 'forage', null, null);
   return ok(farm ? 'You go along the ditches past the farm plot, looking for wild kangkong and bananas.' : 'You go up to the palms behind the jetty, looking for a coconut within reach.');
 }

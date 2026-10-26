@@ -26,12 +26,13 @@ export function sicknessMinute(w: World, r: Resident): void {
     if (r.faintFrom !== null && w.t - r.faintFrom >= ILL_AFTER) fallIll(w, r);
     return;
   }
-  if (r.hunger >= HUNGRY_FROM) {
+  // Getting better starts once hunger falls below hungry, and only going faint again sets it back.
+  if (r.hunger >= FAINT_HUNGER) {
     r.ill.better = null;
     return;
   }
-  r.ill.better ??= w.t;
-  if (w.t - r.ill.better < WELL_AFTER) return;
+  if (r.hunger < HUNGRY_FROM) r.ill.better ??= w.t;
+  if (r.ill.better === null || w.t - r.ill.better < WELL_AFTER) return;
   r.ill = null;
   w.emit({ type: 'got_well', who: r.id });
   w.remember(r.id, 'You feel well again.');

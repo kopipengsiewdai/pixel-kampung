@@ -183,7 +183,8 @@ function foodWays(w: World, r: Resident): string[] {
   }
   const out: string[] = [];
   if (shops.length) out.push(`You could get something to eat at ${shops.length === 1 ? shops[0] : `${shops.slice(0, -1).join(', ')} or ${shops.at(-1)}`}.`);
-  if (here !== 'jetty' && r.knownPlaces.includes('jetty')) out.push('You could catch a fish at the jetty.');
+  // Too ill to fish, the sea is no use to them.
+  if (here !== 'jetty' && r.knownPlaces.includes('jetty') && !r.ill) out.push('You could catch a fish at the jetty.');
   return out;
 }
 
@@ -210,7 +211,8 @@ function goodsList(g: Goods): { item: ItemId; qty: number }[] {
 
 /** How hungry someone looks to anyone nearby. */
 function looks(o: Resident): string {
-  return o.activity?.kind === 'sleeping' ? '' : o.ill ? 'looking ill' : o.hunger >= FAINT_HUNGER ? 'looking faint with hunger' : o.hunger >= LOOKS_HUNGRY ? 'looking hungry' : '';
+  if (o.ill && o.activity?.kind !== 'sleeping') return o.hunger >= FAINT_HUNGER ? 'looking ill and faint with hunger' : o.hunger >= LOOKS_HUNGRY ? 'looking ill and hungry' : 'looking ill';
+  return o.activity?.kind === 'sleeping' ? '' : o.hunger >= FAINT_HUNGER ? 'looking faint with hunger' : o.hunger >= LOOKS_HUNGRY ? 'looking hungry' : '';
 }
 const LOOKS_HUNGRY = 700;
 
