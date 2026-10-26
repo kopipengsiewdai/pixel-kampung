@@ -79,6 +79,18 @@ cap, with scripted fallbacks.
 
 Developing the village (power 9) waits for the fuller map.
 
+## Housing market (owner, 2026-10-26; to be agreed before building)
+
+The owner accepted PR A's fixed prices (a year's rent to buy, 44 weeks
+rent-to-own) **for now only**: "this needs to be better adjusted and housing
+should allow market to take control as well." So the next pass on housing makes
+prices come from the market, not fixed multiples:
+- **Residents buy and sell places between themselves** at whatever price they agree. Asking prices go up on the board, and buyers offer and haggle.
+- **Mr Lim's asking price and rents move with demand:** how many houses stand free, how many sleep rough, and money in circulation. This is read by the hidden economy check, within bounds.
+- Possibly: letting a room or house you own to another resident.
+
+The owner answers the open questions one at a time before this is built.
+
 ## PR C: marriage (after A and B)
 
 From [households.md](households.md) and [relationships.md](relationships.md).
