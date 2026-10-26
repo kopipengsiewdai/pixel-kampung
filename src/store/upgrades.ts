@@ -316,11 +316,16 @@ export const UPGRADES: readonly Upgrade[] = [
       for (const r of world.residents as { id: string; knownPeople: string[] }[]) {
         for (const b of r.knownPeople) {
           const key = `${r.id}>${b}`;
-          const start = KIN_V17.has(key) ? [50, 75] : FRIENDS_V17.has(key) ? [40, 40] : [0, 0];
-          bonds[key] = { trust: start[0], fondness: start[1], day: 0, talk: 0, traded: false };
+          const start = KIN_V17.has(key) ? [50, 60] : FRIENDS_V17.has(key) ? [40, 40] : [0, 0];
+          bonds[key] = { trust: start[0], fondness: start[1], day: 0, talk: 0, counted: [] };
         }
       }
-      return { world: { ...world, bonds }, brains };
+      // Nothing that happened before counts: deals talked of already are past holding anyone to, and wages owed start their day now.
+      const talk = Object.fromEntries(Object.entries(world.talk as Record<string, { word: Record<string, unknown> | null }>)
+        .map(([k, rec]) => [k, rec.word ? { ...rec, word: { ...rec.word, broken: true } } : rec]));
+      const day = Math.floor(((world.t as number) + 8 * 60) / 1440);
+      const owed = (world.owed as Record<string, unknown>[]).map((o) => ({ ...o, since: day }));
+      return { world: { ...world, bonds, talk, owed }, brains };
     },
   },
 ];

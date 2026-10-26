@@ -1,7 +1,7 @@
 import { crowdSoon, mastered, skillLines, type SkillId } from './skills.ts';
 import { isRipe, isStaffed, shiftLabel, shopHere } from './actions/everyone.ts';
 import { CHORE_DOING, errandLines } from './actions/chores.ts';
-import { feelingWords } from './bonds.ts';
+import { FEELINGS_SHOWN, feelingLine, strength } from './bonds.ts';
 import { offersFor } from './actions/haggle.ts';
 import { servers } from './travellers.ts';
 import type { DealKind } from './talk.ts';
@@ -10,7 +10,7 @@ import { ITEMS, quantityLabel, type ItemId } from './items.ts';
 import { HAGGLES_PER_VISIT, OSMAN, priceFor, room } from './osman.ts';
 import { PLACES, PLACE_BY_ID, type Place } from './map.ts';
 import { formatMoney, type Cents } from './money.ts';
-import { CIRCLE_LINES, SAID_ALL_LINES, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, WORD_MINUTES, type Debt, type Goods, type Observation, type Resident, type Shop, type TalkRecord, type World } from './state.ts';
+import { CIRCLE_LINES, SAID_ALL_LINES, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, WORD_MINUTES, type Bond, type Debt, type Goods, type Observation, type Resident, type Shop, type TalkRecord, type World } from './state.ts';
 import { nowLabel } from './calendar.ts';
 import { dayIndex, sgtHour, sgtMinute } from './time.ts';
 
@@ -251,7 +251,11 @@ export function perceive(w: World, r: Resident): Perception {
     placeId: here?.id ?? null,
     where: here ? placeLabel(w, r, here) : 'out on the footpath',
     atHome: w.isAt(r, r.homeId),
-    feelings: w.nearby(r).flatMap((o) => { const b = w.state.bonds[`${r.id}>${o.id}`]; return b && w.knowsPerson(r, o.id) ? feelingWords(b, o.name) : []; }),
+    feelings: w.nearby(r).filter((o) => !w.isAsleep(o) && w.knowsPerson(r, o.id))
+      .map((o) => ({ o, b: w.state.bonds?.[`${r.id}>${o.id}`] }))
+      .filter((x): x is { o: Resident; b: Bond } => !!x.b && feelingLine(x.b, x.o.name) !== null)
+      .sort((x, y) => strength(y.b) - strength(x.b)).slice(0, FEELINGS_SHOWN)
+      .map((x) => feelingLine(x.b, x.o.name)!),
     people: w.nearby(r).map((o) => { const l = looks(o); return l ? { name: o.name, doing: doing(w, o), looks: l } : { name: o.name, doing: doing(w, o) }; }),
     money: r.money,
     carrying: goodsList(r.items),

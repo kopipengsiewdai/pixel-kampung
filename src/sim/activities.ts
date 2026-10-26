@@ -34,7 +34,7 @@ export function endShift(w: World, r: Resident): void {
   if (earned > 0) {
     const owed = w.state.owed.find((o) => o.employerId === job.employerId && o.workerId === r.id);
     if (owed) owed.cents += earned;
-    else w.state.owed.push({ employerId: job.employerId, workerId: r.id, cents: earned });
+    else w.state.owed.push({ employerId: job.employerId, workerId: r.id, cents: earned, since: dayIndex(w.t) });
   }
   w.emit({ type: 'shift_ended', who: r.id, shop: job.placeId, earned });
   w.remember(job.employerId, `${r.name} finished a shift.`);

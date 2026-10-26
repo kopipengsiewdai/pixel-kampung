@@ -146,7 +146,8 @@ export interface TradeOffer {
   expires: number;
 }
 
-export interface Owed { employerId: string; workerId: string; cents: Cents }
+/** since: the day the wages were first owed (relationships.md: a full waking day unpaid costs trust). */
+export interface Owed { employerId: string; workerId: string; cents: Cents; since?: number }
 
 /**
  * Money one account owes another (daily-life.md A). Accounts are residents'
@@ -255,10 +256,10 @@ export interface WorldState {
 export interface Bond {
   trust: number;
   fondness: number;
-  /** The day the counts below are for: warmth from talk today, and whether a deal between them counted yet. */
+  /** The day the counts below are for: warmth from talk today, and the kinds of deed already counted today. */
   day: number;
   talk: number;
-  traded: boolean;
+  counted: string[];
 }
 
 /** A pair's chat lately (talk-circles.md). */
@@ -268,7 +269,7 @@ export interface TalkRecord {
   /** Lines since the two last did something together (a trade, a gift, a hire...) or one walked off. */
   idle: number;
   /** A deal one of them talked of as done, with nothing done yet: who said it, what kind, and when first. */
-  word: { by: string; kind: DealKind; t: number; broken?: boolean } | null;
+  word: { by: string; kind: DealKind; t: number; broken?: boolean; awake?: number } | null;
 }
 
 export const LORRY_ID = 'lorry';

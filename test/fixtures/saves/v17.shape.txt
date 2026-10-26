@@ -11,10 +11,10 @@ src/sim/state.ts WorldState {
   }[]
   bonds: {
     [key: string]: {
+      counted: string[]
       day: number
       fondness: number
       talk: number
-      traded: false | true
       trust: number
     }
   }
@@ -250,6 +250,7 @@ src/sim/state.ts WorldState {
   owed: {
     cents: number
     employerId: string
+    since?: number | undefined
     workerId: string
   }[]
   priceOffers: {
@@ -532,6 +533,7 @@ src/sim/state.ts WorldState {
       lastT: number
       lines: number
       word: null | {
+        awake?: number | undefined
         broken?: false | true | undefined
         by: string
         kind: "deal" | "job" | "paying"

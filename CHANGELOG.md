@@ -6,9 +6,9 @@ never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
 ## Unreleased
 
-- **Trust and fondness** ([docs/design/relationships.md](docs/design/relationships.md)): each resident now holds two feelings about each person they know, moved only by deeds. Gifts, help, errands, trades, repaid debts, wages paid, lessons and talk warm them; wages left owed overnight, deals talked of that nothing backs within the hour and a plea for a loan turned down cool them. Words alone never move trust. Residents see it in words beside the people near them ("Rahim is dear to you.", "You're wary of Siti."), never as numbers; the watch page's card shows the numbers to the owner.
+- **Trust and fondness** ([docs/design/relationships.md](docs/design/relationships.md)): each resident now holds two feelings about each person they know, moved only by deeds. Gifts, help, errands, trades, repaid debts, wages paid, lessons and talk warm them; wages left owed overnight, deals talked of that nothing backs within the hour and a plea for a loan turned down cool them. Words alone never move trust. Each kind of deed counts once a day between two people, so small change can't buy trust. Residents see it as one line in words for each of the few people near them they feel most strongly about ("You're fond of Rahim, and you trust Rahim."), never as numbers; the watch page's card shows the numbers to the owner.
 - A hungry resident is now pointed to the lorry stop too, while Pak Osman is in with food they can afford (nobody had thought to buy his bread).
-- **Living town:** at upgrade (save v17) family start dear and trusted, Ah Huat and Rahim as old friends, and everyone else neither; nothing that happened before counts.
+- **Living town:** at upgrade (save v17) family start fond and trusted, Ah Huat and Rahim as old friends, and everyone else neither; nothing that happened before counts.
 
 ## 0.20.0 (2026-10-26): cooking at home
 
