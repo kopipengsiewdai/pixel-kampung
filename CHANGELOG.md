@@ -6,6 +6,17 @@ never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
 ## Unreleased
 
+The kampung school ([school.md](docs/design/school.md)):
+- **A schoolhouse goes up:** Mr Lim is having one built by the footpath near his house, through his paid odd jobs: two jobs toward it each morning, beside the usual ones and the village kitchen's (12 in all). He lets it be known when the school opens.
+- **Miss de Souza, the teacher:** a teacher from town who comes to the schoolhouse on weekdays, from a quarter to eight until after the evening class, once it's open. On the watch page she has her own look and card.
+- **School mornings:** children of school age (Aminah and Hassan) are sent off to school on weekday mornings, eight to twelve, free, unless they're ill. They're busy there, as on a shift.
+- **The evening class:** grown-ups can join an English class at seven on weekday evenings, five cents a lesson, paid to the teacher.
+- **English is a skill:** learnt at school, in class, and a little by talking with someone who has more of it. It shows in a resident's own words as they learn ("a few words of English", "enough English to get by"). Mei Ling, Ah Seng and Raju, who already had some English, start with a few words of it.
+- **English pays:** Pak Osman can't haggle someone who can read his wholesaler's printed prices so hard; and once someone in the kampung has good English, Mr Lim pins a better-paid job keeping his ledger ($1). Fatimah now wants Aminah and Hassan to learn English, for a better life.
+- **Living town:** upgrades to save v24. The schoolhouse not yet begun (its first jobs go up with Mr Lim's next morning's notes); everyone who knows the village head's house knows where the school is going; Mei Ling, Ah Seng and Raju get a few words of English.
+
+## 0.28.0 (2026-10-26): where cooking happens
+
 Where cooking happens ([subsistence.md](docs/design/subsistence.md)), so stories of cooking come true when someone does the work:
 - **Outdoor fires:** anyone with a bundle of firewood can light a cooking fire at the jetty or on the beach. It burns about an hour, and anyone at it can cook from what they carry: grilled fish, or bubur if they have a pot. A fire is seen only where one is really burning; with none, the reply says firewood would light one.
 - **A cooking pot:** Pak Osman now brings pots, for a few cents. A pot lasts.
