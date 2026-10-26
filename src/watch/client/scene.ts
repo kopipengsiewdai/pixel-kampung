@@ -36,8 +36,9 @@ interface Mover {
   label: Phaser.GameObjects.Text;
   zz: Phaser.GameObjects.Image;
   bubble: Phaser.GameObjects.Text;
-  /** The game minute of the line in the bubble, and until when (page clock) it shows. */
+  /** The game minute of the line in the bubble, the line as said, and until when (page clock) it shows. */
   saidT: number;
+  saidText: string;
   bubbleUntil: number;
   idle: IdleKind;
   look: number;
@@ -53,6 +54,8 @@ export interface TownHooks {
   onPick(id: string): void;
   /** A click on a place (not on anyone in it). */
   onPickPlace(id: string): void;
+  /** A line as the page shows it (in English, when that's on and to hand). */
+  shown?(text: string): string;
 }
 
 function hash(x: number, y: number): number {
@@ -251,7 +254,8 @@ export class TownScene extends Phaser.Scene {
       m.idle = idleKindOf(r, this.placeKindAt(r.x, r.y));
       if (r.said && r.said.t !== m.saidT) {
         m.saidT = r.said.t;
-        m.bubble.setText(bubbleText(r.said.text));
+        m.saidText = r.said.text;
+        m.bubble.setText(bubbleText(this.hooks.shown?.(r.said.text) ?? r.said.text));
         m.bubbleUntil = snap ? 0 : now + BUBBLE_MS;
       }
       const off = spread.get(r.id) ?? { x: 0, y: 0 };
@@ -315,7 +319,12 @@ export class TownScene extends Phaser.Scene {
       fontFamily: 'ui-monospace, Consolas, monospace', fontSize: '7px', color: '#1d1d1d', backgroundColor: '#fdf6e3',
       padding: { x: 3, y: 2 }, resolution: 4, wordWrap: { width: 110 },
     }).setOrigin(0.5, 1).setDepth(OVERLAY_DEPTH + 6).setVisible(false);
-    return { view: r, sprite, label, zz, bubble, saidT: r.said?.t ?? -1, bubbleUntil: 0, idle: 'none', look, lift, facing: DOWN, pts: [p], start: 0, dur: 1 };
+    return { view: r, sprite, label, zz, bubble, saidT: r.said?.t ?? -1, saidText: r.said?.text ?? '', bubbleUntil: 0, idle: 'none', look, lift, facing: DOWN, pts: [p], start: 0, dur: 1 };
+  }
+
+  /** Speech bubbles redrawn as the page now shows their lines (the English button, or English just arrived). */
+  refreshBubbles(): void {
+    for (const m of this.movers.values()) if (m.saidText) m.bubble.setText(bubbleText(this.hooks.shown?.(m.saidText) ?? m.saidText));
   }
 
   /** A tap or click, not the end of a finger dragging the zoomed map about. */

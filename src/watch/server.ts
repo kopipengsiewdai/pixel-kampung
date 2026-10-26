@@ -88,6 +88,10 @@ const CSP = [
 ].join('; ');
 const ASSET_TYPES: Record<string, string> = { '.png': 'image/png', '.json': 'application/json' };
 const MAX_BODY = 4096;
+/** The English button sends a batch of feed lines at once: a bigger body, for that alone. */
+export const TRANSLATE_MAX_BODY = 64 * 1024;
+
+class TooBig extends Error {}
 
 function send(res: ServerResponse, status: number, type: string, body: string | Buffer, extra: Record<string, string> = {}): void {
   res.writeHead(status, { 'content-type': type, 'x-content-type-options': 'nosniff', 'cache-control': 'no-store', ...extra });
@@ -98,18 +102,20 @@ function json(res: ServerResponse, status: number, value: unknown): void {
   send(res, status, 'application/json; charset=utf-8', JSON.stringify(value));
 }
 
-function readJson(req: IncomingMessage): Promise<unknown> {
+/** The request's JSON body; a body over `max` is read to its end and dropped (TooBig), so it can still be answered. */
+function readJson(req: IncomingMessage, max = MAX_BODY): Promise<unknown> {
   return new Promise((ok, fail) => {
     let size = 0;
     const chunks: Buffer[] = [];
     req.on('data', (c: Buffer) => {
       size += c.length;
-      if (size > MAX_BODY) {
-        fail(new Error('too big'));
-        req.destroy();
-      } else chunks.push(c);
+      if (size <= max) chunks.push(c);
     });
     req.on('end', () => {
+      if (size > max) {
+        fail(new TooBig());
+        return;
+      }
       try {
         ok(JSON.parse(Buffer.concat(chunks).toString('utf8')));
       } catch (err) {
@@ -230,9 +236,10 @@ export async function startWatchServer(opts: WatchServerOptions): Promise<WatchS
       if (path === '/api/translate' && opts.translate) {
         let body: unknown;
         try {
-          body = await readJson(req);
-        } catch {
-          send(res, 400, 'text/plain; charset=utf-8', 'Bad request.');
+          body = await readJson(req, TRANSLATE_MAX_BODY);
+        } catch (err) {
+          if (err instanceof TooBig) send(res, 413, 'text/plain; charset=utf-8', 'Too much at once.');
+          else send(res, 400, 'text/plain; charset=utf-8', 'Bad request.');
           return;
         }
         const texts = body && typeof body === 'object' ? (body as { texts?: unknown }).texts : undefined;
