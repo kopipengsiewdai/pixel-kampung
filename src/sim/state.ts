@@ -246,10 +246,33 @@ export interface WorldState {
   faintSeen: Record<string, number>;
   /** Each resident's view of each person they know, by "who>whom" (docs/design/relationships.md). */
   bonds: Record<string, Bond>;
+  /** Every house and stall, by place id, and who holds it (households.md). */
+  property: Record<string, Property>;
+  /** The day rent is first due (a Monday), and whether everyone has been told. */
+  rentFrom: number;
+  rentNoticed: boolean;
+  /** The last Monday Mr Lim came round. */
+  lastRoundDay: number;
+  /** Rent still owed from a house lost, by who held it. */
+  arrears: Record<string, Cents>;
+  /** Who each person sleeping rough was turned out with (the holder), so they come home together. */
+  evictedWith: Record<string, string>;
+  /** What the village fund holds, in cents. */
+  fund: number;
   /** Keys of one-off notable things that already happened (e.g. a shop's first sale). */
   firsts: string[];
   /** Lines spoken between each pair lately ("a|b" sorted), for the talk soft limit. */
   talk: Record<string, TalkRecord>;
+}
+
+/** A house or stall: who holds it, its rent a week, whether bought, buying week by week, what's owed and since what day. */
+export interface Property {
+  holder: string | null;
+  rent: Cents;
+  owned: boolean;
+  rentToOwn: { paid: number; of: number } | null;
+  owing: Cents;
+  since: number | null;
 }
 
 /** One resident's view of another: trust (money, keeping your word) and fondness (company, kindness), -100 to 100. */
@@ -283,7 +306,10 @@ export const OPENING_ID = 'kampung-opening';
 /** Accounts outside the town: money appears from or vanishes into them. */
 /** Customers from the coast road: their money comes from outside the town. */
 export const TRAVELLERS_ID = 'travellers';
-export const OUTSIDE: ReadonlySet<string> = new Set([LORRY_ID, OPENING_ID, TRAVELLERS_ID]);
+/** The village fund (rent and sales in, Mr Lim's help out) and Mr Lim's own purse (households-build.md). */
+export const FUND_ID = 'village-fund';
+export const MR_LIM_ID = 'mr-lim';
+export const OUTSIDE: ReadonlySet<string> = new Set([LORRY_ID, OPENING_ID, TRAVELLERS_ID, FUND_ID, MR_LIM_ID]);
 export const FARM_BEDS = 8;
 export const MAX_RECENT = 12;
 export const NEARBY_TILES = 3;
@@ -430,12 +456,15 @@ export class World {
     return placeAt(r.pos.x, r.pos.y);
   }
 
+  /** Where they sleep: their house, or the jetty if they have none. */
   home(r: Resident): Place {
-    return PLACE_BY_ID.get(r.homeId)!;
+    return PLACE_BY_ID.get(r.homeId) ?? PLACE_BY_ID.get('jetty')!;
   }
 
   isAt(r: Resident, placeId: string): boolean {
-    return inPlace(PLACE_BY_ID.get(placeId)!, r.pos);
+    // No such place (someone sleeping rough has no house): they're not at it.
+    const p = PLACE_BY_ID.get(placeId);
+    return !!p && inPlace(p, r.pos);
   }
 
   /** Same place, or within a few tiles in the open. */

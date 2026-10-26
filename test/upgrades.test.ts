@@ -516,7 +516,7 @@ describe('v14 → v15: Pak Osman the lorry trader', () => {
   };
 
   it('a lorry caught mid-visit carries on with the old goods and prices until eight, then drives off; nobody has dealt with him yet', async () => {
-    const up = step(16).save!(step(15).save!(step(14).save!(at(v14(), 7 * 60 + 10, true))));
+    const up = step(18).save!(step(17).save!(step(16).save!(step(15).save!(step(14).save!(at(v14(), 7 * 60 + 10, true))))));
     const o = up.world.osman as { visit: { leaves: number; sells: Record<string, number> } | null; lastDay: number | null; accounts: object; orders: unknown[] };
     expect(o.visit).not.toBeNull();
     expect(o.visit!.sells).toMatchObject({ rice: 20, coffee: 50, bread: 15 });

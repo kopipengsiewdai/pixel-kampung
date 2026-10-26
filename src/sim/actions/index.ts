@@ -8,6 +8,10 @@ import * as everyone from './everyone.ts';
 import { offersFor } from './haggle.ts';
 import * as owners from './owners.ts';
 import * as teach from './teach.ts';
+import * as households from '../households.ts';
+import { moneyOf, ok as yes } from './common.ts';
+
+const res = (x: { ok: boolean; reply: string }): ActionResult => (x.ok ? yes(x.reply) : no(x.reply));
 import { mastered, skillLevel } from '../skills.ts';
 
 export type { ActionResult, Intent } from './common.ts';
@@ -132,7 +136,29 @@ export const ACTIONS: Record<string, ActionDef> = {
     run: everyone.eat, ownersOnly: false, says: 'eat or drink something you carry, or from your own shop (item)',
     here: (w, r) => (Object.keys(r.items) as ItemId[]).some((i) => ITEMS[i]?.food && countGoods(r.items, i) > 0) || everyone.shopHere(w, r)?.ownerId === r.id,
   },
-  sleep: { run: everyone.sleep, ownersOnly: false, says: 'sleep', here: (w, r) => w.isAt(r, r.homeId) },
+  sleep: { run: everyone.sleep, ownersOnly: false, says: 'sleep', here: (w, r) => w.isAt(r, w.home(r).id) },
+  pay_rent: {
+    run: (w, r, i) => {
+      if (i.money === undefined || i.money === null || i.money === '') return res(households.payRent(w, r, null));
+      const m = moneyOf(i.money);
+      return m === null || m === 0 ? no("That doesn't sound like money.") : res(households.payRent(w, r, m));
+    },
+    ownersOnly: false, says: 'pay Mr Lim the rent you owe (money for only part)',
+    here: (w, r) => w.isAt(r, 'village-head') && (households.heldBy(w, r.id).some(([, p]) => p.owing > 0) || (w.state.arrears[r.id] ?? 0) > 0),
+  },
+  buy_place: {
+    run: (w, r, i) => res(households.buyPlace(w, r, i.item)), ownersOnly: false, says: 'buy your house from Mr Lim outright (item: house, or stall)',
+    here: (w, r) => w.isAt(r, 'village-head') && households.heldBy(w, r.id).length > 0,
+  },
+  rent_to_own: {
+    run: (w, r, i) => res(households.rentToOwn(w, r, i.item)), ownersOnly: false, says: 'ask Mr Lim to let you buy your house week by week (item: house, or stall)',
+    here: (w, r) => w.isAt(r, 'village-head') && households.heldBy(w, r.id).some(([, p]) => !p.rentToOwn),
+  },
+  rent_house: {
+    run: (w, r) => res(households.rentHouse(w, r)), ownersOnly: false, says: 'rent a free house from Mr Lim',
+    here: (w, r) => w.isAt(r, 'village-head') && Object.entries(w.state.property).some(([id, p]) => id.startsWith('house-') && p.holder === null)
+      && w.state.property[r.homeId]?.holder !== r.id,
+  },
   accept_job: {
     run: everyone.acceptJob, ownersOnly: false, says: 'accept a job someone offered you (person)',
     here: (w, r) => w.state.jobOffers.some((o) => o.workerId === r.id),

@@ -579,7 +579,7 @@ export function eat(w: World, r: Resident, i: Intent): ActionResult {
 }
 
 export function sleep(w: World, r: Resident): ActionResult {
-  if (!w.isAt(r, r.homeId)) return no("You'd rather sleep in your own bed at home.");
+  if (!w.isAt(r, w.home(r).id)) return no(r.homeId === 'rough' ? 'You sleep rough at the jetty these nights.' : "You'd rather sleep in your own bed at home.");
   if (r.energy >= RESTED - 50) return no("You're not tired enough to sleep.");
   startSleep(w, r, 'nap');
   return ok('You lie down for a rest.');

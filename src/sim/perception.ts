@@ -2,6 +2,7 @@ import { crowdSoon, mastered, skillLines, type SkillId } from './skills.ts';
 import { isRipe, isStaffed, shiftLabel, shopHere } from './actions/everyone.ts';
 import { CHORE_DOING, errandLines } from './actions/chores.ts';
 import { FEELINGS_SHOWN, feelingLine, strength } from './bonds.ts';
+import { householdLines } from './households.ts';
 import { offersFor } from './actions/haggle.ts';
 import { servers } from './travellers.ts';
 import { newestOfEach, type DealKind } from './talk.ts';
@@ -77,6 +78,8 @@ export interface Perception {
   carrying: { item: ItemId; qty: number }[];
   /** Hunger that hurts, in words, from 800; null below. */
   hungerPang: string | null;
+  /** Rent owed, and what can be had at the village head's house. */
+  household: string[];
   /** Hungry with nothing to eat: the ways to food they know of. */
   foodWays: string[];
   hunger: HungerWord;
@@ -288,6 +291,7 @@ export function perceive(w: World, r: Resident): Perception {
     hunger: hungerWord(r.hunger),
     hungerPang: hungerPang(r.hunger),
     foodWays: foodWays(w, r),
+    household: householdLines(w, r, w.isAt(r, 'village-head')),
     energy: energyWord(r.energy),
     job: jobRow ? {
       place: PLACE_BY_ID.get(jobRow.placeId)!.name,
@@ -449,6 +453,7 @@ export function describe(p: Perception): string {
   if (p.atHome && HUNGRY.has(p.hunger) && !p.carrying.some((c) => ITEMS[c.item].food)) lines.push("There's no food in the house.");
   if (p.hungerPang) lines.push(p.hungerPang);
   lines.push(...p.foodWays);
+  lines.push(...p.household);
   lines.push(`You feel ${p.hunger} and ${p.energy}. You have ${formatMoney(p.money)}${p.carrying.length ? ` and you're carrying ${p.carrying.map((c) => quantityLabel(c.item, c.qty)).join(', ')}` : ''}.`);
   // What's owed, every moment, next to their money: so talk of debts meets what's true.
   const bracket = (what: string | null) => (what ? ` (${what})` : '');

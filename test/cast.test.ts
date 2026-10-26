@@ -52,8 +52,8 @@ describe('the cast', () => {
       const r = who(w, member.name);
       expect(r.knownPeople.map((id) => w.resident(id).name).sort()).toEqual([...member.knows].sort());
     }
-    // A son can go and find his father; a newcomer can't look for someone he's never met.
-    accepted(act(w, who(w, 'Ah Seng').id, { verb: 'walk_to', where: 'Ah Huat' }));
+    // A cousin can go and find his cousin; a newcomer can't look for someone he's never met.
+    accepted(act(w, who(w, 'Muthu').id, { verb: 'walk_to', where: 'Raju' }));
     refused(act(w, who(w, 'Ah Kow').id, { verb: 'walk_to', where: 'Ah Huat' }));
   });
 

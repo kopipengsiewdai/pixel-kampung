@@ -7,6 +7,7 @@ import { fadeSkills, lapseLessons } from './skills.ts';
 import { lapsePriceOffers } from './actions/haggle.ts';
 import { witherBeds } from './actions/everyone.ts';
 import { bondsMinute } from './bonds.ts';
+import { householdsMinute, ROUGH } from './households.ts';
 import { isServing, stoveMinute, travellersMinute } from './travellers.ts';
 import { PLACE_BY_ID } from './map.ts';
 import { addGoods, NEED_MAX, OLD_AGE, type Resident, type World } from './state.ts';
@@ -38,7 +39,8 @@ function feelNeeds(w: World, r: Resident): void {
   const kind = r.activity?.kind;
   if (kind === 'sleeping') {
     if (w.t % 3 === 0) r.hunger += 1;
-    r.energy += 3;
+    // Sleeping rough at the jetty, energy comes back at half the speed.
+    r.energy += r.homeId === ROUGH ? (w.t % 2 === 0 ? 2 : 1) : 3;
   } else {
     r.hunger += 1;
     r.energy -= kind === 'working' || kind === 'fishing' || isServing(w, r) ? 1 : w.t % 3 === 0 ? 0 : 1;
@@ -66,7 +68,7 @@ function progress(w: World, r: Resident): void {
           // Someone turning up is something new for whoever is there.
           for (const o of w.state.residents) if (o.id !== r.id && (!o.activity || o.activity.kind === 'working') && w.isAt(o, dest.id)) o.thinkAt = Math.min(o.thinkAt, w.t + 1);
         }
-        if (a.thenSleep && w.isAt(r, r.homeId)) startSleep(w, r, isNight(w.t) ? 'night' : 'nap');
+        if (a.thenSleep && w.isAt(r, w.home(r).id)) startSleep(w, r, isNight(w.t) ? 'night' : 'nap');
       }
       return;
     }
@@ -182,6 +184,7 @@ export function advance(w: World): void {
   if (mod === 0) fadeSkills(w);
   if (mod === 0) witherBeds(w);
   bondsMinute(w);
+  householdsMinute(w);
 }
 
 export function advanceTo(w: World, t: number): void {

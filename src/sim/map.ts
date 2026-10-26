@@ -10,7 +10,7 @@ export type Tile = 'grass' | 'path' | 'sand' | 'sea' | 'jetty' | 'floor' | 'fiel
 
 export type PlaceKind =
   | 'house' | 'kopitiam' | 'provision_shop' | 'market_stall'
-  | 'jetty' | 'farm' | 'well' | 'notice_board' | 'lorry_stop';
+  | 'jetty' | 'farm' | 'well' | 'notice_board' | 'lorry_stop' | 'village_head';
 
 export interface Point { x: number; y: number }
 export interface Rect { x: number; y: number; w: number; h: number }
@@ -45,6 +45,8 @@ export const PLACES: readonly Place[] = [
   place('lorry-stop', 'lorry_stop', 'the lorry stop', { x: 34, y: 6, w: 5, h: 4 }),
   place('farm', 'farm', 'the farm plot', { x: 2, y: 15, w: 11, h: 6 }),
   place('jetty', 'jetty', 'the jetty', { x: 31, y: 22, w: 2, h: 7 }, { x: 31, y: 27 }),
+  // Mr Lim's house (households-build.md): the top row is all homes, so it stands in the open ground below.
+  place('village-head', 'village_head', "the village head's house", { x: 22, y: 15, w: 3, h: 2 }),
 ];
 
 export const PLACE_BY_ID: ReadonlyMap<string, Place> = new Map(PLACES.map((p) => [p.id, p]));
@@ -70,6 +72,8 @@ function buildGrid(): Tile[][] {
   // South to the farm plot, and down to the beach and the jetty.
   vLine(13, 5, 18);
   vLine(32, 5, 21);
+  // Up to the village head's house.
+  hLine(16, 25, 31);
 
   for (const p of PLACES) {
     const t: Tile = p.kind === 'jetty' ? 'jetty' : p.kind === 'farm' ? 'field' : 'floor';
@@ -154,7 +158,7 @@ export function findPath(a: Point, b: Point): Point[] | null {
 const GLYPH: Record<Tile, string> = { grass: '.', path: '=', sand: ':', sea: '~', jetty: '#', floor: ' ', field: ',' };
 const PLACE_GLYPH: Record<PlaceKind, string> = {
   house: 'H', kopitiam: 'K', provision_shop: 'P', market_stall: 'M', jetty: 'J',
-  farm: 'F', well: 'W', notice_board: 'N', lorry_stop: 'L',
+  farm: 'F', well: 'W', notice_board: 'N', lorry_stop: 'L', village_head: 'V',
 };
 
 /** ASCII view of the map, one character per tile. */

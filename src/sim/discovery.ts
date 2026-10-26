@@ -1,4 +1,4 @@
-import { PLACES, type Place, type Point } from './map.ts';
+import { PLACES, PLACE_BY_ID, type Place, type Point } from './map.ts';
 import { PLACE_WORDS } from './places.ts';
 import type { Resident, World } from './state.ts';
 
@@ -36,6 +36,6 @@ export function learnFromWords(w: World, r: Resident, text: string): void {
     const name = o.name.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     if (!new RegExp(`\\b${name}\\b`).test(s)) continue;
     w.learnPerson(r, o.id);
-    if (new RegExp(`\\b${name}['’]s (house|home|place)\\b`).test(s)) w.learnPlace(r, o.homeId);
+    if (PLACE_BY_ID.has(o.homeId) && new RegExp(`\\b${name}['’]s (house|home|place)\\b`).test(s)) w.learnPlace(r, o.homeId);
   }
 }

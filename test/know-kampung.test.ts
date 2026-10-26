@@ -5,13 +5,14 @@ import { PLACES } from '../src/sim/map.ts';
 import { perceive } from '../src/sim/perception.ts';
 import { accepted, act, expectInWorld, newWorld, who } from './helpers.ts';
 
-const ALL = PLACES.map((p) => p.id);
+// The places there were when this step was written (the village head's house came later).
+const ALL = PLACES.map((p) => p.id).filter((id) => id !== 'village-head');
 
 describe('everyone who has lived here knows their kampung', () => {
   it('every original place from day one: the jetty, the farm plot, the well, the board, the shops, the lorry stop and every house', () => {
     const w = newWorld(9, 0, 1, true, false);
     for (const r of w.state.residents.filter((x) => x.name !== 'Ah Kow')) {
-      expect([...r.knownPlaces].sort(), r.name).toEqual([...ALL].sort());
+      expect([...r.knownPlaces].sort(), r.name).toEqual(PLACES.map((p) => p.id).sort());
       expect(r.knownPlaces[0], `${r.name} knows home first`).toBe(r.homeId);
     }
     const rahim = who(w, 'Rahim');

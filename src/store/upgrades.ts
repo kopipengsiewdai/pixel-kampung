@@ -333,6 +333,42 @@ export const UPGRADES: readonly Upgrade[] = [
     why: "Someone who has said three things in a row to a person who hasn't answered can see they aren't answering. Nobody's count has started yet.",
     save: ({ world, brains }) => ({ world, brains }),
   },
+  {
+    from: 18,
+    why: "Households: Ah Seng moves in with his father and Mei Ling with her aunt, so two houses stand free. Mr Lim the village head, at his house up the path, owns every house and stall: each household rents its place (50 cents a week a house, a dollar a stall) on his Monday round into the village fund, the first rent due on the Monday at least four weeks on. A place can be bought outright or week by week; rent owing over a week and the household is out, sleeping rough at the jetty.",
+    save: ({ world, brains }) => {
+      if (world.property) return { world, brains };
+      type R = { id: string; homeId: string; knownPlaces: string[] };
+      const residents = (world.residents as R[]).map((r) => ({ ...r, knownPlaces: [...r.knownPlaces] }));
+      const homeOf = (id: string) => residents.find((r) => r.id === id)?.homeId;
+      const stoves = { ...(world.stoves as Record<string, number>) };
+      for (const [who, host] of [['ah-seng', 'ah-huat'], ['mei-ling', 'mdm-tan']] as const) {
+        const r = residents.find((x) => x.id === who);
+        const to = homeOf(host);
+        if (!r || !to || r.homeId === to) continue;
+        // Any kerosene left in the old stove goes with them.
+        if (stoves[r.homeId]) stoves[to] = (stoves[to] ?? 0) + stoves[r.homeId]!;
+        delete stoves[r.homeId];
+        r.homeId = to;
+      }
+      // Everyone who has lived here knows the village head's house (Ah Kow, the newcomer, finds it).
+      for (const r of residents) if (r.id !== 'ah-kow' && !r.knownPlaces.includes('village-head')) r.knownPlaces.push('village-head');
+      const property: Record<string, unknown> = {};
+      for (let n = 1; n <= 10; n++) {
+        const id = `house-${n}`;
+        property[id] = { holder: residents.find((r) => r.homeId === id)?.id ?? null, rent: 50, owned: false, rentToOwn: null, owing: 0, since: null };
+      }
+      for (const shop of world.shops as { id: string; ownerId: string }[]) {
+        property[shop.id] = { holder: shop.ownerId, rent: 100, owned: false, rentToOwn: null, owing: 0, since: null };
+      }
+      // The first Monday at least 28 days on, by the kampung's calendar as it stood (day 1 of Year 0 a Monday).
+      const firstDay = (world.calendar as { firstDay: number }).firstDay;
+      const today = Math.floor(((world.t as number) + 8 * 60) / 1440);
+      let rentFrom = today + 28;
+      while ((((rentFrom - firstDay) % 7) + 7) % 7 !== 0) rentFrom++;
+      return { world: { ...world, residents, stoves, property, rentFrom, rentNoticed: false, lastRoundDay: 0, arrears: {}, evictedWith: {}, fund: 0 }, brains };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

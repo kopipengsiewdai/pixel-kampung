@@ -1,3 +1,4 @@
+import { firstRentDay, startingProperty } from './households.ts';
 import { seedBonds } from './bonds.ts';
 import { SCHEMA_VERSION } from '../store/upgrades.ts';
 import { CARDS } from '../seed/cards.ts';
@@ -94,6 +95,13 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
     stoves: {},
     faintSeen: {},
     bonds: seedBonds({ residents }),
+    property: startingProperty({ residents, shops }),
+    rentFrom: firstRentDay({ calendar: { firstDay: dayIndex(t) } }, dayIndex(t)),
+    rentNoticed: false,
+    lastRoundDay: 0,
+    arrears: {},
+    evictedWith: {},
+    fund: 0,
     firsts: [],
     talk: {},
   };
