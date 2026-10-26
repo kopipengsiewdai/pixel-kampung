@@ -50,6 +50,9 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
       lastDone: null,
       stove: null,
       mended: null,
+      foraged: null,
+      faintFrom: null,
+      ill: null,
       // Home first; a newcomer knows only a few places, everyone else the whole kampung.
       knownPlaces: [homeId, ...(c.places ?? PLACES.map((p) => p.id)).filter((id) => id !== homeId)],
       // Family and old friends are known from day one; everyone else is met in play.
@@ -94,6 +97,7 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
     osman: freshOsman(),
     stoves: {},
     faintSeen: {},
+    illSeen: {},
     bonds: seedBonds({ residents }),
     property: startingProperty({ residents, shops }),
     rentFrom: firstRentDay({ calendar: { firstDay: dayIndex(t) } }, dayIndex(t)),

@@ -4,6 +4,15 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+Making a living ([subsistence.md](docs/design/subsistence.md)), part one:
+- **Foraging:** anyone can spend half an hour looking for something to eat: wild kangkong or a hand of bananas past the farm plot, a coconut off the palms behind the jetty. Twice a day each, a snack or two, not a living. Bananas and coconuts are new, eaten as they are.
+- **Three meals a day:** a proper meal (bubur, fish porridge, vegetable rice, grilled fish, sambal kangkong) now takes off about a third of a day's hunger, 330–380; a snack (raw fish, a banana, a coconut, bread, boiled kangkong) 100–220. Fish porridge and vegetable rice fill a little less than before, bubur, grilled fish and sambal kangkong a little more, bread a little less.
+- **Sickness from hunger, never death:** about a day faint with hunger and a resident falls ill. Ill, they can't work a shift, do chores or fish, they tire quickly and are drawn to rest at home; others see "looking ill", and family remember it. About six hours after hunger falls below hungry they're well again. The watch card says "ill from hunger".
+- **Shopkeepers see lost sales:** "Travellers who left unserved today would have paid about $1.20."
+- **Living town:** upgrades to save v20. Nobody has foraged or is ill; anyone already faint with hunger starts their day's count from the upgrade, so nobody falls ill for at least a day. A time the town is away doesn't count towards falling ill.
+
 ## 0.24.2 (2026-10-26): the lorry every day until noon
 
 - **Pak Osman comes every day, Sundays too, and stays the first half of the day:** about half past six to about noon, not an hour and a half, so anyone busy first thing can still meet the lorry. His horn now says what he's buying as well as what he's brought ("…and he's buying fish and vegetables").

@@ -17,6 +17,7 @@ import { ITEMS, type ItemId } from './items.ts';
 import { ACHING_HUNGER, FAINT_HUNGER, HUNGRY_FROM } from './perception.ts';
 import { dayIndex, isNight, minuteOfDay } from './time.ts';
 import { kinOf } from '../seed/cast.ts';
+import { noticeIllKin, sicknessMinute } from './sickness.ts';
 
 /** About when the lorry comes and goes (Pak Osman's own day varies a little: src/sim/osman.ts). */
 export const LORRY_ARRIVES = ARRIVES;
@@ -47,6 +48,8 @@ function feelNeeds(w: World, r: Resident): void {
     // Past sixty, a body tires a third quicker.
     if (w.ageOf(r) >= OLD_AGE && w.t % 3 === 0) r.energy -= 1;
     if (r.hunger >= NEED_MAX) r.energy -= 1;
+    // Ill, a body tires quickly.
+    if (r.ill) r.energy -= 1;
   }
   r.hunger = clamp(r.hunger);
   r.energy = clamp(r.energy);
@@ -148,11 +151,13 @@ export function advance(w: World): void {
   for (const r of w.state.residents) {
     updateNeeds(w, r);
     if (r.activity?.kind !== 'sleeping' && r.hunger >= FAINT_HUNGER) eatToSurvive(w, r);
+    sicknessMinute(w, r);
     progress(w, r);
     stoveMinute(w, r);
     if (r.activity?.kind !== 'sleeping') {
       lookAbout(w, r);
       noticeFaintKin(w, r);
+      noticeIllKin(w, r);
     }
     const a = r.activity;
     if (a?.kind !== 'sleeping' && r.energy <= 0) {

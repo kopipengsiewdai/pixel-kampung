@@ -325,7 +325,7 @@ function moneySection(): Node[] {
 /** "walking to the jetty, very hungry, rested", with where they are when that isn't already said. */
 function nowLine(c: Card): string {
   const where = c.place && !c.doing.includes(c.place) ? ` at ${c.place}` : '';
-  return `${c.doing}${where}, ${c.hungerWord}, ${c.energyWord}`;
+  return `${c.doing}${where}, ${c.hungerWord}, ${c.energyWord}${c.ill ? ', ill from hunger' : ''}`;
 }
 
 function renderCard(c: Card): void {

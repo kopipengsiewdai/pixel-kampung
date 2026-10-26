@@ -78,6 +78,8 @@ export interface Perception {
   carrying: { item: ItemId; qty: number }[];
   /** Hunger that hurts, in words, from 800; null below. */
   hungerPang: string | null;
+  /** Ill from hunger. */
+  ill: boolean;
   /** Rent owed, and what can be had at the village head's house. */
   household: string[];
   /** Hungry with nothing to eat: the ways to food they know of. */
@@ -100,7 +102,7 @@ export interface Perception {
     owed: { name: string; cents: Cents }[];
     /** Travellers waiting now, and today's (seen only at the shop): served, left unserved, and turned away by price (by item). */
     waiting: number;
-    today: { served: number; left: number; tooDear: { item: ItemId; n: number }[] };
+    today: { served: number; left: number; lost: Cents; tooDear: { item: ItemId; n: number }[] };
   } | null;
   shop: { name: string; staffed: boolean; sells: PriceTag[]; buys: PriceTag[] } | null;
   /** At the lorry stop: the lorry man (by name, once met), his prices for you today, his room, your slate and what you asked him to bring. */
@@ -208,7 +210,7 @@ function goodsList(g: Goods): { item: ItemId; qty: number }[] {
 
 /** How hungry someone looks to anyone nearby. */
 function looks(o: Resident): string {
-  return o.activity?.kind === 'sleeping' ? '' : o.hunger >= FAINT_HUNGER ? 'looking faint with hunger' : o.hunger >= LOOKS_HUNGRY ? 'looking hungry' : '';
+  return o.activity?.kind === 'sleeping' ? '' : o.ill ? 'looking ill' : o.hunger >= FAINT_HUNGER ? 'looking faint with hunger' : o.hunger >= LOOKS_HUNGRY ? 'looking hungry' : '';
 }
 const LOOKS_HUNGRY = 700;
 
@@ -290,6 +292,7 @@ export function perceive(w: World, r: Resident): Perception {
     carrying: goodsList(r.items),
     hunger: hungerWord(r.hunger),
     hungerPang: hungerPang(r.hunger),
+    ill: r.ill !== null,
     foodWays: foodWays(w, r),
     household: householdLines(w, r, w.isAt(r, 'village-head')),
     energy: energyWord(r.energy),
@@ -318,8 +321,9 @@ export function perceive(w: World, r: Resident): Perception {
         served: own.today.served,
         // Unserved: gave up in the queue, or found nobody serving.
         left: own.today.left + own.today.away,
+        lost: own.today.lost,
         tooDear: (Object.entries(own.today.tooDear) as [ItemId, number][]).filter(([, n]) => n > 0).map(([item, n]) => ({ item, n })),
-      } : { served: 0, left: 0, tooDear: [] },
+      } : { served: 0, left: 0, lost: 0, tooDear: [] },
     } : null,
     shop: shop && shop.ownerId !== r.id ? {
       name: PLACE_BY_ID.get(shop.id)!.name,
@@ -452,6 +456,7 @@ export function describe(p: Perception): string {
   for (const n of p.unanswered) lines.push(`${n} hasn't answered you.`);
   if (p.atHome && HUNGRY.has(p.hunger) && !p.carrying.some((c) => ITEMS[c.item].food)) lines.push("There's no food in the house.");
   if (p.hungerPang) lines.push(p.hungerPang);
+  if (p.ill) lines.push("You're ill: feverish and weak. You need to eat, and rest.");
   lines.push(...p.foodWays);
   lines.push(...p.household);
   lines.push(`You feel ${p.hunger} and ${p.energy}. You have ${formatMoney(p.money)}${p.carrying.length ? ` and you're carrying ${p.carrying.map((c) => quantityLabel(c.item, c.qty)).join(', ')}` : ''}.`);
@@ -482,6 +487,7 @@ export function describe(p: Perception): string {
     }
     const t = p.business.today;
     if (t.served || t.left) lines.push(`Today you've served ${t.served}; ${t.left} left without being served.`);
+    if (t.lost > 0) lines.push(`Travellers who left unserved today would have paid about ${formatMoney(t.lost)}.`);
     for (const d of t.tooDear) lines.push(`${count(d.n, true)} ${d.n === 1 ? 'person' : 'people'} turned away at your ${d.item} price.`);
   }
   if (p.shop) {

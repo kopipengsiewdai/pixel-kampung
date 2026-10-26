@@ -96,6 +96,9 @@ export function feedText(e: GameEvent, n: Names): { text: string; notable: boole
     case 'withered': return line(`${n(e.who)}'s ${e.crop === 'papaya' ? 'papaya tree' : e.crop} in bed ${e.bed} withered.`);
     case 'harvested': return line(`${n(e.who)} harvested ${quantityLabel(e.item ?? 'vegetables', e.qty)}.`, true);
     case 'ate': return line(`${n(e.who)} had ${quantityLabel(e.item, 1)}.`);
+    case 'foraged': return line(`${n(e.who)} foraged ${quantityLabel(e.item, 1)}.`);
+    case 'fell_ill': return line(`${n(e.who)} has fallen ill from hunger.`, true);
+    case 'got_well': return line(`${n(e.who)} is well again.`, true);
     case 'fell_asleep':
       if (e.reason === 'collapse') return line(`${n(e.who)} is so worn out they doze off on the spot.`, true);
       if (e.reason === 'nap') return line(`${n(e.who)} lies down for a nap.`);

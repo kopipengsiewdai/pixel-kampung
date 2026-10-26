@@ -54,7 +54,7 @@ export function travellerPays(shop: Shop, item: ItemId): Cents {
 
 /** A fresh day's counts for a shop. */
 export function freshDay(day: number): Shop['today'] {
-  return { day, served: 0, cents: 0, left: 0, away: 0, awayTold: 0, tooDear: {}, servedBy: {}, masterCooked: false };
+  return { day, served: 0, cents: 0, left: 0, away: 0, awayTold: 0, tooDear: {}, servedBy: {}, masterCooked: false, lost: 0 };
 }
 
 /** How often a traveller comes to this shop at this minute of the day, or null if none come now. */
@@ -113,12 +113,15 @@ export function travellersMinute(w: World): void {
       } else {
         shop.today.left++;
         shop.hour.left++;
+        shop.today.lost += price ?? 0;
       }
     }
     shop.serving = shop.serving.filter((x) => x.until > w.t);
     // Tired of waiting.
     const wait = shop.sweptDay === day ? SWEPT_WAIT_MINUTES : WAIT_MINUTES;
-    const gaveUp = shop.queue.filter((c) => w.t - c.t > wait).length;
+    const gone = shop.queue.filter((c) => w.t - c.t > wait);
+    const gaveUp = gone.length;
+    for (const c of gone) shop.today.lost += shop.sellPrices[c.item] ?? 0;
     if (gaveUp) {
       shop.queue = shop.queue.filter((c) => w.t - c.t <= wait);
       shop.today.left += gaveUp;
@@ -134,10 +137,12 @@ export function travellersMinute(w: World): void {
         else if (!free.length) {
           shop.today.away++;
           shop.hour.left++;
+          shop.today.lost += shop.sellPrices[item] ?? 0;
         }
         else if (shop.queue.length >= QUEUE_MAX) {
           shop.today.left++;
           shop.hour.left++;
+          shop.today.lost += shop.sellPrices[item] ?? 0;
         } else shop.queue.push({ item, t: w.t });
       }
     }

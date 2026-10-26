@@ -61,6 +61,11 @@ function pottered(w: World, r: Resident, p: Perception): void {
     }
     if (p.foodWays.length) return;
   }
+  // Ill (from hunger): rest is what they need.
+  if (r.ill) {
+    if (!w.isAt(r, w.home(r).id)) r.reply = { ok: true, text: "You feel ill. You'd do best to rest at home." };
+    return;
+  }
   if (r.lastDone && w.t - r.lastDone.t < POTTERS_BEFORE_NUDGE * QUIET_THINK_MINUTES) return;
   // Places they know with something to do there first (the jetty, the farm plot), then one more, turning with the time.
   const known = PLACES.filter((pl) => pl.kind !== 'house' && pl.id !== p.placeId && r.knownPlaces.includes(pl.id));
