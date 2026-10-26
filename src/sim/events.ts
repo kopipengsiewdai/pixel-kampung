@@ -38,6 +38,7 @@ export type EventBody =
   | { type: 'foraged'; who: string; item: ItemId }
   | { type: 'odd_job_done'; who: string; what: string; cents: Cents }
   | { type: 'fire_lit'; who: string }
+  | { type: 'joined_class'; who: string }
   | { type: 'built'; what: string }
   | { type: 'fell_ill'; who: string }
   | { type: 'got_well'; who: string }

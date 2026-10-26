@@ -200,6 +200,8 @@ export function say(w: World, r: Resident, i: Intent): ActionResult {
     to = o;
   }
   w.emit({ type: 'said', who: r.id, to: to?.id ?? null, text });
+  // Talking with someone who has more English than you teaches you a little (school.md).
+  if (to && skillLevel(to, 'english') > skillLevel(r, 'english')) practise(w, r, 'english', 1);
   const said = to ? dealKind(text) : null;
   // Thanks for a job already given, or one just offered, isn't an empty promise of one.
   const claim = said === 'job' && to && w.workBetween(r.id, to.id) ? null : said;

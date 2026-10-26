@@ -15,6 +15,7 @@
 import { ITEMS, quantityLabel, type ItemId } from './items.ts';
 import { formatMoney, type Cents } from './money.ts';
 import { Rng } from './rng.ts';
+import { skillLevel } from './skills.ts';
 import { addGoods, countGoods, GROWN_AGE, LORRY_ID, type Goods, type Resident, type World } from './state.ts';
 import { dayIndex, minuteOfDay } from './time.ts';
 
@@ -47,6 +48,9 @@ export const TOWN_PRICES: Partial<Record<ItemId, Cents>> = { rice: 16, coffee: 4
 /** He buys at 40–80% of the town price and sells at 110–160%: never at a loss. */
 export const BUY_BOUNDS: [number, number] = [0.4, 0.8];
 export const SELL_BOUNDS: [number, number] = [1.1, 1.6];
+
+/** English enough to read the town's printed prices (school.md). */
+export const READER = 2;
 
 /** Haggles a visit he thinks over; after that it's take it or leave it. */
 export const HAGGLES_PER_VISIT = 10;
@@ -213,7 +217,9 @@ export function priceFor(w: World, r: Resident, side: Side, item: ItemId): Cents
   if (!v || !list) return null;
   const a = account(w, r.id);
   const lean = a?.cheated ? CHEAT_MARKUP : isRegular(a) ? -REGULAR_EASE : 0;
-  const base = clampPrice(side, item, side === 'sells' ? list * (1 + lean) : list * (1 - lean))!;
+  let base = clampPrice(side, item, side === 'sells' ? list * (1 + lean) : list * (1 - lean))!;
+  // Someone who can read the wholesaler's printed price list (some English) can't be haggled so hard: halfway to his floor.
+  if (side === 'sells' && skillLevel(r, 'english') >= READER) base = Math.round((base + bounds(side, item)![0]) / 2);
   const deal = v.deals[r.id]?.[`${side}:${item}`];
   if (deal === undefined) return base;
   return side === 'sells' ? Math.min(base, deal) : Math.max(base, deal);

@@ -56,6 +56,7 @@ function doing(w: World, r: Resident): string {
       const job = w.state.jobs.find((j) => j.id === a.jobId);
       return job ? `on shift at ${placeName(job.placeId, w)}` : 'working';
     }
+    case 'school': return a.adult ? 'at the evening English class' : 'at school';
     case 'sleeping':
       return a.reason === 'night' ? 'asleep' : a.reason === 'nap' ? 'napping' : 'dozed off where they stood, worn out';
     default: {
@@ -153,7 +154,7 @@ export class FrameBuilder {
         x: pos.x,
         y: pos.y,
         route,
-        activity: a?.kind === 'chore' ? 'working' : a?.kind ?? null,
+        activity: a?.kind === 'chore' || a?.kind === 'school' ? 'working' : a?.kind ?? null,
         sleep: a?.kind === 'sleeping' ? a.reason : null,
         doing: doing(w, r),
         place: here ? w.placeName(here) : null,

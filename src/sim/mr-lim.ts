@@ -17,6 +17,7 @@ import { formatMoney, type Cents } from './money.ts';
 import { Rng } from './rng.ts';
 import { MR_LIM_ID, type Resident, type World } from './state.ts';
 import { dayIndex, minuteOfDay } from './time.ts';
+import { skillLevel } from './skills.ts';
 import { PROJECT_JOBS, PROJECT_JOBS_A_DAY, PROJECT_NAMES, PROJECTS, projectJobDone, projectJobOf, projectKind } from './projects.ts';
 
 export const MR_LIM = 'Mr Lim';
@@ -43,6 +44,12 @@ export const ODD_JOB_KINDS: readonly { kind: string; placeId: string; what: stri
   { kind: 'clean_well', placeId: 'well', what: "scrub out the well's trough" },
   { kind: 'clear_ditch', placeId: 'farm', what: 'clear the ditches past the farm plot' },
 ];
+
+/** A better-paid job for someone with good English (school.md): keeping Mr Lim's ledger, at his house. */
+export const LEDGER_JOB = { kind: 'keep_ledger', placeId: 'village-head', what: "keep Mr Lim's ledger", pay: 100, english: 3 } as const;
+
+/** Whether r is fit for a job (the ledger wants good English). */
+export const fitFor = (r: Resident, kind: string) => kind !== LEDGER_JOB.kind || skillLevel(r, 'english') >= LEDGER_JOB.english;
 
 const pts = (from: Point, to: Point): Point[] => [from, ...(findPath(from, to) ?? [])];
 const minutes = (path: Point[]) => Math.ceil((path.length - 1) / WALK_TILES_PER_MINUTE);
@@ -102,10 +109,10 @@ export const doneToday = (w: World, r: Resident) => jobsToday(w).some((j) => j.d
 
 /** Today's job at r's place that nobody has done or is doing, if there is one. */
 export function openJobHere(w: World, r: Resident): World['state']['oddJobs'][number] | null {
-  return jobsToday(w).find((j) => j.doneBy === null && w.isAt(r, j.placeId) && !workingAt(w, j.id)) ?? null;
+  return jobsToday(w).find((j) => j.doneBy === null && w.isAt(r, j.placeId) && !workingAt(w, j.id) && fitFor(r, j.kind)) ?? null;
 }
 
-export const whatOf = (kind: string) => ODD_JOB_KINDS.find((k) => k.kind === kind)?.what ?? projectJobOf(kind)?.what ?? 'odd work';
+export const whatOf = (kind: string) => (kind === LEDGER_JOB.kind ? LEDGER_JOB.what : ODD_JOB_KINDS.find((k) => k.kind === kind)?.what ?? projectJobOf(kind)?.what ?? 'odd work');
 
 /** Each minute: once he's at the board (or the town wakes later in the day), yesterday's jobs come down and today's go up. */
 export function mrLimMinute(w: World): void {
@@ -131,6 +138,15 @@ export function mrLimMinute(w: World): void {
     w.state.notes.push({ id: noteId, authorId: MR_LIM_ID, text, t: w.t });
     if (w.state.notes.length > BOARD_MAX) w.state.notes.shift();
     w.state.oddJobs.push({ id: w.nextId(), kind: k.kind, placeId: k.placeId, pay: ODD_JOB_PAY, day: today, doneBy: null, noteId, project: null });
+    w.emit({ type: 'note_pinned', who: MR_LIM_ID, text });
+  }
+  // Someone in the kampung reads and writes English well: his ledger wants keeping.
+  if (w.state.residents.some((r) => fitFor(r, LEDGER_JOB.kind))) {
+    const text = `Wanted: someone with good English to ${LEDGER_JOB.what}. An hour's work, ${formatMoney(LEDGER_JOB.pay)} when it's done. Mr Lim.`;
+    const noteId = w.nextId();
+    w.state.notes.push({ id: noteId, authorId: MR_LIM_ID, text, t: w.t });
+    if (w.state.notes.length > BOARD_MAX) w.state.notes.shift();
+    w.state.oddJobs.push({ id: w.nextId(), kind: LEDGER_JOB.kind, placeId: LEDGER_JOB.placeId, pay: LEDGER_JOB.pay, day: today, doneBy: null, noteId, project: null });
     w.emit({ type: 'note_pinned', who: MR_LIM_ID, text });
   }
   // Beside them, the next jobs on whatever he's having built.

@@ -8,6 +8,7 @@ export const PLACE_WORDS: Record<string, string[]> = {
   jetty: ['jetty', 'pier'],
   well: ['well'],
   'notice-board': ['notice board', 'noticeboard', 'board'],
+  schoolhouse: ['schoolhouse', 'school', 'the school', 'sekolah', 'school house'],
   'village-kitchen': ['village kitchen', 'shared kitchen', 'dapur kampung', 'new kitchen'],
   'village-head': ["village head's house", 'village head', "mr lim's house", 'mr lim', 'penghulu'],
 };

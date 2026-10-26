@@ -10,7 +10,7 @@ export type Tile = 'grass' | 'path' | 'sand' | 'sea' | 'jetty' | 'floor' | 'fiel
 
 export type PlaceKind =
   | 'house' | 'kopitiam' | 'provision_shop' | 'market_stall'
-  | 'jetty' | 'farm' | 'well' | 'notice_board' | 'lorry_stop' | 'village_head' | 'village_kitchen';
+  | 'jetty' | 'farm' | 'well' | 'notice_board' | 'lorry_stop' | 'village_head' | 'village_kitchen' | 'school';
 
 export interface Point { x: number; y: number }
 export interface Rect { x: number; y: number; w: number; h: number }
@@ -49,6 +49,8 @@ export const PLACES: readonly Place[] = [
   place('village-head', 'village_head', "the village head's house", { x: 22, y: 15, w: 3, h: 2 }),
   // The shared village kitchen (subsistence.md "Where cooking happens"), below Mr Lim's path: built through his odd jobs.
   place('village-kitchen', 'village_kitchen', 'the village kitchen', { x: 26, y: 17, w: 3, h: 3 }),
+  // The schoolhouse (school.md): open ground by the footpath, near the village head's house.
+  place('schoolhouse', 'school', 'the schoolhouse', { x: 14, y: 12, w: 4, h: 3 }),
 ];
 
 export const PLACE_BY_ID: ReadonlyMap<string, Place> = new Map(PLACES.map((p) => [p.id, p]));
@@ -160,7 +162,7 @@ export function findPath(a: Point, b: Point): Point[] | null {
 const GLYPH: Record<Tile, string> = { grass: '.', path: '=', sand: ':', sea: '~', jetty: '#', floor: ' ', field: ',' };
 const PLACE_GLYPH: Record<PlaceKind, string> = {
   house: 'H', kopitiam: 'K', provision_shop: 'P', market_stall: 'M', jetty: 'J',
-  farm: 'F', well: 'W', notice_board: 'N', lorry_stop: 'L', village_head: 'V', village_kitchen: 'C',
+  farm: 'F', well: 'W', notice_board: 'N', lorry_stop: 'L', village_head: 'V', village_kitchen: 'C', school: 'S',
 };
 
 /** ASCII view of the map, one character per tile. */

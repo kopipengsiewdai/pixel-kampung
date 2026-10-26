@@ -41,7 +41,7 @@ export function skipQuietly(w: World, to: number): void {
       const last = a.path[a.path.length - 1];
       if (last) r.pos = { ...last };
       r.activity = null;
-    } else if (a?.kind === 'fishing') {
+    } else if (a?.kind === 'fishing' || a?.kind === 'school') {
       r.activity = null;
     } else if (a?.kind === 'working') {
       a.worked += Math.max(0, Math.min(gap, a.until - from));

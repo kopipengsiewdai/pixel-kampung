@@ -416,6 +416,25 @@ export const UPGRADES: readonly Upgrade[] = [
       return { world: { ...world, residents, oddJobs, projects, fires: world.fires ?? [] }, brains };
     },
   },
+  {
+    from: 23,
+    why: "The kampung school: Mr Lim starts having a schoolhouse built near his house through paid odd jobs; once it's open, Miss de Souza teaches the children English on weekday mornings and grown-ups in the evening. English is now something residents can get better at; Mei Ling, Ah Seng and Raju, who have some English, start with a few words of it.",
+    save: ({ world, brains }) => {
+      const today = Math.floor(((world.t as number) + 8 * 60) / 1440);
+      // A few words of English: Handy, 5% of the 3,200 deeds to Master, as English stood at v24.
+      const someEnglish = { xp: 160, peak: 2, lastDay: today, today: { day: today, xp: 0 }, rusty: false, drops: 0 };
+      type R = { id: string; knownPlaces: string[]; skills: Record<string, unknown> };
+      const residents = (world.residents as R[]).map((r) => {
+        let out = r;
+        if (r.knownPlaces.includes('village-head') && !r.knownPlaces.includes('schoolhouse')) out = { ...out, knownPlaces: [...r.knownPlaces, 'schoolhouse'] };
+        if (['mei-ling', 'ah-seng', 'raju'].includes(r.id) && !r.skills.english) out = { ...out, skills: { ...r.skills, english: someEnglish } };
+        return out;
+      });
+      const projects = [...((world.projects as { id: string }[] | undefined) ?? [])];
+      if (!projects.some((p) => p.id === 'schoolhouse')) projects.push({ id: 'schoolhouse', done: [], builtDay: null } as never);
+      return { world: { ...world, residents, projects }, brains };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

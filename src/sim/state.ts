@@ -30,6 +30,8 @@ export type Activity =
   | { kind: 'fishing'; until: number }
   | { kind: 'working'; jobId: number; until: number; worked: number }
   | { kind: 'sleeping'; reason: 'night' | 'nap' | 'collapse'; until: number | null }
+  /** At school (a child, mornings) or the evening English class (a grown-up): until when, and minutes learnt. */
+  | { kind: 'school'; until: number; adult: boolean; learnt: number }
   /** A chore (daily-life.md C): fetching water, mending nets (their own, or helping someone's), sweeping a shop. A worker on shift keeps the shift held in it. */
   | { kind: 'chore'; chore: ChoreKind; until: number; shopId: string | null; forId: string | null; shift: { jobId: number; until: number; worked: number } | null; job: number | null };
 
@@ -354,9 +356,11 @@ export const TRAVELLERS_ID = 'travellers';
 /** The village fund (rent and sales in, Mr Lim's help out) and Mr Lim's own purse (households-build.md). */
 export const FUND_ID = 'village-fund';
 export const MR_LIM_ID = 'mr-lim';
-export const OUTSIDE: ReadonlySet<string> = new Set([LORRY_ID, OPENING_ID, TRAVELLERS_ID, FUND_ID, MR_LIM_ID]);
+/** Miss de Souza the teacher's purse: lesson fees go out of town with her (school.md). */
+export const TEACHER_ID = 'miss-de-souza';
+export const OUTSIDE: ReadonlySet<string> = new Set([LORRY_ID, OPENING_ID, TRAVELLERS_ID, FUND_ID, MR_LIM_ID, TEACHER_ID]);
 /** Village characters who aren't residents but can be named (a note's author, someone in the feed). */
-export const VILLAGER_NAMES: Readonly<Record<string, string>> = { [MR_LIM_ID]: 'Mr Lim' };
+export const VILLAGER_NAMES: Readonly<Record<string, string>> = { [MR_LIM_ID]: 'Mr Lim', [TEACHER_ID]: 'Miss de Souza' };
 export const FARM_BEDS = 8;
 export const MAX_RECENT = 12;
 export const NEARBY_TILES = 3;

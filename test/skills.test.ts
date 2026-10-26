@@ -305,7 +305,8 @@ describe('the wiki', () => {
     const people = peopleOf(frame, layoutOf(w));
     expect(people.find((p) => p.name === 'Rahim')!.skills).toEqual([{ skill: 'fishing', level: 'Master', toNext: null, rusty: false }]);
     expect(people.find((p) => p.name === 'Siti')!.skills).toEqual([{ skill: 'fishing', level: 'Handy', toNext: 25, rusty: false }]);
-    expect(people.find((p) => p.name === 'Raju')!.skills).toEqual([]);
+    expect(people.find((p) => p.name === 'Muthu')!.skills).toEqual([]);
+    expect(people.find((p) => p.name === 'Raju')!.skills).toEqual([{ skill: 'english', level: 'Handy', toNext: 0, rusty: false }]);
   });
 });
 

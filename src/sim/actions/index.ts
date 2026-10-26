@@ -11,6 +11,7 @@ import * as teach from './teach.ts';
 import * as households from '../households.ts';
 import { TOO_ILL, TOO_ILL_FOR } from '../sickness.ts';
 import { fireGround, fireNear, KITCHEN_ID, kitchenBuilt, lightFire } from '../cooking.ts';
+import { canJoinClass, CLASS_FEE, joinClass } from '../school.ts';
 import { doneToday, openJobHere, whatOf } from '../mr-lim.ts';
 import { formatMoney } from '../money.ts';
 import { moneyOf, ok as yes } from './common.ts';
@@ -209,6 +210,10 @@ export const ACTIONS: Record<string, ActionDef> = {
       || (r.activity?.kind === 'working' && w.jobOf(r.id)?.placeId === 'kopitiam')
       || (!r.activity && owners.cookable(w, r) !== null),
   },
+  join_english_class: {
+    run: (w, r) => joinClass(w, r), ownersOnly: false, says: `join the evening English class (${formatMoney(CLASS_FEE)})`,
+    here: (w, r) => canJoinClass(w, r),
+  },
   light_fire: {
     run: (w, r) => lightFire(w, r), ownersOnly: false, says: 'light a cooking fire with a bundle of firewood',
     here: (w, r) => fireGround(w, r) && countGoods(r.items, 'firewood') > 0 && !fireNear(w, r),
@@ -221,6 +226,7 @@ const BUSY: Record<string, string> = {
   fishing: "You're busy fishing.",
   working: "You're in the middle of your shift.",
   sleeping: "You're asleep.",
+  school: "You're in the middle of a lesson.",
 };
 
 /** What can be done while a batch is cooking. */
