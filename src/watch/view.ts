@@ -160,6 +160,7 @@ export class FrameBuilder {
         energy: r.energy,
         hungerWord: hungerWord(r.hunger),
         energyWord: energyWord(r.energy),
+        ill: r.ill !== null,
         job: jobLine(w, r),
         carrying: carried(r.items),
         said: latestLine(w, r),

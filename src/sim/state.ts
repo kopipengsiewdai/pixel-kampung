@@ -33,7 +33,7 @@ export type Activity =
   /** A chore (daily-life.md C): fetching water, mending nets (their own, or helping someone's), sweeping a shop. A worker on shift keeps the shift held in it. */
   | { kind: 'chore'; chore: ChoreKind; until: number; shopId: string | null; forId: string | null; shift: { jobId: number; until: number; worked: number } | null };
 
-export type ChoreKind = 'fetch_water' | 'mend_nets' | 'sweep' | 'cast_net' | 'gather_wood';
+export type ChoreKind = 'fetch_water' | 'mend_nets' | 'sweep' | 'cast_net' | 'gather_wood' | 'forage';
 /** What a bed grows: kangkong, or for the skilled chilli, and for a master a papaya tree. */
 export type Crop = 'kangkong' | 'chilli' | 'papaya';
 
@@ -76,6 +76,12 @@ export interface Resident {
   knownPeople: string[];
   /** What they've got better at by doing it (docs/design/skills.md); none yet means a novice. */
   skills: Partial<Record<SkillId, SkillState>>;
+  /** Forages today (subsistence.md Q1): the day, and how many. */
+  foraged: { day: number; n: number } | null;
+  /** Since when they've been faint with hunger without a break (subsistence.md Q4). */
+  faintFrom: number | null;
+  /** Ill from hunger: since when, and since when they've been getting better (hunger first fell below hungry; null until then, or since going faint again). */
+  ill: { since: number; better: number | null } | null;
 }
 
 export interface Shop {
@@ -91,8 +97,8 @@ export interface Shop {
   queue: { item: ItemId; t: number }[];
   /** Who is serving a traveller now, what, and until when. */
   serving: { by: string; item: ItemId; until: number }[];
-  /** Today's travellers: served (and what they spent), left unserved, found nobody serving (and how many of those the owner has heard of), turned away by price, and served by whom. */
-  today: { day: number; served: number; cents: Cents; left: number; away: number; awayTold: number; tooDear: Partial<Record<ItemId, number>>; servedBy: Record<string, number>; masterCooked: boolean };
+  /** Today's travellers: served (and what they spent), left unserved, found nobody serving (and how many of those the owner has heard of), turned away by price, served by whom, and what those left unserved would have paid. */
+  today: { day: number; served: number; cents: Cents; left: number; away: number; awayTold: number; tooDear: Partial<Record<ItemId, number>>; servedBy: Record<string, number>; masterCooked: boolean; lost: Cents };
   /** This hour's travellers, for the hourly feed line. */
   hour: { served: number; cents: Cents; left: number };
   /** The day it was last swept: travellers wait longer in a swept shop. */
@@ -244,6 +250,8 @@ export interface WorldState {
   stoves: Record<string, number>;
   /** The day each resident last took in a relative faint with hunger, by "who>whom". */
   faintSeen: Record<string, number>;
+  /** The day each resident last took in a relative looking ill, by "who>whom" (subsistence.md Q4). */
+  illSeen: Record<string, number>;
   /** Each resident's view of each person they know, by "who>whom" (docs/design/relationships.md). */
   bonds: Record<string, Bond>;
   /** Every house and stall, by place id, and who holds it (households.md). */

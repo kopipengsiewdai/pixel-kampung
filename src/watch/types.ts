@@ -56,6 +56,8 @@ export interface ResidentView {
   energy: number;
   hungerWord: string;
   energyWord: string;
+  /** Ill from hunger. (Absent in frames recorded before 0.25.) */
+  ill?: boolean;
   /** "Works at the kopitiam for Ah Huat, 7am to 11am, $1.20 a shift"; "Runs the kopitiam"; null. */
   job: string | null;
   carrying: Carried[];

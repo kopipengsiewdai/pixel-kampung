@@ -59,7 +59,12 @@ function pottered(w: World, r: Resident, p: Perception): void {
       r.reply = { ok: true, text: `You're hungry. You could ask your ${kin.word} ${w.resident(kin.id).name} for something to eat.` };
       return;
     }
-    if (p.foodWays.length) return;
+    if (p.foodWays.length && !r.ill) return;
+  }
+  // Ill (from hunger): rest is what they need.
+  if (r.ill) {
+    if (!w.isAt(r, w.home(r).id)) r.reply = { ok: true, text: "You feel ill. You'd do best to rest at home." };
+    return;
   }
   if (r.lastDone && w.t - r.lastDone.t < POTTERS_BEFORE_NUDGE * QUIET_THINK_MINUTES) return;
   // Places they know with something to do there first (the jetty, the farm plot), then one more, turning with the time.

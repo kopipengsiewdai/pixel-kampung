@@ -369,6 +369,17 @@ export const UPGRADES: readonly Upgrade[] = [
       return { world: { ...world, residents, stoves, property, rentFrom, rentNoticed: false, lastRoundDay: 0, arrears: {}, evictedWith: {}, fund: 0 }, brains };
     },
   },
+  {
+    from: 19,
+    why: "Making a living: anyone can forage a little (wild kangkong or bananas past the farm plot, a coconut off the jetty's palms, twice a day), a day faint with hunger brings sickness (never death; well again about six hours after eating enough), and shopkeepers see what travellers who left unserved would have paid. Nobody has foraged or is ill yet; anyone already faint starts their day's count from now.",
+    save: ({ world, brains }) => {
+      const t = world.t as number;
+      // Faint with hunger was 950 and over at v19.
+      const residents = (world.residents as { hunger: number }[]).map((r) => ({ ...r, foraged: null, faintFrom: r.hunger >= 950 ? t : null, ill: null }));
+      const shops = (world.shops as { today: Record<string, unknown> }[]).map((s) => ({ ...s, today: { ...s.today, lost: 0 } }));
+      return { world: { ...world, residents, shops, illSeen: world.illSeen ?? {} }, brains };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

@@ -15,18 +15,20 @@ import { practise, skillLevel } from '../skills.ts';
 import { TRAVELLER_PAYS } from '../travellers.ts';
 
 /** How long each chore takes, in game minutes. */
-export const CHORE_MINUTES: Record<ChoreKind, number> = { fetch_water: 10, mend_nets: 30, sweep: 15, cast_net: 45, gather_wood: 20 };
+export const CHORE_MINUTES: Record<ChoreKind, number> = { fetch_water: 10, mend_nets: 30, sweep: 15, cast_net: 45, gather_wood: 20, forage: 30 };
+/** Forages a day each (subsistence.md Q1): a meal or two, not a living. */
+export const FORAGES_A_DAY = 2;
 /** Mended nets bring one more fish on this many catches, the same day. */
 export const MENDED_CATCHES = 3;
 /** An errand asked lapses unanswered after this many minutes. */
 export const ERRAND_OFFER_MINUTES = 30;
 
 /** What someone at a chore is doing, as others see it (and the watch page). */
-export const CHORE_DOING: Record<ChoreKind, string> = { fetch_water: 'fetching water', mend_nets: 'mending nets', sweep: 'sweeping', cast_net: 'casting a net', gather_wood: 'gathering firewood' };
+export const CHORE_DOING: Record<ChoreKind, string> = { fetch_water: 'fetching water', mend_nets: 'mending nets', sweep: 'sweeping', cast_net: 'casting a net', gather_wood: 'gathering firewood', forage: 'foraging' };
 
 /** What they're told if they try something else meanwhile. */
 export function busyAt(chore: ChoreKind): string {
-  return { fetch_water: "You're fetching water.", mend_nets: "You're mending nets.", sweep: "You're sweeping.", cast_net: "You're casting your net.", gather_wood: "You're gathering firewood." }[chore];
+  return { fetch_water: "You're fetching water.", mend_nets: "You're mending nets.", sweep: "You're sweeping.", cast_net: "You're casting your net.", gather_wood: "You're gathering firewood.", forage: "You're looking for something to eat." }[chore];
 }
 
 /** The start of the next day: when a taken errand lapses. */
@@ -50,6 +52,20 @@ export function gatherFirewood(w: World, r: Resident): ActionResult {
   if (!w.isAt(r, 'farm')) return no('The fallen wood is out past the farm plot.');
   start(w, r, 'gather_wood', null, null);
   return ok('You go out past the farm plot to pick up fallen branches.');
+}
+
+/** Whether r has a forage left today. */
+export function canForageToday(w: World, r: Resident): boolean {
+  return !(r.foraged?.day === dayIndex(w.t) && r.foraged.n >= FORAGES_A_DAY);
+}
+
+/** Foraging (subsistence.md Q1): wild kangkong or bananas past the farm plot, a coconut off the jetty's palms. */
+export function forage(w: World, r: Resident): ActionResult {
+  const farm = w.isAt(r, 'farm');
+  if (!farm && !w.isAt(r, 'jetty')) return no("There's nothing to be found to eat here.");
+  if (!canForageToday(w, r)) return no("You've already picked over what there is to be had today.");
+  start(w, r, 'forage', null, null);
+  return ok(farm ? 'You go along the ditches past the farm plot, looking for wild kangkong and bananas.' : 'You go up to the palms behind the jetty, looking for a coconut within reach.');
 }
 
 export function mendNets(w: World, r: Resident): ActionResult {
@@ -136,6 +152,12 @@ export function finishChore(w: World, r: Resident): void {
     addGoods(r.items, 'firewood', 1);
     w.emit({ type: 'chore_done', who: r.id, chore: a.chore, for: null });
     w.remember(r.id, 'You tie up a bundle of firewood.');
+  } else if (a.chore === 'forage') {
+    const item: ItemId = w.isAt(r, 'jetty') ? 'coconut' : w.rng.next() < 0.5 ? 'vegetables' : 'banana';
+    addGoods(r.items, item, 1);
+    r.foraged = { day: today, n: (r.foraged?.day === today ? r.foraged.n : 0) + 1 };
+    w.emit({ type: 'foraged', who: r.id, item });
+    w.remember(r.id, item === 'coconut' ? 'You knock down a coconut.' : item === 'banana' ? 'You find a hand of bananas.' : 'You pick a bunch of wild kangkong.');
   } else if (a.chore === 'mend_nets') {
     const owner = a.forId ? w.resident(a.forId) : r;
     owner.mended = { day: today, left: MENDED_CATCHES };

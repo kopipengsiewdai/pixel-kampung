@@ -9,6 +9,7 @@ import { offersFor } from './haggle.ts';
 import * as owners from './owners.ts';
 import * as teach from './teach.ts';
 import * as households from '../households.ts';
+import { TOO_ILL, TOO_ILL_FOR } from '../sickness.ts';
 import { moneyOf, ok as yes } from './common.ts';
 
 const res = (x: { ok: boolean; reply: string }): ActionResult => (x.ok ? yes(x.reply) : no(x.reply));
@@ -118,6 +119,10 @@ export const ACTIONS: Record<string, ActionDef> = {
     run: chores.askErrand, ownersOnly: false, says: 'ask someone to run an errand for pay (person; words: "fetch water", or "take something to someone"; money)', here: withPeople,
   },
   gather_firewood: { run: (w, r) => chores.gatherFirewood(w, r), ownersOnly: false, says: 'gather firewood', here: at('farm') },
+  forage: {
+    run: (w, r) => chores.forage(w, r), ownersOnly: false, here: (w, r) => (w.isAt(r, 'farm') || w.isAt(r, 'jetty')) && chores.canForageToday(w, r),
+    says: (w, r) => (w.isAt(r, 'jetty') ? 'look for a coconut on the palms' : 'look for wild kangkong or bananas'),
+  },
   fish: { run: everyone.fish, ownersOnly: false, says: 'fish', here: at('jetty') },
   cast_net: {
     run: (w, r) => chores.castNet(w, r), ownersOnly: false, says: 'cast a net from the jetty',
@@ -224,6 +229,7 @@ export function act(w: World, residentId: string, intent: unknown): ActionResult
   const def = Object.hasOwn(ACTIONS, verb) ? ACTIONS[verb] : undefined;
   if (!def) return no("You're not sure how to do that.");
   if (def.ownersOnly && r.role !== 'owner') return no("That's for shopkeepers. You don't have a shop.");
+  if (r.ill && TOO_ILL_FOR.has(verb)) return no(TOO_ILL);
   return def.run(w, r, intent as Intent);
 }
 
@@ -231,6 +237,7 @@ export function act(w: World, residentId: string, intent: unknown): ActionResult
 export function availableActions(w: World, r: Resident): { verb: string; says: string }[] {
   const working = r.activity?.kind === 'working';
   return Object.entries(ACTIONS)
-    .filter(([verb, d]) => (!d.ownersOnly || r.role === 'owner') && (!d.here || d.here(w, r)) && (!working || ON_SHIFT.has(verb)) && (!r.stove || AT_STOVE.has(verb)))
+    .filter(([verb, d]) => (!d.ownersOnly || r.role === 'owner') && (!d.here || d.here(w, r)) && (!working || ON_SHIFT.has(verb)) && (!r.stove || AT_STOVE.has(verb))
+      && !(r.ill && TOO_ILL_FOR.has(verb)))
     .map(([verb, d]) => ({ verb: verb.replace(/_/g, ' '), says: typeof d.says === 'string' ? d.says : d.says(w, r) }));
 }
