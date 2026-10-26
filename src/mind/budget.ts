@@ -1,4 +1,5 @@
 import { REAL_MS_PER_GAME_MINUTE } from '../sim/time.ts';
+import type { CostLog } from './cost-log.ts';
 
 /**
  * Spec §5: each resident earns US$0.0139 of thinking a REAL hour (4.8 game
@@ -11,6 +12,22 @@ export const HOURLY_ALLOWANCE = 0.0139;
 export const BUCKET_CAP = 0.06;
 /** Spec §5: past this many dollars in a real day, the whole town rests until real midnight. */
 export const TOWN_DAILY_CAP = 3.33;
+/** The owner's limit: US$100 a real month, whatever the month's length. */
+export const MONTHLY_CAP = 100;
+
+/**
+ * The town's cap for the real (Singapore) day of realMs: what's left of the
+ * month's MONTHLY_CAP shared over the days left in it (today included), never
+ * above TOWN_DAILY_CAP and never below nothing. Fixed for the day: today's own
+ * spending doesn't move it.
+ */
+export function dayCap(costs: CostLog, realMs: number, daily = TOWN_DAILY_CAP, monthly = MONTHLY_CAP): number {
+  const [y, m, d] = costs.dayKey(realMs).split('-').map(Number) as [number, number, number];
+  let spent = 0;
+  for (let day = 1; day < d; day++) spent += costs.spentOn(`${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
+  const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return Math.max(0, Math.min(daily, (monthly - spent) / (daysInMonth - d + 1)));
+}
 
 /**
  * What a think is expected to cost, checked before the call. Kept on the high

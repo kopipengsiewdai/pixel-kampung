@@ -4,6 +4,11 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **The month's limit holds:** the town's daily cap is now what's left of the month's US$100 shared over the days left (today included), never above US$3.33 a day and never below nothing. A 31-day month can no longer reach US$103 at the daily cap; a costly start leaves less for the rest of the month. The residents, Pak Osman and the watch page's English all share it.
+- **Living town:** nothing to upgrade.
+
 ## 0.21.0 (2026-10-26): trust and fondness
 
 - **Trust and fondness** ([docs/design/relationships.md](docs/design/relationships.md)): each resident now holds two feelings about each person they know, moved only by deeds. Gifts, help, errands, trades, repaid debts, wages paid, lessons and talk warm them; wages left owed overnight, deals talked of that nothing backs within the hour and a plea for a loan turned down cool them. Words alone never move trust. Each kind of deed counts once a day between two people, so small change can't buy trust. Residents see it as one line in words for each of the few people near them they feel most strongly about ("You're fond of Rahim, and you trust Rahim."), never as numbers; the watch page's card shows the numbers to the owner.

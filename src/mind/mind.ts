@@ -5,7 +5,7 @@ import { ITEMS, type ItemId } from '../sim/items.ts';
 import { latelyLines, type Perception } from '../sim/perception.ts';
 import type { Role } from '../sim/state.ts';
 import { dayIndex, sgtHour } from '../sim/time.ts';
-import { Budget, ESTIMATE, TOWN_DAILY_CAP, type BudgetState } from './budget.ts';
+import { Budget, dayCap, ESTIMATE, type BudgetState } from './budget.ts';
 import type { CostLog } from './cost-log.ts';
 import { MemoryStore, type MemoryKind } from './memory.ts';
 import type { ModelClient, ThinkKind, ThinkResponse, Tier } from './model.ts';
@@ -33,7 +33,8 @@ export class Mind {
   readonly memory: MemoryStore;
   readonly costs: CostLog;
   readonly cards: readonly Card[];
-  readonly townCap: number;
+  /** A fixed cap (trials and tests); null for the month's share (dayCap). */
+  readonly townCap: number | null;
   readonly onError: (err: unknown) => void;
   private quietDay: string | null = null;
   private fadedDay: number | null = null;
@@ -46,7 +47,7 @@ export class Mind {
     this.memory = opts.memory;
     this.costs = opts.costs;
     this.cards = opts.cards;
-    this.townCap = opts.townCap ?? TOWN_DAILY_CAP;
+    this.townCap = opts.townCap ?? null;
     this.onError = opts.onError ?? (() => {});
   }
 
@@ -63,7 +64,7 @@ export class Mind {
   /** True once the town has spent its daily cap (per real day); announces the quiet once. */
   townSpent(realMs: number, emit: ThinkContext['emit']): boolean {
     const day = this.costs.dayKey(realMs);
-    if (this.costs.spentOn(day) < this.townCap) return false;
+    if (this.costs.spentOn(day) < (this.townCap ?? dayCap(this.costs, realMs))) return false;
     if (this.quietDay !== day) {
       this.quietDay = day;
       emit({ type: 'kampung_quiet' });

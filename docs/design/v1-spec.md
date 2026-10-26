@@ -120,7 +120,9 @@ roughly 18% headroom under $100.
    resident who has spent it waits (in-world, they "potter about") until it
    refills. Owners' business decisions draw from the same budget.
 3. **Town daily cap.** If the whole town reaches its daily allowance
-   ($3.33 per real day, which is 4.8 game days), every resident falls back to
+   (what's left of the month's $100 shared over the days left, never above
+   $3.33 per real day, which is 4.8 game days; added 2026-10-26 so a 31-day
+   month can't pass $100), every resident falls back to
    resting (no AI calls) until real midnight, and the feed says so in-world ("the kampung is quiet this
    afternoon").
 
