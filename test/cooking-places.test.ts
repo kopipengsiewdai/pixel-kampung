@@ -179,6 +179,7 @@ describe('review fixes', () => {
     expectInWorld(refused(act(w, siti.id, { verb: 'cook', item: 'vegetable rice' }), /open fire/));
     fire.until = w.t + 2;
     expectInWorld(refused(act(w, siti.id, { verb: 'cook', item: 'grilled fish' }), /burning too low/));
+    expect(availableActions(w, siti).find((a) => a.verb === 'cook')?.says ?? '').not.toMatch(/grilled fish/);
   });
 
   it('the village kitchen holds one pot at a time, and is a proper kitchen', () => {

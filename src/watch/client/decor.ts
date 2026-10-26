@@ -39,7 +39,7 @@ export const PROPS: readonly Prop[] = [
 export const PLANTS: readonly Prop[] = [
   // Coconut palms along the beach.
   { atlas: 'k', frame: 'palm-0', x: 0, y: 19 }, { atlas: 'k', frame: 'palm-1', x: 4.5, y: 19.5 }, { atlas: 'k', frame: 'palm-0', x: 9, y: 19 },
-  { atlas: 'k', frame: 'palm-1', x: 15, y: 19.5 }, { atlas: 'k', frame: 'palm-0', x: 21, y: 19 }, { atlas: 'k', frame: 'palm-1', x: 26, y: 19.5 },
+  { atlas: 'k', frame: 'palm-1', x: 15, y: 19.5 }, { atlas: 'k', frame: 'palm-0', x: 21, y: 19 }, { atlas: 'k', frame: 'palm-1', x: 24.5, y: 19.5 },
   { atlas: 'k', frame: 'palm-0', x: 35, y: 19.5 }, { atlas: 'k', frame: 'palm-1', x: 38, y: 19 },
   // Shade trees and bushes in the open ground.
   { atlas: 'p', frame: 'tree', x: 16, y: 12 }, { atlas: 'p', frame: 'big-tree', x: 21, y: 12.5 }, { atlas: 'p', frame: 'tree', x: 27, y: 12 },

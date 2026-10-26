@@ -196,6 +196,9 @@ function cookAtHome(w: World, r: Resident, item: ItemId, asked: number, stoveAt:
   return ok(`You light the stove and start cooking a pot of ${item}.${asked > 1 ? ' You only have the one small pot.' : ''}`);
 }
 
+/** How long a pot of this takes this cook (a handy cook is a fifth quicker). */
+const cookMinutes = (r: Resident, item: ItemId) => Math.round((COOK_MINUTES[item] ?? 10) * (effectiveLevel(r, 'cooking') >= 2 ? HANDY_COOK : 1));
+
 /** What can go over an open fire: grilled fish, and with a pot, bubur. */
 const FIRE_DISHES: readonly ItemId[] = ['grilled fish', 'bubur'];
 
@@ -208,7 +211,7 @@ function cookAtFire(w: World, r: Resident, item: ItemId): ActionResult {
   for (const [need, n] of Object.entries(recipe.needs) as [ItemId, number][]) {
     if (countGoods(r.items, need) < n) return no(`That takes ${goodsLabel(recipe.needs)}, and you're short of ${need}.`);
   }
-  const minutes = Math.round((COOK_MINUTES[item] ?? 10) * (effectiveLevel(r, 'cooking') >= 2 ? HANDY_COOK : 1));
+  const minutes = cookMinutes(r, item);
   if (fire.until - w.t < minutes) return no('The fire is burning too low for that.');
   for (const [need, n] of Object.entries(recipe.needs) as [ItemId, number][]) addGoods(r.items, need, -n);
   r.stove = { item, batches: 1, qty: HOME_YIELD, shopId: `fire:${fire.id}`, until: w.t + minutes };
@@ -234,6 +237,8 @@ export function cookable(w: World, r: Resident): { at: CookAt; dishes: ItemId[];
     .filter(([dish, recipe]) => skillLevel(r, 'cooking') >= (recipe.level ?? 1) && !(spot === 'home' && recipe.level)
       && (spot !== 'fire' || (FIRE_DISHES.includes(dish) && (dish !== 'bubur' || countGoods(r.items, 'pot') > 0))))
     .filter(([, recipe]) => (Object.entries(recipe.needs) as [ItemId, number][]).every(([need, n]) => have(need) >= n))
+    // Over a fire, only what it will still be burning for.
+    .filter(([dish]) => spot !== 'fire' || fireNear(w, r)!.until - w.t >= cookMinutes(r, dish))
     .map(([dish]) => dish);
   const stove = spot === 'home' ? r.homeId : spot === 'shared' ? KITCHEN_ID : null;
   const fuel = !stove || (w.state.stoves[stove] ?? 0) + countGoods(r.items, 'kerosene') + countGoods(r.items, 'firewood') > 0;
