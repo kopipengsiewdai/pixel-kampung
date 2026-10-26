@@ -98,3 +98,12 @@ describe('the page asks for English', () => {
     }
   });
 });
+
+describe('Hokkien and Tamil, in Roman letters', () => {
+  it('want English too; English with a word or two of them does not', () => {
+    expect(looksForeign('Ah Seng, lu chiak png liao boh?')).toBe(true);
+    expect(looksForeign('Enna da, naan romba tired, saapadu illa.')).toBe(true);
+    expect(looksForeign('Aiyo, I am so hungry today, Pa.')).toBe(false);
+    expect(looksForeign('I will go to the jetty and fish.')).toBe(false);
+  });
+});
