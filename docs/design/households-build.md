@@ -79,17 +79,24 @@ cap, with scripted fallbacks.
 
 Developing the village (power 9) waits for the fuller map.
 
-## Housing market (owner, 2026-10-26; to be agreed before building)
+## Housing market (agreed with the owner, 2026-10-26, Q1–Q4)
 
-The owner accepted PR A's fixed prices (a year's rent to buy, 44 weeks
-rent-to-own) **for now only**: "this needs to be better adjusted and housing
-should allow market to take control as well." So the next pass on housing makes
-prices come from the market, not fixed multiples:
-- **Residents buy and sell places between themselves** at whatever price they agree. Asking prices go up on the board, and buyers offer and haggle.
-- **Mr Lim's asking price and rents move with demand:** how many houses stand free, how many sleep rough, and money in circulation. This is read by the hidden economy check, within bounds.
-- Possibly: letting a room or house you own to another resident.
+PR A's fixed prices (a year's rent to buy, 44 weeks rent-to-own) were a
+placeholder. The market replaces them:
+1. **A free market with no floor** (Q1 and Q2): "let's this be free market, see
+   what happens." Prices come from what residents offer and Mr Lim accepts. There's
+   no minimum and no formula.
+2. **Mr Lim decides** (Q3).
+   - A free house or stall goes up on the board.
+   - Residents make offers at his door, either a rent a week or a price to buy.
+   - His thinking head accepts, counters or waits for better.
+3. **A sitting tenant's rent** (Q4) can change freely, with a week's notice.
+   - The tenant must agree to the new rent at his door, or give notice and leave.
+   - Proper contracts come later, once there's a legal system.
+4. **Between residents**, a place can be sold or let at whatever price both agree, offered and accepted like a trade.
+5. **Existing deals are honoured** (one world forever): a rent-to-own already running finishes on its terms, and a place already bought stays bought.
 
-The owner answers the open questions one at a time before this is built.
+This ships with Mr Lim's head (PR B), because he is the one who decides.
 
 ## PR C: marriage (after A and B)
 
