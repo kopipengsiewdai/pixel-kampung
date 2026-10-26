@@ -270,8 +270,8 @@ export interface TalkRecord {
   idle: number;
   /** A deal one of them talked of as done, with nothing done yet: who said it, what kind, and when first. */
   word: { by: string; kind: DealKind; t: number; broken?: boolean; awake?: number } | null;
-  /** Lines one of them has said to the other in a row with no answer. */
-  unanswered?: { by: string; n: number };
+  /** Lines one of them has said to the other in a row with no answer, and when the last was. */
+  unanswered?: { by: string; n: number; t: number };
 }
 
 /** After this many lines to someone with no answer, a speaker can see they aren't answering. */
@@ -337,8 +337,8 @@ export class World {
       const rec = this.state.talk[talkKey(a, b)];
       if (!rec) return;
       rec.idle = 0;
-      // Doing something together is an answer too.
-      delete rec.unanswered;
+      // The other one doing something with them is an answer too (not the speaker's own offer).
+      if (rec.unanswered && e.type !== 'circles' && 'who' in e && e.who !== rec.unanswered.by) delete rec.unanswered;
       if (rec.word && settles(rec.word.kind, kind)) rec.word = null;
     };
     const s = settledBy(e);

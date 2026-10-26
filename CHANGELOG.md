@@ -9,7 +9,7 @@ never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 - **Less wasted thinking** (in a day of the living town, about one call in three went on something that couldn't work):
   - Someone who has said three things in a row to a person who hasn't answered sees that they haven't, and a fourth is turned away ("Mdm Tan hasn't answered you."). Any answer, or doing something together, starts it again. (Ah Kow said much the same line to Mdm Tan every ten minutes for hours.)
   - **Buying** is offered at a shop only while someone is minding it (510 tries in a day at an empty provision shop).
-  - Things are found by the names people actually use: "nasi putih", "bubur kosong (plain rice porridge)", "water from my pail", "a small bowl of soft rice". A list of things to trade counts one of each.
+  - Things are found by the names people actually use: "nasi putih", "bubur kosong (plain rice porridge)", "water from my pail", "my two fresh fish". Words that could mean something else ("a cup of coffee", "fried rice", "bread and fish") are still not guessed at. A list of things to trade counts one of each, or as many as it says.
   - Raw rice "needs cooking on a stove".
 - **Living town:** at upgrade (save v18) nobody's count of unanswered lines has started.
 

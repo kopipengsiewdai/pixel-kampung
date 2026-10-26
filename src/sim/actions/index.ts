@@ -24,8 +24,8 @@ interface ActionDef {
 }
 
 const atShop = (w: World, r: Resident) => everyone.shopHere(w, r) !== null;
-/** At someone else's shop while it's being minded: only then is there anyone to buy from or sell to. */
-const atServedShop = (w: World, r: Resident) => { const s = everyone.shopHere(w, r); return !!s && s.ownerId !== r.id && everyone.isStaffed(w, s); };
+/** At a shop with someone to buy from: one being minded, or your own (taking from your own stock). */
+const atServedShop = (w: World, r: Resident) => { const s = everyone.shopHere(w, r); return !!s && (s.ownerId === r.id || everyone.isStaffed(w, s)); };
 const atLorry = (w: World, r: Resident) => w.isAt(r, 'lorry-stop') && w.state.lorryHere;
 const at = (id: string) => (w: World, r: Resident) => w.isAt(r, id);
 const withPeople = (w: World, r: Resident) => w.nearby(r).some((o) => !w.isAsleep(o));

@@ -66,7 +66,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     id: 'kerosene', one: 'a tin of kerosene', many: '{n} tins of kerosene', aliases: ['minyak tanah', 'lamp oil', 'paraffin'],
     inedible: "Kerosene? That's for the lamp, not for drinking.",
   },
-  kopi: { id: 'kopi', one: 'a cup of kopi', many: '{n} cups of kopi', aliases: [], food: { hunger: 50, energy: 120 } },
+  kopi: { id: 'kopi', one: 'a cup of kopi', many: '{n} cups of kopi', aliases: ['kopi o', 'kopi-o', 'kopi susu'], food: { hunger: 50, energy: 120 } },
   'fish porridge': {
     id: 'fish porridge', one: 'a bowl of fish porridge', many: '{n} bowls of fish porridge',
     aliases: ['porridge', 'fish congee'], food: { hunger: 450 },
@@ -89,24 +89,21 @@ function exactItem(s: string): ItemId | null {
   return null;
 }
 
+/** Words around a name that don't change what it is ("my", "two", "fresh"). */
+const FILLER = /^(?:a|an|the|some|one|two|three|four|five|six|my|your|our|his|her|their|fresh|small|big|little|\d+)\s+/;
+
 export function findItem(name: string): ItemId | null {
-  const s = name.trim().toLowerCase().replace(/^(?:a|an|the|some|one|\d+)\s+/, '');
-  const exact = exactItem(s);
+  let s = name.trim().toLowerCase();
+  const exact = exactItem(s.replace(/^(?:a|an|the|some|one|\d+)\s+/, ''));
   if (exact) return exact;
-  // People say more than the name: "bubur kosong (plain rice porridge)", "water from my pail".
-  const bare = s.replace(/\([^)]*\)/g, ' ').replace(/\s(?:from|in|out of|with|for)\s.*$/, '').replace(/\s+/g, ' ').trim();
-  const again = bare ? exactItem(bare) : null;
-  if (again) return again;
-  // Otherwise the longest name of a thing found inside what they said ("a small bowl of soft rice").
-  let best: { id: ItemId; len: number } | null = null;
-  for (const def of Object.values(ITEMS)) {
-    for (const n of namesOf(def)) {
-      const at = s.indexOf(n);
-      const whole = at >= 0 && !/[a-z]/.test(s[at - 1] ?? '') && !/[a-z]/.test(s[at + n.length] ?? '');
-      if (whole && (!best || n.length > best.len)) best = { id: def.id, len: n.length };
-    }
+  // People say more than the name: "bubur kosong (plain rice porridge)", "water from my pail", "my two fresh fish".
+  // Only words that can't change what it is are dropped: anything else ("a cup of coffee", "fried rice") stays unknown.
+  s = s.replace(/\([^)]*\)/g, ' ').replace(/\s(?:from|in|out of)\s.*$/, '').replace(/\s+/g, ' ').trim();
+  for (let prev = ''; prev !== s;) {
+    prev = s;
+    s = s.replace(FILLER, '');
   }
-  return best?.id ?? null;
+  return s ? exactItem(s) : null;
 }
 
 export function quantityLabel(item: ItemId, n: number): string {

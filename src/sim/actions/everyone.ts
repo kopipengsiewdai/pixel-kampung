@@ -196,7 +196,7 @@ export function say(w: World, r: Resident, i: Intent): ActionResult {
     if (typeof o === 'string') return no(o);
     const rec = w.state.talk[talkKey(r.id, o.id)];
     if (rec && w.t - rec.lastT <= TALK_GAP_MINUTES && rec.idle >= SAID_ALL_LINES) return no(`You and ${o.name} have said all there is to say.`);
-    if (rec && w.t - rec.lastT <= TALK_GAP_MINUTES && rec.unanswered?.by === r.id && rec.unanswered.n >= UNANSWERED_LINES) return no(`${o.name} hasn't answered you.`);
+    if (rec?.unanswered?.by === r.id && w.t - rec.unanswered.t <= TALK_GAP_MINUTES && rec.unanswered.n >= UNANSWERED_LINES) return no(`${o.name} hasn't answered you.`);
     to = o;
   }
   w.emit({ type: 'said', who: r.id, to: to?.id ?? null, text });
@@ -213,8 +213,9 @@ export function say(w: World, r: Resident, i: Intent): ActionResult {
     const going = prev && w.t - prev.lastT <= TALK_GAP_MINUTES ? prev : null;
     const rec: TalkRecord = { lines: (going?.lines ?? 0) + 1, lastT: w.t, idle: (going?.idle ?? 0) + 1, word: going?.word ?? null };
     // Lines to someone in a row, with nothing back; any word from the other ends the run.
-    const run = going?.unanswered;
-    if (to?.id === o.id) rec.unanswered = { by: r.id, n: run?.by === r.id ? run.n + 1 : 1 };
+    // Counted from the last line said to them, so talk to the room doesn't keep it going.
+    const run = prev?.unanswered && w.t - prev.unanswered.t <= TALK_GAP_MINUTES ? prev.unanswered : undefined;
+    if (to?.id === o.id) rec.unanswered = { by: r.id, n: run?.by === r.id ? run.n + 1 : 1, t: w.t };
     else if (run && run.by === r.id) rec.unanswered = run;
     // Narrating on and on doesn't put the notice off: talk settled the same way (money, or a job) keeps its first minute.
     if (claim && to?.id === o.id && (!rec.word || settlesBy(rec.word.kind) !== settlesBy(claim))) rec.word = { by: r.id, kind: claim, t: w.t };

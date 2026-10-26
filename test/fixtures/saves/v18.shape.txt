@@ -535,6 +535,7 @@ src/sim/state.ts WorldState {
       unanswered?: undefined | {
         by: string
         n: number
+        t: number
       }
       word: null | {
         awake?: number | undefined
