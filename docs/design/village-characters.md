@@ -24,8 +24,10 @@ prompt.
   (capped) his AI voice answers.
 - **His powers, all bounded:**
   1. Set house and stall rents, reviewed monthly, at most ±20% each time.
-  2. Evict non-payers after a grace week, from rented houses and stalls
-     only, never family homes.
+  2. Evict non-payers after a grace week, from any rented house or stall,
+     families included (owner, 2026-10-26: everyone rents for now; see
+     [households.md](households.md)). A place a resident has bought can't be
+     taken.
   3. Post village notices (rooms to let, a free stall, village news,
      festivals), never rules or how things work.
   4. Settle disputes in words only, never enforced.
@@ -41,8 +43,8 @@ prompt.
      This is the in-world reason new things appear. He makes things appear,
      never rules: new mechanics are still found only by trying.
 - **Never:** touch residents' money or shops directly, change shop prices,
-  hire or fire for others, create goods from nothing, or force marriages or
-  family evictions.
+  hire or fire for others, create goods from nothing, force marriages, or
+  take a place a resident has bought.
 - **His wealth is hidden.** No resident knows how rich he is. His private
   purse (effectively unlimited) and the village fund are separate ledger
   accounts, so money conservation stays checkable.
