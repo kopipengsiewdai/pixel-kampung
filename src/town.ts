@@ -84,6 +84,9 @@ const NOT_NEARBY = / isn't nearby\. /;
 const SAID_ALL = / have said all there is to say\.$/;
 const NOBODY_MINDING = /^Nobody's minding /;
 const NO_ANSWER = / hasn't answered you\.$/;
+/** A kitchen or a pot short of something, or a stove with no fuel: trying again this minute won't fill it. */
+const SHORT_OF = / short of [a-z ]+\.$/;
+const NO_FUEL = /^The stove needs firewood or kerosene/;
 const MR_LIM_BUSY = /^Mr Lim nods to you, but he's busy/;
 
 /** The person an action is aimed at, lower-cased, if any. */
@@ -226,7 +229,7 @@ export class Town {
             break;
           }
           // Two who have said all there is to say won't find more this minute either.
-          if (!res.ok && [SAID_ALL, NOBODY_MINDING, NO_ANSWER, MR_LIM_BUSY].some((x) => x.test(res.reply ?? ''))) break;
+          if (!res.ok && [SAID_ALL, NOBODY_MINDING, NO_ANSWER, SHORT_OF, NO_FUEL, MR_LIM_BUSY].some((x) => x.test(res.reply ?? ''))) break;
           if (res.ok) {
             const what = sameness(intent);
             const before = r.lastDone;

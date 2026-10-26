@@ -1,5 +1,5 @@
 import { FISHING_MINUTES, RESTED, startSleep } from '../activities.ts';
-import { dealKind, settlesBy } from '../talk.ts';
+import { alikeWords, dealKind, lineWords, SAID_AGAIN, settlesBy } from '../talk.ts';
 import { ITEMS, quantityLabel, type ItemId } from '../items.ts';
 import { lorryBuy, lorrySell } from '../osman.ts';
 import { MAP_H, MAP_W, PLACES, PLACE_BY_ID, findPath, isWalkable, type Point } from '../map.ts';
@@ -11,7 +11,7 @@ import { perceive } from '../perception.ts';
 import { PLACE_WORDS } from '../places.ts';
 import { BEST_DAY_YIELD, effectiveLevel, HANDY_YIELD, practise, skillLevel } from '../skills.ts';
 import {
-  addGoods, type Bed, type Crop, CIRCLE_LINES, countGoods, type Resident, type Shop, type World, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, SAID_ALL_LINES, type TalkRecord, UNANSWERED_LINES,
+  addGoods, type Bed, type Crop, CIRCLE_LINES, countGoods, REPEAT_MINUTES, REPEAT_WORDS, SAID_KEPT, type Resident, type Shop, type World, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, SAID_ALL_LINES, type TalkRecord, UNANSWERED_LINES,
 } from '../state.ts';
 import { atTimeOfDay, dayIndex, sgtHour } from '../time.ts';
 import {
@@ -210,8 +210,19 @@ export function say(w: World, r: Resident, i: Intent): ActionResult {
   const runsLong = (o: Resident): boolean => {
     const key = talkKey(r.id, o.id);
     const prev = w.state.talk[key];
-    const going = prev && w.t - prev.lastT <= TALK_GAP_MINUTES ? prev : null;
-    const rec: TalkRecord = { lines: (going?.lines ?? 0) + 1, lastT: w.t, idle: (going?.idle ?? 0) + 1, word: going?.word ?? null };
+    // The same thing said again, even after a pause, is the same chat going on (and the count picks up where it was).
+    const words = lineWords(text);
+    const lately = (prev?.said ?? []).filter((s) => w.t - s.t <= REPEAT_MINUTES);
+    const alikeAt = lately.filter((s) => alikeWords(s.words, words) >= SAID_AGAIN).map((s) => s.t);
+    const again = alikeAt.length > 0;
+    const going = prev && (w.t - prev.lastT <= TALK_GAP_MINUTES || again) ? prev : null;
+    // Said before the count was last set back: it picks up where it was.
+    const was = going?.idleWas;
+    const resumed = was && words.length >= REPEAT_WORDS && alikeAt.some((t) => t <= was.t) ? was.n : 0;
+    const idle = Math.max(going?.idle ?? 0, resumed) + 1;
+    const rec: TalkRecord = { lines: (going?.lines ?? 0) + 1, lastT: w.t, idle, word: going?.word ?? null, said: [...lately, { t: w.t, words }].slice(-SAID_KEPT) };
+    if (going?.gift) rec.gift = going.gift;
+    if (!resumed && was) rec.idleWas = was;
     // Lines to someone in a row, with nothing back; any word from the other ends the run.
     // Counted from the last line said to them, so talk to the room doesn't keep it going.
     const run = prev?.unanswered && w.t - prev.unanswered.t <= TALK_GAP_MINUTES ? prev.unanswered : undefined;
@@ -220,7 +231,7 @@ export function say(w: World, r: Resident, i: Intent): ActionResult {
     // Narrating on and on doesn't put the notice off: talk settled the same way (money, or a job) keeps its first minute.
     if (claim && to?.id === o.id && (!rec.word || settlesBy(rec.word.kind) !== settlesBy(claim))) rec.word = { by: r.id, kind: claim, t: w.t };
     w.state.talk[key] = rec;
-    if (rec.idle === CIRCLE_LINES) w.emit({ type: 'circles', a: r.id, b: o.id });
+    if (rec.idle >= CIRCLE_LINES && (going?.idle ?? 0) < CIRCLE_LINES) w.emit({ type: 'circles', a: r.id, b: o.id });
     return rec.lines > TALK_SOFT_LIMIT || rec.idle > CIRCLE_LINES;
   };
   for (const o of w.nearby(r)) {

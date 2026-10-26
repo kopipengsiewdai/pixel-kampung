@@ -104,6 +104,7 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
     property: startingProperty({ residents, shops }),
     rentFrom: firstRentDay({ calendar: { firstDay: dayIndex(t) } }, dayIndex(t)),
     rentNoticed: false,
+    rentToldTo: [],
     lastRoundDay: 0,
     arrears: {},
     evictedWith: {},

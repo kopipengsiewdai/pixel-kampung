@@ -3,7 +3,7 @@ import type { Brain } from '../src/brain/brain.ts';
 import type { Intent } from '../src/sim/actions/index.ts';
 import type { GameEvent } from '../src/sim/events.ts';
 import { describe as describePerception, perceive, type Perception } from '../src/sim/perception.ts';
-import { TALK_SOFT_LIMIT } from '../src/sim/state.ts';
+import { TALK_GAP_MINUTES, TALK_SOFT_LIMIT } from '../src/sim/state.ts';
 import { QUIET_THINK_MINUTES, Town } from '../src/town.ts';
 import { accepted, act, expectInWorld, newWorld, put, sgt } from './helpers.ts';
 
@@ -117,7 +117,7 @@ describe('what a resident hears of their own conversation', () => {
     accepted(act(w, seng.id, { verb: 'say', text: 'Fish for rice?', to: 'Raju' }));
     expect(perceive(w, siti).talk).toEqual([]);
     expect(perceive(w, siti).recent.at(-1)).toMatch(/Ah Seng says to Raju/);
-    w.state.t += 31;
+    w.state.t += TALK_GAP_MINUTES + 1;
     expect(perceive(w, seng).talk).toEqual([]);
     expect(describePerception(perceive(w, seng))).toContain('You say to Raju: "Fish for rice?"');
   });

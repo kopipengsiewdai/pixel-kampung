@@ -5,7 +5,7 @@ import { CARDS } from '../src/seed/cards.ts';
 import type { Intent } from '../src/sim/actions/index.ts';
 import type { GameEvent } from '../src/sim/events.ts';
 import { describe as describePerception, perceive, type Perception } from '../src/sim/perception.ts';
-import { CIRCLE_LINES, TALK_SOFT_LIMIT, talkKey, type World } from '../src/sim/state.ts';
+import { CIRCLE_LINES, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, type World } from '../src/sim/state.ts';
 import { Town } from '../src/town.ts';
 import { accepted, act, expectInWorld, newWorld, put, sgt, who } from './helpers.ts';
 
@@ -140,14 +140,14 @@ describe('words do not move money or goods', () => {
     expect(perceive(w, who(w, 'Rahim')).unbacked).toHaveLength(1);
   });
 
-  it('an overheard claim notes nothing for the one overhearing; the notice goes after 30 quiet minutes', () => {
+  it('an overheard claim notes nothing for the one overhearing; the notice goes after the talk gap, quiet', () => {
     const w = shop();
     put(w, 'Siti', 'provision-shop');
     sayTo(w, 'Rahim', 'Mdm Tan', 'I put my money on the counter.');
     expect(w.state.talk[talkKey(who(w, 'Rahim').id, who(w, 'Siti').id)]?.word ?? null).toBeNull();
     w.state.t += 3;
     expect(perceive(w, who(w, 'Mdm Tan')).unbacked).toHaveLength(1);
-    w.state.t += 31;
+    w.state.t += TALK_GAP_MINUTES + 1;
     expect(perceive(w, who(w, 'Mdm Tan')).unbacked).toEqual([]);
   });
 

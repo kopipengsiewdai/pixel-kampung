@@ -4,6 +4,17 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+Behaviour fixes from watching the living town:
+- **No more circling at an empty kitchen:** a cook told the kitchen is short of something, or that the stove needs fuel, stops trying for that thought (Ah Huat had tried fish porridge with no rice 170 times). At the kitchen, the cook now sees what it has none of ("The kitchen has no rice: no fish porridge, vegetable rice or bubur without it.") and whether the lorry has it today.
+- **Where fuel comes from:** a stove with no fuel says so in-world: dry wood to gather past the farm plot, and kerosene off the lorry.
+- **Talk going round in circles is told by what is said:** a chat now lasts an hour of quiet, not half an hour (longer than the pause between thoughts); the same thing said again within three hours carries on the same chat, and after walking off and coming back, saying the same thing again (at some length, not just "thank you") picks the count up where it was. Something really done between them clears it; giving the same thing again doesn't. The six-line point is unchanged.
+- **Plans that go stale are let go:** the morning plan is made from where they are and what they hold, and after three thoughts in a row that come to nothing it isn't brought up again that day.
+- **Languages:** when someone is with them, the ask says which language to use if they speak to each (their shared home language, else bazaar Malay); their own old thoughts and plans not in English no longer come back to mind (words meant to be said aloud in quotes don't count against them); "think to myself" no longer creeps into thoughts.
+- **Word of the rent reaches everyone:** each holder hears when rent starts once, awake, in one message for all they hold.
+- **Living town:** upgrades to save v22. Everyone holding a place hears about the rent once more (some were asleep when word first went round); everything else starts fresh.
+
 ## 0.26.0 (2026-10-26): making a living, part two
 
 Making a living ([subsistence.md](docs/design/subsistence.md)), part two:
