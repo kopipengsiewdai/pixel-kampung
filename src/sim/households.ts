@@ -212,11 +212,14 @@ export function householdLines(w: World, r: Resident, atHead: boolean): string[]
 
 const cap = (s: string) => s[0]!.toUpperCase() + s.slice(1);
 
+/** Words that mean a stall, not a house. */
+export const STALL_WORDS = /stall|shop|kopitiam|market/;
+
 /** Which of their places they mean: a house by default, a stall if they say so. */
 export function placeMeant(w: World, r: Resident, item: unknown): [string, Property] | null {
   const held = Object.entries(w.state.property).filter(([, p]) => p.holder === r.id);
   const s = typeof item === 'string' ? item.toLowerCase() : '';
-  const stall = /stall|shop|kopitiam/.test(s);
+  const stall = STALL_WORDS.test(s);
   return held.find(([id]) => (stall ? !id.startsWith('house-') : id.startsWith('house-'))) ?? null;
 }
 

@@ -285,6 +285,46 @@ describe('review fixes', () => {
   });
 });
 
+describe('second review', () => {
+  it('a full board: his note is not put back over others; changed where it hangs when a house is let', async () => {
+    const w = newWorld(6, 0);
+    while (w.t < sgt(9, 0)) advance(w);
+    const jobs = w.state.notes.filter((n) => n.authorId === MR_LIM_ID && /^Wanted/.test(n.text)).map((n) => n.id);
+    w.state.notes = w.state.notes.filter((n) => !/^To let/.test(n.text));
+    while (w.state.notes.length < 12) w.state.notes.push({ id: w.nextId(), authorId: who(w, 'Siti').id, text: 'Kuih for sale.', t: w.t });
+    advance(w);
+    expect(w.state.notes.some((n) => /^To let/.test(n.text))).toBe(false);
+    expect(jobs.every((id) => w.state.notes.some((n) => n.id === id))).toBe(true);
+    // With room, and with a house let, the note is there and says so.
+    const w2 = newWorld(6, 0);
+    while (w2.t < sgt(9, 0)) advance(w2);
+    const id = w2.state.notes.find((n) => /^To let/.test(n.text))!.id;
+    Object.assign(w2.state.property[freeHouses(w2)[0]!]!, { holder: 'raju', freeSince: null });
+    advance(w2);
+    const note = w2.state.notes.find((n) => /^To let/.test(n.text))!;
+    expect(note.id).toBe(id);
+    expect(note.text).toMatch(/a house,/);
+  });
+
+  it('"the wet market" is no offer for your house', () => {
+    const w = tuesday();
+    const kow = who(w, 'Ah Kow');
+    kow.money = 100_000;
+    expectInWorld(refused(offer(w, 'Ah Kow', 5000, 'the wet market', 'buy'), /stall/));
+  });
+
+  it('a counter for less than was offered is no counter: his own way', async () => {
+    const w = tuesday();
+    const kow = who(w, 'Ah Kow');
+    kow.homeId = 'rough';
+    kow.money = 500;
+    accepted(offer(w, 'Ah Kow', 40));
+    await evening(w, { plan: async () => null, decide: async () => ({ answer: 'counter', cents: 30, kind: 'rent' }) });
+    expect(kow.recent.some((o) => /he'd take 30/.test(o.text))).toBe(false);
+    expect(kow.homeId).toMatch(/^house-/);
+  });
+});
+
 describe('the upgrade (save v26)', () => {
   it('no offers yet; every free place free from today', async () => {
     const { UPGRADES } = await import('../src/store/upgrades.ts');

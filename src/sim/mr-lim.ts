@@ -17,7 +17,7 @@ import { formatMoney, type Cents } from './money.ts';
 import { Rng } from './rng.ts';
 import { FUND_ID, GROWN_AGE, MR_LIM_ID, type PlaceOffer, type Resident, type World } from './state.ts';
 import { type ActionResult, moneyOf, no, ok } from './actions/common.ts';
-import { BUY_WEEKS, heldBy, letTo, offerWords, placeMeant, placeWords } from './households.ts';
+import { BUY_WEEKS, heldBy, letTo, offerWords, placeMeant, placeWords, STALL_WORDS } from './households.ts';
 import { cleanLine } from './osman.ts';
 import { dayIndex, minuteOfDay } from './time.ts';
 import { skillLevel } from './skills.ts';
@@ -191,7 +191,7 @@ export function offerForPlace(w: World, r: Resident, item: unknown, money: unkno
   const cents = moneyOf(money);
   if (cents === null || cents === 0) return no("That doesn't sound like money.");
   const s = typeof item === 'string' ? item.toLowerCase() : '';
-  const stall = /stall|shop|kopitiam|market/.test(s);
+  const stall = STALL_WORDS.test(s);
   const held = placeMeant(w, r, item);
   // Their own place when they hold one and say so (or offer to buy "the house" they live in); otherwise a house standing free.
   const own = held !== null && (/\b(my|mine|own|our|ours)\b/.test(s) || stall || (buying && housed(w, r)));
@@ -230,8 +230,10 @@ function resolve(got: DecideAnswer | null, offers: PlaceOffer[], scripted: Decis
   else if (got?.answer === 'counter' && typeof got.cents === 'number' && Number.isFinite(got.cents) && got.cents >= 1) {
     // A counter is for one kind of offer: a rent a week, or a price to buy.
     const kind = got.kind === 'rent' || got.kind === 'buy' ? got.kind : (named ?? offers[0]!).kind;
-    const to = named ? (named.kind === kind ? [named] : []) : offers.filter((o) => o.kind === kind);
-    if (to.length) d = { answer: 'counter', cents: Math.min(Math.round(got.cents), 1_000_000), to };
+    const cents = Math.min(Math.round(got.cents), 1_000_000);
+    // A counter asks for more than was offered.
+    const to = (named ? [named] : offers).filter((o) => o.kind === kind && o.cents < cents);
+    if (to.length) d = { answer: 'counter', cents, to };
   } else if (got?.answer === 'wait') d = { answer: 'wait' };
   if (!d) return { d: scripted, words: null };
   return { d, words: typeof got?.words === 'string' ? cleanLine(got.words, 200) : null };
@@ -328,7 +330,7 @@ export async function mrLimDecides(w: World, head: MrLimHead | null, realMs: num
     const got = await ask(place, null, p.rent, [o]);
     settle(resolve(got, [o], scripted), o.placeId!, [o]);
   }
-  if (let_) pinToLet(w);
+  if (let_) keepToLet(w);
 }
 
 const TO_LET = 'To let, or for sale:';
@@ -339,7 +341,7 @@ const toLetText = (w: World): string | null => {
   return n ? `${TO_LET} ${n === 1 ? 'a house' : `${n} houses`}, standing free. Make Mr Lim an offer at his door, a rent a week or a price to buy. Mr Lim.` : null;
 };
 
-/** His note on the board of the houses standing free, kept up to date. */
+/** His note on the board of the houses standing free: pinned afresh each morning (making room, as his job notes do). */
 export function pinToLet(w: World): void {
   w.state.notes = w.state.notes.filter((n) => !(n.authorId === MR_LIM_ID && n.text.startsWith(TO_LET)));
   const text = toLetText(w);
@@ -347,6 +349,15 @@ export function pinToLet(w: World): void {
   w.state.notes.push({ id: w.nextId(), authorId: MR_LIM_ID, text, t: w.t });
   if (w.state.notes.length > BOARD_MAX) w.state.notes.shift();
   w.emit({ type: 'note_pinned', who: MR_LIM_ID, text });
+}
+
+/** Through the day: his note changed where it hangs when what stands free does; put up only where there's room (never pushing another note off). */
+export function keepToLet(w: World): void {
+  const note = w.state.notes.find((n) => n.authorId === MR_LIM_ID && n.text.startsWith(TO_LET));
+  const text = toLetText(w);
+  if (note && !text) w.state.notes = w.state.notes.filter((n) => n !== note);
+  else if (note && text && note.text !== text) note.text = text;
+  else if (!note && text && w.state.notes.length < BOARD_MAX) pinToLet(w);
 }
 
 /** A better-paid job for someone with good English (school.md): keeping Mr Lim's ledger, at his house. */
@@ -427,9 +438,10 @@ export function mrLimMinute(w: World): void {
   // A new day: notes for jobs nobody did come down (the jobs were only for their day).
   const stale = new Set(w.state.oddJobs.filter((j) => j.day !== today && j.doneBy === null).map((j) => j.noteId));
   if (stale.size && w.state.notes.some((n) => stale.has(n.id))) w.state.notes = w.state.notes.filter((n) => !stale.has(n.id));
-  // What stands free, for offers: up while he's about, and changed when that does.
-  if (mod >= PIN_AT && mod < IN_AT && (w.state.notes.find((n) => n.authorId === MR_LIM_ID && n.text.startsWith(TO_LET))?.text ?? null) !== toLetText(w)) pinToLet(w);
-  if (w.state.oddJobsDay === today || mod < PIN_AT || mod >= LAST_POST) return;
+  const posting = w.state.oddJobsDay !== today && mod >= PIN_AT && mod < LAST_POST;
+  // What stands free, for offers, kept true while he's about (the morning's posting pins it afresh).
+  if (!posting && mod >= PIN_AT && mod < IN_AT) keepToLet(w);
+  if (!posting) return;
   w.state.oddJobsDay = today;
   const old = new Set(w.state.oddJobs.filter((j) => j.doneBy === null).map((j) => j.noteId));
   w.state.notes = w.state.notes.filter((n) => !old.has(n.id));
@@ -473,6 +485,8 @@ export function mrLimMinute(w: World): void {
     for (const j of next) w.state.oddJobs.push({ id: w.nextId(), kind: projectKind(p.id, j.i), placeId: j.placeId, pay: ODD_JOB_PAY, day: today, doneBy: null, noteId, project: p.id });
     w.emit({ type: 'note_pinned', who: MR_LIM_ID, text });
   }
+  // And what stands free, for offers.
+  pinToLet(w);
 }
 
 /** A job finished: paid from his purse, its note taken down. */
