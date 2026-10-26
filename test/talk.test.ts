@@ -72,11 +72,11 @@ describe('talk does not ping-pong', () => {
 
   it('after the chat has run long, both still speak at the quiet pace', async () => {
     const { town, seng, raju, start } = chattyPair();
-    await town.runUntil(start + 60);
+    await town.runUntil(start + 30 + 3 * QUIET_THINK_MINUTES);
     for (const b of [seng, raju]) {
       const late = b.thoughtAt.filter((t) => t > start + 30);
       for (let i = 1; i < late.length; i++) expect(late[i]! - late[i - 1]!).toBe(QUIET_THINK_MINUTES);
-      expect(late.length).toBeGreaterThan(0);
+      expect(late.length).toBeGreaterThanOrEqual(2);
     }
   });
 });

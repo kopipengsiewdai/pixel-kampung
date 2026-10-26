@@ -13,7 +13,7 @@ import { addGoods, NEED_MAX, OLD_AGE, type Resident, type World } from './state.
 import { lookAbout } from './discovery.ts';
 import { ARRIVES, osmanMinute, STAYS } from './osman.ts';
 import { ITEMS, type ItemId } from './items.ts';
-import { FAINT_HUNGER } from './perception.ts';
+import { ACHING_HUNGER, FAINT_HUNGER, HUNGRY_FROM } from './perception.ts';
 import { dayIndex, isNight, minuteOfDay } from './time.ts';
 import { kinOf } from '../seed/cast.ts';
 
@@ -25,7 +25,16 @@ function clamp(v: number): number {
   return Math.max(0, Math.min(NEED_MAX, v));
 }
 
+/** Hunger that crosses one of these brings a thought on: the stomach is news. */
+const HUNGER_LINES = [HUNGRY_FROM, ACHING_HUNGER, FAINT_HUNGER];
+
 function updateNeeds(w: World, r: Resident): void {
+  const before = r.hunger;
+  feelNeeds(w, r);
+  if (r.activity?.kind !== 'sleeping' && HUNGER_LINES.some((l) => before < l && r.hunger >= l)) r.thinkAt = Math.min(r.thinkAt, w.t + 1);
+}
+
+function feelNeeds(w: World, r: Resident): void {
   const kind = r.activity?.kind;
   if (kind === 'sleeping') {
     if (w.t % 3 === 0) r.hunger += 1;
@@ -52,7 +61,11 @@ function progress(w: World, r: Resident): void {
         r.activity = null;
         r.thinkAt = w.t;
         const dest = a.dest ? PLACE_BY_ID.get(a.dest) : null;
-        if (dest) w.emit({ type: 'arrived', who: r.id, at: dest.id });
+        if (dest) {
+          w.emit({ type: 'arrived', who: r.id, at: dest.id });
+          // Someone turning up is something new for whoever is there.
+          for (const o of w.state.residents) if (o.id !== r.id && (!o.activity || o.activity.kind === 'working') && w.isAt(o, dest.id)) o.thinkAt = Math.min(o.thinkAt, w.t + 1);
+        }
         if (a.thenSleep && w.isAt(r, r.homeId)) startSleep(w, r, isNight(w.t) ? 'night' : 'nap');
       }
       return;
@@ -103,6 +116,24 @@ function noticeFaintKin(w: World, r: Resident): void {
   }
 }
 
+/** Something due soon is news: a shift starting, or an offer about to lapse (OFFER_REMINDER minutes before). */
+export const OFFER_REMINDER = 10;
+
+function timely(w: World, mod: number): void {
+  const nudge = (id: string | null) => {
+    if (!id) return;
+    const r = w.state.residents.find((x) => x.id === id);
+    if (r && r.activity?.kind !== 'sleeping') r.thinkAt = Math.min(r.thinkAt, w.t);
+  };
+  for (const j of w.state.jobs) if (mod === j.startHour * 60) nudge(j.workerId);
+  const soon = (o: { expires: number }) => o.expires - w.t === OFFER_REMINDER;
+  for (const o of w.state.jobOffers) if (soon(o)) nudge(o.workerId);
+  for (const o of w.state.trades) if (soon(o)) nudge(o.toId);
+  for (const o of w.state.debtOffers) if (soon(o)) nudge(o.toId);
+  for (const o of w.state.lessonOffers) if (soon(o)) nudge(o.learnerId);
+  for (const e of w.state.errands) if (!e.taken && soon(e)) nudge(e.runnerId);
+}
+
 export function advance(w: World): void {
   w.state.t += 1;
   const t = w.t;
@@ -139,6 +170,7 @@ export function advance(w: World): void {
 
   osmanMinute(w);
   travellersMinute(w);
+  timely(w, mod);
 
   w.state.jobOffers = w.state.jobOffers.filter((o) => o.expires > t);
   w.state.trades = w.state.trades.filter((o) => o.expires > t);

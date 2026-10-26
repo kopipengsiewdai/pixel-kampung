@@ -498,6 +498,11 @@ export class World {
 
   remember(id: string, text: string, talk = false): void {
     this.observer?.(id, this.state.t, text);
+    this.hear(id, text, talk);
+  }
+
+  /** In the moment only (the notes), not kept in long-term memory: talk between two others, overheard. */
+  hear(id: string, text: string, talk = false): void {
     const r = this.resident(id);
     r.recent.push(talk ? { t: this.state.t, text, talk } : { t: this.state.t, text });
     if (r.recent.length > MAX_RECENT) r.recent.splice(0, r.recent.length - MAX_RECENT);

@@ -118,16 +118,15 @@ describe('hungry, they are pointed only where someone will serve them', () => {
   it('a minded stall is named', async () => {
     const { town, siti, start } = hungryTown(true);
     await town.runUntil(start + 1);
-    expect(siti.reply?.text).toMatch(/You're hungry\. You could get something to eat at the wet-market stall\./);
+    expect(seen(w0(town), 'Siti')).toContain('You could get something to eat at the wet-market stall.');
   });
 
   it('an unminded one is not; the jetty is, for a fish', async () => {
     const { town, siti, start } = hungryTown(false);
     await town.runUntil(start + 1);
-    const text = siti.reply?.text ?? '';
-    expect(text).not.toMatch(/market stall/);
-    expect(text).toMatch(/You're hungry\. You could catch a fish at the jetty\./);
-    expectInWorld(text);
+    const text = seen(w0(town), 'Siti');
+    expect(text).not.toMatch(/at the wet-market stall/);
+    expect(text).toContain('You could catch a fish at the jetty.');
   });
 });
 
@@ -168,6 +167,10 @@ describe('hungry while the lorry is in: it is named too', () => {
     siti.items = {};
     siti.thinkAt = w.t + 1;
     await town.runUntil(w.t + 1);
-    expect(siti.reply?.text).toBe("You're hungry. You could get something to eat at the lorry stop.");
+    expect(seen(w, 'Siti')).toContain('You could get something to eat at the lorry stop.');
   });
 });
+
+function w0(town: Town): World {
+  return town.world;
+}

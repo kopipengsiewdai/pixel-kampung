@@ -157,8 +157,9 @@ describe('family: the hungry think of their kin', () => {
       await town.runUntil(at);
       heard.push(aminah.reply?.text ?? '');
     }
+    // The idle thought thinks of family; the sea is in the notes each time.
     expect(heard).toContain("You're hungry. You could ask your uncle Rahim for something to eat.");
-    expect(heard).toContain("You're hungry. You could catch a fish at the jetty.");
+    expect(describePerception(perceive(w, aminah))).toContain('You could catch a fish at the jetty.');
     for (const text of heard) expectInWorld(text);
   });
 });

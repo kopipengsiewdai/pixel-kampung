@@ -28,7 +28,7 @@ export const TRIES_PER_THOUGHT = 3;
  * residents short of thinking money think about a sixth less per game hour
  * (owner: accepted).
  */
-export const QUIET_THINK_MINUTES = 10;
+export const QUIET_THINK_MINUTES = 30;
 /** After something they did goes through, the next thought comes this many game minutes later (being spoken to still wakes them the next minute). */
 export const AFTER_ACTION_MINUTES = 2;
 /**
@@ -36,7 +36,7 @@ export const AFTER_ACTION_MINUTES = 2;
  * doesn't bring the next thought on (a resident could otherwise loop on it,
  * every minute, and never get round to anyone waiting on them).
  */
-export const REPEAT_MINUTES = QUIET_THINK_MINUTES;
+export const REPEAT_MINUTES = 10;
 export const REPEAT_NUDGE = "You've just done that.";
 /** Pottering about with nothing done for this many quiet thoughts running, a resident is reminded of places they could go. */
 export const POTTERS_BEFORE_NUDGE = 3;
@@ -51,34 +51,14 @@ function pottered(w: World, r: Resident, p: Perception): void {
   if (r.activity) return;
   const own = w.shopOf(r.id);
   if (own && p.placeId === own.id) return;
-  // Hungry, with nothing in hand to eat: where food is sold comes first, at once.
+  // Hungry with nothing to eat: where food is to be had is in their notes (foodWays); the idle nudge thinks of family.
   if (r.hunger >= HUNGRY_FROM && !Object.keys(r.items).some((i) => ITEMS[i as ItemId].food && (r.items[i as ItemId] ?? 0) > 0)) {
-    const food = w.state.shops.filter((s) => s.id !== p.placeId && r.knownPlaces.includes(s.id) && isStaffed(w, s)
-      && (Object.entries(s.sellPrices) as [ItemId, number][]).some(([i, price]) => ITEMS[i].food && (s.stock[i] ?? 0) > 0 && price <= r.money))
-      .map((s) => w.placeName(PLACE_BY_ID.get(s.id)!));
-    // The lorry, while it's in with food they can pay for (they heard its horn).
-    const v = w.state.osman.visit;
-    if (v && p.placeId !== 'lorry-stop' && r.knownPlaces.includes('lorry-stop')
-      && (Object.keys(v.goods) as ItemId[]).some((i) => ITEMS[i].food && (v.goods[i] ?? 0) > 0 && (priceFor(w, r, 'sells', i) ?? Infinity) <= r.money)) {
-      food.push(w.placeName(PLACE_BY_ID.get('lorry-stop')!));
-    }
-    if (food.length) {
-      const list = food.length === 1 ? food[0]! : `${food.slice(0, -1).join(', ')} or ${food.at(-1)}`;
-      r.reply = { ok: true, text: `You're hungry. You could get something to eat at ${list}.` };
-      return;
-    }
-    // Nobody serving: family in another house, then the sea.
     const kin = kinOf(r.id).find((k) => w.state.residents.some((o) => o.id === k.id && o.homeId !== r.homeId) && w.knowsPerson(r, k.id));
-    // Kin and the sea in turn, one quiet thought each: an aunt may be as hungry as you.
-    const jetty = p.placeId !== 'jetty' && r.knownPlaces.includes('jetty');
-    if (kin && (!jetty || Math.floor(w.t / QUIET_THINK_MINUTES) % 2 === 0)) {
+    if (kin) {
       r.reply = { ok: true, text: `You're hungry. You could ask your ${kin.word} ${w.resident(kin.id).name} for something to eat.` };
       return;
     }
-    if (jetty) {
-      r.reply = { ok: true, text: "You're hungry. You could catch a fish at the jetty." };
-      return;
-    }
+    if (p.foodWays.length) return;
   }
   if (r.lastDone && w.t - r.lastDone.t < POTTERS_BEFORE_NUDGE * QUIET_THINK_MINUTES) return;
   // Places they know with something to do there first (the jetty, the farm plot), then one more, turning with the time.

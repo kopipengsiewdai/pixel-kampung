@@ -68,9 +68,10 @@ describe('the nudge, when hungry, points to food', () => {
     siti.money = 500;
     siti.thinkAt = start + 1;
     await town.runUntil(start + 1);
-    const text = siti.reply?.text ?? '';
-    expect(text).toMatch(/^You're hungry\. You could get something to eat at the kopitiam\.$/);
-    expectInWorld(text);
+    // Where food is to be had is in their notes each time they think.
+    const text = describePerception(perceive(w, siti));
+    expect(text).toContain('You could get something to eat at the kopitiam.');
+    for (const line of text.split('\n')) expectInWorld(line);
     expect(QUIET_THINK_MINUTES).toBeGreaterThan(0);
   });
 });

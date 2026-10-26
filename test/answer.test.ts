@@ -39,9 +39,11 @@ describe('doing the same thing over and over', () => {
     const brain = new Repeater({ verb: 'read_notice_board' });
     const { town, start } = townWith('Siti', brain, 'notice-board');
     const a = start + 1 + AFTER_ACTION_MINUTES;
-    await town.runUntil(a + 2 * QUIET_THINK_MINUTES);
-    // The first look brings the next thought on; the same thing again doesn't, so after that only the quiet pace.
-    expect(brain.thoughtAt).toEqual([start + 1, a, a + QUIET_THINK_MINUTES, a + 2 * QUIET_THINK_MINUTES]);
+    await town.runUntil(a + QUIET_THINK_MINUTES + AFTER_ACTION_MINUTES);
+    // The first look brings the next thought on; the same thing again at once doesn't (only the quiet pace);
+    // a quiet spell later it counts afresh, more than REPEAT_MINUTES on.
+    expect(REPEAT_MINUTES).toBeLessThan(QUIET_THINK_MINUTES);
+    expect(brain.thoughtAt).toEqual([start + 1, a, a + QUIET_THINK_MINUTES, a + QUIET_THINK_MINUTES + AFTER_ACTION_MINUTES]);
   });
 
   it('they hear, in plain words, that they have just done that', async () => {
