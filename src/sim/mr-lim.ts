@@ -45,6 +45,46 @@ export const ODD_JOB_KINDS: readonly { kind: string; placeId: string; what: stri
   { kind: 'clear_ditch', placeId: 'farm', what: 'clear the ditches past the farm plot' },
 ];
 
+/** How many ordinary odd jobs he pins a day, and what each pays, at most and least (his head chooses within these). */
+export const JOBS_A_DAY_BOUNDS: [number, number] = [2, 4];
+export const JOB_PAY_BOUNDS: [Cents, Cents] = [40, 80];
+
+/** What his head is told of the kampung each morning (in his own terms), and what it may decide. */
+export interface MrLimBrief { residents: number; broke: number; hungry: number; fund: Cents; yesterday: { posted: number; done: number } }
+export interface MrLimHead {
+  plan(brief: MrLimBrief, at: { t: number; realMs: number }): Promise<{ jobs?: unknown; pay?: unknown } | null>;
+}
+
+const clamp = (n: number, [lo, hi]: [number, number]) => Math.max(lo, Math.min(hi, Math.round(n)));
+
+/** His own way: more jobs when more of the grown-ups are broke, at the usual pay. */
+export function scriptedPlan(w: World): { jobs: number; pay: Cents } {
+  const broke = w.state.residents.filter((r) => w.ageOf(r) >= GROWN_AGE && r.money === 0).length;
+  return { jobs: clamp(JOBS_A_DAY_BOUNDS[0] + Math.floor(broke / 3), JOBS_A_DAY_BOUNDS), pay: ODD_JOB_PAY };
+}
+
+/** Each morning before he sets out for the board, his head (when he has one) decides the day's jobs. */
+export async function mrLimThinks(w: World, head: MrLimHead | null, realMs: number): Promise<void> {
+  const today = dayIndex(w.t);
+  const mod = minuteOfDay(w.t);
+  if (w.mrLim.day === today || mod < PIN_FROM || mod >= PIN_AT) return;
+  const plan = scriptedPlan(w);
+  w.mrLim = { day: today, plan };
+  if (!head) return;
+  const yesterday = w.state.oddJobs.filter((j) => j.project === null);
+  const brief: MrLimBrief = {
+    residents: w.state.residents.length,
+    broke: w.state.residents.filter((r) => r.money === 0).length,
+    hungry: w.state.residents.filter((r) => r.hunger >= 700).length,
+    fund: w.state.fund,
+    yesterday: { posted: yesterday.length, done: yesterday.filter((j) => j.doneBy !== null).length },
+  };
+  const got = await head.plan(brief, { t: w.t, realMs });
+  const jobs = typeof got?.jobs === 'number' && Number.isFinite(got.jobs) ? clamp(got.jobs, JOBS_A_DAY_BOUNDS) : plan.jobs;
+  const pay = typeof got?.pay === 'number' && Number.isFinite(got.pay) ? clamp(got.pay, JOB_PAY_BOUNDS) : plan.pay;
+  w.mrLim = { day: today, plan: { jobs, pay } };
+}
+
 /** A better-paid job for someone with good English (school.md): keeping Mr Lim's ledger, at his house. */
 export const LEDGER_JOB = { kind: 'keep_ledger', placeId: 'village-head', what: "keep Mr Lim's ledger", pay: 100, english: 3 } as const;
 
@@ -134,12 +174,14 @@ export function mrLimMinute(w: World): void {
     const k = rng.int(0, i);
     [kinds[i], kinds[k]] = [kinds[k]!, kinds[i]!];
   }
-  for (const k of kinds.slice(0, rng.chance(0.5) ? 3 : 2)) {
-    const text = `Wanted: someone to ${k.what}. An hour's work, ${formatMoney(ODD_JOB_PAY)} when it's done. Mr Lim.`;
+  // Today's plan (his head's, or his own way if he hasn't thought today).
+  const plan = w.mrLim.day === today ? w.mrLim.plan : scriptedPlan(w);
+  for (const k of kinds.slice(0, plan.jobs)) {
+    const text = `Wanted: someone to ${k.what}. An hour's work, ${formatMoney(plan.pay)} when it's done. Mr Lim.`;
     const noteId = w.nextId();
     w.state.notes.push({ id: noteId, authorId: MR_LIM_ID, text, t: w.t });
     if (w.state.notes.length > BOARD_MAX) w.state.notes.shift();
-    w.state.oddJobs.push({ id: w.nextId(), kind: k.kind, placeId: k.placeId, pay: ODD_JOB_PAY, day: today, doneBy: null, noteId, project: null });
+    w.state.oddJobs.push({ id: w.nextId(), kind: k.kind, placeId: k.placeId, pay: plan.pay, day: today, doneBy: null, noteId, project: null });
     w.emit({ type: 'note_pinned', who: MR_LIM_ID, text });
   }
   // Someone in the kampung reads and writes English well: his ledger wants keeping.
