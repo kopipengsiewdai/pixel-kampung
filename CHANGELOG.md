@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.24.0 (2026-10-26): households
 
 - **Households** ([docs/design/households.md](docs/design/households.md), build plan [households-build.md](docs/design/households-build.md)):
   - Ah Seng moves in with his father and Mei Ling with her aunt, so two houses stand free.
