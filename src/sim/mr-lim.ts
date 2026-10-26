@@ -110,6 +110,9 @@ export const whatOf = (kind: string) => ODD_JOB_KINDS.find((k) => k.kind === kin
 export function mrLimMinute(w: World): void {
   const today = dayIndex(w.t);
   const mod = minuteOfDay(w.t);
+  // A new day: notes for jobs nobody did come down (the jobs were only for their day).
+  const stale = new Set(w.state.oddJobs.filter((j) => j.day !== today && j.doneBy === null).map((j) => j.noteId));
+  if (stale.size && w.state.notes.some((n) => stale.has(n.id))) w.state.notes = w.state.notes.filter((n) => !stale.has(n.id));
   if (w.state.oddJobsDay === today || mod < PIN_AT || mod >= LAST_POST) return;
   w.state.oddJobsDay = today;
   const old = new Set(w.state.oddJobs.filter((j) => j.doneBy === null).map((j) => j.noteId));

@@ -108,7 +108,8 @@ export class TownScene extends Phaser.Scene {
   preload(): void {
     this.load.atlas('k', '/assets/art/kampung/kampung.png', '/assets/art/kampung/kampung.json');
     this.load.atlas('p', '/assets/art/ninja-adventure/tiles.png', '/assets/art/ninja-adventure/tiles.json');
-    this.load.spritesheet('people', '/assets/art/ninja-adventure/people.png', { frameWidth: 16, frameHeight: 16 });
+    // The column count in the URL: a sheet cached from before a new column can't be drawn with the wrong frames.
+    this.load.spritesheet('people', `/assets/art/ninja-adventure/people.png?cols=${PEOPLE_ORDER.length}`, { frameWidth: 16, frameHeight: 16 });
   }
 
   create(): void {

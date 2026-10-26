@@ -175,3 +175,38 @@ describe('the upgrade (save v21)', () => {
     expect(up.residents[1]!.activity).toBeNull();
   });
 });
+
+describe('review fixes', () => {
+  it('Mr Lim can be named: he is busy, in-world, and that ends the thought', async () => {
+    const w = newWorld(6, 0);
+    runTo(w, sgt(10, 0, 1));
+    const raju = put(w, 'Raju', 'village-head');
+    const text = refused(act(w, raju.id, { verb: 'say', to: 'Mr Lim', text: 'Good morning, Mr Lim.' }));
+    expect(text).toMatch(/^Mr Lim nods/);
+    expect(text).not.toMatch(/nobody by that name/);
+    expectInWorld(text);
+  });
+
+  it('when the day turns, yesterday\'s open job notes come down', () => {
+    const w = newWorld(6, 0);
+    runTo(w, sgt(9, 0));
+    expect(w.state.notes.some((n) => n.authorId === MR_LIM_ID)).toBe(true);
+    runTo(w, sgt(0, 5, 1));
+    expect(w.state.notes.some((n) => n.authorId === MR_LIM_ID)).toBe(false);
+  });
+
+  it('the money views count odd-job pay', async () => {
+    const { economyOf, moneyOf } = await import('../src/watch/wiki.ts');
+    const w = newWorld(6, 0);
+    runTo(w, sgt(9, 0));
+    const [job] = today(w);
+    const siti = put(w, 'Siti', job!.placeId);
+    const events: import('../src/sim/events.ts').GameEvent[] = [];
+    accepted(act(w, siti.id, { verb: 'do_odd_job' }));
+    for (let i = 0; i < 61 && siti.activity; i++) { advance(w); events.push(...w.takeEvents()); }
+    const e = economyOf(events, { t: w.t, residents: w.state.residents.map((r) => ({ id: r.id, name: r.name, money: r.money, job: null })) }, { calendar: w.state.calendar }, {});
+    expect(e.income.find((x) => x.name === 'Siti')?.cents).toBe(ODD_JOB_PAY);
+    const m = moneyOf(siti.id, events, { t: w.t, people: w.state.residents.map((r) => ({ id: r.id, name: r.name })), shops: [] }, { calendar: w.state.calendar })!;
+    expect(JSON.stringify(m)).toMatch(/Mr Lim/);
+  });
+});
