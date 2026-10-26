@@ -176,7 +176,7 @@ function cookAtHome(w: World, r: Resident, item: ItemId, asked: number): ActionR
   }
   // Fuel for every batch: kerosene already in the stove, then a tin poured in, then firewood.
   if ((w.state.stoves[home] ?? 0) + countGoods(r.items, 'kerosene') * KEROSENE_BATCHES + countGoods(r.items, 'firewood') < batches) {
-    return no('The stove needs firewood or kerosene for that.');
+    return no("The stove needs firewood or kerosene for that. There's dry wood to gather past the farm plot, and the lorry sells kerosene.");
   }
   for (let b = 0; b < batches; b++) {
     if ((w.state.stoves[home] ?? 0) === 0 && countGoods(r.items, 'kerosene') > 0) {
