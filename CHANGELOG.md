@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.24.2 (2026-10-26): the lorry every day until noon
 
 - **Pak Osman comes every day, Sundays too, and stays the first half of the day:** about half past six to about noon, not an hour and a half, so anyone busy first thing can still meet the lorry. His horn now says what he's buying as well as what he's brought ("…and he's buying fish and vegetables").
 - **The economy page shows him:** money in and out across the edge of town is now counted from the money ledger, every cent, and a new table shows who outside the town (Pak Osman, travellers, the village fund) paid how much in and took how much out over the days shown. GDP and value traded now also count what residents buy off the lorry for themselves (not only shop orders), so past days' figures shift a little.
