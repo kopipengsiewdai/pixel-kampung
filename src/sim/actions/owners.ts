@@ -194,6 +194,27 @@ function cookAtHome(w: World, r: Resident, item: ItemId, asked: number): ActionR
   return ok(`You light the stove and start cooking a pot of ${item}.${asked > 1 ? ' You only have the one small pot.' : ''}`);
 }
 
+/**
+ * What r could cook right now, where they are: in the kopitiam's kitchen (theirs, or on shift there)
+ * from its stock and what they bring, or at home from what they carry; and at home, whether the stove
+ * has anything to burn.
+ */
+export function cookable(w: World, r: Resident): { at: 'kitchen' | 'home'; dishes: ItemId[]; fuel: boolean } | null {
+  const own = w.shopOf(r.id);
+  const job = w.jobOf(r.id);
+  const shop = own?.id === 'kopitiam' && w.isAt(r, own.id) ? own
+    : r.activity?.kind === 'working' && job?.placeId === 'kopitiam' ? w.shop('kopitiam') : null;
+  const home = !shop && r.activity?.kind !== 'working' && w.isAt(r, r.homeId);
+  if (!shop && !home) return null;
+  const have = (i: ItemId) => (shop ? countGoods(shop.stock, i) : 0) + (!shop || own?.id === shop.id ? countGoods(r.items, i) : 0);
+  const dishes = (Object.entries(RECIPES) as [ItemId, NonNullable<(typeof RECIPES)[ItemId]>][])
+    .filter(([, recipe]) => skillLevel(r, 'cooking') >= (recipe.level ?? 1) && !(home && recipe.level))
+    .filter(([, recipe]) => (Object.entries(recipe.needs) as [ItemId, number][]).every(([need, n]) => have(need) >= n))
+    .map(([dish]) => dish);
+  const fuel = !home || (w.state.stoves[r.homeId] ?? 0) + countGoods(r.items, 'kerosene') + countGoods(r.items, 'firewood') > 0;
+  return { at: shop ? 'kitchen' : 'home', dishes, fuel };
+}
+
 /** Whose kitchen this resident may cook in: their own, or the one they're on shift in. */
 function kitchenFor(w: World, r: Resident): Shop | 'home' | string {
   // Off shift in your own house: the small stove at home.

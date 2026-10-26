@@ -198,7 +198,8 @@ export const ACTIONS: Record<string, ActionDef> = {
     here: (w, r) => atLorry(w, r),
   },
   cook: {
-    run: owners.cook, ownersOnly: false, says: 'cook in the kitchen (item: the dish; details: batches)',
+    run: owners.cook, ownersOnly: false,
+    says: (w, r) => { const c = owners.cookable(w, r); return c?.dishes.length ? `cook (item: ${c.dishes.join(' or ')}; details: batches)` : 'cook in the kitchen (item: the dish; details: batches)'; },
     here: (w, r) => (w.shopOf(r.id)?.id === 'kopitiam' && w.isAt(r, 'kopitiam'))
       || (r.activity?.kind === 'working' && w.jobOf(r.id)?.placeId === 'kopitiam')
       || (!r.activity && w.isAt(r, r.homeId)),
