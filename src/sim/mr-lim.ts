@@ -172,8 +172,14 @@ export function finishOddJob(w: World, r: Resident, id: number | null): void {
   const job = w.state.oddJobs.find((j) => j.id === id);
   if (!job || job.doneBy !== null) return;
   job.doneBy = r.id;
-  // The note comes down once nothing on it is still wanted.
-  if (!w.state.oddJobs.some((j) => j.noteId === job.noteId && j.doneBy === null)) w.state.notes = w.state.notes.filter((n) => n.id !== job.noteId);
+  // The note comes down once nothing on it is still wanted; until then it asks only for what's left.
+  const left = w.state.oddJobs.filter((j) => j.noteId === job.noteId && j.doneBy === null);
+  if (!left.length) w.state.notes = w.state.notes.filter((n) => n.id !== job.noteId);
+  else {
+    const note = w.state.notes.find((n) => n.id === job.noteId);
+    const name = job.project ? PROJECT_NAMES[job.project] ?? 'the new building' : null;
+    if (note && name) note.text = `Wanted, for ${name}: ${left.map((j) => `someone to ${whatOf(j.kind)}`).join(', and ')}. An hour's work each, ${formatMoney(ODD_JOB_PAY)} when it's done. Mr Lim.`;
+  }
   w.transfer(MR_LIM_ID, r.id, job.pay, 'odd job for Mr Lim');
   const what = whatOf(job.kind);
   w.emit({ type: 'odd_job_done', who: r.id, what, cents: job.pay });

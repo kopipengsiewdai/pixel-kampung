@@ -267,3 +267,26 @@ describe('review fixes', () => {
     expect(lim.length).toBeLessThanOrEqual(6);
   });
 });
+
+describe('review leftovers', () => {
+  it('a child at the stove is not walked off mid-pot', () => {
+    const w = newWorld(7, 35);
+    built(w);
+    const hassan = who(w, 'Hassan');
+    hassan.stove = { item: 'bubur', batches: 1, qty: 2, shopId: hassan.homeId, until: w.t + 30 };
+    runTo(w, sgt(7, 45));
+    expect(hassan.activity?.kind === 'walking').toBe(false);
+  });
+
+  it('a building note asks only for what is still wanted', () => {
+    const w = newWorld(6, 0);
+    runTo(w, sgt(9, 0));
+    const jobs = w.state.oddJobs.filter((j) => j.project === SCHOOL_ID);
+    const kow = put(w, 'Ah Kow', jobs[0]!.placeId);
+    accepted(act(w, kow.id, { verb: 'do_odd_job' }));
+    runTo(w, w.t + 61);
+    const note = w.state.notes.find((n) => n.id === jobs[1]!.noteId)!;
+    expect(note.text).not.toContain(PROJECTS[SCHOOL_ID]!.jobs[0]!.what);
+    expect(note.text).toContain(PROJECTS[SCHOOL_ID]!.jobs[1]!.what);
+  });
+});

@@ -75,7 +75,7 @@ export function schoolMinute(w: World): void {
   const mod = minuteOfDay(w.t);
   if (mod < SEND_AT || mod >= SCHOOL_TO) return;
   for (const r of w.state.residents) {
-    if (!ofSchoolAge(w, r) || r.ill || r.hunger >= FAINT_HUNGER || r.activity) continue;
+    if (!ofSchoolAge(w, r) || r.ill || r.hunger >= FAINT_HUNGER || r.activity || r.stove) continue;
     if (w.isAt(r, SCHOOL_ID)) {
       begin(w, r, false, dayStart(w.t) + SCHOOL_TO);
       w.remember(r.id, `${TEACHER} has the children sit down for their lessons.`);
