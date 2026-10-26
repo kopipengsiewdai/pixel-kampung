@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.20.0 (2026-10-26): cooking at home
 
 - **Cooking at home** ([docs/design/home-cooking.md](docs/design/home-cooking.md)): every house has a small stove. Anyone can cook a plain dish at home (bubur, fish porridge, vegetable rice, kopi, and new **grilled fish** and **boiled kangkong**) from what they carry: one small pot at a time on a house's stove, two servings (three for a master cook), into their own hands. The skilled dishes stay at the kopitiam.
   - A stove needs fuel: **firewood**, gathered free past the farm plot (20 minutes a bundle, one bundle a pot), or a tin of **kerosene** from Pak Osman, which lasts four pots for anyone in that house.
