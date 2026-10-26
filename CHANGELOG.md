@@ -4,6 +4,11 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **Trust and fondness** ([docs/design/relationships.md](docs/design/relationships.md)): each resident now holds two feelings about each person they know, moved only by deeds. Gifts, help, errands, trades, repaid debts, wages paid, lessons and talk warm them; wages left owed overnight, deals talked of that nothing backs within the hour and a plea for a loan turned down cool them. Words alone never move trust. Residents see it in words beside the people near them ("Rahim is dear to you.", "You're wary of Siti."), never as numbers; the watch page's card shows the numbers to the owner.
+- **Living town:** at upgrade (save v17) family start dear and trusted, Ah Huat and Rahim as old friends, and everyone else neither; nothing that happened before counts.
+
 ## 0.20.0 (2026-10-26): cooking at home
 
 - **Cooking at home** ([docs/design/home-cooking.md](docs/design/home-cooking.md)): every house has a small stove. Anyone can cook a plain dish at home (bubur, fish porridge, vegetable rice, kopi, and new **grilled fish** and **boiled kangkong**) from what they carry: one small pot at a time on a house's stove, two servings (three for a master cook), into their own hands. The skilled dishes stay at the kopitiam.

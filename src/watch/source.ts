@@ -254,7 +254,14 @@ export class LiveSource implements WatchSource {
     const extras: CardExtras = mind
       ? { ...mind, noticed: mind.noticed.length ? mind.noticed : noticed }
       : { plan: null, thoughts: [], noticed, mindNote: FAKE_BRAIN_NOTE };
-    return cardOf(this.frame, id, extras);
+    const card = cardOf(this.frame, id, extras);
+    if (!card) return null;
+    const state = this.world.state;
+    // The strongest feelings first.
+    const bonds = Object.entries(state.bonds ?? {}).filter(([k]) => k.startsWith(`${id}>`))
+      .map(([k, b]) => ({ name: state.residents.find((x) => x.id === k.slice(id.length + 1))?.name ?? k, trust: b.trust, fondness: b.fondness }))
+      .sort((a, b) => Math.abs(b.trust) + Math.abs(b.fondness) - Math.abs(a.trust) - Math.abs(a.fondness));
+    return { ...card, bonds };
   }
 
   placeCard(id: string): PlaceCard | null {

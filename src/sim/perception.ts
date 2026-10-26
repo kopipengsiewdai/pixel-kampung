@@ -1,6 +1,7 @@
 import { crowdSoon, mastered, skillLines, type SkillId } from './skills.ts';
 import { isRipe, isStaffed, shiftLabel, shopHere } from './actions/everyone.ts';
 import { CHORE_DOING, errandLines } from './actions/chores.ts';
+import { feelingWords } from './bonds.ts';
 import { offersFor } from './actions/haggle.ts';
 import { servers } from './travellers.ts';
 import type { DealKind } from './talk.ts';
@@ -70,6 +71,8 @@ export interface Perception {
   atHome: boolean;
   /** looks: how hungry they look, if it shows. */
   people: { name: string; doing: string; looks?: string }[];
+  /** How they feel about those nearby they know, in words. */
+  feelings: string[];
   money: Cents;
   carrying: { item: ItemId; qty: number }[];
   /** Hunger that hurts, in words, from 800; null below. */
@@ -248,6 +251,7 @@ export function perceive(w: World, r: Resident): Perception {
     placeId: here?.id ?? null,
     where: here ? placeLabel(w, r, here) : 'out on the footpath',
     atHome: w.isAt(r, r.homeId),
+    feelings: w.nearby(r).flatMap((o) => { const b = w.state.bonds[`${r.id}>${o.id}`]; return b && w.knowsPerson(r, o.id) ? feelingWords(b, o.name) : []; }),
     people: w.nearby(r).map((o) => { const l = looks(o); return l ? { name: o.name, doing: doing(w, o), looks: l } : { name: o.name, doing: doing(w, o) }; }),
     money: r.money,
     carrying: goodsList(r.items),
@@ -407,6 +411,7 @@ export function describe(p: Perception): string {
   lines.push(p.people.length
     ? `Nearby: ${p.people.map((x) => `${x.name} (${x.doing}${x.looks ? `, ${x.looks}` : ''})`).join(', ')}.`
     : "There's nobody else around.");
+  lines.push(...p.feelings);
   if (p.atHome && HUNGRY.has(p.hunger) && !p.carrying.some((c) => ITEMS[c.item].food)) lines.push("There's no food in the house.");
   if (p.hungerPang) lines.push(p.hungerPang);
   lines.push(`You feel ${p.hunger} and ${p.energy}. You have ${formatMoney(p.money)}${p.carrying.length ? ` and you're carrying ${p.carrying.map((c) => quantityLabel(c.item, c.qty)).join(', ')}` : ''}.`);

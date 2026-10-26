@@ -1,3 +1,4 @@
+import { seedBonds } from './bonds.ts';
 import { SCHEMA_VERSION } from '../store/upgrades.ts';
 import { CARDS } from '../seed/cards.ts';
 import { CAST, SHOP_STOCK, START_MONEY, type CastMember } from '../seed/cast.ts';
@@ -92,6 +93,7 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
     osman: freshOsman(),
     stoves: {},
     faintSeen: {},
+    bonds: seedBonds({ residents }),
     firsts: [],
     talk: {},
   };
