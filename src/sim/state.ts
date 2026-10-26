@@ -303,6 +303,23 @@ export interface TalkRecord {
   word: { by: string; kind: DealKind; t: number; broken?: boolean; awake?: number } | null;
   /** Lines one of them has said to the other in a row with no answer, and when the last was. */
   unanswered?: { by: string; n: number; t: number };
+  /** The words of their lines lately (within REPEAT_MINUTES), newest last: the same said again carries on the same chat. */
+  said?: { t: number; words: string[] }[];
+  /** The idle count before something done or a walk last set it back, and when: saying again what was said before then picks it up. */
+  idleWas?: { n: number; t: number };
+  /** The last gift between them ("giver>thing"): the same gift again doesn't settle their talk. */
+  gift?: string;
+}
+
+/** Lines said again within this many minutes count as the same chat going on. */
+export const REPEAT_MINUTES = 180;
+/** Lines kept per pair for telling a repeat. */
+export const SAID_KEPT = 8;
+
+/** Something done, or a walk: a pair's idle count starts again (kept, in case they only say the same again). */
+function setBack(rec: TalkRecord): void {
+  if (rec.idle > 0) rec.idleWas = { n: Math.max(rec.idleWas?.n ?? 0, rec.idle), t: rec.lastT };
+  rec.idle = 0;
 }
 
 /** After this many lines to someone with no answer, a speaker can see they aren't answering. */
@@ -324,7 +341,7 @@ export const NEARBY_TILES = 3;
 /** M2 decision 1: after about this many lines between two people, the listener isn't woken to answer at once. */
 export const TALK_SOFT_LIMIT = 8;
 /** A conversation counts as over after this many quiet minutes. */
-export const TALK_GAP_MINUTES = 30;
+export const TALK_GAP_MINUTES = 60;
 /** After this many lines with nothing done between them, two people see they're going round in circles, and further lines stop waking the listener. */
 export const CIRCLE_LINES = 6;
 /** After going round in circles this many lines more (a second notice), two people have said all there is to say. */
@@ -370,7 +387,11 @@ export class World {
     const settle = (a: string, b: string, kind: Settles) => {
       const rec = this.state.talk[talkKey(a, b)];
       if (!rec) return;
-      rec.idle = 0;
+      // The same gift again, between the same two, settles nothing new.
+      const gift = e.type === 'gave' ? `${e.who}>${e.item ?? 'money'}` : null;
+      if (gift && rec.gift === gift) return;
+      if (gift) rec.gift = gift;
+      setBack(rec);
       // The other one doing something with them is an answer too (not the speaker's own offer).
       if (rec.unanswered && e.type !== 'circles' && 'who' in e && e.who !== rec.unanswered.by) delete rec.unanswered;
       if (rec.word && settles(rec.word.kind, kind)) rec.word = null;
@@ -385,7 +406,7 @@ export class World {
       }
     }
     if (e.type === 'walked' || e.type === 'went_with') {
-      for (const [k, rec] of Object.entries(this.state.talk)) if (k.split('|').includes(e.who)) rec.idle = 0;
+      for (const [k, rec] of Object.entries(this.state.talk)) if (k.split('|').includes(e.who)) setBack(rec);
     }
   }
 

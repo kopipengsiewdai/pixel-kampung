@@ -25,7 +25,7 @@ describe('talking to someone who does not answer', () => {
     w.emit({ type: 'trade_offered', who: kow.id, to: tan.id, give: { items: {}, cents: 1 }, want: { items: { fish: 1 }, cents: 0 } });
     refused(act(w, kow.id, { verb: 'say', to: 'Mdm Tan', text: 'Mdm?' }), /hasn't answered you/);
     for (let k = 0; k < 2; k++) {
-      w.state.t += 25;
+      w.state.t += 35;
       accepted(act(w, kow.id, { verb: 'say', text: 'Anyone need water?' }));
     }
     accepted(act(w, kow.id, { verb: 'say', to: 'Mdm Tan', text: 'Mdm, still here.' }));
