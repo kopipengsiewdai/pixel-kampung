@@ -404,6 +404,18 @@ export const UPGRADES: readonly Upgrade[] = [
       return { world: out, brains: minds };
     },
   },
+  {
+    from: 22,
+    why: "Where cooking happens: anyone with a bundle of firewood can light a cooking fire at the jetty or on the beach, for grilled fish or (with a pot, now off the lorry) bubur; and Mr Lim starts having a village kitchen built below his path through paid odd jobs, for anyone to cook in once it's up. Everyone who knows the village head's house knows where the kitchen is going.",
+    save: ({ world, brains }) => {
+      type R = { knownPlaces: string[] };
+      const residents = (world.residents as R[]).map((r) => (r.knownPlaces.includes('village-head') && !r.knownPlaces.includes('village-kitchen')
+        ? { ...r, knownPlaces: [...r.knownPlaces, 'village-kitchen'] } : r));
+      const oddJobs = ((world.oddJobs as Record<string, unknown>[] | undefined) ?? []).map((j) => ('project' in j ? j : { ...j, project: null }));
+      const projects = (world.projects as unknown[] | undefined) ?? [{ id: 'village-kitchen', done: [], builtDay: null }];
+      return { world: { ...world, residents, oddJobs, projects, fires: world.fires ?? [] }, brains };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

@@ -111,6 +111,11 @@ export interface Frame {
   notes?: NoteView[];
   /** Village characters out and about (Mr Lim). (Absent in frames recorded before 0.26.) */
   villagers?: VillagerView[];
+  /** What Mr Lim has had built (by place id), and how each building is coming on. (Absent before 0.28.) */
+  built?: string[];
+  building?: Record<string, string>;
+  /** Cooking fires burning. (Absent before 0.28.) */
+  fires?: { x: number; y: number }[];
 }
 
 /** A village character on the page: where, what they're doing, whether they're out to be seen, and (Mr Lim) today's odd jobs. */
@@ -133,6 +138,8 @@ export interface PlaceCard {
   fishing: string[] | null;
   lorry: { here: boolean; next: string; sells: string[]; buys: string[] } | null;
   home: { of: string | null } | null;
+  /** Something Mr Lim is having built here: how it's coming on, or built. */
+  building: string | null;
 }
 
 export interface Thought {

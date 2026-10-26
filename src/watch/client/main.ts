@@ -393,6 +393,7 @@ function placeCardView(c: PlaceCard): void {
     el('dl', {}, el('dt', {}, 'Here now'), el('dd', {}, list(c.here, 'nobody'))),
   ];
   if (c.home) parts.push(el('dl', {}, el('dt', {}, 'Home of'), el('dd', {}, c.home.of ?? 'nobody')));
+  if (c.building) parts.push(el('dl', {}, el('dt', {}, 'Building'), el('dd', {}, c.building)));
   if (c.shop) {
     parts.push(el('dl', {},
       el('dt', {}, 'Owner'), el('dd', {}, c.shop.owner),

@@ -11,6 +11,7 @@ import {
   personNearby, qtyOf, quoted, hasMoney, saysLater,
 } from './common.ts';
 import { shiftLabel } from './everyone.ts';
+import { fireGround, fireNear, KITCHEN_ID, kitchenBuilt } from '../cooking.ts';
 
 export const JOB_OFFER_MINUTES = 120;
 export const MAX_SHIFT_HOURS = 8;
@@ -164,10 +165,11 @@ export const HOME_YIELD = 2;
 /** Batches a tin of kerosene gives a home stove. */
 export const KEROSENE_BATCHES = 4;
 
-function cookAtHome(w: World, r: Resident, item: ItemId, asked: number): ActionResult {
+function cookAtHome(w: World, r: Resident, item: ItemId, asked: number, stoveAt: string = r.homeId): ActionResult {
   const recipe = RECIPES[item]!;
-  if (recipe.level) return no("You'd want a proper kitchen for that.");
-  const home = r.homeId;
+  // The village kitchen is a proper kitchen; a house's small stove isn't.
+  if (recipe.level && stoveAt !== KITCHEN_ID) return no("You'd want a proper kitchen for that.");
+  const home = stoveAt;
   if (w.state.residents.some((o) => o.id !== r.id && o.stove?.shopId === home)) return no("There's already a pot on the stove.");
   // One small pot: one batch at a time.
   const batches = 1;
@@ -194,43 +196,78 @@ function cookAtHome(w: World, r: Resident, item: ItemId, asked: number): ActionR
   return ok(`You light the stove and start cooking a pot of ${item}.${asked > 1 ? ' You only have the one small pot.' : ''}`);
 }
 
-/**
- * What r could cook right now, where they are: in the kopitiam's kitchen (theirs, or on shift there)
- * from its stock and what they bring, or at home from what they carry; and at home, whether the stove
- * has anything to burn.
- */
-export function cookable(w: World, r: Resident): { at: 'kitchen' | 'home'; dishes: ItemId[]; fuel: boolean } | null {
-  const own = w.shopOf(r.id);
-  const job = w.jobOf(r.id);
-  const shop = own?.id === 'kopitiam' && w.isAt(r, own.id) ? own
-    : r.activity?.kind === 'working' && job?.placeId === 'kopitiam' ? w.shop('kopitiam') : null;
-  const home = !shop && r.activity?.kind !== 'working' && w.isAt(r, r.homeId);
-  if (!shop && !home) return null;
-  const have = (i: ItemId) => (shop ? countGoods(shop.stock, i) : 0) + (!shop || own?.id === shop.id ? countGoods(r.items, i) : 0);
-  const dishes = (Object.entries(RECIPES) as [ItemId, NonNullable<(typeof RECIPES)[ItemId]>][])
-    .filter(([, recipe]) => skillLevel(r, 'cooking') >= (recipe.level ?? 1) && !(home && recipe.level))
-    .filter(([, recipe]) => (Object.entries(recipe.needs) as [ItemId, number][]).every(([need, n]) => have(need) >= n))
-    .map(([dish]) => dish);
-  const fuel = !home || (w.state.stoves[r.homeId] ?? 0) + countGoods(r.items, 'kerosene') + countGoods(r.items, 'firewood') > 0;
-  return { at: shop ? 'kitchen' : 'home', dishes, fuel };
+/** How long a pot of this takes this cook (a handy cook is a fifth quicker). */
+const cookMinutes = (r: Resident, item: ItemId) => Math.round((COOK_MINUTES[item] ?? 10) * (effectiveLevel(r, 'cooking') >= 2 ? HANDY_COOK : 1));
+
+/** What can go over an open fire: grilled fish, and with a pot, bubur. */
+const FIRE_DISHES: readonly ItemId[] = ['grilled fish', 'bubur'];
+
+/** A pot over a cooking fire (subsistence.md "Where cooking happens"): simple food from what they carry, into their hands. */
+function cookAtFire(w: World, r: Resident, item: ItemId): ActionResult {
+  const fire = fireNear(w, r)!;
+  if (!FIRE_DISHES.includes(item)) return no("You can't make that over an open fire.");
+  if (item === 'bubur' && countGoods(r.items, 'pot') < 1) return no("You'd need a pot to boil rice over the fire.");
+  const recipe = RECIPES[item]!;
+  for (const [need, n] of Object.entries(recipe.needs) as [ItemId, number][]) {
+    if (countGoods(r.items, need) < n) return no(`That takes ${goodsLabel(recipe.needs)}, and you're short of ${need}.`);
+  }
+  const minutes = cookMinutes(r, item);
+  if (fire.until - w.t < minutes) return no('The fire is burning too low for that.');
+  for (const [need, n] of Object.entries(recipe.needs) as [ItemId, number][]) addGoods(r.items, need, -n);
+  r.stove = { item, batches: 1, qty: HOME_YIELD, shopId: `fire:${fire.id}`, until: w.t + minutes };
+  return ok(`You set ${item === 'bubur' ? 'your pot' : 'the fish'} over the fire.`);
 }
 
-/** Whose kitchen this resident may cook in: their own, or the one they're on shift in. */
-function kitchenFor(w: World, r: Resident): Shop | 'home' | string {
+/** Where r would cook if they cooked now: a kitchen's name for the cook action, the dishes they could make, and whether there's fuel. */
+export type CookAt = 'kitchen' | 'home' | 'village kitchen' | 'fire';
+
+/**
+ * What r could cook right now, where they are (the same place `cook` would use):
+ * the kopitiam's kitchen from its stock and what they bring, or at home, in the
+ * village kitchen or over a fire from what they carry; and whether a stove there
+ * has anything to burn.
+ */
+export function cookable(w: World, r: Resident): { at: CookAt; dishes: ItemId[]; fuel: boolean } | null {
+  const spot = kitchenFor(w, r);
+  if (typeof spot === 'string' && spot !== 'home' && spot !== 'shared' && spot !== 'fire') return null;
+  const shop = typeof spot === 'string' ? null : spot;
+  const own = w.shopOf(r.id)?.id === shop?.id;
+  const have = (i: ItemId) => (shop ? countGoods(shop.stock, i) : 0) + (!shop || own ? countGoods(r.items, i) : 0);
+  const dishes = (Object.entries(RECIPES) as [ItemId, NonNullable<(typeof RECIPES)[ItemId]>][])
+    .filter(([dish, recipe]) => skillLevel(r, 'cooking') >= (recipe.level ?? 1) && !(spot === 'home' && recipe.level)
+      && (spot !== 'fire' || (FIRE_DISHES.includes(dish) && (dish !== 'bubur' || countGoods(r.items, 'pot') > 0))))
+    .filter(([, recipe]) => (Object.entries(recipe.needs) as [ItemId, number][]).every(([need, n]) => have(need) >= n))
+    // Over a fire, only what it will still be burning for.
+    .filter(([dish]) => spot !== 'fire' || fireNear(w, r)!.until - w.t >= cookMinutes(r, dish))
+    .map(([dish]) => dish);
+  const stove = spot === 'home' ? r.homeId : spot === 'shared' ? KITCHEN_ID : null;
+  const fuel = !stove || (w.state.stoves[stove] ?? 0) + countGoods(r.items, 'kerosene') + countGoods(r.items, 'firewood') > 0;
+  const at: CookAt = spot === 'home' ? 'home' : spot === 'shared' ? 'village kitchen' : spot === 'fire' ? 'fire' : 'kitchen';
+  return { at, dishes, fuel };
+}
+
+/** Where this resident may cook here: their own kitchen, the one they're on shift in, home, the village kitchen or a fire; or why not. */
+export function kitchenFor(w: World, r: Resident): Shop | 'home' | 'shared' | 'fire' | string {
+  const off = r.activity?.kind !== 'working';
   // Off shift in your own house: the small stove at home.
-  if (r.activity?.kind !== 'working' && w.isAt(r, r.homeId)) return 'home';
+  if (off && w.isAt(r, r.homeId)) return 'home';
+  // The village kitchen once it's built; a fire burning where they stand (even beside the kitchen while it's going up).
+  if (off && w.isAt(r, KITCHEN_ID) && kitchenBuilt(w)) return 'shared';
+  if (off && fireNear(w, r)) return 'fire';
+  if (off && w.isAt(r, KITCHEN_ID)) return "The village kitchen isn't built yet.";
   const own = w.shopOf(r.id);
   if (own?.id === 'kopitiam') return w.isAt(r, own.id) ? own : "You'd have to be in your kitchen to cook.";
   const job = w.jobOf(r.id);
   if (job?.placeId === 'kopitiam') {
     return r.activity?.kind === 'working' ? w.shop(job.placeId)! : 'You can only use the kitchen during your shift.';
   }
+  if (fireGround(w, r)) return "There's no fire burning here. A bundle of firewood would light one, here or on the beach.";
   return 'Your stove is at home.';
 }
 
 export function cook(w: World, r: Resident, i: Intent): ActionResult {
   const shop = kitchenFor(w, r);
-  if (shop !== 'home' && typeof shop === 'string') return no(shop);
+  if (shop !== 'home' && shop !== 'shared' && shop !== 'fire' && typeof shop === 'string') return no(shop);
   // Cooking "rice" can only mean boiling it.
   const named = itemOf(i.item);
   const item = named === 'rice' ? 'bubur' : named;
@@ -239,6 +276,8 @@ export function cook(w: World, r: Resident, i: Intent): ActionResult {
   const batches = qtyOf(i.batches);
   if (batches === null) return no(SAY_NOTHING_SENSIBLE);
   if (shop === 'home') return cookAtHome(w, r, item, batches);
+  if (shop === 'shared') return cookAtHome(w, r, item, batches, KITCHEN_ID);
+  if (shop === 'fire') return cookAtFire(w, r, item);
   if (typeof shop === 'string') return no(shop);
   const own = w.shopOf(r.id)?.id === shop.id;
   for (const [need, n] of Object.entries(recipe.needs) as [ItemId, number][]) {

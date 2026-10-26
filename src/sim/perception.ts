@@ -1,7 +1,7 @@
 import { crowdSoon, mastered, skillLevel, skillLines, type SkillId } from './skills.ts';
 import { isRipe, isStaffed, shiftLabel, shopHere } from './actions/everyone.ts';
 import { canForageToday, CHORE_DOING, errandLines } from './actions/chores.ts';
-import { cookable } from './actions/owners.ts';
+import { cookable, type CookAt } from './actions/owners.ts';
 import { FEELINGS_SHOWN, feelingLine, strength } from './bonds.ts';
 import { householdLines } from './households.ts';
 import { offersFor } from './actions/haggle.ts';
@@ -12,6 +12,7 @@ import { ITEMS, quantityLabel, RECIPES, type ItemId } from './items.ts';
 import { HAGGLES_PER_VISIT, OSMAN, priceFor, room } from './osman.ts';
 import { distance, PLACES, PLACE_BY_ID, type Place } from './map.ts';
 import { doneToday, mrLimAt, openJobHere, whatOf } from './mr-lim.ts';
+import { cookingLines, KITCHEN_ID, kitchenBuilt } from './cooking.ts';
 import { formatMoney, type Cents } from './money.ts';
 import { CIRCLE_LINES, countGoods, NEARBY_TILES, SAID_ALL_LINES, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, UNANSWERED_LINES, WORD_MINUTES, type Bond, type Debt, type Goods, type Observation, type Resident, type Shop, type TalkRecord, type World } from './state.ts';
 import { nowLabel } from './calendar.ts';
@@ -84,6 +85,8 @@ export interface Perception {
   ill: boolean;
   /** Rent owed, and what can be had at the village head's house. */
   household: string[];
+  /** Where they could cook here: a fire burning, or the village kitchen built or going up. */
+  cooking: string[];
   /** Mr Lim, when he's near: what he's doing. */
   villageHead: string | null;
   /** Mr Lim's odd job here, open to them. */
@@ -99,7 +102,7 @@ export interface Perception {
     stock: { item: ItemId; qty: number }[];
   } | null;
   /** Where they could cook right now, and what. */
-  cookable: { at: 'kitchen' | 'home'; dishes: ItemId[]; fuel: boolean } | null;
+  cookable: { at: CookAt; dishes: ItemId[]; fuel: boolean } | null;
   /** At a kitchen they can cook in: what it has none of (and the dishes that wants), and which of those the lorry has today. */
   kitchen: { lacks: { item: ItemId; dishes: ItemId[] }[]; lorryHas: ItemId[] } | null;
   business: {
@@ -338,6 +341,7 @@ export function perceive(w: World, r: Resident): Perception {
     ill: r.ill !== null,
     foodWays: foodWays(w, r),
     household: householdLines(w, r, w.isAt(r, 'village-head')),
+    cooking: cookingLines(w, r),
     villageHead: (() => { const m = mrLimAt(w, w.t); return m.out && distance(m.pos, r.pos) <= NEARBY_TILES ? m.doing : null; })(),
     oddJob: (() => { const j = doneToday(w, r) ? null : openJobHere(w, r); return j ? { what: whatOf(j.kind), pay: j.pay } : null; })(),
     energy: energyWord(r.energy),
@@ -382,7 +386,7 @@ export function perceive(w: World, r: Resident): Perception {
     beds: w.state.beds.filter((b) => b.planterId === r.id)
       .map((b) => ({ n: b.n, ready: isRipe(w, b), wateredToday: b.lastWateredDay === today })),
     freeBeds: w.isAt(r, 'farm') ? w.state.beds.filter((b) => b.planterId === null).length : null,
-    stove: w.isAt(r, r.homeId) ? w.state.stoves[r.homeId] ?? 0 : null,
+    stove: w.isAt(r, r.homeId) ? w.state.stoves[r.homeId] ?? 0 : w.isAt(r, KITCHEN_ID) && kitchenBuilt(w) ? w.state.stoves[KITCHEN_ID] ?? 0 : null,
     jobOffers: w.state.jobOffers.filter((o) => o.workerId === r.id)
       .map((o) => ({ from: w.resident(o.employerId).name, wage: o.wage, startHour: o.startHour, hours: o.hours })),
     trades: w.state.trades.filter((t) => t.toId === r.id).map((t) => ({
@@ -506,6 +510,7 @@ export function describe(p: Perception): string {
   if (p.ill) lines.push("You're ill: feverish and weak. You need to eat, and rest.");
   lines.push(...p.foodWays);
   lines.push(...p.household);
+  lines.push(...p.cooking);
   if (p.villageHead) lines.push(`Mr Lim, the village head, is here, ${p.villageHead}.`);
   if (p.oddJob) lines.push(`Mr Lim wants someone to ${p.oddJob.what} here: ${formatMoney(p.oddJob.pay)} for an hour's work.`);
   lines.push(`You feel ${p.hunger} and ${p.energy}. You have ${formatMoney(p.money)}${p.carrying.length ? ` and you're carrying ${p.carrying.map((c) => quantityLabel(c.item, c.qty)).join(', ')}` : ''}.`);
@@ -528,6 +533,7 @@ export function describe(p: Perception): string {
   if (p.cookable?.dishes.length) {
     const dishes = andOr(p.cookable.dishes, 'or');
     if (p.cookable.at === 'kitchen') lines.push(`With what's here you could make ${dishes}.`);
+    else if (p.cookable.at === 'fire') lines.push(`With what you have you could cook ${dishes} over the fire.`);
     else lines.push(p.cookable.fuel ? `With what you have you could cook ${dishes}.`
       : `With what you have you could cook ${dishes}, but the stove has nothing to burn: dry wood from past the farm plot, or kerosene off the lorry.`);
   }

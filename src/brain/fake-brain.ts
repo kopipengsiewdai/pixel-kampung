@@ -161,6 +161,11 @@ export class FakeBrain implements Brain {
         const turnedDown = p.recent.slice(-4).some((t) => / won't lend you /.test(t));
         if (near.length && !turnedDown && this.rng.chance(0.3)) return { verb: 'borrow', to: this.rng.pick(near).name, money: '50¢' };
       }
+      // Two fish and a fire (or the firewood to light one): grill them.
+      if (this.carrying(p, 'fish') >= 2) {
+        if (p.actions.some((a) => a.verb === 'cook') && p.cooking.some((l) => /fire is burning/.test(l))) return { verb: 'cook', item: 'grilled fish' };
+        if (p.actions.some((a) => a.verb === 'light fire')) return { verb: 'light_fire' };
+      }
       // Too ill to fish or forage: rest at home.
       if (p.ill) return p.atHome ? { verb: 'sleep' } : { verb: 'walk_to', where: 'home' };
       // Something growing wild where they stand, now and then.

@@ -39,7 +39,7 @@ export const PROPS: readonly Prop[] = [
 export const PLANTS: readonly Prop[] = [
   // Coconut palms along the beach.
   { atlas: 'k', frame: 'palm-0', x: 0, y: 19 }, { atlas: 'k', frame: 'palm-1', x: 4.5, y: 19.5 }, { atlas: 'k', frame: 'palm-0', x: 9, y: 19 },
-  { atlas: 'k', frame: 'palm-1', x: 15, y: 19.5 }, { atlas: 'k', frame: 'palm-0', x: 21, y: 19 }, { atlas: 'k', frame: 'palm-1', x: 26, y: 19.5 },
+  { atlas: 'k', frame: 'palm-1', x: 15, y: 19.5 }, { atlas: 'k', frame: 'palm-0', x: 21, y: 19 }, { atlas: 'k', frame: 'palm-1', x: 24.5, y: 19.5 },
   { atlas: 'k', frame: 'palm-0', x: 35, y: 19.5 }, { atlas: 'k', frame: 'palm-1', x: 38, y: 19 },
   // Shade trees and bushes in the open ground.
   { atlas: 'p', frame: 'tree', x: 16, y: 12 }, { atlas: 'p', frame: 'big-tree', x: 21, y: 12.5 }, { atlas: 'p', frame: 'tree', x: 27, y: 12 },
@@ -52,7 +52,7 @@ export const PLANTS: readonly Prop[] = [
   { atlas: 'p', frame: 'fern-1', x: 33, y: 13 },
   // Flowers and tufts.
   { atlas: 'p', frame: 'flower', x: 19, y: 13 }, { atlas: 'p', frame: 'flowers', x: 24, y: 17 }, { atlas: 'p', frame: 'flower', x: 29, y: 13 },
-  { atlas: 'p', frame: 'flowers', x: 36, y: 18 }, { atlas: 'p', frame: 'tuft', x: 17, y: 18 }, { atlas: 'p', frame: 'tuft', x: 27, y: 18 },
+  { atlas: 'p', frame: 'flowers', x: 36, y: 18 }, { atlas: 'p', frame: 'tuft', x: 17, y: 18 },
   { atlas: 'p', frame: 'tuft', x: 3, y: 13 }, { atlas: 'p', frame: 'rock', x: 38, y: 11 }, { atlas: 'p', frame: 'flowers', x: 33, y: 10 },
 ];
 

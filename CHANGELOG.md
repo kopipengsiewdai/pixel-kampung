@@ -4,6 +4,14 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+Where cooking happens ([subsistence.md](docs/design/subsistence.md)), so stories of cooking come true when someone does the work:
+- **Outdoor fires:** anyone with a bundle of firewood can light a cooking fire at the jetty or on the beach. It burns about an hour, and anyone at it can cook from what they carry: grilled fish, or bubur if they have a pot. A fire is seen only where one is really burning; with none, the reply says firewood would light one.
+- **A cooking pot:** Pak Osman now brings pots, for a few cents. A pot lasts.
+- **The village kitchen:** Mr Lim is having a shared kitchen built below his path, through his paid odd jobs: two jobs toward it are pinned each morning beside the usual ones (8 in all). Once it's built, anyone can cook there with their own food and a little firewood or kerosene. On the watch page the site shows how it's coming on, and the kitchen appears once it's up; fires glow where they burn.
+- **Living town:** upgrades to save v23. No fires burning; the kitchen not yet begun (its first jobs go up with Mr Lim's next morning's notes); everyone who knows the village head's house knows where the kitchen is going.
+
 ## 0.27.1 (2026-10-26): food hints
 
 - **Hungry, they know the land has a little to give:** with no food to hand, a resident now also thinks of the coconuts on the palms by the jetty and the bananas and wild kangkong past the farm plot (the places they know; not once they've foraged their two for the day, nor when ill). Nobody had foraged since 0.25.0.

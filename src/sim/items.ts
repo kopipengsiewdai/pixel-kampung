@@ -4,7 +4,7 @@ export type ItemId =
   | 'fish' | 'vegetables' | 'rice' | 'coffee' | 'bread'
   | 'kopi' | 'fish porridge' | 'vegetable rice' | 'water'
   | 'red snapper' | 'chilli' | 'papaya' | 'sambal kangkong' | 'kerosene' | 'bubur'
-  | 'firewood' | 'grilled fish' | 'boiled kangkong' | 'banana' | 'coconut';
+  | 'firewood' | 'grilled fish' | 'boiled kangkong' | 'banana' | 'coconut' | 'pot';
 
 export interface ItemDef {
   id: ItemId;
@@ -73,6 +73,10 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   },
   banana: { id: 'banana', one: 'a hand of bananas', many: '{n} hands of bananas', aliases: ['bananas', 'pisang', 'hand of bananas', 'hands of bananas'], food: { hunger: 150 } },
   coconut: { id: 'coconut', one: 'a coconut', many: '{n} coconuts', aliases: ['coconuts', 'kelapa', 'young coconut'], food: { hunger: 180 } },
+  pot: {
+    id: 'pot', one: 'a cooking pot', many: '{n} cooking pots', aliases: ['pots', 'cooking pot', 'periuk', 'pan'],
+    inedible: "You can't eat a pot. It's for cooking in.",
+  },
   kopi: { id: 'kopi', one: 'a cup of kopi', many: '{n} cups of kopi', aliases: ['kopi o', 'kopi-o', 'kopi susu'], food: { hunger: 50, energy: 120 } },
   'fish porridge': {
     id: 'fish porridge', one: 'a bowl of fish porridge', many: '{n} bowls of fish porridge',

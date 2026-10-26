@@ -34,16 +34,16 @@ export const LOAD = 120;
 export const GOODS_SHARE = 0.6;
 
 /** What he brings from town. */
-export const BRINGS = ['rice', 'coffee', 'bread', 'kerosene'] as const satisfies readonly ItemId[];
+export const BRINGS = ['rice', 'coffee', 'bread', 'kerosene', 'pot'] as const satisfies readonly ItemId[];
 /** What he buys here. */
 export const TAKES = ['fish', 'vegetables'] as const satisfies readonly ItemId[];
 export type Brought = (typeof BRINGS)[number];
 
 /** Town supply: how many of each the wholesaler has for him on a day, at least and at most. */
-export const SUPPLY: Record<Brought, [number, number]> = { rice: [16, 36], coffee: [3, 9], bread: [10, 26], kerosene: [3, 10] };
+export const SUPPLY: Record<Brought, [number, number]> = { rice: [16, 36], coffee: [3, 9], bread: [10, 26], kerosene: [3, 10], pot: [1, 3] };
 
 /** Town reference prices, per unit: what things fetch at the town market (the economy check will measure these later). */
-export const TOWN_PRICES: Partial<Record<ItemId, Cents>> = { rice: 16, coffee: 40, bread: 12, kerosene: 30, fish: 25, vegetables: 16 };
+export const TOWN_PRICES: Partial<Record<ItemId, Cents>> = { rice: 16, coffee: 40, bread: 12, kerosene: 30, pot: 5, fish: 25, vegetables: 16 };
 /** He buys at 40–80% of the town price and sells at 110–160%: never at a loss. */
 export const BUY_BOUNDS: [number, number] = [0.4, 0.8];
 export const SELL_BOUNDS: [number, number] = [1.1, 1.6];

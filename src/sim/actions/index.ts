@@ -10,6 +10,7 @@ import * as owners from './owners.ts';
 import * as teach from './teach.ts';
 import * as households from '../households.ts';
 import { TOO_ILL, TOO_ILL_FOR } from '../sickness.ts';
+import { fireGround, fireNear, KITCHEN_ID, kitchenBuilt, lightFire } from '../cooking.ts';
 import { doneToday, openJobHere, whatOf } from '../mr-lim.ts';
 import { formatMoney } from '../money.ts';
 import { moneyOf, ok as yes } from './common.ts';
@@ -199,10 +200,18 @@ export const ACTIONS: Record<string, ActionDef> = {
   },
   cook: {
     run: owners.cook, ownersOnly: false,
-    says: (w, r) => { const c = owners.cookable(w, r); return c?.dishes.length ? `cook (item: ${c.dishes.join(' or ')}; details: batches)` : 'cook in the kitchen (item: the dish; details: batches)'; },
+    says: (w, r) => {
+      const c = owners.cookable(w, r);
+      const where = c?.at === 'fire' ? 'over the fire' : c?.at === 'home' ? 'at home' : c?.at === 'village kitchen' ? 'in the village kitchen' : 'in the kitchen';
+      return `cook ${where} (item: ${c?.dishes.length ? c.dishes.join(' or ') : 'the dish'}; details: batches)`;
+    },
     here: (w, r) => (w.shopOf(r.id)?.id === 'kopitiam' && w.isAt(r, 'kopitiam'))
       || (r.activity?.kind === 'working' && w.jobOf(r.id)?.placeId === 'kopitiam')
-      || (!r.activity && w.isAt(r, r.homeId)),
+      || (!r.activity && owners.cookable(w, r) !== null),
+  },
+  light_fire: {
+    run: (w, r) => lightFire(w, r), ownersOnly: false, says: 'light a cooking fire with a bundle of firewood',
+    here: (w, r) => fireGround(w, r) && countGoods(r.items, 'firewood') > 0 && !fireNear(w, r),
   },
 };
 

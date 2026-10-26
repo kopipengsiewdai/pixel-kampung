@@ -5,8 +5,8 @@ import { PLACES } from '../src/sim/map.ts';
 import { perceive } from '../src/sim/perception.ts';
 import { accepted, act, expectInWorld, newWorld, who } from './helpers.ts';
 
-// The places there were when this step was written (the village head's house came later).
-const ALL = PLACES.map((p) => p.id).filter((id) => id !== 'village-head');
+// The places of the first town (the village head's house and the village kitchen came later).
+const ALL = PLACES.map((p) => p.id).filter((id) => id !== 'village-head' && id !== 'village-kitchen');
 
 describe('everyone who has lived here knows their kampung', () => {
   it('every original place from day one: the jetty, the farm plot, the well, the board, the shops, the lorry stop and every house', () => {
