@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.29.0 (2026-10-27): the kampung school
 
 The kampung school ([school.md](docs/design/school.md)):
 - **A schoolhouse goes up:** Mr Lim is having one built by the footpath near his house, through his paid odd jobs: two jobs toward it each morning, beside the usual ones and the village kitchen's (12 in all). He lets it be known when the school opens.
