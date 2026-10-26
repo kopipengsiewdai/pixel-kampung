@@ -25,7 +25,7 @@ import { join } from 'node:path';
 import { readApiKey } from '../config/env.ts';
 import { readSettings, settingsPath } from '../config/settings.ts';
 import { AnthropicModel } from '../mind/anthropic-model.ts';
-import { TOWN_DAILY_CAP } from '../mind/budget.ts';
+import { dayCap } from '../mind/budget.ts';
 import { CostLog } from '../mind/cost-log.ts';
 import { MemoryStore } from '../mind/memory.ts';
 import { Mind } from '../mind/mind.ts';
@@ -91,7 +91,7 @@ const live = new LiveSource({
   said: (id, n, since) => store.saidBy(id, n, since),
   moneyEvents: (since) => store.eventsSince(since, [...ECONOMY_EVENTS]),
   audit: () => lastAudit,
-  spend: () => (costs ? { usd: costs.spentOn(costs.dayKey(clock.nowMs())), cap: TOWN_DAILY_CAP } : null),
+  spend: () => (costs ? { usd: costs.spentOn(costs.dayKey(clock.nowMs())), cap: dayCap(costs, clock.nowMs()) } : null),
 });
 const hooks = live.hooks();
 const onEvent = (e: GameEvent) => {

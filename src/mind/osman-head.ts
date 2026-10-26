@@ -9,7 +9,7 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import { formatMoney } from '../sim/money.ts';
 import { HAGGLES_PER_VISIT, OSMAN_ID, type HaggleAnswer, type HaggleBrief, type Mood, type OsmanHead, type PriceBrief } from '../sim/osman.ts';
-import { ESTIMATE, TOWN_DAILY_CAP } from './budget.ts';
+import { dayCap, ESTIMATE } from './budget.ts';
 import type { CostLog } from './cost-log.ts';
 import type { ModelClient } from './model.ts';
 
@@ -44,20 +44,20 @@ const list = (prices: Record<string, number | undefined>) => Object.entries(pric
 export class ModelOsmanHead implements OsmanHead {
   private readonly client: ModelClient;
   private readonly costs: CostLog;
-  private readonly townCap: number;
+  private readonly townCap: number | null;
   /** Told about every failed call (never given the key). */
   private readonly onError: (err: unknown) => void;
 
   constructor(opts: { client: ModelClient; costs: CostLog; townCap?: number; onError?: (err: unknown) => void }) {
     this.client = opts.client;
     this.costs = opts.costs;
-    this.townCap = opts.townCap ?? TOWN_DAILY_CAP;
+    this.townCap = opts.townCap ?? null;
     this.onError = opts.onError ?? (() => {});
   }
 
   /** One short call within the town's cap; the tool's input, or null to fall back. */
   private async ask(user: string, fake: unknown, at: { t: number; realMs: number }): Promise<Record<string, unknown> | null> {
-    if (this.costs.spentOn(this.costs.dayKey(at.realMs)) + ESTIMATE.routine > this.townCap) return null;
+    if (this.costs.spentOn(this.costs.dayKey(at.realMs)) + ESTIMATE.routine > (this.townCap ?? dayCap(this.costs, at.realMs))) return null;
     try {
       const res = await this.client.think({ tier: 'routine', kind: 'trader', residentId: OSMAN_ID, t: at.t, system: OSMAN_SYSTEM, user, tools: [ANSWER_TOOL], hint: { fake } });
       for (const a of res.attempts) this.costs.add({ t: at.t, realMs: at.realMs, resident: OSMAN_ID, kind: 'trader', model: a.model, usage: a.usage });

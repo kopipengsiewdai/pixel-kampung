@@ -8,7 +8,7 @@
  */
 import type Anthropic from '@anthropic-ai/sdk';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { ESTIMATE, TOWN_DAILY_CAP } from '../mind/budget.ts';
+import { dayCap, ESTIMATE } from '../mind/budget.ts';
 import type { CostLog } from '../mind/cost-log.ts';
 import type { ModelClient } from '../mind/model.ts';
 import { looksForeign } from './foreign.ts';
@@ -37,7 +37,7 @@ export class Translator {
   private readonly client: ModelClient;
   private readonly costs: CostLog;
   private readonly file: string | null;
-  private readonly townCap: number;
+  private readonly townCap: number | null;
   private readonly now: () => number;
   private readonly onError: (err: unknown) => void;
   private readonly known = new Map<string, string>();
@@ -48,7 +48,7 @@ export class Translator {
     this.client = opts.client;
     this.costs = opts.costs;
     this.file = opts.file ?? null;
-    this.townCap = opts.townCap ?? TOWN_DAILY_CAP;
+    this.townCap = opts.townCap ?? null;
     this.now = opts.now ?? Date.now;
     this.onError = opts.onError ?? (() => {});
     if (this.file && existsSync(this.file)) {
@@ -80,7 +80,7 @@ export class Translator {
 
   private async call(lines: string[]): Promise<boolean> {
     const realMs = this.now();
-    if (this.costs.spentOn(this.costs.dayKey(realMs)) + ESTIMATE.routine > this.townCap) return false;
+    if (this.costs.spentOn(this.costs.dayKey(realMs)) + ESTIMATE.routine > (this.townCap ?? dayCap(this.costs, realMs))) return false;
     const user = `Lines:\n${lines.map((l, i) => `${i + 1}. ${JSON.stringify(l)}`).join('\n')}`;
     try {
       const res = await this.client.think({
