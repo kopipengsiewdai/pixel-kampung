@@ -389,6 +389,8 @@ export class World {
   observer: ((residentId: string, t: number, text: string) => void) | null = null;
   /** The owner's dials, from the private settings (not saved with the town). */
   dials: Dials = { ...DEFAULT_DIALS };
+  /** What's been said to the teacher, waiting for her answer, and her day's calls and openings (not saved: a restart loses at most a minute's worth). */
+  teacher: { asks: { who: string; text: string }[]; day: number; calls: number; opened: string[] } = { asks: [], day: -1, calls: 0, opened: [] };
 
   constructor(state: WorldState) {
     this.state = state;

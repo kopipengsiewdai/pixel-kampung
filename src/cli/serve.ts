@@ -31,6 +31,7 @@ import { MemoryStore } from '../mind/memory.ts';
 import { Mind } from '../mind/mind.ts';
 import { mindBrains } from '../mind/setup.ts';
 import { ModelOsmanHead } from '../mind/osman-head.ts';
+import { ModelTeacherHead } from '../mind/teacher-head.ts';
 import { CARDS } from '../seed/cards.ts';
 import { fakeBrains, type TownOptions } from '../town.ts';
 import { ASSETS_DIR, buildClient } from '../watch/bundle.ts';
@@ -77,9 +78,11 @@ if (args.minds === true) {
   });
   // Pak Osman thinks on the same model and the same cap: his calls are in the cost log as pak-osman.
   const osman = new ModelOsmanHead({ client: mind.client, costs, onError: mind.onError });
+  // Miss de Souza too, a few short lines a weekday (in the cost log as miss-de-souza).
+  const teacher = new ModelTeacherHead({ client: mind.client, costs, onError: mind.onError });
   // The owner's watch page can ask for English, on the same model and the same cap (in the cost log as watch-page).
   translator = new Translator({ client: mind.client, costs, file: join(home, 'translations.json'), onError: mind.onError });
-  mindOpts = { ...mindOpts, brains: mindBrains(mind, fakeBrains), observer: mind.observe, osman };
+  mindOpts = { ...mindOpts, brains: mindBrains(mind, fakeBrains), observer: mind.observe, osman, teacher };
 }
 
 // The watch page: the owner's view only, read-only towards the town.

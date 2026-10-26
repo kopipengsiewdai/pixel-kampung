@@ -15,6 +15,7 @@ import {
 } from '../state.ts';
 import { atTimeOfDay, dayIndex, sgtHour } from '../time.ts';
 import { looksForeign } from '../../watch/foreign.ts';
+import { meansTeacher, sayToTeacher } from '../school.ts';
 import {
   type ActionResult, type Intent, SAY_NOTHING_SENSIBLE, bundleLabel, bundleOf, isEmptyBundle, itemOf,
   lacks, moneyOf, no, ok, personNearby, qtyOf, quoted, textOf, hasMoney, saysLater,
@@ -194,6 +195,8 @@ export function say(w: World, r: Resident, i: Intent): ActionResult {
   if (!text) return no('You open your mouth, but nothing comes out.');
   if (text.length > MAX_SAY) return no("That's a lot to say in one go. Keep it shorter.");
   let to: Resident | null = null;
+  // The teacher is no resident: she answers in her own time (src/sim/school.ts).
+  if (meansTeacher(i.to)) return sayToTeacher(w, r, text);
   if (i.to !== undefined && i.to !== null && i.to !== '') {
     const o = personNearby(w, r, i.to);
     if (typeof o === 'string') return no(o);

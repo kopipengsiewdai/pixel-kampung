@@ -4,6 +4,12 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **Miss de Souza speaks:** she opens the morning lessons and the evening class with a word to those there, and answers anyone who speaks to her at the schoolhouse. Her lines come from a small thinking head, at most four a weekday within the town's daily cap; otherwise she uses her own words. Naming her anywhere else gets "Miss de Souza isn't here."
+- **Travellers pay a little more where they're served in English:** a shop whose server has some English takes about a tenth more from each traveller's purchase (the clerks and servicemen on the coast road).
+- **Living town:** nothing to upgrade.
+
 ## 0.29.0 (2026-10-26): the kampung school
 
 The kampung school ([school.md](docs/design/school.md)):

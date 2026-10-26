@@ -122,6 +122,82 @@ export function joinClass(w: World, r: Resident): ActionResult {
   return ok(`You pay ${TEACHER} ${formatMoney(CLASS_FEE)} and sit down for the English lesson.`);
 }
 
+/** Her head (src/mind/teacher-head.ts): a short line for a moment, or null to fall back on her own words. */
+export interface TeacherHead {
+  speak(brief: { moment: 'morning' | 'evening' | 'answer'; pupils: string[]; asker?: string; said?: string }, at: { t: number; realMs: number }): Promise<string | null>;
+}
+
+/** Her head's calls a weekday, at most (school.md: a few cheap lines a day). */
+export const TEACHER_CALLS_A_DAY = 4;
+
+/** Her own words, when her head has nothing (or has used its calls). */
+const SCRIPTED = {
+  morning: 'Good morning, children. Sit down, please: today we read and write in English.',
+  evening: 'Good evening, everyone. Thank you for coming. Let us practise our English together.',
+  answer: 'Ask me again in English, slowly, and I will help you. And do send the children to school.',
+};
+
+/** Whether r means the teacher. */
+export const meansTeacher = (name: unknown) => typeof name === 'string' && /^(miss\.? ?de souza|de souza|miss|teacher|the teacher|cikgu|teacher de souza)$/i.test(name.trim());
+
+/** Something said to her where she is: it waits for her answer (in the town's next step). */
+export function sayToTeacher(w: World, r: Resident, text: string): ActionResult {
+  const m = teacherAt(w, w.t);
+  if (!m.out || !w.isAt(r, SCHOOL_ID)) return no(`${TEACHER} isn't here.`);
+  w.emit({ type: 'said', who: r.id, to: TEACHER_ID, text });
+  w.teacher.asks.push({ who: r.id, text });
+  return ok(`You say to ${TEACHER}: "${text}"`);
+}
+
+/** Who's at the schoolhouse now, awake. */
+const atSchool = (w: World) => w.state.residents.filter((r) => w.isAt(r, SCHOOL_ID) && r.activity?.kind !== 'sleeping');
+
+/** She speaks: the one spoken to hears it as to them, everyone else there overhears. */
+function teacherSays(w: World, line: string, to: Resident | null): void {
+  w.emit({ type: 'said', who: TEACHER_ID, to: to?.id ?? null, text: line });
+  for (const r of atSchool(w)) {
+    w.notify(r.id, to?.id === r.id ? `${TEACHER} says to you: "${line}"` : to ? `${TEACHER} says to ${to.name}: "${line}"` : `${TEACHER} says: "${line}"`, true);
+  }
+}
+
+/**
+ * The teacher's minute, before anyone thinks: a word to open the morning's
+ * lessons and the evening class, and answers to anything said to her. Her head
+ * speaks while it has calls left today; otherwise her own words.
+ */
+export async function teacherThinks(w: World, head: TeacherHead | null, realMs: number): Promise<void> {
+  const day = dayIndex(w.t);
+  if (w.teacher.day !== day) w.teacher = { asks: w.teacher.asks, day, calls: 0, opened: [] };
+  const m = teacherAt(w, w.t);
+  if (!m.out) {
+    w.teacher.asks = [];
+    return;
+  }
+  const at = { t: w.t, realMs };
+  const say = async (brief: Parameters<TeacherHead['speak']>[0]): Promise<string> => {
+    let line: string | null = null;
+    if (head && w.teacher.calls < TEACHER_CALLS_A_DAY) {
+      w.teacher.calls++;
+      line = await head.speak(brief, at);
+    }
+    return line?.trim() || SCRIPTED[brief.moment];
+  };
+  const mod = minuteOfDay(w.t);
+  for (const [moment, from, to, adult] of [['morning', SCHOOL_FROM, SCHOOL_TO, false], ['evening', CLASS_FROM, CLASS_TO, true]] as const) {
+    if (mod < from || mod >= to || w.teacher.opened.includes(moment)) continue;
+    const pupils = w.state.residents.filter((r) => r.activity?.kind === 'school' && r.activity.adult === adult);
+    if (!pupils.length) continue;
+    w.teacher.opened.push(moment);
+    teacherSays(w, await say({ moment, pupils: pupils.map((p) => p.name) }), null);
+  }
+  const asks = w.teacher.asks.splice(0);
+  for (const a of asks) {
+    const r = w.state.residents.find((x) => x.id === a.who);
+    if (!r || !w.isAt(r, SCHOOL_ID)) continue;
+    teacherSays(w, await say({ moment: 'answer', pupils: [], asker: r.name, said: a.text }), r);
+  }
+}
+
 /** What someone sees of the school where they are. */
 export function schoolLines(w: World, r: Resident): string[] {
   const out: string[] = [];
