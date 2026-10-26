@@ -79,3 +79,12 @@ Either way:
 Rent, ownership, the village fund, who sleeps rough and marriages are all saved
 state, each shipped with an upgrade step at the save version current when it
 merges.
+
+## Prices: a free market (2026-10-26)
+
+The fixed prices above (a year's rent, rent-to-own over 44 weeks, 50¢ and $1 a
+week) were where PR A started. The owner chose a free market: Mr Lim takes
+offers and decides, with no floor; a sitting tenant's rent changes only with a
+week's notice and their agreement; residents buy, sell and let between
+themselves at any price they agree. Details: [households-build.md](households-build.md#housing-market-agreed-with-the-owner-2026-10-26-q1q4).
+

@@ -23,7 +23,10 @@ prompt.
   overseeing building. Residents can knock on his door, and a few times a day
   (capped) his AI voice answers.
 - **His powers, all bounded:**
-  1. Set house and stall rents, reviewed monthly, at most ±20% each time.
+  1. Let houses and stalls in a free market (owner, 2026-10-26; see
+     [households-build.md](households-build.md)): he takes offers for free
+     places and decides, with no floor. A sitting tenant's rent changes only
+     with a week's notice and the tenant's agreement (or they leave).
   2. Evict non-payers after a grace week, from any rented house or stall,
      families included (owner, 2026-10-26: everyone rents for now; see
      [households.md](households.md)). A place a resident has bought can't be
