@@ -61,6 +61,11 @@ it's drawn as a bigger house. Every resident who has lived here knows it.
 - The wiki shows each place: its holder, rent, what's owing, whether it's owned, and the fund's balance.
 - The layout's names refresh when anyone moves.
 
+**Moved to PR B** (they need the offer-and-agree flow or Mr Lim's judgement):
+selling a place to another resident, and letting a stall go for rent owing.
+Until then a stall's rent owing just builds up. The watch page's layout names
+refresh only when the town restarts.
+
 ## PR B: Mr Lim's head and powers (no save change if possible)
 
 A bounded AI head like Pak Osman's: a few calls a week, within the town's daily

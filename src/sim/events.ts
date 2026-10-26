@@ -79,7 +79,12 @@ export type EventBody =
   | { type: 'found_place'; who: string; place: string }
   | { type: 'kampung_quiet' }
   /** Two people have swapped several lines with nothing done between them (talk-circles.md). */
-  | { type: 'circles'; a: string; b: string };
+  | { type: 'circles'; a: string; b: string }
+  | { type: 'rent_paid'; who: string; place: string; cents: Cents }
+  | { type: 'rent_owed'; who: string; place: string; cents: Cents }
+  | { type: 'evicted'; who: string; place: string }
+  | { type: 'bought_place'; who: string; place: string; cents: Cents }
+  | { type: 'moved_in'; who: string; place: string };
 
 export type EventType = EventBody['type'];
 export type GameEvent = EventBody & { seq: number; t: number };

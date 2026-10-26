@@ -140,7 +140,7 @@ export class TownScene extends Phaser.Scene {
         else if (t === 'floor') {
           const kind = floorOf.get(`${x},${y}`);
           if (kind === 'lorry_stop') { atlas = 'k'; frame = 'road'; }
-          else if (kind !== 'house') frame = 'paving';
+          else if (kind !== 'house' && kind !== 'village_head') frame = 'paving';
         }
         // Water under the jetty and the shore, so the planks sit on the sea.
         if (t === 'jetty' && y >= 24) rt.drawFrame('k', `sea-${r % 3}`, px, py);
@@ -166,6 +166,12 @@ export class TownScene extends Phaser.Scene {
         .setOrigin(0, 0).setDepth(OVERLAY_DEPTH + 1).setBlendMode(Phaser.BlendModes.ADD).setVisible(false);
       const home = p.id;
       this.glows.push({ img: glow, lit: (f) => f.residents.some((r) => r.homeId === home && this.isInside(r, home) && r.activity !== 'sleeping') });
+    }
+    // The village head's house: the grandest of the attap houses.
+    for (const p of this.layout.places) {
+      if (p.kind !== 'village_head') continue;
+      const img = this.add.image(p.rect.x * T, (p.rect.y - 1) * T, 'k', 'house-1').setOrigin(0, 0);
+      img.setDepth(img.y + img.height - 8);
     }
     for (const b of BUILDINGS) this.image(b);
     for (const p of PROPS) this.image(p);
@@ -346,7 +352,7 @@ export class TownScene extends Phaser.Scene {
 
   /** A place's clickable area in world pixels (a house takes in its roof). */
   private placeRect(p: LayoutPlace): { x: number; y: number; w: number; h: number } {
-    const roof = p.kind === 'house' ? T : 0;
+    const roof = p.kind === 'house' || p.kind === 'village_head' ? T : 0;
     return { x: p.rect.x * T, y: p.rect.y * T - roof, w: p.rect.w * T, h: p.rect.h * T + roof };
   }
 

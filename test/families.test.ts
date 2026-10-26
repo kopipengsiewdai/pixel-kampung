@@ -24,8 +24,8 @@ describe('families: everyone a card names as living family lives in the kampung'
     expect(who(w, 'Hassan').homeId).toBe(fatimah.homeId);
     expect(w.placeName(w.home(siti))).toBe("Siti's house");
     expect(w.placeName(w.home(fatimah))).toBe("Fatimah's house");
-    // Thirteen people and ten houses: every house still has someone in it.
-    expect(new Set(w.state.residents.map((r) => r.homeId)).size).toBe(HOUSE_IDS.length);
+    // Thirteen people in eight houses (Ah Seng with his father, Mei Ling with her aunt): two stand free.
+    expect(new Set(w.state.residents.map((r) => r.homeId)).size).toBe(HOUSE_IDS.length - 2);
     put(w, 'Mak Esah', siti.homeId);
     expect(seen(w, 'Mak Esah')).toContain('your house');
     // They can sleep at home, in the house they share.

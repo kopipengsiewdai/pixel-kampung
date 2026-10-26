@@ -4,6 +4,16 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **Households** ([docs/design/households.md](docs/design/households.md), build plan [households-build.md](docs/design/households-build.md)):
+  - Ah Seng moves in with his father and Mei Ling with her aunt, so two houses stand free.
+  - **Mr Lim, the village head,** lives in a house of his own up a path in the middle of the kampung. He owns every house and stall, and lets them: 50¢ a week a house, $1 a week a stall, held by the first of the household or the shopkeeper. He comes round for the rent on Mondays, into the village fund (an account of its own; the nightly audit still checks every resident's purse).
+  - **Rent starts after notice:** everyone holding a place is told when; the first rent is due on the Monday at least four weeks on. What can't be paid is owed; it can be paid at his house.
+  - **Buying:** a house or stall can be bought outright at a year's rent, or week by week (half as much again a week, theirs after 44 weeks). A place that's bought is never taken.
+  - **Not paying:** a house with rent owing more than a week after the Monday it was missed is let go on the next round, and the whole household sleeps rough at the jetty, where rest comes back at half the speed. Anyone without a house of their own can rent a free one at Mr Lim's.
+- **Living town:** at upgrade (save v19) Ah Seng and Mei Ling move in with family (any kerosene in their old stoves goes with them), everyone but Ah Kow knows the village head's house, and every place starts with nothing owing; rent begins in about four weeks.
+
 ## 0.23.0 (2026-10-26): thinking when something changes
 
 - **Residents think when something changes, not on a clock.** Measured in the living town: 70% of thoughts came with nothing new since the last one, and asked "what now?" with nothing new, they talked, and talked in circles. Now someone turning up where they are (for a worker at the counter too), being spoken to, getting hungry (crossing into hungry, aching or faint), finishing what they were doing, their shift starting, or an offer to them ten minutes from lapsing brings a thought on; otherwise the next one is half an hour off, not ten minutes.

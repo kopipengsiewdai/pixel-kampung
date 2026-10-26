@@ -160,6 +160,11 @@ export function feedText(e: GameEvent, n: Names): { text: string; notable: boole
     case 'morning': return line('Dawn. The kampung stirs.');
     case 'kampung_quiet': return line('The kampung goes quiet for a good while. People rest where they are.');
     case 'circles': return null;
+    case 'rent_paid': return line(`${n(e.who)} paid Mr Lim ${formatMoney(e.cents)} in rent.`);
+    case 'rent_owed': return line(`${n(e.who)} couldn't pay all the rent: ${formatMoney(e.cents)} owing to Mr Lim.`, true);
+    case 'evicted': return line(`${n(e.who)} lost their home for the rent owing, and sleeps rough now.`, true);
+    case 'bought_place': return line(`${n(e.who)} bought ${place(e.place)} from Mr Lim for ${formatMoney(e.cents)}.`, true);
+    case 'moved_in': return line(`${n(e.who)} moved into a house of their own.`, true);
     case 'found_place': return line(`${n(e.who)} comes across ${place(e.place)} for the first time.`);
     case 'quiet_spell': return line(`The kampung was quiet for a while (${Math.floor(e.minutes / 60)}h ${e.minutes % 60}m). Everyone rested or worked quietly.`);
     case 'arrived':
