@@ -41,7 +41,7 @@ export function sicknessMinute(w: World, r: Resident): void {
 function fallIll(w: World, r: Resident): void {
   r.ill = { since: w.t, better: null };
   const a = r.activity?.kind;
-  if (a === 'working' || a === 'fishing' || a === 'chore') interrupt(w, r);
+  if (a === 'working' || a === 'fishing' || a === 'chore' || a === 'school') interrupt(w, r);
   w.emit({ type: 'fell_ill', who: r.id });
   w.remember(r.id, "You've fallen ill: feverish and weak from going so long without food. You need to eat, and rest.");
   if (r.activity?.kind !== 'sleeping') r.thinkAt = Math.min(r.thinkAt, w.t + 1);

@@ -42,7 +42,7 @@ export const PLANTS: readonly Prop[] = [
   { atlas: 'k', frame: 'palm-1', x: 15, y: 19.5 }, { atlas: 'k', frame: 'palm-0', x: 21, y: 19 }, { atlas: 'k', frame: 'palm-1', x: 24.5, y: 19.5 },
   { atlas: 'k', frame: 'palm-0', x: 35, y: 19.5 }, { atlas: 'k', frame: 'palm-1', x: 38, y: 19 },
   // Shade trees and bushes in the open ground.
-  { atlas: 'p', frame: 'tree', x: 16, y: 12 }, { atlas: 'p', frame: 'big-tree', x: 21, y: 12.5 }, { atlas: 'p', frame: 'tree', x: 27, y: 12 },
+  { atlas: 'p', frame: 'tree', x: 19, y: 11 }, { atlas: 'p', frame: 'big-tree', x: 21, y: 12.5 }, { atlas: 'p', frame: 'tree', x: 27, y: 12 },
   { atlas: 'p', frame: 'tree', x: 35, y: 11 }, { atlas: 'p', frame: 'big-tree', x: 37, y: 14 }, { atlas: 'p', frame: 'tree', x: 34, y: 16 },
   { atlas: 'p', frame: 'bush', x: 18, y: 15 }, { atlas: 'p', frame: 'bush', x: 25, y: 15 }, { atlas: 'p', frame: 'bush', x: 1, y: 12 },
   { atlas: 'p', frame: 'tree', x: 10, y: 12 },
@@ -57,7 +57,7 @@ export const PLANTS: readonly Prop[] = [
 ];
 
 /** Which pack character each of the default cast wears (people.png columns, in cast order), then Mr Lim. */
-export const PEOPLE_ORDER = ['ah-huat', 'mdm-tan', 'rahim', 'mei-ling', 'ah-kow', 'siti', 'muthu', 'ah-seng', 'fatimah', 'raju', 'mak-esah', 'aminah', 'hassan', 'mr-lim'];
+export const PEOPLE_ORDER = ['ah-huat', 'mdm-tan', 'rahim', 'mei-ling', 'ah-kow', 'siti', 'muthu', 'ah-seng', 'fatimah', 'raju', 'mak-esah', 'aminah', 'hassan', 'mr-lim', 'miss-de-souza'];
 
 /** Farm bed n (1–8): its top-left tile. Beds are 2×2, four across and two down the plot. */
 export function bedTile(n: number): { x: number; y: number } {

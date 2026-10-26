@@ -77,7 +77,7 @@ describe("Mr Lim's odd jobs", () => {
     runTo(w, sgt(9, 0, 1));
     expect(today(w).every((j) => !first.includes(j.id))).toBe(true);
     expect(w.state.oddJobs.some((j) => first.includes(j.id) && j.doneBy === null)).toBe(false);
-    expect(w.state.notes.filter((n) => n.authorId === MR_LIM_ID).length).toBe(w.state.oddJobs.filter((j) => j.day === dayIndex(w.t)).length);
+    expect(w.state.notes.filter((n) => n.authorId === MR_LIM_ID).length).toBe(new Set(w.state.oddJobs.filter((j) => j.day === dayIndex(w.t)).map((j) => j.noteId)).size);
   });
 
   it('done at its place as an hour\'s chore, paid from Mr Lim\'s purse, at most one a day each', () => {

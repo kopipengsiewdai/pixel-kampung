@@ -13,7 +13,7 @@ import { dateAt, MONTHS, shortStamp, type Calendar } from '../sim/calendar.ts';
 import type { GameEvent, LedgerEntry } from '../sim/events.ts';
 import { ITEMS, LORRY_BUYS, LORRY_SELLS, RECIPES, quantityLabel, type ItemId } from '../sim/items.ts';
 import { formatMoney, type Cents } from '../sim/money.ts';
-import { FARM_BEDS, FUND_ID, LORRY_ID, MR_LIM_ID, NEARBY_TILES, OPENING_ID, OUTSIDE, TRAVELLERS_ID } from '../sim/state.ts';
+import { FARM_BEDS, FUND_ID, LORRY_ID, MR_LIM_ID, NEARBY_TILES, OPENING_ID, OUTSIDE, TEACHER_ID, TRAVELLERS_ID } from '../sim/state.ts';
 import { LORRY_ARRIVES, LORRY_LEAVES } from '../sim/tick.ts';
 import { dayIndex, GAME_MINUTES_PER_REAL_MINUTE, MINUTES_PER_DAY, NIGHT_END_HOUR, NIGHT_START_HOUR, SGT_OFFSET_MIN } from '../sim/time.ts';
 import { CARDS } from '../seed/cards.ts';
@@ -135,7 +135,7 @@ export function economyOf(
 
 /** Who each outside account is, as the owner reads it. */
 const EDGE_NAMES: Record<string, string> = {
-  [LORRY_ID]: 'Pak Osman (the lorry)', [TRAVELLERS_ID]: 'Travellers on the road', [FUND_ID]: 'Village fund (Mr Lim)', [MR_LIM_ID]: 'Mr Lim',
+  [LORRY_ID]: 'Pak Osman (the lorry)', [TRAVELLERS_ID]: 'Travellers on the road', [FUND_ID]: 'Village fund (Mr Lim)', [MR_LIM_ID]: 'Mr Lim', [TEACHER_ID]: 'Miss de Souza (lessons)',
 };
 
 /** The kinds of money a resident or shop sees, in the order shown. */

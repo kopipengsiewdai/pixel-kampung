@@ -13,6 +13,7 @@ import { energyWord, hungerWord } from '../sim/perception.ts';
 import { GROWN_AGE, MR_LIM_ID, VILLAGER_NAMES, type Goods, type Resident, type Shop, type World } from '../sim/state.ts';
 import { jobsToday, MR_LIM, mrLimAt, whatOf, workingAt } from '../sim/mr-lim.ts';
 import { PROJECT_JOBS } from '../sim/projects.ts';
+import { TEACHER, TEACHER_ID, teacherAt } from '../sim/school.ts';
 import { dateAt, MONTHS, shortStamp } from '../sim/calendar.ts';
 import { dayIndex, minuteOfDay, sgtHour, sgtMinute } from '../sim/time.ts';
 import type { GameEvent } from '../sim/events.ts';
@@ -56,6 +57,7 @@ function doing(w: World, r: Resident): string {
       const job = w.state.jobs.find((j) => j.id === a.jobId);
       return job ? `on shift at ${placeName(job.placeId, w)}` : 'working';
     }
+    case 'school': return a.adult ? 'at the evening English class' : 'at school';
     case 'sleeping':
       return a.reason === 'night' ? 'asleep' : a.reason === 'nap' ? 'napping' : 'dozed off where they stood, worn out';
     default: {
@@ -153,7 +155,7 @@ export class FrameBuilder {
         x: pos.x,
         y: pos.y,
         route,
-        activity: a?.kind === 'chore' ? 'working' : a?.kind ?? null,
+        activity: a?.kind === 'chore' || a?.kind === 'school' ? 'working' : a?.kind ?? null,
         sleep: a?.kind === 'sleeping' ? a.reason : null,
         doing: doing(w, r),
         place: here ? w.placeName(here) : null,
@@ -186,7 +188,7 @@ export class FrameBuilder {
         wateredDays: b.wateredDays,
       })),
       notes: w.state.notes.map((n) => ({ authorId: n.authorId, text: n.text, t: n.t, stamp: shortStamp(w.state, n.t) })),
-      villagers: [villagerView(w, t)],
+      villagers: [villagerView(w, t), teacherView(w, t)],
       built: w.state.projects.filter((p) => p.builtDay !== null).map((p) => p.id),
       fires: w.state.fires.filter((f) => f.until > t).map((f) => ({ x: f.x, y: f.y })),
       building: Object.fromEntries(w.state.projects.map((p) => [p.id, p.builtDay !== null ? 'built' : `being built: ${p.done.length} of ${PROJECT_JOBS[p.id]?.length ?? 0} jobs done`])),
@@ -203,6 +205,12 @@ function villagerView(w: World, t: number): VillagerView {
     return `${whatOf(j.kind)}, ${formatMoney(j.pay)}: ${by}`;
   });
   return { id: MR_LIM_ID, name: MR_LIM, role: 'the village head', x: m.pos.x, y: m.pos.y, out: m.out, doing: m.doing, jobs };
+}
+
+/** Miss de Souza on the watch page: where she is and what she's doing. Owner's view. */
+function teacherView(w: World, t: number): VillagerView {
+  const m = teacherAt(w, t);
+  return { id: TEACHER_ID, name: TEACHER, role: 'the teacher', x: m.pos.x, y: m.pos.y, out: m.out, doing: m.doing, jobs: [] };
 }
 
 export interface CardExtras {

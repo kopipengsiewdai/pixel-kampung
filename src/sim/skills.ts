@@ -10,8 +10,8 @@ import type { Resident, World } from './state.ts';
 import { dayIndex, minuteOfDay } from './time.ts';
 import { TRAVELLER_HOURS } from './travellers.ts';
 
-export type SkillId = 'fishing' | 'farming' | 'cooking';
-export const SKILL_IDS: readonly SkillId[] = ['fishing', 'farming', 'cooking'];
+export type SkillId = 'fishing' | 'farming' | 'cooking' | 'english';
+export const SKILL_IDS: readonly SkillId[] = ['fishing', 'farming', 'cooking', 'english'];
 
 /** For the wiki and the trial only (watchers, never residents). */
 export const LEVEL_NAMES = ['Novice', 'Handy', 'Skilled', 'Expert', 'Master'] as const;
@@ -43,6 +43,8 @@ export const SKILLS: Record<SkillId, Skill> = {
   fishing: { cap: 6, master: 6 * 730, rustyDays: 30, dropDays: 365 },
   farming: { cap: 4, master: 4 * 730, rustyDays: 45, dropDays: 365 },
   cooking: { cap: 8, master: 8 * 548, rustyDays: 21, dropDays: 365 },
+  // English (school.md): a school morning's worth a day; Handy after about twenty school days.
+  english: { cap: 8, master: 8 * 400, rustyDays: 60, dropDays: 365 },
 };
 
 /** Handy at 5%, Skilled at 20%, Expert at 50%, Master at all of it. */
@@ -75,6 +77,7 @@ const DOING: Record<SkillId, { verb: string; one: string }> = {
   fishing: { verb: 'fish', one: 'fisher' },
   farming: { verb: 'grow vegetables', one: 'grower' },
   cooking: { verb: 'cook', one: 'cook' },
+  english: { verb: 'speak English', one: 'speaker of English' },
 };
 const ONE_OF = ['', 'a handy', 'a skilled', 'an expert', 'a master'];
 
@@ -114,6 +117,13 @@ export const SKILL_LINES: Record<SkillId, { self: string[]; up: string[]; rusty:
     rusty: "It's been a while since you last cooked; your hands are slow.",
     back: 'The feel of the stove comes back to you.',
     lost: "You've lost some of your feel for the stove.",
+  },
+  english: {
+    self: ['You know a few words of English.', 'You have enough English to get by.', 'You speak English fairly well.', 'You speak English well.'],
+    up: ["You're picking up a few words of English.", 'You find you can get by in English now.', 'English comes more easily to you now.', 'You speak English as well as anyone in the kampung.'],
+    rusty: "It's been a while since you spoke any English; the words are slow to come.",
+    back: 'The English words come back to you.',
+    lost: "You've forgotten some of your English.",
   },
 };
 
@@ -275,6 +285,7 @@ export const LESSON_OFFER_MINUTES = 30;
 export function skillOf(v: unknown): SkillId | null {
   if (typeof v !== 'string') return null;
   const s = v.toLowerCase();
+  if (/english|inggeris/.test(s)) return 'english';
   if (/fish|line|net/.test(s)) return 'fishing';
   if (/farm|grow|plant|bed|vegetable|kangkong|soil/.test(s)) return 'farming';
   if (/cook|kitchen|stove|kopi|porridge|rice/.test(s)) return 'cooking';

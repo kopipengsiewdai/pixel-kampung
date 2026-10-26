@@ -40,6 +40,25 @@ export const PROJECTS: Readonly<Record<string, ProjectDef>> = {
     ready: 'The village kitchen is ready. Anyone may cook there, bringing their own food and a little firewood or kerosene. Mr Lim.',
     site: (done, total) => `The village kitchen is being built here for Mr Lim: ${done} of ${total} jobs done.`,
   },
+  schoolhouse: {
+    name: 'the schoolhouse',
+    jobs: [
+      { what: 'clear the ground for the schoolhouse', placeId: 'schoolhouse' },
+      { what: 'carry planks up from the lorry stop for the schoolhouse', placeId: 'lorry-stop' },
+      { what: 'carry more planks up from the lorry stop for the schoolhouse', placeId: 'lorry-stop' },
+      { what: 'dig the post holes for the schoolhouse', placeId: 'schoolhouse' },
+      { what: 'raise the posts of the schoolhouse', placeId: 'schoolhouse' },
+      { what: 'lay the floor of the schoolhouse', placeId: 'schoolhouse' },
+      { what: 'put up the walls of the schoolhouse', placeId: 'schoolhouse' },
+      { what: 'cut attap for the schoolhouse roof, past the farm plot', placeId: 'farm' },
+      { what: 'put up the attap roof of the schoolhouse', placeId: 'schoolhouse' },
+      { what: 'make benches for the schoolhouse', placeId: 'schoolhouse' },
+      { what: 'make a blackboard for the schoolhouse', placeId: 'schoolhouse' },
+      { what: 'whitewash the schoolhouse', placeId: 'schoolhouse' },
+    ],
+    ready: 'The school is open. Miss de Souza, a teacher from town, will teach the children English on weekday mornings, free, and grown-ups at seven in the evening, five cents a lesson. Send your children. Mr Lim.',
+    site: (done, total) => `A schoolhouse is being built here for Mr Lim: ${done} of ${total} jobs done.`,
+  },
 };
 
 /** Each building's jobs, in the order Mr Lim pins them. */

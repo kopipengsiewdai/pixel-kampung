@@ -20,6 +20,7 @@ import { kinOf } from '../seed/cast.ts';
 import { noticeIllKin, sicknessMinute } from './sickness.ts';
 import { mrLimMinute } from './mr-lim.ts';
 import { firesMinute } from './cooking.ts';
+import { schoolMinute, schoolProgress } from './school.ts';
 
 /** About when the lorry comes and goes (Pak Osman's own day varies a little: src/sim/osman.ts). */
 export const LORRY_ARRIVES = ARRIVES;
@@ -86,6 +87,9 @@ function progress(w: World, r: Resident): void {
     case 'working':
       a.worked += 1;
       if (w.t >= a.until || r.hunger >= NEED_MAX) endShift(w, r);
+      return;
+    case 'school':
+      schoolProgress(w, r);
       return;
     case 'sleeping':
       if (a.reason === 'night' && !isNight(w.t)) wake(w, r);
@@ -194,6 +198,7 @@ export function advance(w: World): void {
   householdsMinute(w);
   mrLimMinute(w);
   firesMinute(w);
+  schoolMinute(w);
 }
 
 export function advanceTo(w: World, t: number): void {

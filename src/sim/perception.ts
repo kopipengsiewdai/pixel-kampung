@@ -13,6 +13,7 @@ import { HAGGLES_PER_VISIT, OSMAN, priceFor, room } from './osman.ts';
 import { distance, PLACES, PLACE_BY_ID, type Place } from './map.ts';
 import { doneToday, mrLimAt, openJobHere, whatOf } from './mr-lim.ts';
 import { cookingLines, KITCHEN_ID, kitchenBuilt } from './cooking.ts';
+import { schoolLines } from './school.ts';
 import { formatMoney, type Cents } from './money.ts';
 import { CIRCLE_LINES, countGoods, NEARBY_TILES, SAID_ALL_LINES, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, UNANSWERED_LINES, WORD_MINUTES, type Bond, type Debt, type Goods, type Observation, type Resident, type Shop, type TalkRecord, type World } from './state.ts';
 import { nowLabel } from './calendar.ts';
@@ -267,6 +268,7 @@ function doing(w: World, o: Resident): string {
     case 'chore': return o.activity.kind === 'chore' ? CHORE_DOING[o.activity.chore] : 'busy';
     case 'working': return 'working';
     case 'sleeping': return 'asleep';
+    case 'school': return o.activity.adult ? 'at the English class' : 'at school';
     default: return w.shopOf(o.id) && w.isAt(o, w.shopOf(o.id)!.id) ? 'minding the shop' : 'standing about';
   }
 }
@@ -341,7 +343,7 @@ export function perceive(w: World, r: Resident): Perception {
     ill: r.ill !== null,
     foodWays: foodWays(w, r),
     household: householdLines(w, r, w.isAt(r, 'village-head')),
-    cooking: cookingLines(w, r),
+    cooking: [...cookingLines(w, r), ...schoolLines(w, r)],
     villageHead: (() => { const m = mrLimAt(w, w.t); return m.out && distance(m.pos, r.pos) <= NEARBY_TILES ? m.doing : null; })(),
     oddJob: (() => { const j = doneToday(w, r) ? null : openJobHere(w, r); return j ? { what: whatOf(j.kind), pay: j.pay } : null; })(),
     energy: energyWord(r.energy),

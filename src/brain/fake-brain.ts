@@ -59,6 +59,7 @@ const TEACH_AT: Record<SkillId, { place: string; doing: RegExp }> = {
   fishing: { place: 'the jetty', doing: /fishing/ },
   farming: { place: 'the farm plot', doing: /./ },
   cooking: { place: 'the kopitiam', doing: /working|cooking/ },
+  english: { place: 'the schoolhouse', doing: /school|class/ },
 };
 
 /** The weekday ("Monday"), from "Monday, 1 January, Year 0, 7:05 in the morning". */

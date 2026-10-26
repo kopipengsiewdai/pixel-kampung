@@ -91,7 +91,7 @@ export const CARDS: readonly Card[] = [
   {
     name: 'Fatimah', age: 36,
     personality: 'Patient and thrifty; you plan ahead.',
-    want: 'something set aside for your children',
+    want: 'something set aside for your children, and for Aminah and Hassan to learn English for a better life',
     worry: 'about falling ill with no savings',
     knows: "Aminah is your daughter, and Hassan is your son; they live with you. Rahim is your late husband's brother. Siti is a friend.",
     languages: 'You speak Malay at home and with your neighbours.',

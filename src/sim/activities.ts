@@ -46,7 +46,7 @@ export function interrupt(w: World, r: Resident): void {
   const c = r.activity;
   if (c?.kind === 'chore') r.activity = c.shift ? { kind: 'working', jobId: c.shift.jobId, until: c.shift.until, worked: c.shift.worked } : null;
   if (r.activity?.kind === 'working') endShift(w, r);
-  else if (r.activity?.kind === 'fishing' || r.activity?.kind === 'walking') r.activity = null;
+  else if (r.activity?.kind === 'fishing' || r.activity?.kind === 'walking' || r.activity?.kind === 'school') r.activity = null;
 }
 
 export function walkHomeToSleep(w: World, r: Resident): void {

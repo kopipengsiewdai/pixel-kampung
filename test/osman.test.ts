@@ -165,7 +165,8 @@ describe('Pak Osman: prices', () => {
   it('regulars pay a little less, and anyone who let a debt run pays more, still within bounds', () => {
     const w = lorryMorning();
     const siti = put(w, 'Siti', 'lorry-stop');
-    const raju = put(w, 'Raju', 'lorry-stop');
+    // Muthu, not Raju: Raju reads English, and Pak Osman can't haggle a reader so hard.
+    const raju = put(w, 'Muthu', 'lorry-stop');
     const kow = put(w, 'Ah Kow', 'lorry-stop');
     advance(w);
     regular(w, siti.id);

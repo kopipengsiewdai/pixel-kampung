@@ -98,7 +98,7 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
     stoves: {},
     faintSeen: {},
     oddJobs: [],
-    projects: [{ id: 'village-kitchen', done: [], builtDay: null }],
+    projects: [{ id: 'village-kitchen', done: [], builtDay: null }, { id: 'schoolhouse', done: [], builtDay: null }],
     fires: [],
     oddJobsDay: -1,
     illSeen: {},
