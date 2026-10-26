@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.23.0 (2026-10-26): thinking when something changes
 
 - **Residents think when something changes, not on a clock.** Measured in the living town: 70% of thoughts came with nothing new since the last one, and asked "what now?" with nothing new, they talked, and talked in circles. Now someone turning up where they are (for a worker at the counter too), being spoken to, getting hungry (crossing into hungry, aching or faint), finishing what they were doing, their shift starting, or an offer to them ten minutes from lapsing brings a thought on; otherwise the next one is half an hour off, not ten minutes.
 - **Memory without the echo.** Talk between two other people is heard in the moment but not kept in long-term memory, and isn't recalled from before. The same thing said over and over to the same person is remembered once, the newest (different things, and anything that matters like a promise or a debt, all stay), and only the newest two passing thoughts come back. (Ah Kow's mind held five copies of Mei Ling asking Mdm Tan if the rice was ready, and his own same thought four times.)
