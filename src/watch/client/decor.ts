@@ -52,7 +52,7 @@ export const PLANTS: readonly Prop[] = [
   { atlas: 'p', frame: 'fern-1', x: 33, y: 13 },
   // Flowers and tufts.
   { atlas: 'p', frame: 'flower', x: 19, y: 13 }, { atlas: 'p', frame: 'flowers', x: 24, y: 17 }, { atlas: 'p', frame: 'flower', x: 29, y: 13 },
-  { atlas: 'p', frame: 'flowers', x: 36, y: 18 }, { atlas: 'p', frame: 'tuft', x: 17, y: 18 }, { atlas: 'p', frame: 'tuft', x: 27, y: 18 },
+  { atlas: 'p', frame: 'flowers', x: 36, y: 18 }, { atlas: 'p', frame: 'tuft', x: 17, y: 18 },
   { atlas: 'p', frame: 'tuft', x: 3, y: 13 }, { atlas: 'p', frame: 'rock', x: 38, y: 11 }, { atlas: 'p', frame: 'flowers', x: 33, y: 10 },
 ];
 

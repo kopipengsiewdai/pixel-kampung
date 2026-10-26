@@ -167,7 +167,8 @@ export const KEROSENE_BATCHES = 4;
 
 function cookAtHome(w: World, r: Resident, item: ItemId, asked: number, stoveAt: string = r.homeId): ActionResult {
   const recipe = RECIPES[item]!;
-  if (recipe.level) return no("You'd want a proper kitchen for that.");
+  // The village kitchen is a proper kitchen; a house's small stove isn't.
+  if (recipe.level && stoveAt !== KITCHEN_ID) return no("You'd want a proper kitchen for that.");
   const home = stoveAt;
   if (w.state.residents.some((o) => o.id !== r.id && o.stove?.shopId === home)) return no("There's already a pot on the stove.");
   // One small pot: one batch at a time.
@@ -214,13 +215,41 @@ function cookAtFire(w: World, r: Resident, item: ItemId): ActionResult {
   return ok(`You set ${item === 'bubur' ? 'your pot' : 'the fish'} over the fire.`);
 }
 
-/** Whose kitchen this resident may cook in: their own, or the one they're on shift in. */
-function kitchenFor(w: World, r: Resident): Shop | 'home' | 'shared' | 'fire' | string {
+/** Where r would cook if they cooked now: a kitchen's name for the cook action, the dishes they could make, and whether there's fuel. */
+export type CookAt = 'kitchen' | 'home' | 'village kitchen' | 'fire';
+
+/**
+ * What r could cook right now, where they are (the same place `cook` would use):
+ * the kopitiam's kitchen from its stock and what they bring, or at home, in the
+ * village kitchen or over a fire from what they carry; and whether a stove there
+ * has anything to burn.
+ */
+export function cookable(w: World, r: Resident): { at: CookAt; dishes: ItemId[]; fuel: boolean } | null {
+  const spot = kitchenFor(w, r);
+  if (typeof spot === 'string' && spot !== 'home' && spot !== 'shared' && spot !== 'fire') return null;
+  const shop = typeof spot === 'string' ? null : spot;
+  const own = w.shopOf(r.id)?.id === shop?.id;
+  const have = (i: ItemId) => (shop ? countGoods(shop.stock, i) : 0) + (!shop || own ? countGoods(r.items, i) : 0);
+  const dishes = (Object.entries(RECIPES) as [ItemId, NonNullable<(typeof RECIPES)[ItemId]>][])
+    .filter(([dish, recipe]) => skillLevel(r, 'cooking') >= (recipe.level ?? 1) && !(spot === 'home' && recipe.level)
+      && (spot !== 'fire' || (FIRE_DISHES.includes(dish) && (dish !== 'bubur' || countGoods(r.items, 'pot') > 0))))
+    .filter(([, recipe]) => (Object.entries(recipe.needs) as [ItemId, number][]).every(([need, n]) => have(need) >= n))
+    .map(([dish]) => dish);
+  const stove = spot === 'home' ? r.homeId : spot === 'shared' ? KITCHEN_ID : null;
+  const fuel = !stove || (w.state.stoves[stove] ?? 0) + countGoods(r.items, 'kerosene') + countGoods(r.items, 'firewood') > 0;
+  const at: CookAt = spot === 'home' ? 'home' : spot === 'shared' ? 'village kitchen' : spot === 'fire' ? 'fire' : 'kitchen';
+  return { at, dishes, fuel };
+}
+
+/** Where this resident may cook here: their own kitchen, the one they're on shift in, home, the village kitchen or a fire; or why not. */
+export function kitchenFor(w: World, r: Resident): Shop | 'home' | 'shared' | 'fire' | string {
+  const off = r.activity?.kind !== 'working';
   // Off shift in your own house: the small stove at home.
-  if (r.activity?.kind !== 'working' && w.isAt(r, r.homeId)) return 'home';
-  // The village kitchen, once it's built; a fire burning where they stand.
-  if (r.activity?.kind !== 'working' && w.isAt(r, KITCHEN_ID)) return kitchenBuilt(w) ? 'shared' : "The village kitchen isn't built yet.";
-  if (r.activity?.kind !== 'working' && fireNear(w, r)) return 'fire';
+  if (off && w.isAt(r, r.homeId)) return 'home';
+  // The village kitchen once it's built; a fire burning where they stand (even beside the kitchen while it's going up).
+  if (off && w.isAt(r, KITCHEN_ID) && kitchenBuilt(w)) return 'shared';
+  if (off && fireNear(w, r)) return 'fire';
+  if (off && w.isAt(r, KITCHEN_ID)) return "The village kitchen isn't built yet.";
   const own = w.shopOf(r.id);
   if (own?.id === 'kopitiam') return w.isAt(r, own.id) ? own : "You'd have to be in your kitchen to cook.";
   const job = w.jobOf(r.id);

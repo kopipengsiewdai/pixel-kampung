@@ -1,6 +1,7 @@
 import { crowdSoon, mastered, skillLevel, skillLines, type SkillId } from './skills.ts';
 import { isRipe, isStaffed, shiftLabel, shopHere } from './actions/everyone.ts';
-import { CHORE_DOING, errandLines } from './actions/chores.ts';
+import { canForageToday, CHORE_DOING, errandLines } from './actions/chores.ts';
+import { cookable, type CookAt } from './actions/owners.ts';
 import { FEELINGS_SHOWN, feelingLine, strength } from './bonds.ts';
 import { householdLines } from './households.ts';
 import { offersFor } from './actions/haggle.ts';
@@ -11,7 +12,7 @@ import { ITEMS, quantityLabel, RECIPES, type ItemId } from './items.ts';
 import { HAGGLES_PER_VISIT, OSMAN, priceFor, room } from './osman.ts';
 import { distance, PLACES, PLACE_BY_ID, type Place } from './map.ts';
 import { doneToday, mrLimAt, openJobHere, whatOf } from './mr-lim.ts';
-import { cookingLines } from './cooking.ts';
+import { cookingLines, KITCHEN_ID, kitchenBuilt } from './cooking.ts';
 import { formatMoney, type Cents } from './money.ts';
 import { CIRCLE_LINES, countGoods, NEARBY_TILES, SAID_ALL_LINES, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, UNANSWERED_LINES, WORD_MINUTES, type Bond, type Debt, type Goods, type Observation, type Resident, type Shop, type TalkRecord, type World } from './state.ts';
 import { nowLabel } from './calendar.ts';
@@ -100,6 +101,8 @@ export interface Perception {
     /** What's in the shop, seen while on shift there. */
     stock: { item: ItemId; qty: number }[];
   } | null;
+  /** Where they could cook right now, and what. */
+  cookable: { at: CookAt; dishes: ItemId[]; fuel: boolean } | null;
   /** At a kitchen they can cook in: what it has none of (and the dishes that wants), and which of those the lorry has today. */
   kitchen: { lacks: { item: ItemId; dishes: ItemId[] }[]; lorryHas: ItemId[] } | null;
   business: {
@@ -193,6 +196,14 @@ function foodWays(w: World, r: Resident): string[] {
   }
   const out: string[] = [];
   if (shops.length) out.push(`You could get something to eat at ${shops.length === 1 ? shops[0] : `${shops.slice(0, -1).join(', ')} or ${shops.at(-1)}`}.`);
+  // The land gives a little, free, to anyone who goes and looks (twice a day each).
+  if (!r.ill && canForageToday(w, r)) {
+    const jetty = r.knownPlaces.includes('jetty');
+    const farm = r.knownPlaces.includes('farm');
+    if (jetty && farm) out.push('There are coconuts on the palms by the jetty, and bananas and wild kangkong past the farm plot.');
+    else if (jetty) out.push('There are coconuts on the palms by the jetty.');
+    else if (farm) out.push('There are bananas and wild kangkong past the farm plot.');
+  }
   // Too ill to fish, the sea is no use to them.
   if (here !== 'jetty' && r.knownPlaces.includes('jetty') && !r.ill) out.push('You could catch a fish at the jetty.');
   return out;
@@ -346,6 +357,7 @@ export function perceive(w: World, r: Resident): Perception {
       stock: r.activity?.kind === 'working' ? goodsList(w.shop(jobRow.placeId)?.stock ?? {}) : [],
     } : null,
     kitchen: kitchenView(w, r),
+    cookable: cookable(w, r),
     business: own ? {
       place: PLACE_BY_ID.get(own.id)!.name,
       atShop: w.isAt(r, own.id),
@@ -374,7 +386,7 @@ export function perceive(w: World, r: Resident): Perception {
     beds: w.state.beds.filter((b) => b.planterId === r.id)
       .map((b) => ({ n: b.n, ready: isRipe(w, b), wateredToday: b.lastWateredDay === today })),
     freeBeds: w.isAt(r, 'farm') ? w.state.beds.filter((b) => b.planterId === null).length : null,
-    stove: w.isAt(r, r.homeId) ? w.state.stoves[r.homeId] ?? 0 : null,
+    stove: w.isAt(r, r.homeId) ? w.state.stoves[r.homeId] ?? 0 : w.isAt(r, KITCHEN_ID) && kitchenBuilt(w) ? w.state.stoves[KITCHEN_ID] ?? 0 : null,
     jobOffers: w.state.jobOffers.filter((o) => o.workerId === r.id)
       .map((o) => ({ from: w.resident(o.employerId).name, wage: o.wage, startHour: o.startHour, hours: o.hours })),
     trades: w.state.trades.filter((t) => t.toId === r.id).map((t) => ({
@@ -517,6 +529,13 @@ export function describe(p: Perception): string {
     lines.push(`You work for ${p.job.boss} at ${p.job.place}, ${p.job.shift}.${p.job.onShift ? " You're on shift now." : ''}`);
     if (!p.business) lines.push("You don't run a stall or shop.");
     if (p.job.onShift) lines.push(`In the shop: ${p.job.stock.map((s) => quantityLabel(s.item, s.qty)).join(', ') || 'nothing'}.`);
+  }
+  if (p.cookable?.dishes.length) {
+    const dishes = andOr(p.cookable.dishes, 'or');
+    if (p.cookable.at === 'kitchen') lines.push(`With what's here you could make ${dishes}.`);
+    else if (p.cookable.at === 'fire') lines.push(`With what you have you could cook ${dishes} over the fire.`);
+    else lines.push(p.cookable.fuel ? `With what you have you could cook ${dishes}.`
+      : `With what you have you could cook ${dishes}, but the stove has nothing to burn: dry wood from past the farm plot, or kerosene off the lorry.`);
   }
   if (p.kitchen) {
     for (const l of p.kitchen.lacks) lines.push(`The kitchen has no ${stuff(l.item)}: no ${andOr(l.dishes, 'or')} without it.`);

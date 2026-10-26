@@ -7,9 +7,8 @@
  */
 import { type ActionResult, no, ok } from './actions/common.ts';
 import { distance, PLACE_BY_ID, tileAt } from './map.ts';
-import { PROJECT_JOBS, PROJECT_JOBS_A_DAY } from './projects.ts';
+import { isBuilt, PROJECT_JOBS, PROJECT_JOBS_A_DAY, siteLine } from './projects.ts';
 import { addGoods, countGoods, NEARBY_TILES, type Resident, type World } from './state.ts';
-import { dayIndex } from './time.ts';
 
 export { PROJECT_JOBS_A_DAY };
 /** A cooking fire burns this long on a bundle of firewood. */
@@ -45,9 +44,7 @@ export function firesMinute(w: World): void {
 }
 
 /** Whether the village kitchen has been built. */
-export function kitchenBuilt(w: World): boolean {
-  return w.state.projects.some((p) => p.id === KITCHEN_ID && p.builtDay !== null);
-}
+export const kitchenBuilt = (w: World) => isBuilt(w, KITCHEN_ID);
 
 /** What someone sees of where they could cook here: a fire burning, or the village kitchen built or going up. */
 export function cookingLines(w: World, r: Resident): string[] {
@@ -57,22 +54,12 @@ export function cookingLines(w: World, r: Resident): string[] {
     const by = fire.by === r.id ? 'you lit it' : `${w.nameOf(fire.by)} lit it`;
     out.push(`A cooking fire is burning here (${by})${fire.until - w.t <= FIRE_LOW ? ", burning low" : ''}.`);
   }
-  if (w.isAt(r, KITCHEN_ID)) {
-    const p = w.state.projects.find((x) => x.id === KITCHEN_ID);
-    if (p?.builtDay !== null && p) out.push('This is the village kitchen: anyone may cook here, bringing their own food and a little firewood or kerosene.');
-    else if (p) out.push(`The village kitchen is being built here for Mr Lim: ${p.done.length} of ${KITCHEN_JOBS.length} jobs done.`);
-  }
+  if (w.isAt(r, KITCHEN_ID) && kitchenBuilt(w)) out.push('This is the village kitchen: anyone may cook here, bringing their own food and a little firewood or kerosene.');
+  // Anything Mr Lim is having built here, and how it's coming on.
+  const here = w.placeOf(r);
+  const site = here ? siteLine(w, here.id) : null;
+  if (site) out.push(site);
   return out;
-}
-
-/** A project's job done: counted, and when the last is done, it's built. */
-export function projectJobDone(w: World, project: string, index: number): boolean {
-  const p = w.state.projects.find((x) => x.id === project);
-  if (!p || p.builtDay !== null || p.done.includes(index)) return false;
-  p.done.push(index);
-  if (p.done.length < (PROJECT_JOBS[project]?.length ?? Infinity)) return false;
-  p.builtDay = dayIndex(w.t);
-  return true;
 }
 
 export const placeName = (id: string) => PLACE_BY_ID.get(id)?.name ?? id;

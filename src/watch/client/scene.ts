@@ -189,8 +189,8 @@ export class TownScene extends Phaser.Scene {
     // The village kitchen: an attap shelter, drawn once Mr Lim's odd jobs have built it.
     for (const p of this.layout.places) {
       if (p.kind !== 'village_kitchen') continue;
-      const img = this.add.image(p.rect.x * T, (p.rect.y - 1) * T, 'k', 'house-2').setOrigin(0, 0).setVisible(false);
-      img.setDepth(img.y + img.height - 8);
+      const img = this.add.image(p.rect.x * T, (p.rect.y + p.rect.h) * T, 'k', 'house-2').setOrigin(0, 1).setVisible(false);
+      img.setDepth(img.y - 8);
       this.builds.set(p.id, img);
     }
     // The village head's house: the grandest of the attap houses.

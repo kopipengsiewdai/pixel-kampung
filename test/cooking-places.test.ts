@@ -162,3 +162,71 @@ describe('the watch page shows them', () => {
     expect(f.built).toEqual(['village-kitchen']);
   });
 });
+
+describe('review fixes', () => {
+  function fireAt(w: World, name: string, place: string) {
+    const r = put(w, name, place);
+    r.items = { ...r.items, firewood: 1 };
+    accepted(act(w, r.id, { verb: 'light_fire' }));
+    return w.state.fires.at(-1)!;
+  }
+
+  it('a fire burning low, and a dish that cannot go over a fire, are refused in-world', () => {
+    const w = newWorld(14);
+    const fire = fireAt(w, 'Raju', 'jetty');
+    const siti = put(w, 'Siti', 'jetty');
+    siti.items = { vegetables: 1, rice: 1, fish: 2 };
+    expectInWorld(refused(act(w, siti.id, { verb: 'cook', item: 'vegetable rice' }), /open fire/));
+    fire.until = w.t + 2;
+    expectInWorld(refused(act(w, siti.id, { verb: 'cook', item: 'grilled fish' }), /burning too low/));
+  });
+
+  it('the village kitchen holds one pot at a time, and is a proper kitchen', () => {
+    const w = newWorld(14);
+    w.state.projects[0]!.builtDay = dayIndex(w.t);
+    const siti = put(w, 'Siti', 'village-kitchen');
+    siti.items = { fish: 2, firewood: 2 };
+    accepted(act(w, siti.id, { verb: 'cook', item: 'grilled fish' }));
+    const raju = put(w, 'Raju', 'village-kitchen');
+    raju.items = { fish: 2, firewood: 1 };
+    expectInWorld(refused(act(w, raju.id, { verb: 'cook', item: 'grilled fish' }), /already a pot/));
+    const huat = put(w, 'Ah Huat', 'village-kitchen');
+    huat.items = { vegetables: 1, chilli: 1, firewood: 1 };
+    w.state.residents.find((r) => r.id === siti.id)!.stove = null;
+    accepted(act(w, huat.id, { verb: 'cook', item: 'sambal kangkong' }));
+  });
+
+  it('he pins the next jobs not yet done', () => {
+    const w = newWorld(6, 0);
+    w.state.projects[0]!.done = [0];
+    runTo(w, sgt(9, 0));
+    const kinds = w.state.oddJobs.filter((j) => j.project === 'village-kitchen').map((j) => j.kind);
+    expect(kinds).toEqual(['village-kitchen:1', 'village-kitchen:2']);
+  });
+
+  it('beside the kitchen while it is going up, a fire on the sand is what they cook on, and the menu says so', () => {
+    const w = newWorld(14);
+    const raju = put(w, 'Raju', 'village-kitchen');
+    raju.pos = { x: 27, y: 21 };
+    raju.items = { firewood: 1 };
+    accepted(act(w, raju.id, { verb: 'light_fire' }));
+    const siti = put(w, 'Siti', 'village-kitchen');
+    siti.pos = { x: 27, y: 19 };
+    siti.items = { fish: 2 };
+    const cook = availableActions(w, siti).find((a) => a.verb === 'cook')!;
+    expect(cook.says).toMatch(/over the fire/);
+    expect(cook.says).toMatch(/grilled fish/);
+    accepted(act(w, siti.id, { verb: 'cook', item: 'grilled fish' }));
+  });
+
+  it("the village kitchen is known by its name: Mr Lim's notes teach where it is, and it can be walked to", async () => {
+    const { readNoticeBoard } = await import('../src/sim/actions/everyone.ts');
+    const w = newWorld(6, 0);
+    runTo(w, sgt(9, 0));
+    const kow = put(w, 'Ah Kow', 'notice-board');
+    kow.knownPlaces = kow.knownPlaces.filter((p) => p !== 'village-kitchen');
+    accepted(readNoticeBoard(w, kow));
+    expect(kow.knownPlaces).toContain('village-kitchen');
+    accepted(act(w, kow.id, { verb: 'walk_to', where: 'the village kitchen' }));
+  });
+});

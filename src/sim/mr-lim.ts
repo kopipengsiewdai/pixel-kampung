@@ -17,8 +17,7 @@ import { formatMoney, type Cents } from './money.ts';
 import { Rng } from './rng.ts';
 import { MR_LIM_ID, type Resident, type World } from './state.ts';
 import { dayIndex, minuteOfDay } from './time.ts';
-import { PROJECT_JOBS, PROJECT_JOBS_A_DAY, PROJECT_NAMES, projectJobOf, projectKind } from './projects.ts';
-import { projectJobDone } from './cooking.ts';
+import { PROJECT_JOBS, PROJECT_JOBS_A_DAY, PROJECT_NAMES, PROJECTS, projectJobDone, projectJobOf, projectKind } from './projects.ts';
 
 export const MR_LIM = 'Mr Lim';
 /** He sets out for the notice board at a quarter past seven. */
@@ -163,7 +162,7 @@ export function finishOddJob(w: World, r: Resident, id: number | null): void {
   if (pj && projectJobDone(w, pj.project, pj.index)) {
     // The last job done: it's built, and Mr Lim lets it be known.
     const name = PROJECT_NAMES[pj.project] ?? 'the new building';
-    const text = `${name[0]!.toUpperCase()}${name.slice(1)} is ready. Anyone may cook there, bringing their own food and a little firewood or kerosene. Mr Lim.`;
+    const text = PROJECTS[pj.project]?.ready ?? `${name[0]!.toUpperCase()}${name.slice(1)} is ready. Mr Lim.`;
     w.state.notes.push({ id: w.nextId(), authorId: MR_LIM_ID, text, t: w.t });
     if (w.state.notes.length > BOARD_MAX) w.state.notes.shift();
     w.emit({ type: 'note_pinned', who: MR_LIM_ID, text });
