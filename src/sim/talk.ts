@@ -172,6 +172,14 @@ function quoteWords(text: string): Set<string> {
   return new Set(q.toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter((x) => x.length > 2));
 }
 
+/** The words of a line as said, lower-cased, without numbers or punctuation. */
+export function lineWords(text: string): string[] {
+  return [...new Set(text.toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter((x) => x.length > 2))];
+}
+
+/** How alike two lines' words are. */
+export const alikeWords = (a: readonly string[], b: readonly string[]) => alike(new Set(a), new Set(b));
+
 /** How alike two lines' words are (shared over all): 1 is the same words. */
 function alike(a: Set<string>, b: Set<string>): number {
   if (!a.size || !b.size) return 0;

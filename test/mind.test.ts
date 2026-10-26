@@ -88,6 +88,10 @@ describe('needs only', () => {
   });
 });
 
+/** Nine different things to say (the same said again would count as going round in circles). */
+const LINES = ['The tide is high today.', 'My nets need mending again.', 'Mak made bubur this morning.', 'The lorry came early.', 'Ah Huat raised his prices.',
+  'Rain is coming from the sea.', 'The well water tastes sweet.', 'Hassan caught a big snapper.', 'Mr Lim walked past the jetty.'];
+
 describe('talk is line by line, with a soft limit', () => {
   it('after about 8 lines the listener hears but is not woken to answer at once (even with something done midway)', () => {
     const w = newWorld();
@@ -95,7 +99,7 @@ describe('talk is line by line, with a soft limit', () => {
     const raju = put(w, 'Raju', 'well');
     for (let i = 0; i < 8; i++) {
       raju.thinkAt = w.t + 99;
-      accepted(act(w, siti.id, { verb: 'say', text: `Line ${i}`, to: 'Raju' }));
+      accepted(act(w, siti.id, { verb: 'say', text: LINES[i]!, to: 'Raju' }));
       expect(raju.thinkAt).toBe(w.t + 1);
       // Raju nods along: this is about waking, not about going unanswered.
       delete w.state.talk[talkKey(siti.id, raju.id)]!.unanswered;
@@ -103,9 +107,9 @@ describe('talk is line by line, with a soft limit', () => {
       if (i === 3) accepted(act(w, siti.id, { verb: 'give', to: 'Raju', money: 10 }));
     }
     raju.thinkAt = w.t + 99;
-    accepted(act(w, siti.id, { verb: 'say', text: 'Line 9', to: 'Raju' }));
+    accepted(act(w, siti.id, { verb: 'say', text: LINES[8]!, to: 'Raju' }));
     expect(raju.thinkAt).toBe(w.t + 99);
-    expect(raju.recent.at(-1)?.text).toMatch(/Line 9/);
+    expect(raju.recent.at(-1)?.text).toMatch(/Mr Lim walked past/);
     expect(perceive(w, raju).longTalks).toEqual(['Siti']);
   });
   it('talk not addressed to anyone counts too', () => {
