@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.27.0 (2026-10-26): behaviour fixes
 
 Behaviour fixes from watching the living town:
 - **No more circling at an empty kitchen:** a cook told the kitchen is short of something, or that the stove needs fuel, stops trying for that thought (Ah Huat had tried fish porridge with no rice 170 times). At the kitchen, the cook now sees what it has none of ("The kitchen has no rice: no fish porridge, vegetable rice or bubur without it.") and whether the lorry has it today.
