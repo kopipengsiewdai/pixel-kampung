@@ -43,4 +43,27 @@ describe('plans that go stale (B4)', () => {
     // Gone for the day, even once something works.
     expect(await think(true)).not.toMatch(/Your plan for today/);
   });
+
+  it('a thought counts once, however many tries it takes', async () => {
+    const mind = new Mind({ client: new FakeModel(3), memory: new MemoryStore(':memory:'), costs: new CostLog(null), cards: CARDS });
+    mind.keepSent = true;
+    const w = newWorld(7);
+    const raju = put(w, 'Raju', 'well');
+    const brain = mind.brainFor(raju.id, 'Raju', raju.role, null, w.t);
+    const ctx = () => ({ t: w.t, realMs: realMsAt(w.state.clock, w.t), residentId: raju.id, emit: () => {} });
+    raju.reply = { ok: true, text: 'You fetch a pail of water.' };
+    await brain.decide(perceive(w, raju), ctx());
+    w.state.t += 10;
+    // One thought, three tries, all refused; then the next thought.
+    for (let k = 0; k < 1; k++) {
+      for (let i = 0; i < 3; i++) {
+        raju.reply = { ok: false, text: "You're not sure how to do that." };
+        await brain.decide(perceive(w, raju), ctx());
+      }
+      w.state.t += 10;
+    }
+    raju.reply = { ok: false, text: "You're not sure how to do that." };
+    await brain.decide(perceive(w, raju), ctx());
+    expect(mind.sent.at(-1)!.user).toMatch(/Your plan for today/);
+  });
 });

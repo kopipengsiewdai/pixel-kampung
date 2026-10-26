@@ -88,7 +88,9 @@ export function cleanThought(text: string): string {
 
 /** Their own thoughts, plans and reflections that aren't in English (from before they thought in English) don't come back to mind; things heard do. */
 export function englishOwnWords<T extends { kind: string; text: string }>(memories: readonly T[]): T[] {
-  return memories.filter((m) => !['thought', 'plan', 'reflection'].includes(m.kind) || !looksForeign(m.text.replace(/^My plan for today:\s*/, '')));
+  // What they meant to say aloud (in quotes) may well be in Malay or dialect; it's the rest that tells.
+  const own = (text: string) => text.replace(/^My plan for today:\s*/, '').replace(/"[^"]*"|“[^”]*”/g, '');
+  return memories.filter((m) => !['thought', 'plan', 'reflection'].includes(m.kind) || !looksForeign(own(m.text)));
 }
 
 /** Thoughts in a row that come to nothing before today's plan is let go. */
@@ -118,6 +120,8 @@ export class MindBrain implements Brain {
   private readonly system: string;
   private s: MindState;
   private budget: Budget;
+  /** The game minute whose thought was last counted against today's plan. */
+  private countedAt: number | null = null;
 
   /** Their share of the hourly thinking allowance. */
   readonly allowance: number;
@@ -159,7 +163,9 @@ export class MindBrain implements Brain {
       }
     }
     // A plan that keeps coming to nothing has plainly failed: it isn't brought up again today.
-    if (this.s.plan && p.reply) {
+    // Counted once a thought (the first try sees how the last thought ended).
+    if (this.s.plan && p.reply && this.countedAt !== ctx.t) {
+      this.countedAt = ctx.t;
       this.s.planMisses = p.refused ? this.s.planMisses + 1 : 0;
       if (this.s.planMisses >= PLAN_MISSES) {
         this.s.plan = null;

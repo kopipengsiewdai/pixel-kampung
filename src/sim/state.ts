@@ -313,7 +313,7 @@ export interface TalkRecord {
   unanswered?: { by: string; n: number; t: number };
   /** The words of their lines lately (within REPEAT_MINUTES), newest last: the same said again carries on the same chat. */
   said?: { t: number; words: string[] }[];
-  /** The idle count before something done or a walk last set it back, and when: saying again what was said before then picks it up. */
+  /** The idle count before a walk last set it back, and when: saying again (at some length) what was said before then picks it up. */
   idleWas?: { n: number; t: number };
   /** The last gift between them ("giver>thing"): the same gift again doesn't settle their talk. */
   gift?: string;
@@ -323,8 +323,10 @@ export interface TalkRecord {
 export const REPEAT_MINUTES = 180;
 /** Lines kept per pair for telling a repeat. */
 export const SAID_KEPT = 8;
+/** A line needs this many words to count as the same thing said again for picking an old count back up (not "Thank you, Siti."). */
+export const REPEAT_WORDS = 5;
 
-/** Something done, or a walk: a pair's idle count starts again (kept, in case they only say the same again). */
+/** A walk: a pair's idle count starts again (kept, in case they come back and only say the same again). */
 function setBack(rec: TalkRecord): void {
   if (rec.idle > 0) rec.idleWas = { n: Math.max(rec.idleWas?.n ?? 0, rec.idle), t: rec.lastT };
   rec.idle = 0;
@@ -397,11 +399,14 @@ export class World {
     const settle = (a: string, b: string, kind: Settles) => {
       const rec = this.state.talk[talkKey(a, b)];
       if (!rec) return;
-      // The same gift again, between the same two, settles nothing new.
-      const gift = e.type === 'gave' ? `${e.who}>${e.item ?? 'money'}` : null;
-      if (gift && rec.gift === gift) return;
+      // The same thing given again, between the same two, doesn't start their count over (money always does).
+      const gift = e.type === 'gave' && e.item ? `${e.who}>${e.item}` : null;
+      if (!gift || rec.gift !== gift) {
+        rec.idle = 0;
+        // Something really done: the old count is gone, not just set aside.
+        delete rec.idleWas;
+      }
       if (gift) rec.gift = gift;
-      setBack(rec);
       // The other one doing something with them is an answer too (not the speaker's own offer).
       if (rec.unanswered && e.type !== 'circles' && 'who' in e && e.who !== rec.unanswered.by) delete rec.unanswered;
       if (rec.word && settles(rec.word.kind, kind)) rec.word = null;

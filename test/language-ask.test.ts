@@ -30,8 +30,8 @@ describe('which language with whom (B5)', () => {
     put(w, 'Raju', 'well');
     const p = perceive(w, w.state.residents.find((r) => r.name === 'Mei Ling')!);
     const ask = userPrompt('act', p, [], null).split('\n').at(-1)!;
-    expect(ask).toMatch(/to Mdm Tan in Teochew/);
-    expect(ask).toMatch(/to Raju in bazaar Malay/);
+    expect(ask).toMatch(/If you speak to Mdm Tan, use Teochew/);
+    expect(ask).toMatch(/to Raju, bazaar Malay/);
     expectInWorld(ask);
   });
 });
@@ -43,8 +43,9 @@ describe('their own words, in English', () => {
       { t: 2, kind: 'plan', text: 'My plan for today: Pergi ke jeti dan tangkap ikan.' },
       { t: 3, kind: 'thought', text: 'I should fish at the jetty this morning.' },
       { t: 4, kind: 'noticed', text: 'Mak Esah says to you: "Siti, makan dulu."' },
+      { t: 5, kind: 'thought', text: 'I\'ll ask Siti: "Boleh tolong saya cari makan?"' },
     ]);
-    expect(kept.map((m) => m.t)).toEqual([3, 4]);
+    expect(kept.map((m) => m.t)).toEqual([3, 4, 5]);
   });
 
   it('the instruction never leaks into a thought', () => {

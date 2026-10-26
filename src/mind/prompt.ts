@@ -45,12 +45,12 @@ const ASK: Record<ThinkKind, string> = {
   reflect: 'The day is nearly over. In a few short lines to yourself: what happened today that matters, and what have you learned?',
 };
 
-/** Which language to use with each person here (from both their ways of speaking): " (Say things to Mdm Tan in Teochew.)" */
+/** Which language to use with each person here, if they speak (from both their ways of speaking): " (If you speak to Mdm Tan, use Teochew.)" */
 function speakAs(p: Perception): string {
   const here = p.people.filter((o) => o.doing !== 'asleep').slice(0, 4);
   if (!here.length) return '';
-  const each = here.map((o) => `to ${o.name} in ${languageBetween(p.name, o.name)}`);
-  return ` (Say things ${each.length === 1 ? each[0] : `${each.slice(0, -1).join(', ')} and ${each.at(-1)}`}.)`;
+  const [first, ...rest] = here.map((o) => ({ name: o.name, lang: languageBetween(p.name, o.name) }));
+  return ` (If you speak to ${first!.name}, use ${first!.lang}${rest.map((o) => `; to ${o.name}, ${o.lang}`).join('')}.)`;
 }
 
 /** The morning plan, asked from where they are and what they hold, so it starts from what's real. */

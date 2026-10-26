@@ -61,3 +61,49 @@ describe('talk going round in circles is seen by what is said, not only by the c
     expect(rec(w, 'Siti', 'Mak Esah').idle).toBe(2);
   });
 });
+
+describe('review fixes (B3)', () => {
+  it('a thank-you after a real gift does not bring back the old count', () => {
+    const w = pair();
+    const siti = who(w, 'Siti');
+    siti.items = { bread: 1 };
+    const lines = ['Mak, the lorry man came early today.', 'Thank you, Siti, you are kind.', 'The tide is high this morning.', 'Your father would have liked it.', 'I will fetch water later.'];
+    lines.forEach((l, i) => sayTo(w, i % 2 ? 'Mak Esah' : 'Siti', i % 2 ? 'Siti' : 'Mak Esah', l));
+    accepted(act(w, siti.id, { verb: 'give', to: 'Mak Esah', item: 'bread', qty: 1 }));
+    sayTo(w, 'Mak Esah', 'Siti', 'Thank you, Siti, you are so kind.');
+    expect(rec(w, 'Siti', 'Mak Esah').idle).toBe(1);
+  });
+
+  it('after a walk, a short pleasantry said again starts the count over; a real repeat picks it up', () => {
+    const w = pair();
+    for (let i = 0; i < 4; i++) sayTo(w, i % 2 ? 'Mak Esah' : 'Siti', i % 2 ? 'Siti' : 'Mak Esah', i % 2 ? 'Thank you, Siti.' : 'Mak, please eat the bubur in the pot now.');
+    accepted(act(w, who(w, 'Siti').id, { verb: 'walk_to', where: 'the jetty' }));
+    put(w, 'Siti', 'well');
+    sayTo(w, 'Mak Esah', 'Siti', 'Thank you, Siti.');
+    expect(rec(w, 'Siti', 'Mak Esah').idle).toBe(1);
+  });
+
+  it('a repeat gift of money still settles talk of paying', () => {
+    const w = pair();
+    const siti = who(w, 'Siti');
+    siti.money = 500;
+    accepted(act(w, siti.id, { verb: 'give', to: 'Mak Esah', money: 10 }));
+    sayTo(w, 'Mak Esah', 'Siti', 'Pay me 20 cents for the kueh.');
+    sayTo(w, 'Siti', 'Mak Esah', 'I will pay you 20 cents now.');
+    accepted(act(w, siti.id, { verb: 'give', to: 'Mak Esah', money: 20 }));
+    expect(rec(w, 'Siti', 'Mak Esah').word).toBeNull();
+  });
+
+  it('the circles moment is marked even when a resumed count jumps past it', () => {
+    const w = pair();
+    const events: string[] = [];
+    for (let i = 0; i < 5; i++) sayTo(w, i % 2 ? 'Mak Esah' : 'Siti', i % 2 ? 'Siti' : 'Mak Esah', i % 2 ? 'Later, later. I am not hungry now, Siti.' : 'Mak, please eat the bubur in the pot now.');
+    accepted(act(w, who(w, 'Siti').id, { verb: 'walk_to', where: 'the jetty' }));
+    w.takeEvents();
+    put(w, 'Siti', 'well');
+    sayTo(w, 'Siti', 'Mak Esah', 'Mak, please eat the bubur in the pot now.');
+    events.push(...w.takeEvents().map((e) => e.type));
+    expect(rec(w, 'Siti', 'Mak Esah').idle).toBe(6);
+    expect(events).toContain('circles');
+  });
+});
