@@ -40,8 +40,8 @@ describe('Pak Osman: his comings and goings', () => {
       if (sunday) { expect(s).toBeNull(); continue; }
       expect(s!.arrives).toBeGreaterThanOrEqual(6 * 60 + 20);
       expect(s!.arrives).toBeLessThanOrEqual(6 * 60 + 40);
-      expect(s!.leaves - s!.arrives).toBeGreaterThanOrEqual(80);
-      expect(s!.leaves - s!.arrives).toBeLessThanOrEqual(100);
+      expect(s!.leaves).toBeGreaterThanOrEqual(11 * 60 + 40);
+      expect(s!.leaves).toBeLessThanOrEqual(12 * 60 + 20);
     }
   });
 
@@ -49,7 +49,7 @@ describe('Pak Osman: his comings and goings', () => {
     const w = newWorld(6, 0);
     const s = scheduleFor(w, dayIndex(w.t))!;
     const types: { type: string; mod: number }[] = [];
-    while (minuteOfDay(w.t) < 9 * 60) {
+    while (minuteOfDay(w.t) < 13 * 60) {
       advance(w);
       for (const e of w.takeEvents()) if (e.type === 'lorry_arrived' || e.type === 'lorry_left') types.push({ type: e.type, mod: minuteOfDay(e.t) });
     }

@@ -1,5 +1,3 @@
-import { FUND_ID, LORRY_ID, MR_LIM_ID, OPENING_ID, OUTSIDE, TRAVELLERS_ID } from '../sim/state.ts';
-import type { LedgerEntry } from '../sim/events.ts';
 /**
  * The Kampung wiki on the watch page: who lives here, the places, how the
  * kampung works (from the rules as they are in the code), its economy day by
@@ -12,10 +10,10 @@ import { DAYS_TO_GROW, HARVEST_YIELD, MAX_BEDS_EACH, TRADE_OFFER_MINUTES } from 
 import { DEBT_OFFER_MINUTES } from '../sim/actions/debts.ts';
 import { JOB_OFFER_MINUTES, MAX_SHIFT_HOURS } from '../sim/actions/owners.ts';
 import { dateAt, MONTHS, shortStamp, type Calendar } from '../sim/calendar.ts';
-import type { GameEvent } from '../sim/events.ts';
+import type { GameEvent, LedgerEntry } from '../sim/events.ts';
 import { ITEMS, LORRY_BUYS, LORRY_SELLS, RECIPES, quantityLabel, type ItemId } from '../sim/items.ts';
 import { formatMoney, type Cents } from '../sim/money.ts';
-import { FARM_BEDS, NEARBY_TILES } from '../sim/state.ts';
+import { FARM_BEDS, FUND_ID, LORRY_ID, MR_LIM_ID, NEARBY_TILES, OPENING_ID, OUTSIDE, TRAVELLERS_ID } from '../sim/state.ts';
 import { LORRY_ARRIVES, LORRY_LEAVES } from '../sim/tick.ts';
 import { dayIndex, GAME_MINUTES_PER_REAL_MINUTE, MINUTES_PER_DAY, NIGHT_END_HOUR, NIGHT_START_HOUR, SGT_OFFSET_MIN } from '../sim/time.ts';
 import { CARDS } from '../seed/cards.ts';

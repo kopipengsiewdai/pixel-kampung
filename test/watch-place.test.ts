@@ -84,7 +84,7 @@ describe('clicking a place shows what is inside', () => {
     expect(early.lorry!.buys).toContain('fish 15¢');
     const w = newWorld(7, 10);
     w.state.lorryHere = true;
-    expect(cardAt(w, 'lorry-stop')!.lorry).toMatchObject({ here: true, next: 'Pak Osman is here now, until about 08:00.' });
+    expect(cardAt(w, 'lorry-stop')!.lorry).toMatchObject({ here: true, next: 'Pak Osman is here now, until about 12:00.' });
     expect(cardAt(newWorld(9), 'lorry-stop')!.lorry!.next).toBe('Pak Osman comes about 06:30 tomorrow (not on Sundays), and stays until about noon.');
   });
 

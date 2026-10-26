@@ -93,7 +93,7 @@ describe('a neighbour can see someone is hungry', () => {
 describe('hungry, they are pointed only where someone will serve them', () => {
   const idle: Brain = { decide: () => null, save: () => null, load: () => {} };
   function hungryTown(minded: boolean) {
-    const start = sgt(9, 0) - 1;
+    const start = sgt(14, 0) - 1;
     const town = Town.create(1, start, { brains: () => idle });
     const w = town.world;
     for (const r of w.state.residents) {

@@ -22,7 +22,7 @@ import { dayIndex, minuteOfDay } from './time.ts';
 export const OSMAN = 'Pak Osman';
 export const OSMAN_ID = 'pak-osman';
 
-/** About when he comes (06:30, give or take ten minutes) and how long he stays (about 90 minutes). */
+/** About when he comes (06:30, give or take ten minutes) and how long he stays. */
 export const ARRIVES = 6 * 60 + 30;
 export const ARRIVE_SPREAD = 10;
 /** The first half of the day: about half past six to about noon (owner, 2026-10-26). */

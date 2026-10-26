@@ -58,7 +58,7 @@ describe('a resident with nothing to do', () => {
   /** A town of idle brains, everyone thinking only when the test says, with Siti having last done something at `start`. */
   async function idleTown() {
     const idle: Brain = { decide: () => null, save: () => null, load: () => {} };
-    const start = sgt(9, 0) - 1;
+    const start = sgt(14, 0) - 1;
     const town = Town.create(1, start, { brains: () => idle });
     for (const r of town.world.state.residents) {
       r.thinkAt = start + 1000;

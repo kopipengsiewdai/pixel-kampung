@@ -136,16 +136,16 @@ void advance;
 
 describe('what is due soon still brings a thought on', () => {
   it("a worker is woken when their shift starts, and someone with an offer before it lapses", async () => {
-    const w = newWorld(9, 50);
+    const w = newWorld(14, 50);
     const huat = put(w, 'Ah Huat', 'kopitiam');
     const siti = put(w, 'Siti', 'kopitiam');
-    accepted(act(w, huat.id, { verb: 'offer_job', to: 'Siti', wage: 200, startHour: 10, hours: 2 }));
+    accepted(act(w, huat.id, { verb: 'offer_job', to: 'Siti', wage: 200, startHour: 15, hours: 2 }));
     accepted(act(w, siti.id, { verb: 'accept_job', from: 'Ah Huat' }));
     siti.thinkAt = w.t + 1000;
     siti.hunger = 100;
     const limit = w.t + 60;
     while (siti.thinkAt > w.t && w.t < limit) advance(w);
-    expect(minuteOfDay(w.t)).toBe(10 * 60);
+    expect(minuteOfDay(w.t)).toBe(15 * 60);
     const raju = put(w, 'Raju', 'kopitiam');
     raju.items = { fish: 1 };
     accepted(act(w, raju.id, { verb: 'offer_trade', to: 'Siti', give: { items: { fish: 1 } }, want: { money: 10 } }));

@@ -52,7 +52,7 @@ describe('hunger that matters', () => {
 describe('the nudge, when hungry, points to food', () => {
   it('a hungry resident pottering about is told where food is sold, not only where there is work', async () => {
     const idle: Brain = { decide: () => null, save: () => null, load: () => {} };
-    const start = sgt(9, 0) - 1;
+    const start = sgt(14, 0) - 1;
     const town = Town.create(1, start, { brains: () => idle });
     for (const r of town.world.state.residents) {
       r.thinkAt = start + 1000;

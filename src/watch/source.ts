@@ -1,4 +1,3 @@
-import type { LedgerEntry } from '../sim/events.ts';
 /**
  * Where the watch page's pictures come from: the live town as it runs, or a
  * recorded trial played back. Either way the page gets a hello (layout, the
@@ -8,7 +7,7 @@ import type { LedgerEntry } from '../sim/events.ts';
 import { VERSION } from '../version.ts';
 import { basename } from 'node:path';
 import { feedLine, keepFeed, type FeedLine } from '../feed/feed.ts';
-import type { GameEvent } from '../sim/events.ts';
+import type { GameEvent, LedgerEntry } from '../sim/events.ts';
 import type { Point } from '../sim/map.ts';
 import { createWorld } from '../sim/seed.ts';
 import { World } from '../sim/state.ts';
