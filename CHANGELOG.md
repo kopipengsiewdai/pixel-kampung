@@ -4,6 +4,13 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **Cooking at home** ([docs/design/home-cooking.md](docs/design/home-cooking.md)): every house has a small stove. Anyone can cook a plain dish at home (bubur, fish porridge, vegetable rice, kopi, and new **grilled fish** and **boiled kangkong**) from what they carry: one small pot at a time on a house's stove, two servings (three for a master cook), into their own hands. The skilled dishes stay at the kopitiam.
+  - A stove needs fuel: **firewood**, gathered free past the farm plot (20 minutes a bundle, one bundle a pot), or a tin of **kerosene** from Pak Osman, which lasts four pots for anyone in that house.
+- **Family:** a hungry resident with no shop serving thinks of a relative in another house and of the jetty, in turn ("You could ask your uncle Rahim for something to eat"), and seeing a relative faint with hunger stays in mind, once a day.
+- **Living town:** at upgrade (save v16) every stove starts with no kerosene in it, and nobody has any firewood yet.
+
 ## 0.19.1 (2026-10-26): English on the watch page
 
 - **English on the watch page:** an "English" button by the story feed shows lines residents say or think in Malay (or anything else) in English, with the original on hover. Speech itself is left as the residents choose. Translations come from the cheap model only while the button is on, a batch at a time, inside the town's daily cap (in the cost log as watch-page), and each line is translated once and kept privately under `$KAMPUNG_HOME`.

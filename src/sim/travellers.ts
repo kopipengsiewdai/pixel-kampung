@@ -20,7 +20,7 @@ export const WAIT_MINUTES = 8;
 /** In a shop swept today, they'll wait longer. */
 export const SWEPT_WAIT_MINUTES = 12;
 /** Minutes at the stove a batch takes (kopi is quicker). */
-export const COOK_MINUTES: Partial<Record<ItemId, number>> = { kopi: 5, 'fish porridge': 10, 'vegetable rice': 10, 'sambal kangkong': 8, bubur: 12 };
+export const COOK_MINUTES: Partial<Record<ItemId, number>> = { kopi: 5, 'fish porridge': 10, 'vegetable rice': 10, 'sambal kangkong': 8, bubur: 12, 'grilled fish': 10, 'boiled kangkong': 8 };
 
 /** When travellers come to each shop: one every so many minutes in its busy hours, and in its other open hours (07–21). */
 export const TRAVELLER_HOURS: Record<string, { busy: [number, number][]; busyEvery: number; otherEvery: number }> = {
@@ -174,11 +174,12 @@ export function stoveMinute(w: World, r: Resident): void {
   if (!s || w.t < s.until) return;
   r.stove = null;
   const shop = w.shop(s.shopId);
-  if (!shop) return;
-  addGoods(shop.stock, s.item, s.qty);
+  // A pot at home goes into the cook's hands.
+  if (shop) addGoods(shop.stock, s.item, s.qty);
+  else addGoods(r.items, s.item, s.qty);
   w.emit({ type: 'cooked', who: r.id, item: s.item, qty: s.qty });
   // Word gets round on the road: travellers pay a little more where a master cooked today.
-  if (skillLevel(r, 'cooking') === 5) shop.today.masterCooked = true;
+  if (shop && skillLevel(r, 'cooking') === 5) shop.today.masterCooked = true;
   practise(w, r, 'cooking', s.batches);
   w.notify(r.id, `The ${s.item} is ready: ${quantityLabel(s.item, s.qty)}.`);
 }

@@ -15,18 +15,18 @@ import { practise, skillLevel } from '../skills.ts';
 import { TRAVELLER_PAYS } from '../travellers.ts';
 
 /** How long each chore takes, in game minutes. */
-export const CHORE_MINUTES: Record<ChoreKind, number> = { fetch_water: 10, mend_nets: 30, sweep: 15, cast_net: 45 };
+export const CHORE_MINUTES: Record<ChoreKind, number> = { fetch_water: 10, mend_nets: 30, sweep: 15, cast_net: 45, gather_wood: 20 };
 /** Mended nets bring one more fish on this many catches, the same day. */
 export const MENDED_CATCHES = 3;
 /** An errand asked lapses unanswered after this many minutes. */
 export const ERRAND_OFFER_MINUTES = 30;
 
 /** What someone at a chore is doing, as others see it (and the watch page). */
-export const CHORE_DOING: Record<ChoreKind, string> = { fetch_water: 'fetching water', mend_nets: 'mending nets', sweep: 'sweeping', cast_net: 'casting a net' };
+export const CHORE_DOING: Record<ChoreKind, string> = { fetch_water: 'fetching water', mend_nets: 'mending nets', sweep: 'sweeping', cast_net: 'casting a net', gather_wood: 'gathering firewood' };
 
 /** What they're told if they try something else meanwhile. */
 export function busyAt(chore: ChoreKind): string {
-  return { fetch_water: "You're fetching water.", mend_nets: "You're mending nets.", sweep: "You're sweeping.", cast_net: "You're casting your net." }[chore];
+  return { fetch_water: "You're fetching water.", mend_nets: "You're mending nets.", sweep: "You're sweeping.", cast_net: "You're casting your net.", gather_wood: "You're gathering firewood." }[chore];
 }
 
 /** The start of the next day: when a taken errand lapses. */
@@ -44,6 +44,12 @@ export function fetchWater(w: World, r: Resident): ActionResult {
   if (!w.isAt(r, 'well')) return no('You need to be at the well to fetch water.');
   start(w, r, 'fetch_water', null, null);
   return ok('You let the pail down into the well.');
+}
+
+export function gatherFirewood(w: World, r: Resident): ActionResult {
+  if (!w.isAt(r, 'farm')) return no('The fallen wood is out past the farm plot.');
+  start(w, r, 'gather_wood', null, null);
+  return ok('You go out past the farm plot to pick up fallen branches.');
 }
 
 export function mendNets(w: World, r: Resident): ActionResult {
@@ -126,6 +132,10 @@ export function finishChore(w: World, r: Resident): void {
     addGoods(r.items, 'water', 1);
     w.emit({ type: 'chore_done', who: r.id, chore: a.chore, for: null });
     w.remember(r.id, 'You draw up a pail of water.');
+  } else if (a.chore === 'gather_wood') {
+    addGoods(r.items, 'firewood', 1);
+    w.emit({ type: 'chore_done', who: r.id, chore: a.chore, for: null });
+    w.remember(r.id, 'You tie up a bundle of firewood.');
   } else if (a.chore === 'mend_nets') {
     const owner = a.forId ? w.resident(a.forId) : r;
     owner.mended = { day: today, left: MENDED_CATCHES };

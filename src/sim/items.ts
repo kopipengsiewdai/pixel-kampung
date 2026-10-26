@@ -3,7 +3,8 @@ import type { Cents } from './money.ts';
 export type ItemId =
   | 'fish' | 'vegetables' | 'rice' | 'coffee' | 'bread'
   | 'kopi' | 'fish porridge' | 'vegetable rice' | 'water'
-  | 'red snapper' | 'chilli' | 'papaya' | 'sambal kangkong' | 'kerosene' | 'bubur';
+  | 'red snapper' | 'chilli' | 'papaya' | 'sambal kangkong' | 'kerosene' | 'bubur'
+  | 'firewood' | 'grilled fish' | 'boiled kangkong';
 
 export interface ItemDef {
   id: ItemId;
@@ -49,6 +50,17 @@ export const ITEMS: Record<ItemId, ItemDef> = {
   bubur: {
     id: 'bubur', one: 'a bowl of bubur', many: '{n} bowls of bubur',
     aliases: ['plain rice', 'rice porridge', 'plain porridge', 'congee', 'boiled rice', 'cooked rice', 'nasi', 'bowl of rice', 'rice bowl'], food: { hunger: 300 },
+  },
+  firewood: {
+    id: 'firewood', one: 'a bundle of firewood', many: '{n} bundles of firewood', aliases: ['wood', 'kayu api', 'sticks', 'bundle of firewood', 'bundles of firewood'],
+    inedible: "You can't eat firewood.",
+  },
+  'grilled fish': {
+    id: 'grilled fish', one: 'a grilled fish', many: '{n} grilled fish', aliases: ['ikan bakar', 'fried fish', 'cooked fish', 'grilled fishes'], food: { hunger: 250 },
+  },
+  'boiled kangkong': {
+    id: 'boiled kangkong', one: 'a plate of boiled kangkong', many: '{n} plates of boiled kangkong',
+    aliases: ['kangkong rebus', 'boiled vegetables', 'cooked vegetables', 'cooked kangkong'], food: { hunger: 160 },
   },
   kerosene: {
     id: 'kerosene', one: 'a tin of kerosene', many: '{n} tins of kerosene', aliases: ['minyak tanah', 'lamp oil', 'paraffin'],
@@ -111,4 +123,7 @@ export const RECIPES: Partial<Record<ItemId, Recipe>> = {
   'sambal kangkong': { makes: 'sambal kangkong', needs: { vegetables: 1, chilli: 1 }, yields: 3, level: 3 },
   // Plain rice boiled soft: the dish that turns the lorry's rice into a meal.
   bubur: { makes: 'bubur', needs: { rice: 1, water: 1 }, yields: 3 },
+  // Plain cooking anyone can do at home (docs/design/home-cooking.md): two of the raw thing, two servings that fill more.
+  'grilled fish': { makes: 'grilled fish', needs: { fish: 2 }, yields: 2 },
+  'boiled kangkong': { makes: 'boiled kangkong', needs: { vegetables: 2 }, yields: 2 },
 };

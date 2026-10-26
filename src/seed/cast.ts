@@ -30,24 +30,26 @@ export interface CastMember {
   allowance?: number;
   /** What they call someone in their family, as families do ("Mak"). */
   calls?: Readonly<Record<string, string>>;
+  /** Their relatives, and what each is to them ("uncle"), as their card says (docs/design/home-cooking.md). */
+  kin?: Readonly<Record<string, string>>;
   /** What they're already good at, by level 2–5 (owner, 2026-10-25; docs/design/skills.md). */
   skills?: Readonly<Partial<Record<SkillId, number>>>;
 }
 
 export const CAST: readonly CastMember[] = [
-  { name: 'Ah Huat', role: 'owner', business: 'kopitiam', knows: ['Ah Seng', 'Rahim'], skills: { cooking: 5 } },
-  { name: 'Mdm Tan', role: 'owner', business: 'provision-shop', knows: ['Mei Ling'] },
-  { name: 'Rahim', role: 'owner', business: 'market-stall', knows: ['Fatimah', 'Ah Huat', 'Aminah', 'Hassan'], skills: { fishing: 5 } },
-  { name: 'Mei Ling', role: 'seeker', knows: ['Mdm Tan'] },
+  { name: 'Ah Huat', role: 'owner', business: 'kopitiam', knows: ['Ah Seng', 'Rahim'], kin: { 'Ah Seng': 'son' }, skills: { cooking: 5 } },
+  { name: 'Mdm Tan', role: 'owner', business: 'provision-shop', knows: ['Mei Ling'], kin: { 'Mei Ling': 'niece' } },
+  { name: 'Rahim', role: 'owner', business: 'market-stall', knows: ['Fatimah', 'Ah Huat', 'Aminah', 'Hassan'], kin: { Fatimah: 'sister-in-law', Aminah: 'niece', Hassan: 'nephew' }, skills: { fishing: 5 } },
+  { name: 'Mei Ling', role: 'seeker', knows: ['Mdm Tan'], kin: { 'Mdm Tan': 'aunt' } },
   { name: 'Ah Kow', role: 'seeker', knows: [], places: ['well', 'kopitiam'], skills: { farming: 2 } },
-  { name: 'Siti', role: 'seeker', knows: ['Fatimah', 'Mak Esah'], calls: { Mak: 'Mak Esah' } },
-  { name: 'Muthu', role: 'seeker', knows: ['Raju'] },
-  { name: 'Ah Seng', role: 'seeker', knows: ['Ah Huat'] },
-  { name: 'Fatimah', role: 'seeker', knows: ['Rahim', 'Siti', 'Aminah', 'Hassan'], skills: { farming: 4 } },
-  { name: 'Raju', role: 'seeker', knows: ['Muthu'] },
-  { name: 'Mak Esah', role: 'family', knows: ['Siti'], livesWith: 'Siti', allowance: 0.5, skills: { cooking: 5 } },
-  { name: 'Aminah', role: 'family', knows: ['Fatimah', 'Hassan', 'Rahim'], livesWith: 'Fatimah', allowance: 0.5, calls: { Mak: 'Fatimah' } },
-  { name: 'Hassan', role: 'family', knows: ['Fatimah', 'Aminah', 'Rahim'], livesWith: 'Fatimah', allowance: 0.5, calls: { Mak: 'Fatimah' }, skills: { fishing: 2 } },
+  { name: 'Siti', role: 'seeker', knows: ['Fatimah', 'Mak Esah'], kin: { 'Mak Esah': 'mother' }, calls: { Mak: 'Mak Esah' } },
+  { name: 'Muthu', role: 'seeker', knows: ['Raju'], kin: { Raju: 'cousin' } },
+  { name: 'Ah Seng', role: 'seeker', knows: ['Ah Huat'], kin: { 'Ah Huat': 'father' } },
+  { name: 'Fatimah', role: 'seeker', knows: ['Rahim', 'Siti', 'Aminah', 'Hassan'], kin: { Aminah: 'daughter', Hassan: 'son', Rahim: 'brother-in-law' }, skills: { farming: 4 } },
+  { name: 'Raju', role: 'seeker', knows: ['Muthu'], kin: { Muthu: 'cousin' } },
+  { name: 'Mak Esah', role: 'family', knows: ['Siti'], kin: { Siti: 'daughter' }, livesWith: 'Siti', allowance: 0.5, skills: { cooking: 5 } },
+  { name: 'Aminah', role: 'family', knows: ['Fatimah', 'Hassan', 'Rahim'], kin: { Fatimah: 'mother', Hassan: 'brother', Rahim: 'uncle' }, livesWith: 'Fatimah', allowance: 0.5, calls: { Mak: 'Fatimah' } },
+  { name: 'Hassan', role: 'family', knows: ['Fatimah', 'Aminah', 'Rahim'], kin: { Fatimah: 'mother', Aminah: 'sister', Rahim: 'uncle' }, livesWith: 'Fatimah', allowance: 0.5, calls: { Mak: 'Fatimah' }, skills: { fishing: 2 } },
 ];
 
 /**
@@ -66,3 +68,9 @@ export const START_MONEY: Record<CastMember['role'], [Cents, Cents]> = {
   seeker: [500, 2000],
   family: [0, 0],
 };
+
+/** A resident's relatives by id, and what each is to them. */
+export function kinOf(id: string): { id: string; word: string }[] {
+  const c = CAST.find((m) => m.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') === id);
+  return Object.entries(c?.kin ?? {}).map(([name, word]) => ({ id: name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''), word }));
+}

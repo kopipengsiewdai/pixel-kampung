@@ -117,6 +117,7 @@ export function feedText(e: GameEvent, n: Names): { text: string; notable: boole
     case 'traveller_bought': return null;
     case 'chore_done':
       if (e.chore === 'fetch_water') return line(`${n(e.who)} fetched a pail of water from the well.`);
+      if (e.chore === 'gather_wood') return line(`${n(e.who)} gathered a bundle of firewood.`);
       if (e.chore === 'mend_nets') return line(e.for ? `${n(e.who)} mended ${n(e.for)}'s nets.` : `${n(e.who)} mended their nets.`);
       return line(`${n(e.who)} swept the shop.`);
     case 'helped': return line(`${n(e.who)} watered ${n(e.to)}'s beds.`);

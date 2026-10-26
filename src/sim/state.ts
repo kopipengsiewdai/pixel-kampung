@@ -32,7 +32,7 @@ export type Activity =
   /** A chore (daily-life.md C): fetching water, mending nets (their own, or helping someone's), sweeping a shop. A worker on shift keeps the shift held in it. */
   | { kind: 'chore'; chore: ChoreKind; until: number; shopId: string | null; forId: string | null; shift: { jobId: number; until: number; worked: number } | null };
 
-export type ChoreKind = 'fetch_water' | 'mend_nets' | 'sweep' | 'cast_net';
+export type ChoreKind = 'fetch_water' | 'mend_nets' | 'sweep' | 'cast_net' | 'gather_wood';
 /** What a bed grows: kangkong, or for the skilled chilli, and for a master a papaya tree. */
 export type Crop = 'kangkong' | 'chilli' | 'papaya';
 
@@ -238,6 +238,10 @@ export interface WorldState {
   lorryHere: boolean;
   /** Pak Osman the lorry trader: today's visit, his ledger of residents and what he's been asked to bring. */
   osman: OsmanState;
+  /** Batches of kerosene left in each house's stove, by house id (docs/design/home-cooking.md). */
+  stoves: Record<string, number>;
+  /** The day each resident last took in a relative faint with hunger, by "who>whom". */
+  faintSeen: Record<string, number>;
   /** Keys of one-off notable things that already happened (e.g. a shop's first sale). */
   firsts: string[];
   /** Lines spoken between each pair lately ("a|b" sorted), for the talk soft limit. */
