@@ -12,7 +12,7 @@ import { createWorld } from './sim/seed.ts';
 import { MAX_REPLAY_MINUTES, skipQuietly } from './sim/skip.ts';
 import { World, type Resident, type WorldState } from './sim/state.ts';
 import { advance } from './sim/tick.ts';
-import { osmanThinks, type OsmanHead } from './sim/osman.ts';
+import { osmanThinks, priceFor, type OsmanHead } from './sim/osman.ts';
 import { isNight, minuteOfDay, realMsAt } from './sim/time.ts';
 import type { SqliteStore } from './store/sqlite-store.ts';
 import { SCHEMA_VERSION } from './store/upgrades.ts';
@@ -56,6 +56,12 @@ function pottered(w: World, r: Resident, p: Perception): void {
     const food = w.state.shops.filter((s) => s.id !== p.placeId && r.knownPlaces.includes(s.id) && isStaffed(w, s)
       && (Object.entries(s.sellPrices) as [ItemId, number][]).some(([i, price]) => ITEMS[i].food && (s.stock[i] ?? 0) > 0 && price <= r.money))
       .map((s) => w.placeName(PLACE_BY_ID.get(s.id)!));
+    // The lorry, while it's in with food they can pay for (they heard its horn).
+    const v = w.state.osman.visit;
+    if (v && p.placeId !== 'lorry-stop' && r.knownPlaces.includes('lorry-stop')
+      && (Object.keys(v.goods) as ItemId[]).some((i) => ITEMS[i].food && (v.goods[i] ?? 0) > 0 && (priceFor(w, r, 'sells', i) ?? Infinity) <= r.money)) {
+      food.push(w.placeName(PLACE_BY_ID.get('lorry-stop')!));
+    }
     if (food.length) {
       const list = food.length === 1 ? food[0]! : `${food.slice(0, -1).join(', ')} or ${food.at(-1)}`;
       r.reply = { ok: true, text: `You're hungry. You could get something to eat at ${list}.` };

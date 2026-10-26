@@ -148,3 +148,26 @@ describe("nobody minding the shop: asking again this minute won't help", () => {
     expect(tries).toBe(1);
   });
 });
+
+describe('hungry while the lorry is in: it is named too', () => {
+  it('with bread on the lorry they can afford, the lorry stop is where they could eat', async () => {
+    const idle: Brain = { decide: () => null, save: () => null, load: () => {} };
+    const start = sgt(6, 0) - 1;
+    const town = Town.create(1, start, { brains: () => idle });
+    const w = town.world;
+    for (const r of w.state.residents) {
+      r.thinkAt = start + 100_000;
+      r.lastDone = { what: 'fish', t: start };
+    }
+    for (const s of w.state.shops) s.stock = {};
+    while (!w.state.osman.visit) advance(w);
+    w.state.osman.visit.goods.bread = 5;
+    const siti = put(w, 'Siti', 'well');
+    siti.hunger = 820;
+    siti.money = 500;
+    siti.items = {};
+    siti.thinkAt = w.t + 1;
+    await town.runUntil(w.t + 1);
+    expect(siti.reply?.text).toBe("You're hungry. You could get something to eat at the lorry stop.");
+  });
+});

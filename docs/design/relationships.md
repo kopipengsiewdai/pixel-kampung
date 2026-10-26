@@ -38,8 +38,13 @@ never shown to residents as numbers.
 | talk between you, a line each way | 0 | +1 (at most +3 a day) |
 | a lesson given | +2 | +5 |
 
-Words alone never move trust: only deeds do. All of this is scripted and costs
-nothing.
+Words alone never move trust: only deeds do. Each kind of deed counts once a
+day for each pair (a stream of 1¢ gifts buys nothing), and a gift under 10¢
+doesn't count. A part repayment gives +3 trust; the full +10 comes when it's all
+paid. Wages count against an employer only after a whole waking day unpaid, and
+a deal talked of is held against the speaker after an hour of waking time (never
+for "all paid", where the speaker may be the one owed). All of this is scripted
+and costs nothing.
 
 ## What residents see
 
@@ -49,15 +54,17 @@ middle band:
 
 - **Trust:** "you'd trust them with anything", "you trust them", (nothing),
   "you're wary of them", "you don't trust them".
-- **Fondness:** "dear to you", "a friend", (nothing), "you don't much like
-  them", "you can't stand them".
+- **Fondness:** "dear to you", "you're fond of them", (nothing), "you don't much
+  like them", "you can't stand them".
 
-Each line uses the person's name, so no pronoun is guessed. The owner's watch
-page shows the numbers on the resident's card.
+One line a person, using their name, so no pronoun is guessed ("Rahim is dear
+to you, and you trust Rahim."), for at most four awake people nearby, the
+strongest feelings first. The owner's watch page shows the numbers on the
+resident's card.
 
 ## What reads them
 
-- Marriage (later): both ways, fondness at least 70 and trust at least 50.
+- Marriage (later): both ways, fondness at least 70 and trust at least 50, and never between family.
 - Lodgers and asking to be taken in (later).
 - The residents' own judgement: whom to lend to, hire or believe.
 

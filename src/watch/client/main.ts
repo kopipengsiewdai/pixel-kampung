@@ -351,6 +351,14 @@ function renderCard(c: Card): void {
     c.wages.length ? el('p', { class: 'job' }, el('b', {}, 'Wages: '), c.wages.join('; ')) : null,
     c.carrying.length ? el('div', { class: 'chips' }, ...c.carrying.map((x) => el('span', { class: 'chip' }, x.label))) : null,
   ];
+  if (c.bonds?.length) {
+    const key = `bonds:${c.id}`;
+    const details = el('details', expanded.has(key) ? { class: 'bonds', open: '' } : { class: 'bonds' },
+      el('summary', {}, 'How they feel about people'),
+      el('ul', {}, ...c.bonds.map((b) => el('li', {}, el('b', {}, b.name), ` trust ${b.trust}, fondness ${b.fondness}`))));
+    details.addEventListener('toggle', () => { if (details.open) expanded.add(key); else expanded.delete(key); });
+    parts.push(details);
+  }
   if (c.shop) {
     const key = `shop:${c.id}`;
     const details = el('details', expanded.has(key) ? { class: 'shop', open: '' } : { class: 'shop' },

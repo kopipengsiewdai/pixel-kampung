@@ -152,6 +152,8 @@ export interface Card extends ResidentView {
   noticed: Thought[];
   /** Set when there's nothing to show, e.g. "Runs on the free fake brain, so has no thoughts to show." */
   mindNote: string | null;
+  /** How they feel about each person they know (live town only; owner's eyes, numbers -100 to 100). */
+  bonds?: { name: string; trust: number; fondness: number }[];
 }
 
 /** One push to the page: the latest frame and the feed lines since the last push. */

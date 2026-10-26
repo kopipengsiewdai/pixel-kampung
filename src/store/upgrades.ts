@@ -69,6 +69,10 @@ const SKILLS_V13: Record<string, Record<string, [number, number]>> = {
 /** Who in the town already knows them, frozen for v11 → v12. */
 const KNOW_FAMILY_V12: Record<string, string[]> = { siti: ['mak-esah'], fatimah: ['aminah', 'hassan'], rahim: ['aminah', 'hassan'] };
 
+/** Family and old friends as the cast stood at v16 → v17 (frozen): where trust and fondness start. */
+const KIN_V17: ReadonlySet<string> = new Set(["ah-huat>ah-seng","mdm-tan>mei-ling","rahim>fatimah","rahim>aminah","rahim>hassan","mei-ling>mdm-tan","siti>mak-esah","muthu>raju","ah-seng>ah-huat","fatimah>aminah","fatimah>hassan","fatimah>rahim","raju>muthu","mak-esah>siti","aminah>fatimah","aminah>hassan","aminah>rahim","hassan>fatimah","hassan>aminah","hassan>rahim"]);
+const FRIENDS_V17: ReadonlySet<string> = new Set(['ah-huat>rahim', 'rahim>ah-huat']);
+
 /** What the old lorry carried and charged, frozen for v14 → v15: a lorry caught mid-visit carries on with it. */
 const LORRY_V15 = {
   goods: { rice: 24, coffee: 6, bread: 18, kerosene: 6 },
@@ -303,6 +307,26 @@ export const UPGRADES: readonly Upgrade[] = [
     from: 15,
     why: "Every house has a small stove: anyone can cook a plain dish at home with firewood gathered past the farm plot or a tin of kerosene from Pak Osman, a small pot of two servings into their own hands. Every stove starts with no kerosene in it.",
     save: ({ world, brains }) => ({ world: { ...world, stoves: world.stoves ?? {}, faintSeen: world.faintSeen ?? {} }, brains }),
+  },  {
+    from: 16,
+    why: "Residents now hold trust and fondness for each person they know, moved only by deeds (gifts, help, trades, debts repaid, wages, broken words, turned-down pleas, talk). Each starts where it stands: family dear and trusted, old friends friends, anyone else neither.",
+    save: ({ world, brains }) => {
+      if (world.bonds) return { world, brains };
+      const bonds: Record<string, unknown> = {};
+      for (const r of world.residents as { id: string; knownPeople: string[] }[]) {
+        for (const b of r.knownPeople) {
+          const key = `${r.id}>${b}`;
+          const start = KIN_V17.has(key) ? [50, 60] : FRIENDS_V17.has(key) ? [40, 40] : [0, 0];
+          bonds[key] = { trust: start[0], fondness: start[1], day: 0, talk: 0, counted: [] };
+        }
+      }
+      // Nothing that happened before counts: deals talked of already are past holding anyone to, and wages owed start their day now.
+      const talk = Object.fromEntries(Object.entries(world.talk as Record<string, { word: Record<string, unknown> | null }>)
+        .map(([k, rec]) => [k, rec.word ? { ...rec, word: { ...rec.word, broken: true } } : rec]));
+      const day = Math.floor(((world.t as number) + 8 * 60) / 1440);
+      const owed = (world.owed as Record<string, unknown>[]).map((o) => ({ ...o, since: day }));
+      return { world: { ...world, bonds, talk, owed }, brains };
+    },
   },
 ];
 

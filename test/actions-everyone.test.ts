@@ -339,7 +339,7 @@ describe('accept_job / quit_job / work_shift', () => {
     expect(siti.activity?.kind).toBe('working');
     advanceTo(w, sgt(14, 0));
     expect(siti.activity).toBeNull();
-    expect(w.state.owed).toEqual([{ employerId: huat.id, workerId: siti.id, cents: 200 }]);
+    expect(w.state.owed).toEqual([{ employerId: huat.id, workerId: siti.id, cents: 200, since: expect.any(Number) }]);
     refused(act(w, siti.id, { verb: 'work_shift' }), /shift is from|already done/);
     advanceTo(w, sgt(10, 0, 1));
     put(w, 'Siti', 'kopitiam');
@@ -363,7 +363,7 @@ describe('accept_job / quit_job / work_shift', () => {
     accepted(act(w, siti.id, { verb: 'work_shift' }));
     advanceTo(w, sgt(11, 0));
     expect(siti.activity).toBeNull();
-    expect(w.state.owed).toEqual([{ employerId: huat.id, workerId: siti.id, cents: 50 }]);
+    expect(w.state.owed).toEqual([{ employerId: huat.id, workerId: siti.id, cents: 50, since: expect.any(Number) }]);
   });
   it('quitting ends the job', () => {
     const { w, huat, siti } = hired();

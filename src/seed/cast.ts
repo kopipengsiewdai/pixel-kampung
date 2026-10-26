@@ -32,12 +32,14 @@ export interface CastMember {
   calls?: Readonly<Record<string, string>>;
   /** Their relatives, and what each is to them ("uncle"), as their card says (docs/design/home-cooking.md). */
   kin?: Readonly<Record<string, string>>;
+  /** Old friends their card names (relationships.md: they start as friends). */
+  friends?: readonly string[];
   /** What they're already good at, by level 2–5 (owner, 2026-10-25; docs/design/skills.md). */
   skills?: Readonly<Partial<Record<SkillId, number>>>;
 }
 
 export const CAST: readonly CastMember[] = [
-  { name: 'Ah Huat', role: 'owner', business: 'kopitiam', knows: ['Ah Seng', 'Rahim'], kin: { 'Ah Seng': 'son' }, skills: { cooking: 5 } },
+  { name: 'Ah Huat', role: 'owner', business: 'kopitiam', knows: ['Ah Seng', 'Rahim'], kin: { 'Ah Seng': 'son' }, friends: ['Rahim'], skills: { cooking: 5 } },
   { name: 'Mdm Tan', role: 'owner', business: 'provision-shop', knows: ['Mei Ling'], kin: { 'Mei Ling': 'niece' } },
   { name: 'Rahim', role: 'owner', business: 'market-stall', knows: ['Fatimah', 'Ah Huat', 'Aminah', 'Hassan'], kin: { Fatimah: 'sister-in-law', Aminah: 'niece', Hassan: 'nephew' }, skills: { fishing: 5 } },
   { name: 'Mei Ling', role: 'seeker', knows: ['Mdm Tan'], kin: { 'Mdm Tan': 'aunt' } },

@@ -65,8 +65,9 @@ Either way:
 
 ## Marriage (after relationships)
 
-- **Who:** two grown, unmarried residents who are fond of each other and trust
-  each other (both ways: fondness at least 70, trust at least 50).
+- **Who:** two grown, unmarried residents, not family, who are fond of each
+  other and trust each other (both ways: fondness at least 70, trust at least
+  50).
 - **How:** either one can propose, and the other says yes or no. A wedding is
   an event in the story feed.
 - **Where:** they may move into one house, which frees the other.

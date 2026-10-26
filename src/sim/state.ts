@@ -1,3 +1,4 @@
+import { deed } from './bonds.ts';
 import { DEFAULT_DIALS, type Dials } from './dials.ts';
 import type { ItemId } from './items.ts';
 import { settledBy, settles, type DealKind, type Settles } from './talk.ts';
@@ -145,7 +146,8 @@ export interface TradeOffer {
   expires: number;
 }
 
-export interface Owed { employerId: string; workerId: string; cents: Cents }
+/** since: the day the wages were first owed (relationships.md: a full waking day unpaid costs trust). */
+export interface Owed { employerId: string; workerId: string; cents: Cents; since?: number }
 
 /**
  * Money one account owes another (daily-life.md A). Accounts are residents'
@@ -242,10 +244,22 @@ export interface WorldState {
   stoves: Record<string, number>;
   /** The day each resident last took in a relative faint with hunger, by "who>whom". */
   faintSeen: Record<string, number>;
+  /** Each resident's view of each person they know, by "who>whom" (docs/design/relationships.md). */
+  bonds: Record<string, Bond>;
   /** Keys of one-off notable things that already happened (e.g. a shop's first sale). */
   firsts: string[];
   /** Lines spoken between each pair lately ("a|b" sorted), for the talk soft limit. */
   talk: Record<string, TalkRecord>;
+}
+
+/** One resident's view of another: trust (money, keeping your word) and fondness (company, kindness), -100 to 100. */
+export interface Bond {
+  trust: number;
+  fondness: number;
+  /** The day the counts below are for: warmth from talk today, and the kinds of deed already counted today. */
+  day: number;
+  talk: number;
+  counted: string[];
 }
 
 /** A pair's chat lately (talk-circles.md). */
@@ -255,7 +269,7 @@ export interface TalkRecord {
   /** Lines since the two last did something together (a trade, a gift, a hire...) or one walked off. */
   idle: number;
   /** A deal one of them talked of as done, with nothing done yet: who said it, what kind, and when first. */
-  word: { by: string; kind: DealKind; t: number } | null;
+  word: { by: string; kind: DealKind; t: number; broken?: boolean; awake?: number } | null;
 }
 
 export const LORRY_ID = 'lorry';
@@ -308,6 +322,7 @@ export class World {
     const e = { seq: ++this.state.eventSeq, t: this.state.t, ...body } as GameEvent;
     this.events.push(e);
     this.settleTalk(e);
+    deed(this, e);
     return e;
   }
 

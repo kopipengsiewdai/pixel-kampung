@@ -195,8 +195,9 @@ body {
 .chip.need.bad { background: #f6dca0; border-color: #d9a441; }
 .chip.need.worse { background: #f3b9a9; border-color: var(--accent); }
 .card .now, .card .job { margin: 2px 0; }
-.card details.shop { margin: 4px 0; }
-.card details.shop summary { cursor: pointer; color: var(--muted); }
+.card details.shop, .card details.bonds { margin: 4px 0; }
+.card details.shop summary, .card details.bonds summary { cursor: pointer; color: var(--muted); }
+.card details.bonds ul { margin: 4px 0; padding-left: 18px; font-size: 13px; }
 .card .more, .wiki-body .more { background: none; border: none; color: var(--accent); cursor: pointer; font: inherit; font-size: 12px; padding: 2px 0; }
 .card .times { color: var(--muted); font-size: 12px; }
 .card .scroll, .wiki-body .scroll { overflow-x: auto; max-width: 100%; }
@@ -344,7 +345,7 @@ table.money th:first-child, table.money td:first-child { text-align: left; }
   .card .close { min-width: 44px; min-height: 44px; font-size: 28px; border: 2px solid var(--line); border-radius: 4px; }
   .card .tabs button { min-height: 44px; padding: 8px 12px; font-size: 15px; }
   .card .more, .wiki-body .more { min-height: 44px; }
-  .wiki-body details.account summary, .card details.shop summary { min-height: 44px; display: flex; align-items: center; }
+  .wiki-body details.account summary, .card details.shop summary, .card details.bonds summary { min-height: 44px; display: flex; align-items: center; }
   .toggle button { min-height: 44px; padding: 8px 12px; font-size: 14px; }
   .card dd, .card li { overflow-wrap: anywhere; }
 }
