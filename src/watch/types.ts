@@ -109,7 +109,12 @@ export interface Frame {
   beds: BedView[];
   /** The notes pinned on the notice board, oldest first. (Absent in frames recorded before place cards.) */
   notes?: NoteView[];
+  /** Village characters out and about (Mr Lim). (Absent in frames recorded before 0.26.) */
+  villagers?: VillagerView[];
 }
+
+/** A village character on the page: where, what they're doing, whether they're out to be seen, and (Mr Lim) today's odd jobs. */
+export interface VillagerView { id: string; name: string; role: string; x: number; y: number; out: boolean; doing: string; jobs: string[] }
 
 /** Everything the card shows when the owner clicks a place. Owner's view only. */
 export interface PlaceCard {

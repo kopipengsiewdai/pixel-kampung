@@ -10,11 +10,12 @@ import { LORRY_BUYS, LORRY_SELLS, quantityLabel, type ItemId } from '../sim/item
 import { MAP_H, MAP_W, PLACES, PLACE_BY_ID, tileAt, type Point, type Tile } from '../sim/map.ts';
 import { formatMoney, type Cents } from '../sim/money.ts';
 import { energyWord, hungerWord } from '../sim/perception.ts';
-import { GROWN_AGE, type Goods, type Resident, type Shop, type World } from '../sim/state.ts';
+import { GROWN_AGE, MR_LIM_ID, VILLAGER_NAMES, type Goods, type Resident, type Shop, type World } from '../sim/state.ts';
+import { jobsToday, MR_LIM, mrLimAt, whatOf, workingAt } from '../sim/mr-lim.ts';
 import { dateAt, MONTHS, shortStamp } from '../sim/calendar.ts';
 import { dayIndex, minuteOfDay, sgtHour, sgtMinute } from '../sim/time.ts';
 import type { GameEvent } from '../sim/events.ts';
-import type { Card, Carried, Frame, Layout, PlaceCard, ResidentView, ShopView, TalkLine, Thought } from './types.ts';
+import type { Card, Carried, Frame, Layout, PlaceCard, ResidentView, ShopView, TalkLine, Thought, VillagerView } from './types.ts';
 import { LORRY_ARRIVES, LORRY_LEAVES } from '../sim/tick.ts';
 
 export function layoutOf(w: World): Layout {
@@ -184,8 +185,20 @@ export class FrameBuilder {
         wateredDays: b.wateredDays,
       })),
       notes: w.state.notes.map((n) => ({ authorId: n.authorId, text: n.text, t: n.t, stamp: shortStamp(w.state, n.t) })),
+      villagers: [villagerView(w, t)],
     };
   }
+}
+
+/** Mr Lim on the watch page: where he is, what he's doing, and today's odd jobs. Owner's view. */
+function villagerView(w: World, t: number): VillagerView {
+  const m = mrLimAt(w, t);
+  const jobs = jobsToday(w).map((j) => {
+    const at = workingAt(w, j.id);
+    const by = j.doneBy ? `done by ${w.nameOf(j.doneBy)}` : at ? `${at.name} is at it` : 'open';
+    return `${whatOf(j.kind)}, ${formatMoney(j.pay)}: ${by}`;
+  });
+  return { id: MR_LIM_ID, name: MR_LIM, role: 'the village head', x: m.pos.x, y: m.pos.y, out: m.out, doing: m.doing, jobs };
 }
 
 export interface CardExtras {
@@ -223,7 +236,7 @@ function priceList(prices: Partial<Record<ItemId, Cents>>): string[] {
 export function placeCardOf(frame: Frame, layout: Layout, id: string): PlaceCard | null {
   const place = layout.places.find((p) => p.id === id);
   if (!place) return null;
-  const name = (rid: string | null | undefined) => (rid ? frame.residents.find((r) => r.id === rid)?.name ?? rid : null);
+  const name = (rid: string | null | undefined) => (rid ? frame.residents.find((r) => r.id === rid)?.name ?? VILLAGER_NAMES[rid] ?? rid : null);
   const inside = (r: { x: number; y: number }) => r.x >= place.rect.x && r.x < place.rect.x + place.rect.w && r.y >= place.rect.y && r.y < place.rect.y + place.rect.h;
   const people = frame.residents.filter(inside);
   const card: PlaceCard = { id, kind: place.kind, name: place.name, here: people.map((r) => r.name), shop: null, notes: null, beds: null, fishing: null, lorry: null, home: null };

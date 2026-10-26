@@ -26,7 +26,7 @@ import { placeCardOf } from './view.ts';
 export const ECONOMY_DAYS = 8;
 
 /** The events the Economy section reads: money changing hands. */
-export const ECONOMY_EVENTS: ReadonlySet<string> = new Set(['bought', 'sold', 'lorry_sale', 'lorry_order', 'lorry_bought', 'lorry_collected', 'wages_paid', 'gave', 'traded', 'debt_agreed', 'repaid', 'traveller_bought']);
+export const ECONOMY_EVENTS: ReadonlySet<string> = new Set(['bought', 'sold', 'lorry_sale', 'lorry_order', 'lorry_bought', 'lorry_collected', 'wages_paid', 'gave', 'traded', 'debt_agreed', 'repaid', 'traveller_bought', 'odd_job_done']);
 
 const dayStart = (d: number) => d * MINUTES_PER_DAY - SGT_OFFSET_MIN;
 
@@ -83,6 +83,7 @@ export function economyOf(
       case 'lorry_bought': sale(e.cents, -e.cents); if (!e.later) row.moneyOut += e.cents; break;
       case 'lorry_collected': if (e.cents > 0) sale(e.cents, -e.cents); break;
       case 'wages_paid': if (isToday) earn(e.to, e.cents); break;
+      case 'odd_job_done': row.moneyIn += e.cents; if (isToday) earn(e.who, e.cents); break;
       case 'gave': if (isToday && e.cents > 0) earn(e.to, e.cents); break;
       case 'traded':
         if (isToday) {
@@ -186,6 +187,7 @@ export function moneyOf(
       case 'lorry_sale': if (e.who === id) add(e, 'Lorry', 'the lorry', quantityLabel(e.item, e.qty), e.cents); break;
       case 'traveller_bought': if (e.owner === id) add(e, 'Sales', 'travellers from the road', quantityLabel(e.item, 1), e.cents); break;
       case 'lorry_order': if (e.who === id) add(e, 'Lorry', 'the lorry', quantityLabel(e.item, e.qty), -e.cents); break;
+      case 'odd_job_done': if (e.who === id) add(e, 'Wages', 'Mr Lim', `odd job: ${e.what}`, e.cents); break;
       case 'wages_paid':
         if (e.who === id) add(e, 'Wages', name(e.to), 'wages', -e.cents);
         else if (e.to === id) add(e, 'Wages', name(e.who), 'wages', e.cents);

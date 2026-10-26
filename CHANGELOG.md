@@ -4,6 +4,13 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+Making a living ([subsistence.md](docs/design/subsistence.md)), part two:
+- **Mr Lim is seen about:** the village head stands on his doorstep by day, walks to the notice board each morning, and goes round the houses on Monday mornings for the rent. He's indoors before a quarter past seven and from six in the evening. Click him on the watch page for a card with what he's doing and today's odd jobs.
+- **Mr Lim's odd jobs:** each morning he pins two or three on the board (mend the jetty planks, clear the path up to his house, sweep the lorry stop, scrub out the well's trough, clear the ditches past the farm plot). Each is an hour's work at its place, paid 50¢ from his own purse when it's done, so money comes into the kampung through work. One a day each; not for anyone too ill. Unfinished ones come down the next morning.
+- **Living town:** upgrades to save v21. No jobs are pinned until his next walk to the board (the same day, if the town starts before 5pm).
+
 ## 0.25.0 (2026-10-26): making a living, part one
 
 Making a living ([subsistence.md](docs/design/subsistence.md)), part one:

@@ -200,7 +200,7 @@ export class LiveSource implements WatchSource {
 
   private lineOf(e: GameEvent): FeedLine | null {
     const w = this.world!;
-    return feedLine(e, (id) => w.state.residents.find((r) => r.id === id)?.name ?? id);
+    return feedLine(e, (id) => w.nameOf(id));
   }
 
   private onEvent(e: GameEvent): void {

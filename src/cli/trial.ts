@@ -130,7 +130,7 @@ const events: GameEvent[] = [];
 const print = (e: GameEvent) => {
   record.onEvent!(e);
   events.push(e);
-  const line = feedLine(e, (id) => town.world.resident(id).name);
+  const line = feedLine(e, (id) => town.world.nameOf(id));
   if (line && (args.feed === true || line.notable || e.type === 'kampung_quiet')) console.log(formatFeedLine(line, town.world.state));
 };
 // The same dials as the living town under this KAMPUNG_HOME.
