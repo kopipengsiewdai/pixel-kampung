@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.37.0 (2026-10-28): water for the ill, thoughts in English
 
 - **The ill can fetch water again, slowly, one pail at a time** (owner, 2026-10-28; [subsistence.md](docs/design/subsistence.md) Q4). Siti and Mak Esah, ill, couldn't fetch the water to cook and stayed hungry. Anyone who sees someone ill with no water by them now notices they're too weak to be fetching it, so they can bring some. Living town: nothing saved changes; the ill can fetch water from the next minute.
 - **Thoughts back in English.** In a game day 190 of 406 thoughts were in Malay or dialect, but only 2 of 13 plans: each moment's question ended "If you speak to Fatimah, use Malay.", and the thought that followed took it up. The question now ends with thinking in English, after the language to speak. A leading "Think:" no longer stays in a thought. Living town: nothing saved changes; from the next thought.
