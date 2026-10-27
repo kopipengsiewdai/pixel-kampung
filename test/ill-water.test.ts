@@ -68,4 +68,48 @@ describe('the ill and water (subsistence.md Q4, amended 2026-10-28)', () => {
     expect(fatimah.recent.some((m) => m.text === 'Aminah looked ill.')).toBe(true);
     expect(raju.recent.some((m) => /Aminah looked ill/.test(m.text))).toBe(false);
   });
+
+  it('kin who saw them with water still notice later that day when it has gone', () => {
+    const w = newWorld(9);
+    const aminah = put(w, 'Aminah', 'kopitiam');
+    aminah.ill = { since: w.t, better: null };
+    aminah.items = { water: 1 };
+    const fatimah = put(w, 'Fatimah', 'kopitiam');
+    advance(w);
+    aminah.items = {};
+    advance(w);
+    expect(fatimah.recent.some((m) => m.text === 'Aminah looked ill, too weak to be fetching water.')).toBe(true);
+  });
+
+  it('seen at the well drawing a pail, they aren\'t thought too weak to be fetching it', () => {
+    const w = newWorld(9);
+    const siti = put(w, 'Siti', 'well');
+    siti.ill = { since: w.t, better: null };
+    siti.items = {};
+    accepted(act(w, siti.id, { verb: 'fetch_water' }));
+    const raju = put(w, 'Raju', 'well');
+    advance(w);
+    expect(raju.recent.some((m) => /too weak to be fetching water/.test(m.text))).toBe(false);
+  });
+
+  it('carrying a pail, they aren\'t offered another', async () => {
+    const { availableActions } = await import('../src/sim/actions/index.ts');
+    const w = newWorld(9);
+    const siti = put(w, 'Siti', 'well');
+    siti.ill = { since: w.t, better: null };
+    siti.items = {};
+    expect(availableActions(w, siti).map((a) => a.verb)).toContain('fetch water');
+    siti.items = { water: 1 };
+    expect(availableActions(w, siti).map((a) => a.verb)).not.toContain('fetch water');
+  });
+
+  it('a pail for themselves, yes; fetching water for pay, no (paid work stays blocked)', () => {
+    const w = newWorld(9);
+    const huat = put(w, 'Ah Huat', 'well');
+    const siti = put(w, 'Siti', 'well');
+    huat.money = 500;
+    siti.ill = { since: w.t, better: null };
+    accepted(act(w, huat.id, { verb: 'ask_errand', to: 'Siti', text: 'fetch water', money: '10¢' }));
+    expectInWorld(refused(act(w, siti.id, { verb: 'agree', from: 'Ah Huat' }), /too weak/));
+  });
 });

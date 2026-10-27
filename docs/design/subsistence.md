@@ -66,11 +66,13 @@ Kopi stays a drink.
   and ill (Siti and Mak Esah were told they were short of water ten times and
   more). Two changes:
   - (a) Someone ill may still fetch water, one pail at a time and slowly (half
-    an hour instead of ten minutes). Shifts, fishing, foraging, firewood and
-    odd jobs stay blocked.
+    an hour instead of ten minutes), and only for themselves: not while
+    carrying a pail already, and not as a paid errand. Shifts, fishing,
+    foraging, firewood and odd jobs stay blocked.
   - (b) Kin and neighbours who can see them, when they have no water with
     them, notice it in-world ("Aminah looked ill, too weak to be fetching
-    water."), once a day each, so they can bring some.
+    water."), once a day each, so they can bring some. Not while they're seen
+    drawing a pail at the well.
 - **Getting well:** about six hours after hunger falls below hungry, they're well again.
 - **Never death.**
 - Being ill is saved state, so it takes the next save version.

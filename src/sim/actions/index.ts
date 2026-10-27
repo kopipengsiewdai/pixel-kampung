@@ -116,7 +116,11 @@ export const ACTIONS: Record<string, ActionDef> = {
     run: debts.letOff, ownersOnly: false, says: 'let someone off what they owe you (person, and money for only part)',
     here: (w, r) => w.state.debts.some((d) => d.creditor === r.id),
   },
-  fetch_water: { run: (w, r) => chores.fetchWater(w, r), ownersOnly: false, says: 'fetch a pail of water', here: at('well') },
+  fetch_water: {
+    run: (w, r) => chores.fetchWater(w, r), ownersOnly: false, says: 'fetch a pail of water',
+    // Ill, one pail at a time: not offered while they carry one.
+    here: (w, r) => w.isAt(r, 'well') && !(r.ill && countGoods(r.items, 'water') > 0),
+  },
   mend_nets: {
     run: (w, r) => chores.mendNets(w, r), ownersOnly: false, says: 'mend your nets',
     here: (w, r) => w.isAt(r, 'jetty') && !(r.mended && r.mended.day === dayIndex(w.t) && r.mended.left > 0),

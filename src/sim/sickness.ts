@@ -59,11 +59,15 @@ export function noticeIll(w: World, r: Resident): void {
   const kin = new Set(kinOf(r.id).map((k) => k.id));
   for (const o of w.state.residents) {
     if (o === r || !o.ill || o.activity?.kind === 'sleeping' || !w.isNear(r, o)) continue;
-    const dry = countGoods(o.items, 'water') === 0;
-    if (!kin.has(o.id) && !dry) continue;
-    const key = `${r.id}>${o.id}`;
-    if (w.state.illSeen[key] === today) continue;
-    w.state.illSeen[key] = today;
-    w.remember(r.id, dry ? `${o.name} looked ill, too weak to be fetching water.` : `${o.name} looked ill.`);
+    // Seen drawing a pail, they're plainly managing it.
+    const fetching = o.activity?.kind === 'chore' && o.activity.chore === 'fetch_water';
+    // Noticed apart, so kin who saw a pail by them still notice once it's gone.
+    const seen = (key: string, text: string) => {
+      if (w.state.illSeen[key] === today) return;
+      w.state.illSeen[key] = today;
+      w.remember(r.id, text);
+    };
+    if (kin.has(o.id)) seen(`${r.id}>${o.id}`, `${o.name} looked ill.`);
+    if (!fetching && countGoods(o.items, 'water') === 0) seen(`${r.id}>${o.id}:water`, `${o.name} looked ill, too weak to be fetching water.`);
   }
 }

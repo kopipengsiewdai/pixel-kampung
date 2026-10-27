@@ -265,6 +265,8 @@ export function takeErrand(w: World, r: Resident, e: Errand): ActionResult {
   const asker = w.resident(e.askerId);
   const near = personNearby(w, r, asker.name);
   if (typeof near === 'string') return no(near);
+  // Ill, a pail for themselves is all they can manage (subsistence.md Q4).
+  if (r.ill && e.kind === 'water') return no("You're too weak to fetch water for anyone else just now.");
   if (e.kind === 'take') {
     // The thing changes hands as the errand is taken up.
     if (countGoods(asker.items, e.item!) < 1) return no(`${asker.name} doesn't have ${quantityLabel(e.item!, 1)} any more.`);
