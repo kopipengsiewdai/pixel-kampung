@@ -17,7 +17,7 @@ import { formatMoney, type Cents } from './money.ts';
 import { Rng } from './rng.ts';
 import { FUND_ID, GROWN_AGE, MR_LIM_ID, type PlaceOffer, type Resident, type World } from './state.ts';
 import { type ActionResult, moneyOf, no, ok } from './actions/common.ts';
-import { BUY_WEEKS, heldBy, letTo, offerWords, placeMeant, placeWords, STALL_WORDS } from './households.ts';
+import { BUY_WEEKS, fromDay, heldBy, letTo, noticeLine, offerWords, placeMeant, placeWords, STALL_WORDS } from './households.ts';
 import { cleanLine } from './osman.ts';
 import { dayIndex, minuteOfDay } from './time.ts';
 import { skillLevel } from './skills.ts';
@@ -58,6 +58,7 @@ export interface MrLimHead {
   plan(brief: MrLimBrief, at: { t: number; realMs: number }): Promise<{ jobs?: unknown; pay?: unknown } | null>;
   help?(brief: HelpBrief, at: { t: number; realMs: number }): Promise<HelpAnswer | null>;
   decide?(brief: DecideBrief, at: { t: number; realMs: number }): Promise<DecideAnswer | null>;
+  review?(brief: ReviewBrief, at: { t: number; realMs: number }): Promise<ReviewAnswer | null>;
 }
 
 const clamp = (n: number, [lo, hi]: [number, number]) => Math.max(lo, Math.min(hi, Math.round(n)));
@@ -331,6 +332,63 @@ export async function mrLimDecides(w: World, head: MrLimHead | null, realMs: num
     settle(resolve(got, [o], scripted), o.placeId!, [o]);
   }
   if (let_) keepToLet(w);
+}
+
+/**
+ * A sitting tenant's rent (households-build.md "Housing market" Q4): on Monday
+ * evenings his head looks over the houses he lets and may give notice of a new
+ * rent, starting a week on. A higher rent is agreed at his door, or the
+ * household leaves when it starts. His own way, he leaves rents be. A deal
+ * being bought week by week keeps its terms; stalls wait for their own turn.
+ */
+export const RENT_NOTICE_DAYS = 7;
+
+/** What his head is told of the houses he lets (each by its number), and what it may answer: new rents by number. */
+export interface ReviewBrief { free: number; offers: number; lets: { n: number; place: string; name: string; rent: Cents; owing: Cents }[] }
+export type ReviewAnswer = { changes?: unknown; words?: unknown };
+
+const toAgree = (w: World, r: Resident) => heldBy(w, r.id).filter(([, p]) => p.notice && !p.notice.agreed);
+
+/** Whether r has a new rent to agree to, here and now. */
+export function canAgree(w: World, r: Resident): boolean {
+  return w.isAt(r, 'village-head') && atHisDoor(w) && toAgree(w, r).length > 0;
+}
+
+export function agreeToRent(w: World, r: Resident): ActionResult {
+  if (!w.isAt(r, 'village-head')) return no("You'd have to see Mr Lim at the village head's house about that.");
+  if (!atHisDoor(w)) return no("Mr Lim isn't at his door just now.");
+  const due = toAgree(w, r);
+  if (!due.length) return no("Mr Lim hasn't asked you for a new rent.");
+  for (const [, p] of due) p.notice!.agreed = true;
+  const what = due.map(([id, p]) => `${formatMoney(p.notice!.rent)} a week for ${placeWords({ placeId: id })}, ${fromDay(w, p.notice!.from)}`);
+  return ok(`You tell Mr Lim you'll pay ${what.join('; and ')}. He nods, and writes it in his book.`);
+}
+
+/** Monday evenings (or the first time the town is awake after five): his head looks over the rents, once a week. */
+export async function mrLimReviews(w: World, head: MrLimHead | null, realMs: number): Promise<void> {
+  const today = dayIndex(w.t);
+  if (w.state.rentReviewDay === today || minuteOfDay(w.t) < DECIDE_AT || weekdayAt(w.state, w.t) !== 'Monday') return;
+  w.state.rentReviewDay = today;
+  if (!head?.review) return;
+  const lets = Object.entries(w.state.property).filter(([id, p]) => id.startsWith('house-') && p.holder !== null && !p.owned && !p.rentToOwn && !p.notice
+    && w.state.residents.some((r) => r.id === p.holder));
+  if (!lets.length) return;
+  const got = await head.review({
+    free: freeHouses(w).length,
+    offers: w.state.placeOffers.filter((o) => o.placeId === null).length,
+    lets: lets.map(([, p], i) => ({ n: i + 1, place: 'a house', name: w.nameOf(p.holder!), rent: p.rent, owing: p.owing })),
+  }, { t: w.t, realMs });
+  const words = typeof got?.words === 'string' ? cleanLine(got.words, 200) : null;
+  for (const c of Array.isArray(got?.changes) ? got.changes as unknown[] : []) {
+    const { house, rent } = (c ?? {}) as { house?: unknown; rent?: unknown };
+    const entry = typeof house === 'number' && Number.isInteger(house) ? lets[house - 1] : undefined;
+    if (!entry || typeof rent !== 'number' || !Number.isFinite(rent)) continue;
+    const [id, p] = entry;
+    const cents = Math.min(Math.round(rent), 1_000_000);
+    if (cents < 1 || cents === p.rent || p.notice) continue;
+    p.notice = { rent: cents, from: today + RENT_NOTICE_DAYS, agreed: cents < p.rent };
+    w.notify(p.holder!, `${words ? `Mr Lim says to you: "${words}" ` : ''}${noticeLine(w, id, p)}`);
+  }
 }
 
 const TO_LET = 'To let, or for sale:';

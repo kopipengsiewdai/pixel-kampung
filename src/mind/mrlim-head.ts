@@ -8,7 +8,7 @@
  */
 import type Anthropic from '@anthropic-ai/sdk';
 import { formatMoney } from '../sim/money.ts';
-import { type DecideAnswer, type DecideBrief, type HelpAnswer, type HelpBrief, JOB_PAY_BOUNDS, JOBS_A_DAY_BOUNDS, type MrLimBrief, type MrLimHead } from '../sim/mr-lim.ts';
+import { type DecideAnswer, type DecideBrief, type HelpAnswer, type HelpBrief, JOB_PAY_BOUNDS, JOBS_A_DAY_BOUNDS, type MrLimBrief, type MrLimHead, type ReviewAnswer, type ReviewBrief } from '../sim/mr-lim.ts';
 import { MR_LIM_ID } from '../sim/state.ts';
 import { dayCap, ESTIMATE } from './budget.ts';
 import type { CostLog } from './cost-log.ts';
@@ -56,6 +56,30 @@ export const DECIDE_TOOL: Anthropic.Tool = {
       words: { type: 'string', description: 'What you say to them, one short line.' },
     },
     required: ['answer'],
+  },
+};
+
+export const REVIEW_TOOL: Anthropic.Tool = {
+  name: 'review',
+  description: 'Set new rents for the houses you let, or none.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      changes: {
+        type: 'array',
+        description: 'Only the houses whose rent you change; leave empty to change none.',
+        items: {
+          type: 'object',
+          properties: {
+            house: { type: 'integer', description: 'The number of the house.' },
+            rent: { type: 'integer', description: 'Its new rent a week, in cents.' },
+          },
+          required: ['house', 'rent'],
+        },
+      },
+      words: { type: 'string', description: 'What you say to a tenant whose rent you change, one short line.' },
+    },
+    required: ['changes'],
   },
 };
 
@@ -113,5 +137,14 @@ export class ModelMrLimHead implements MrLimHead {
       'You may accept one offer, counter with what you would take, or wait for better. Decide, and say a few words.',
     ].join('\n');
     return this.ask(user, at, DECIDE_TOOL);
+  }
+
+  async review(b: ReviewBrief, at: { t: number; realMs: number }): Promise<ReviewAnswer | null> {
+    const user = [
+      `It's Monday evening, and you look over the rents of the houses you let. ${b.free === 0 ? 'No house stands free' : `${b.free} house${b.free === 1 ? ' stands' : 's stand'} free`}, and ${b.offers === 0 ? 'nobody is waiting' : `${b.offers} ${b.offers === 1 ? 'person is' : 'people are'} waiting`} on an offer for one.`,
+      ...b.lets.map((l) => `House ${l.n}: ${l.name} pays ${formatMoney(l.rent)} a week${l.owing ? `, and owes ${formatMoney(l.owing)}` : ''}.`),
+      "A new rent starts a week from today. A tenant who won't pay a higher rent leaves the house; a lower one they take gladly. Change any rents you want to, or none.",
+    ].join('\n');
+    return this.ask(user, at, REVIEW_TOOL);
   }
 }

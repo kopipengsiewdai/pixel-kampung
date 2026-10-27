@@ -91,6 +91,7 @@ export type EventBody =
   | { type: 'rent_paid'; who: string; place: string; cents: Cents }
   | { type: 'rent_owed'; who: string; place: string; cents: Cents }
   | { type: 'evicted'; who: string; place: string }
+  | { type: 'left_home'; who: string; place: string }
   | { type: 'bought_place'; who: string; place: string; cents: Cents }
   | { type: 'moved_in'; who: string; place: string };
 
