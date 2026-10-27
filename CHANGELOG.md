@@ -4,6 +4,14 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+Mr Lim's thinking head, part two: a free market in houses, step four ([households-build.md](docs/design/households-build.md) "Housing market"):
+- **A stall can be let go for rent owing**, on the same rule as a house: over a week owing at the Monday round. The keeper takes its stock home, jobs there end, and the stall stands empty and shut until someone takes it.
+- **A free stall takes offers at Mr Lim's door** and goes on his to-let note. Whoever takes it starts with it empty and sets their own prices. Nobody keeps two stalls.
+- **Stalls join the housing market:** Mr Lim's head looks over stall rents too, and a stall someone owns can be sold or let between residents, its keeper changing with it.
+- **Living town:** upgrades to save v29; every stall is kept as it was. No stall owes rent yet (rent starts later), so none is let go straight away.
+
 ## 0.34.0 (2026-10-27): houses between residents
 
 Mr Lim's thinking head, part two: a free market in houses, step three ([households-build.md](docs/design/households-build.md) "Housing market"):

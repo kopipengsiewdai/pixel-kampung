@@ -313,6 +313,7 @@ function placeLabel(w: World, r: Resident, here: Place): string {
   const shop = w.shop(here.id);
   if (!shop) return w.placeName(here);
   const what = here.name.replace(/^the /, '');
+  if (shop.ownerId === null) return `the ${what}, standing empty`;
   return shop.ownerId === r.id ? `your ${what}` : `${w.resident(shop.ownerId).name}'s ${what}`;
 }
 
@@ -457,7 +458,7 @@ function debtsBy(w: World, mine: (d: Debt) => boolean, other: (d: Debt) => strin
 }
 
 function busyShopOf(w: World, shop: Shop): { server: string; owner: string; alone: boolean; waiting: number } | null {
-  if (!shop.queue.length) return null;
+  if (!shop.queue.length || shop.ownerId === null) return null;
   const on = servers(w, shop);
   return { server: on[0] ? on[0].name : w.resident(shop.ownerId).name, owner: w.resident(shop.ownerId).name, alone: on.length === 1, waiting: shop.queue.length };
 }

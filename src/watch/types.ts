@@ -68,7 +68,7 @@ export interface ResidentView {
 export interface ShopView {
   id: string;
   name: string;
-  ownerId: string;
+  ownerId: string | null;
   stock: Carried[];
   /** "kopi 10¢" */
   sells: string[];

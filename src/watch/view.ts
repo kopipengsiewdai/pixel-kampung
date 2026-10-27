@@ -104,6 +104,7 @@ export function mindingLabel(shop: ShopView, name: (id: string) => string): stri
 
 /** Who is serving at a shop right now: the owner if they're minding it, else a worker on shift there. */
 function servingAt(w: World, s: Shop): string | null {
+  if (s.ownerId === null) return null;
   const owner = w.resident(s.ownerId);
   if (w.isAt(owner, s.id) && !w.isAsleep(owner) && owner.activity?.kind !== 'walking') return owner.id;
   const worker = w.state.residents.find((x) => {

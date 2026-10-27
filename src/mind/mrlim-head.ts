@@ -61,7 +61,7 @@ export const DECIDE_TOOL: Anthropic.Tool = {
 
 export const REVIEW_TOOL: Anthropic.Tool = {
   name: 'review',
-  description: 'Set new rents for the houses you let, or none.',
+  description: 'Set new rents for the places you let, or none.',
   input_schema: {
     type: 'object',
     properties: {
@@ -71,7 +71,7 @@ export const REVIEW_TOOL: Anthropic.Tool = {
         items: {
           type: 'object',
           properties: {
-            house: { type: 'integer', description: 'The number of the house.' },
+            house: { type: 'integer', description: 'The number of the place.' },
             rent: { type: 'integer', description: 'Its new rent a week, in cents.' },
           },
           required: ['house', 'rent'],
@@ -141,9 +141,9 @@ export class ModelMrLimHead implements MrLimHead {
 
   async review(b: ReviewBrief, at: { t: number; realMs: number }): Promise<ReviewAnswer | null> {
     const user = [
-      `It's Monday evening, and you look over the rents of the houses you let. ${b.free === 0 ? 'No house stands free' : `${b.free} house${b.free === 1 ? ' stands' : 's stand'} free`}, and ${b.offers === 0 ? 'nobody is waiting' : `${b.offers} ${b.offers === 1 ? 'person is' : 'people are'} waiting`} on an offer for one.`,
-      ...b.lets.map((l) => `House ${l.n}: ${l.name} pays ${formatMoney(l.rent)} a week${l.owing ? `, and owes ${formatMoney(l.owing)}` : ''}.`),
-      "A new rent starts a week from today. A tenant who won't pay a higher rent leaves the house; a lower one they take gladly. A rent can go at most to double, or down to half, at a time. Change any rents you want to, or none.",
+      `It's Monday evening, and you look over the rents of the houses and stalls you let. ${b.free === 0 ? 'No house stands free' : `${b.free} house${b.free === 1 ? ' stands' : 's stand'} free`}, and ${b.offers === 0 ? 'nobody is waiting' : `${b.offers} ${b.offers === 1 ? 'person is' : 'people are'} waiting`} on an offer for one.`,
+      ...b.lets.map((l) => `${l.n}. ${l.name} pays ${formatMoney(l.rent)} a week for ${l.place}${l.owing ? `, and owes ${formatMoney(l.owing)}` : ''}.`),
+      "A new rent starts a week from today. A tenant who won't pay a higher rent gives the place up; a lower one they take gladly. A rent can go at most to double, or down to half, at a time. Change any rents you want to, or none.",
     ].join('\n');
     return this.ask(user, at, REVIEW_TOOL);
   }

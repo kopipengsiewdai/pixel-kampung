@@ -472,6 +472,11 @@ export const UPGRADES: readonly Upgrade[] = [
       return { world: { ...world, property, placeDeals: world.placeDeals ?? [] }, brains };
     },
   },
+  {
+    from: 28,
+    why: "A stall can stand free: let go for rent owing (or a new rent never agreed), its keeper takes the stock home and it's shut until someone takes it, by offer at Mr Lim's door. Stalls join Mr Lim's rent review, and a stall someone owns can be sold or let between residents. Every stall is kept as it was.",
+    save: ({ world, brains }) => ({ world, brains }),
+  },
 ];
 
 /** The save version this code writes and reads. */

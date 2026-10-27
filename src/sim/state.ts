@@ -89,7 +89,8 @@ export interface Resident {
 export interface Shop {
   /** Same as the place id. */
   id: string;
-  ownerId: string;
+  /** Its keeper; null while it stands free (let go by Mr Lim), shut. */
+  ownerId: string | null;
   stock: Goods;
   sellPrices: Partial<Record<ItemId, Cents>>;
   buyPrices: Partial<Record<ItemId, Cents>>;
@@ -106,6 +107,10 @@ export interface Shop {
   /** The day it was last swept: travellers wait longer in a swept shop. */
   sweptDay: number | null;
 }
+
+/** A shop with a keeper: open for trade. */
+export type KeptShop = Shop & { ownerId: string };
+export const isKept = (s: Shop | null | undefined): s is KeptShop => !!s && s.ownerId !== null;
 
 /** A paid errand (daily-life.md C): asked, then taken up, then done when the runner hands the thing over. */
 export interface Errand {

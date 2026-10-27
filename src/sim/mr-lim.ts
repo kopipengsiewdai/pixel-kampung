@@ -17,7 +17,7 @@ import { formatMoney, type Cents } from './money.ts';
 import { Rng } from './rng.ts';
 import { FUND_ID, GROWN_AGE, MR_LIM_ID, type PlaceOffer, type Resident, type World } from './state.ts';
 import { type ActionResult, moneyOf, no, ok } from './actions/common.ts';
-import { BUY_WEEKS, fromDay, heldBy, HOUSE_RENT, letTo, noticeLine, offerWords, placeMeant, placeWords, STALL_WORDS } from './households.ts';
+import { BUY_WEEKS, fromDay, heldBy, HOUSE_RENT, keepsStall, letTo, noticeLine, offerWords, placeMeant, placeWords, STALL_WORDS } from './households.ts';
 import { cleanLine } from './osman.ts';
 import { dayIndex, minuteOfDay } from './time.ts';
 import { skillLevel } from './skills.ts';
@@ -178,13 +178,20 @@ const atHisDoor = (w: World) => { const m = mrLimAt(w, w.t); return m.out && m.d
 /** Houses standing free, the longest free first. */
 const freeHouses = (w: World) => Object.entries(w.state.property).filter(([id, p]) => id.startsWith('house-') && p.holder === null)
   .sort(([, a], [, b]) => (a.freeSince ?? Infinity) - (b.freeSince ?? Infinity));
+/** Stalls standing free, the longest free first. */
+const freeStalls = (w: World) => Object.entries(w.state.property).filter(([id, p]) => !id.startsWith('house-') && p.holder === null)
+  .sort(([, a], [, b]) => (a.freeSince ?? Infinity) - (b.freeSince ?? Infinity));
+/** The stall their words name, if any. */
+const stallNamed = (s: string) => (/kopitiam/.test(s) ? 'kopitiam' : /provision/.test(s) ? 'provision-shop' : /market/.test(s) ? 'market-stall' : null);
 /** Whether r holds the house they live in. */
 const housed = (w: World, r: Resident) => w.state.property[r.homeId]?.holder === r.id;
+/** An offer for a stall standing free (not one they hold). */
+const forFreeStall = (w: World, o: PlaceOffer) => o.placeId !== null && !o.placeId.startsWith('house-') && w.state.property[o.placeId]?.holder !== o.who;
 
 /** Whether r has anything to make him an offer for, here and now. */
 export function canOffer(w: World, r: Resident): boolean {
   return w.isAt(r, 'village-head') && atHisDoor(w) && w.ageOf(r) >= GROWN_AGE
-    && ((freeHouses(w).length > 0 && !housed(w, r)) || heldBy(w, r.id).length > 0);
+    && ((freeHouses(w).length > 0 && !housed(w, r)) || (freeStalls(w).length > 0 && !keepsStall(w, r)) || heldBy(w, r.id).length > 0);
 }
 
 export function offerForPlace(w: World, r: Resident, item: unknown, money: unknown, buying: boolean): ActionResult {
@@ -197,7 +204,8 @@ export function offerForPlace(w: World, r: Resident, item: unknown, money: unkno
   const stall = STALL_WORDS.test(s);
   const held = placeMeant(w, r, item);
   // Their own place when they hold one and say so (or offer to buy "the house" they live in); otherwise a house standing free.
-  const own = held !== null && (/\b(my|mine|own|our|ours)\b/.test(s) || stall || (buying && housed(w, r)));
+  const named = stallNamed(s);
+  const own = held !== null && (/\b(my|mine|own|our|ours)\b/.test(s) || (stall && (named === null || named === held[0])) || (buying && housed(w, r)));
   let placeId: string | null = null;
   if (own) {
     const [id, p] = held;
@@ -207,7 +215,12 @@ export function offerForPlace(w: World, r: Resident, item: unknown, money: unkno
     if (p.owing > 0 || (w.state.arrears[r.id] ?? 0) > 0) return no("Mr Lim won't hear an offer while you owe him rent.");
     placeId = id;
   } else if (stall) {
-    return no('Mr Lim has no stall free just now.');
+    if (keepsStall(w, r)) return no('You keep a stall already.');
+    const arrears = w.state.arrears[r.id] ?? 0;
+    if (arrears > 0) return no(`Mr Lim won't let you a stall while you still owe Mr Lim ${formatMoney(arrears)}.`);
+    const free = freeStalls(w).filter(([id]) => named === null || id === named);
+    if (!free.length) return no('Mr Lim has no stall free just now.');
+    placeId = free[0]![0];
   } else {
     if (housed(w, r)) return no('You already have a house of your own.');
     const arrears = w.state.arrears[r.id] ?? 0;
@@ -220,7 +233,7 @@ export function offerForPlace(w: World, r: Resident, item: unknown, money: unkno
   }
   // One offer a person: a new one takes the place of the last.
   w.state.placeOffers = [...w.state.placeOffers.filter((o) => o.who !== r.id), offer];
-  return ok(`You offer Mr Lim ${offerWords(offer)}. He says he'll give you his answer ${w.state.offersDay === dayIndex(w.t) ? 'tomorrow evening' : 'this evening'}.`);
+  return ok(`You offer Mr Lim ${offerWords(offer, w)}. He says he'll give you his answer ${w.state.offersDay === dayIndex(w.t) ? 'tomorrow evening' : 'this evening'}.`);
 }
 
 type Decision = { answer: 'accept'; offer: PlaceOffer } | { answer: 'counter'; cents: Cents; to: PlaceOffer[] } | { answer: 'wait' };
@@ -253,7 +266,10 @@ export async function mrLimDecides(w: World, head: MrLimHead | null, realMs: num
     const r = byId(o.who);
     if (!r) return false;
     const p = o.placeId === null ? null : w.state.property[o.placeId];
-    if (o.placeId === null ? housed(w, r) : !p || p.holder !== r.id || p.owned || p.rentToOwn) return false;
+    if (forFreeStall(w, o)) {
+      if (p?.holder) w.notify(r.id, `Mr Lim has let ${placeWords(o, w)} to someone else.`);
+      if (p?.holder || keepsStall(w, r)) return false;
+    } else if (o.placeId === null ? housed(w, r) : !p || p.holder !== r.id || p.owned || p.rentToOwn) return false;
     if ((w.state.arrears[r.id] ?? 0) > 0 || (p?.owing ?? 0) > 0) {
       w.notify(r.id, "Mr Lim won't take your offer while you owe him rent.");
       return false;
@@ -279,7 +295,7 @@ export async function mrLimDecides(w: World, head: MrLimHead | null, realMs: num
     if (d.answer === 'counter') {
       for (const o of d.to) {
         drop(o);
-        w.notify(o.who, `${says(words)}Mr Lim won't take ${offerWords(o)}: he'd take ${formatMoney(d.cents)}${o.kind === 'rent' ? ' a week' : ''}.`);
+        w.notify(o.who, `${says(words)}Mr Lim won't take ${offerWords(o, w)}: he'd take ${formatMoney(d.cents)}${o.kind === 'rent' ? ' a week' : ''}.`);
       }
       return false;
     }
@@ -287,13 +303,16 @@ export async function mrLimDecides(w: World, head: MrLimHead | null, realMs: num
     const r = byId(o.who)!;
     drop(o);
     if (r.money < o.cents) {
-      w.notify(r.id, `Mr Lim would have taken your offer of ${offerWords(o)}, but you haven't the money now.`);
+      w.notify(r.id, `Mr Lim would have taken your offer of ${offerWords(o, w)}, but you haven't the money now.`);
       return true;
     }
+    const what = offerWords(o, w);
+    const stall = placeId.startsWith('house-') ? null : placeWords(o, w).replace(/^your /, 'the ');
     for (const id of letTo(w, r, placeId, o.kind, o.cents)) moved.add(id);
     let_ = true;
-    w.notify(r.id, `${says(words)}Mr Lim takes your offer of ${offerWords(o)}. ${o.kind === 'rent' ? 'You pay the first week now, and the house is your home.'
-      : `You pay him ${formatMoney(o.cents)}, and ${o.placeId === null ? 'the house is yours, and your home' : `${placeWords(o).replace(/^your /, 'the ')} is yours now`}: nobody can take it.`}`);
+    w.notify(r.id, `${says(words)}Mr Lim takes your offer of ${what}. ${o.kind === 'rent'
+      ? `You pay the first week now, and ${stall ? `${stall} is yours to keep` : 'the house is your home'}.`
+      : `You pay him ${formatMoney(o.cents)}, and ${o.placeId === null ? 'the house is yours, and your home' : `${stall ?? placeWords(o).replace(/^your /, 'the ')} is yours now`}: nobody can take it.`}`);
     return true;
   };
   const moved = new Set<string>();
@@ -323,8 +342,28 @@ export async function mrLimDecides(w: World, head: MrLimHead | null, realMs: num
       w.notify(o.who, 'Mr Lim has let the house to someone else: he has none free now.');
     }
   }
+  // Stalls standing free: the best offer first, the same way (a keeper takes one stall only).
+  for (const [stallId, stall] of freeStalls(w)) {
+    for (;;) {
+      for (const o of w.state.placeOffers.filter((x) => x.placeId === stallId && keepsStall(w, byId(x.who)!))) drop(o);
+      const offers = w.state.placeOffers.filter((o) => o.placeId === stallId).sort((a, b) => worth(b) - worth(a) || a.t - b.t);
+      if (!offers.length || stall.holder !== null) break;
+      const freeDays = today - (stall.freeSince ?? today);
+      const fair = (o: PlaceOffer) => worth(o) * 2 >= stall.rent * BUY_WEEKS || (o.kind === 'rent' && freeDays >= WAIT_DAYS);
+      const pick = offers.find(fair);
+      const scripted: Decision = pick ? { answer: 'accept', offer: pick } : { answer: 'wait' };
+      const got = await ask(`${placeWords(offers[0]!, w)}, standing free`, freeDays, stall.rent, offers);
+      if (!settle(resolve(got, offers, scripted), stallId, offers)) break;
+    }
+    if (stall.holder !== null) {
+      for (const o of w.state.placeOffers.filter((x) => x.placeId === stallId)) {
+        drop(o);
+        w.notify(o.who, `Mr Lim has let ${placeWords({ placeId: stallId, who: o.who }, w)} to someone else.`);
+      }
+    }
+  }
   // Offers to buy the place they hold, each on its own.
-  for (const o of w.state.placeOffers.filter((x) => x.placeId !== null)) {
+  for (const o of w.state.placeOffers.filter((x) => x.placeId !== null && !forFreeStall(w, x))) {
     const p = w.state.property[o.placeId!]!;
     // His own way: half a year's rent.
     const price = Math.ceil((p.rent * BUY_WEEKS) / 2);
@@ -375,13 +414,13 @@ export async function mrLimReviews(w: World, head: MrLimHead | null, realMs: num
   w.state.rentReviewDay = today;
   // Before rent has started, rents stand as everyone was told.
   if (!head?.review || today + RENT_NOTICE_DAYS < w.state.rentFrom) return;
-  const lets = Object.entries(w.state.property).filter(([id, p]) => id.startsWith('house-') && p.holder !== null && !p.owned && !p.landlord && !p.rentToOwn && !p.notice
+  const lets = Object.entries(w.state.property).filter(([, p]) => p.holder !== null && !p.owned && !p.landlord && !p.rentToOwn && !p.notice
     && w.state.residents.some((r) => r.id === p.holder));
   if (!lets.length) return;
   const got = await head.review({
     free: freeHouses(w).length,
     offers: w.state.placeOffers.filter((o) => o.placeId === null).length,
-    lets: lets.map(([, p], i) => ({ n: i + 1, place: 'a house', name: w.nameOf(p.holder!), rent: p.rent, owing: p.owing })),
+    lets: lets.map(([id, p], i) => ({ n: i + 1, place: id.startsWith('house-') ? 'a house' : PLACE_BY_ID.get(id)?.name ?? 'a stall', name: w.nameOf(p.holder!), rent: p.rent, owing: p.owing })),
   }, { t: w.t, realMs });
   const words = typeof got?.words === 'string' ? cleanLine(got.words, 200) : null;
   for (const c of Array.isArray(got?.changes) ? got.changes as unknown[] : []) {
@@ -403,7 +442,10 @@ const TO_LET = 'To let, or for sale:';
 /** What his note of the houses standing free says, or null with none free. */
 const toLetText = (w: World): string | null => {
   const n = freeHouses(w).length;
-  return n ? `${TO_LET} ${n === 1 ? 'a house' : `${n} houses`}, standing free. Make Mr Lim an offer at his door, a rent a week or a price to buy. Mr Lim.` : null;
+  const places = [n ? (n === 1 ? 'a house' : `${n} houses`) : null, ...freeStalls(w).map(([id]) => PLACE_BY_ID.get(id)?.name ?? 'a stall')].filter((x): x is string => !!x);
+  if (!places.length) return null;
+  const list = places.length === 1 ? places[0]! : `${places.slice(0, -1).join(', ')} and ${places.at(-1)}`;
+  return `${TO_LET} ${list}, standing free. Make Mr Lim an offer at his door, a rent a week or a price to buy. Mr Lim.`;
 };
 
 /** His note on the board of the houses standing free: pinned afresh each morning (making room, as his job notes do). */

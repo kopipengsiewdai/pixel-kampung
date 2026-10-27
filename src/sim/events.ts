@@ -94,6 +94,7 @@ export type EventBody =
   | { type: 'left_home'; who: string; place: string; owner?: string }
   | { type: 'bought_place'; who: string; place: string; cents: Cents; from?: string }
   | { type: 'moved_out'; who: string; place: string }
+  | { type: 'lost_stall'; who: string; place: string }
   | { type: 'moved_in'; who: string; place: string };
 
 export type EventType = EventBody['type'];
