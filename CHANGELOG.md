@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.35.0 (2026-10-27): stalls change hands
 
 Mr Lim's thinking head, part two: a free market in houses, step four ([households-build.md](docs/design/households-build.md) "Housing market"):
 - **A stall can be let go for rent owing**, on the same rule as a house: over a week owing at the Monday round. The keeper takes its stock home, jobs there end, and the stall stands empty and shut until someone takes it.
