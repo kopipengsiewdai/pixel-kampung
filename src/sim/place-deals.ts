@@ -28,11 +28,15 @@ export function ownedBy(w: World, r: Resident): [string, Property][] {
 
 const lives = (w: World, id: string) => w.state.residents.some((x) => x.homeId === id);
 
-/** Which house, in words they'd know it by (as `forId` sees it). */
+/** Who lives in a house, its owner first. */
+const livers = (w: World, id: string, owner: Resident) => w.state.residents.filter((x) => x.homeId === id).sort((a, b) => Number(b === owner) - Number(a === owner));
+
+/** Which house, in words they'd know it by (as `forId` sees it), and could answer with. */
 function houseWords(w: World, id: string, p: Property, owner: Resident, forId: string): string {
   if (p.landlord) return p.holder === forId ? 'the one you rent' : `the one ${w.nameOf(p.holder!)} rents`;
-  if (id === owner.homeId) return owner.id === forId ? 'the one you live in' : `the one ${owner.name} lives in`;
-  return lives(w, id) ? 'the one your family lives in' : 'the one standing empty';
+  const here = livers(w, id, owner);
+  if (here.some((x) => x.id === forId)) return 'the one you live in';
+  return here.length ? `the one ${here[0]!.name} lives in` : 'the one standing empty';
 }
 
 /** A Mr Lim house they're buying week by week, and would lose by moving. */
@@ -64,13 +68,14 @@ function houseMeant(w: World, r: Resident, o: Resident, item: unknown, kind: Pla
     houses = houses.filter(([, p]) => !p.landlord);
     if (!houses.length) return `${owner === r ? 'Your' : `${owner.name}'s`} house is let already.`;
   }
-  // A sale to the one who rents it: that house.
-  const theirs = houses.find(([, p]) => p.landlord && p.holder === other.id);
-  if (theirs && kind === 'sale') houses = [theirs];
-  // Or what they say of it.
-  const said = houses.filter(([id, p]) => (/\b(empty|free|spare)\b/.test(s) && !lives(w, id))
-    || (/\b(live|lives|living|home)\b/.test(s) && id === owner.homeId) || (/\b(let|rent|rents|rented|tenant)\b/.test(s) && !!p.landlord));
+  // What they say of it: who lives there (or rents it), standing empty, let, or the owner's home.
+  const named = houses.filter(([id, p]) => [...livers(w, id, owner), ...(p.landlord && p.holder ? [w.resident(p.holder)] : [])].some((x) => s.includes(x.name.toLowerCase())));
+  const said = named.length ? named : houses.filter(([id, p]) => (/\b(empty|free|spare)\b/.test(s) && !lives(w, id))
+    || (/\b(let|rent|rents|rented|tenant)\b/.test(s) && !!p.landlord) || (/\b(live|lives|living|home)\b/.test(s) && id === owner.homeId));
   if (said.length) houses = said;
+  // A sale to the one who rents it: that house, unless they said another.
+  const theirs = houses.find(([, p]) => p.landlord && p.holder === other.id);
+  if (theirs && kind === 'sale' && !said.length) houses = [theirs];
   // A let: rather one standing empty than the owner's own home.
   if (kind === 'let' && houses.length > 1) {
     const empty = houses.filter(([id]) => !lives(w, id));
@@ -107,6 +112,7 @@ export function offerPlace(w: World, r: Resident, i: Intent): ActionResult {
   if (typeof found === 'string') return no(found);
   const { placeId, p, owner, other } = found;
   const deal: PlaceDeal = { id: w.nextId(), fromId: r.id, toId: o.id, placeId, kind, cents, expires: w.t + TRADE_OFFER_MINUTES, ownerId: owner.id, wasLet: !!p.landlord };
+  if (kind === 'let' && other.homeId === placeId) return no(other === r ? 'You live there already.' : `${other.name} lives there already.`);
   if (other === r && movesIn(deal) && buyingFromLim(w, r)) return no(BUYING_FROM_LIM);
   // Whoever pays must have it now: the price, or the first week.
   if (other === r && r.money < cents) return no(`You haven't ${formatMoney(cents)}.`);
@@ -130,6 +136,7 @@ export function agreeDeal(w: World, r: Resident, o: Resident, d: PlaceDeal): Act
   }
   const owner = w.resident(d.ownerId);
   const payer = owner === r ? o : r;
+  if (d.kind === 'let' && payer.homeId === d.placeId) return no(payer === r ? 'You live there already.' : `${payer.name} lives there already.`);
   if (movesIn(d) && buyingFromLim(w, payer)) return no(payer === r ? BUYING_FROM_LIM : `${payer.name} is buying their house from Mr Lim week by week, and can't move.`);
   if (payer.money < d.cents) return no(payer === r ? `You haven't ${formatMoney(d.cents)}.` : `${payer.name} hasn't the money now.`);
   // This house changes hands: no other offer for it stands.
@@ -148,7 +155,7 @@ export function agreeDeal(w: World, r: Resident, o: Resident, d: PlaceDeal): Act
       Object.assign(p, { landlord: payer.id, owing: 0, since: null, notice: null });
       w.notify(p.holder!, `${owner.name} has sold the house you rent to ${payer.name}: you rent it from ${payer.name} now, at the same ${formatMoney(p.rent)} a week.`);
     } else {
-      moveOut(w, d.placeId, owner.id, `has been sold to ${payer.name}`);
+      moveOut(w, d.placeId, owner.id, `has been sold to ${payer.name}`, payer.id);
       Object.assign(p, { holder: payer.id, owned: true, owing: 0, since: null, notice: null, grace: null });
       moveIn(w, payer, d.placeId, `${payer.name} has bought a house from ${owner.name}: it's home now.`);
     }

@@ -270,6 +270,82 @@ describe('review fixes (houses between residents)', () => {
   });
 });
 
+describe('second review fixes (houses between residents)', () => {
+  it('no letting a house to someone who lives in it already', () => {
+    const { w, tan, tanHome } = town();
+    const kin = living(w, tanHome).find((r) => r.id !== tan.id)!;
+    put(w, tan.name, 'well');
+    put(w, kin.name, 'well');
+    kin.money = 1000;
+    refused(act(w, tan.id, { verb: 'offer_place', to: kin.name, item: 'my house', money: 40, renting: true }), /lives there/);
+    refused(act(w, kin.id, { verb: 'offer_place', to: tan.name, item: 'your house', money: 40, renting: true }), /live there/);
+  });
+
+  it("an owner living in someone else's house stays with their family when their let ends, and hears the house is theirs", () => {
+    const { w } = town();
+    // Someone living in a house another holds (from Mr Lim), who owns a house they let to Ah Kow.
+    const x = w.state.residents.find((r) => { const p = w.state.property[r.homeId]; return p && p.holder && p.holder !== r.id && !p.owned; })!;
+    const xHome = x.homeId;
+    const kow = who(w, 'Ah Kow');
+    const [spare] = Object.entries(w.state.property).find(([id, p]) => id.startsWith('house-') && p.holder === null)!;
+    Object.assign(w.state.property[spare]!, { holder: kow.id, owned: false, landlord: x.id, rent: 40, freeSince: null });
+    w.state.property[kow.homeId]!.holder = null;
+    kow.homeId = spare;
+    kow.money = 0;
+    round(w, 1);
+    round(w, 2);
+    expect(kow.homeId).toBe(ROUGH);
+    expect(x.homeId).toBe(xHome);
+    expect(w.state.property[spare]).toMatchObject({ holder: x.id, owned: true });
+    expect(x.recent.at(-1)!.text).toMatch(/yours again/);
+  });
+
+  it('agreeing "the house" takes the house offer, not a price at the counter', () => {
+    const { w, tan, tanHome } = town();
+    const raju = who(w, 'Raju');
+    put(w, tan.name, 'provision-shop');
+    put(w, raju.name, 'provision-shop');
+    raju.money = 5000;
+    accepted(act(w, raju.id, { verb: 'offer_place', to: tan.name, item: 'your house', money: 3000 }));
+    w.state.priceOffers.push({ id: w.nextId(), buyerId: raju.id, shopId: 'provision-shop', item: 'rice', qty: 1, cents: 10, expires: w.t + 30 });
+    accepted(act(w, tan.id, { verb: 'agree', from: raju.name, item: 'the house' }));
+    expect(w.state.property[tanHome]!.holder).toBe(raju.id);
+  });
+
+  it('"I agree to the rent" with a notice and an offer to sell standing: the rent', () => {
+    const { w, tan, tanHome } = town();
+    const kow = letToKow(w, 40);
+    accepted(act(w, tan.id, { verb: 'change_rent', to: 'Ah Kow', money: 60 }));
+    accepted(act(w, tan.id, { verb: 'offer_place', to: 'Ah Kow', item: 'my house', money: 500 }));
+    kow.money = 10_000;
+    accepted(act(w, kow.id, { verb: 'agree', from: 'Mdm Tan', text: 'I agree to the rent' }));
+    expect(w.state.property[tanHome]).toMatchObject({ landlord: tan.id, notice: { agreed: true } });
+    expect(kow.money).toBe(10_000);
+  });
+
+  it('"which house?" can be answered in its own words', () => {
+    const { w, tan, tanHome } = town();
+    // Mdm Tan owns two more houses: one standing empty, one where Raju lives.
+    const raju = who(w, 'Raju');
+    const rajuHome = raju.homeId;
+    w.state.property[rajuHome]!.holder = tan.id;
+    w.state.property[rajuHome]!.owned = true;
+    const [spare] = Object.entries(w.state.property).find(([id, p]) => id.startsWith('house-') && p.holder === null)!;
+    Object.assign(w.state.property[spare]!, { holder: tan.id, owned: true, freeSince: null });
+    const [, kow] = at(w, 'Mdm Tan', 'Ah Kow');
+    kow!.money = 100_000;
+    const asked = refused(act(w, kow!.id, { verb: 'offer_place', to: tan.name, item: 'your house', money: 3000 }));
+    expectInWorld(asked);
+    expect(asked).toMatch(/Raju/);
+    accepted(act(w, kow!.id, { verb: 'offer_place', to: tan.name, item: 'the one Raju lives in', money: 3000 }));
+    expect(w.state.placeDeals.at(-1)!.placeId).toBe(rajuHome);
+    accepted(act(w, kow!.id, { verb: 'offer_place', to: tan.name, item: `the one ${tan.name} lives in`, money: 3000 }));
+    expect(w.state.placeDeals.at(-1)!.placeId).toBe(tanHome);
+    accepted(act(w, tan.id, { verb: 'offer_place', to: 'Ah Kow', item: 'the one standing empty', money: 3000 }));
+    expect(w.state.placeDeals.at(-1)!.placeId).toBe(spare);
+  });
+});
+
 describe('the upgrade (save v28)', () => {
   it('nobody lets to anybody yet; no offers', async () => {
     const { UPGRADES } = await import('../src/store/upgrades.ts');

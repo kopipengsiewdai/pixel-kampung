@@ -136,8 +136,11 @@ function evict(w: World, placeId: string, p: Property, why: 'owing' | 'new rent'
   if (p.landlord) {
     const owner = w.resident(p.landlord);
     Object.assign(p, { holder: owner.id, owned: true, landlord: null, freeSince: null });
-    // An owner with no home of their own comes home to it, and their family with them.
-    if (w.state.property[owner.homeId]?.holder !== owner.id) moveIn(w, owner, placeId, `${owner.name} has their house back: it's home again.`);
+    // An owner sleeping rough comes home to it, and their family with them.
+    if (owner.homeId === ROUGH) {
+      moveIn(w, owner, placeId, `${owner.name} has their house back: it's home again.`);
+      w.remember(owner.id, `${cap(placeLabel(placeId))} is yours again, and home.`);
+    }
     return;
   }
   p.holder = null;
@@ -219,7 +222,7 @@ export function rentRound(w: World): void {
     w.remember(r.id, short === 0
       ? `${by} comes round for the rent: you pay ${formatMoney(paid)} for ${placeLabel(id)}.`
       : `${by} comes round for the rent. You can't pay it all: you owe ${by} ${formatMoney(short)} for ${placeLabel(id)}.`);
-    if (p.landlord) w.remember(p.landlord, `${r.name} pays you ${formatMoney(paid)} in rent for your house${short > 0 ? `, and owes you ${formatMoney(short)}` : ''}.`);
+    if (p.landlord) w.remember(p.landlord, `${r.name} ${paid > 0 ? `pays you ${formatMoney(paid)}` : 'pays you nothing'} in rent for your house${short > 0 ? `, and owes you ${formatMoney(short)}` : ''}.`);
   }
   // His loans: a little back each round, into the fund, as they can.
   for (const loan of w.state.loans) {
@@ -403,9 +406,9 @@ export function moveIn(w: World, r: Resident, placeId: string, heard: string): s
 }
 
 /** Everyone living in a house its owner has sold or let moves out: to another house the owner holds, or to sleep rough together. */
-export function moveOut(w: World, placeId: string, ownerId: string, why: string): void {
+export function moveOut(w: World, placeId: string, ownerId: string, why: string, staying: string | null = null): void {
   const other = Object.entries(w.state.property).find(([id, p]) => id !== placeId && id.startsWith('house-') && p.holder === ownerId)?.[0] ?? null;
-  for (const o of household(w, placeId)) {
+  for (const o of household(w, placeId).filter((x) => x.id !== staying)) {
     o.homeId = other ?? ROUGH;
     if (other) w.learnPlace(o, other);
     else w.state.evictedWith[o.id] = ownerId;
