@@ -17,7 +17,7 @@ import { formatMoney, type Cents } from './money.ts';
 import { Rng } from './rng.ts';
 import { FUND_ID, GROWN_AGE, MR_LIM_ID, type PlaceOffer, type Resident, type World } from './state.ts';
 import { type ActionResult, moneyOf, no, ok } from './actions/common.ts';
-import { BUY_WEEKS, fromDay, heldBy, letTo, noticeLine, offerWords, placeMeant, placeWords, STALL_WORDS } from './households.ts';
+import { BUY_WEEKS, fromDay, heldBy, HOUSE_RENT, letTo, noticeLine, offerWords, placeMeant, placeWords, STALL_WORDS } from './households.ts';
 import { cleanLine } from './osman.ts';
 import { dayIndex, minuteOfDay } from './time.ts';
 import { skillLevel } from './skills.ts';
@@ -116,7 +116,7 @@ export function askForHelp(w: World, r: Resident, said: string | null = null): A
 }
 
 /** The place r holds that has rent owing, if any. */
-const owingPlace = (w: World, r: Resident) => Object.values(w.state.property).find((p) => p.holder === r.id && !p.owned && p.owing > 0) ?? null;
+const owingPlace = (w: World, r: Resident) => Object.values(w.state.property).find((p) => p.holder === r.id && !p.owned && !p.landlord && p.owing > 0) ?? null;
 
 /** Answers to anyone who asked for help: his head chooses grace, a loan or no, within his bounds; his own way otherwise. */
 export async function mrLimHelps(w: World, head: MrLimHead | null, realMs: number): Promise<void> {
@@ -126,7 +126,9 @@ export async function mrLimHelps(w: World, head: MrLimHead | null, realMs: numbe
     if (!r) continue;
     const place = owingPlace(w, r);
     const canGrace = !!place && (place.grace === null || today - place.grace.given >= GRACE_EVERY_DAYS);
-    const rent = Object.values(w.state.property).find((p) => p.holder === r.id && !p.owned)?.rent ?? w.state.property[r.homeId]?.rent ?? 50;
+    // Sized from his own rents: a let between residents is none of his.
+    const home = w.state.property[r.homeId];
+    const rent = Object.values(w.state.property).find((p) => p.holder === r.id && !p.owned && !p.landlord)?.rent ?? (home && !home.landlord ? home.rent : HOUSE_RENT);
     const canLend = w.state.loans.some((l) => l.who === r.id) ? 0 : LOAN_WEEKS * rent;
     const scripted: { answer: 'grace' | 'loan' | 'no'; amount: Cents } = canGrace ? { answer: 'grace', amount: 0 }
       : canLend > 0 && r.money < canLend ? { answer: 'loan', amount: canLend } : { answer: 'no', amount: 0 };
@@ -373,7 +375,7 @@ export async function mrLimReviews(w: World, head: MrLimHead | null, realMs: num
   w.state.rentReviewDay = today;
   // Before rent has started, rents stand as everyone was told.
   if (!head?.review || today + RENT_NOTICE_DAYS < w.state.rentFrom) return;
-  const lets = Object.entries(w.state.property).filter(([id, p]) => id.startsWith('house-') && p.holder !== null && !p.owned && !p.rentToOwn && !p.notice
+  const lets = Object.entries(w.state.property).filter(([id, p]) => id.startsWith('house-') && p.holder !== null && !p.owned && !p.landlord && !p.rentToOwn && !p.notice
     && w.state.residents.some((r) => r.id === p.holder));
   if (!lets.length) return;
   const got = await head.review({

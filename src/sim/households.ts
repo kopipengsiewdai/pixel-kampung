@@ -6,12 +6,15 @@
  * it's never taken, and a rent-to-own already running finishes on its terms.
  * Rent unpaid for over a week, and the household is out, sleeping rough at the
  * jetty. A sitting tenant's rent changes only with a week's notice: they agree
- * to it at his door, or leave when it starts.
+ * to it at his door, or leave when it starts. A house a resident owns they may
+ * sell or let to another (src/sim/place-deals.ts); a tenant of theirs pays them
+ * at the same Monday round, on the same terms.
  */
 import { dateAt, dateLabel, weekdayAt } from './calendar.ts';
 import { PLACES, PLACE_BY_ID } from './map.ts';
 import { formatMoney, type Cents } from './money.ts';
 import { FUND_ID, type PlaceOffer, type Property, type Resident, type World, type WorldState } from './state.ts';
+import { addDebt } from './actions/debts.ts';
 import { dayIndex, minuteOfDay, SGT_OFFSET_MIN, MINUTES_PER_DAY } from './time.ts';
 
 export const HOUSE_RENT: Cents = 50;
@@ -48,9 +51,9 @@ export function startingProperty(state: Pick<WorldState, 'residents' | 'shops'>,
   for (const p of PLACES) {
     if (p.kind !== 'house') continue;
     const holder = state.residents.find((r) => r.homeId === p.id)?.id ?? null;
-    out[p.id] = { holder, rent: HOUSE_RENT, owned: false, rentToOwn: null, owing: 0, since: null, grace: null, freeSince: holder ? null : today, notice: null };
+    out[p.id] = { holder, rent: HOUSE_RENT, owned: false, rentToOwn: null, owing: 0, since: null, grace: null, freeSince: holder ? null : today, notice: null, landlord: null };
   }
-  for (const s of state.shops) if (SHOP_IDS.includes(s.id)) out[s.id] = { holder: s.ownerId, rent: STALL_RENT, owned: false, rentToOwn: null, owing: 0, since: null, grace: null, freeSince: null, notice: null };
+  for (const s of state.shops) if (SHOP_IDS.includes(s.id)) out[s.id] = { holder: s.ownerId, rent: STALL_RENT, owned: false, rentToOwn: null, owing: 0, since: null, grace: null, freeSince: null, notice: null, landlord: null };
   return out;
 }
 
@@ -69,10 +72,13 @@ export function weekly(p: Property): Cents {
   return p.rentToOwn ? Math.round(p.rent * RENT_TO_OWN_RATE) : p.rent;
 }
 
-/** The places someone holds and hasn't bought. */
+/** The places someone holds from Mr Lim and hasn't bought. */
 export function heldBy(w: World, id: string): [string, Property][] {
-  return Object.entries(w.state.property).filter(([, p]) => p.holder === id && !p.owned);
+  return Object.entries(w.state.property).filter(([, p]) => p.holder === id && !p.owned && !p.landlord);
 }
+
+/** Who a tenant pays: their landlord, or Mr Lim. */
+export const landlordName = (w: World, p: Property) => (p.landlord ? w.nameOf(p.landlord) : 'Mr Lim');
 
 /** Everyone whose home a house is. */
 const household = (w: World, placeId: string) => w.state.residents.filter((r) => r.homeId === placeId);
@@ -80,11 +86,12 @@ const household = (w: World, placeId: string) => w.state.residents.filter((r) =>
 function pay(w: World, r: Resident, placeId: string, p: Property, cents: Cents, why: string): Cents {
   const amount = Math.min(cents, r.money);
   if (amount > 0) {
-    w.transfer(r.id, FUND_ID, amount, why);
-    w.state.fund += amount;
+    // A landlord's tenant pays the landlord; everyone else, the fund.
+    w.transfer(r.id, p.landlord ?? FUND_ID, amount, why);
+    if (!p.landlord) w.state.fund += amount;
     // Every cent paid while buying week by week counts towards it.
     if (p.rentToOwn) p.rentToOwn.paid += amount;
-    w.emit({ type: 'rent_paid', who: r.id, place: placeId, cents: amount });
+    w.emit(p.landlord ? { type: 'rent_paid', who: r.id, place: placeId, cents: amount, to: p.landlord } : { type: 'rent_paid', who: r.id, place: placeId, cents: amount });
   }
   return amount;
 }
@@ -98,38 +105,69 @@ function ownIfPaid(w: World, r: Resident, id: string, p: Property): boolean {
   return true;
 }
 
-/** The household out: for the rent owing, or a new rent never agreed. */
-function evict(w: World, placeId: string, p: Property, why: 'owing' | 'new rent' = 'owing'): void {
-  // What was owed stays owed, by the one who held it: no house again until it's paid.
-  if (p.holder && p.owing > 0) w.state.arrears[p.holder] = (w.state.arrears[p.holder] ?? 0) + p.owing;
+/**
+ * The tenancy ends: the household out for the rent owing, or a new rent never
+ * agreed, or (moved) a place they've left for another. A landlord's house goes
+ * back to its owner; Mr Lim's stands free.
+ */
+function evict(w: World, placeId: string, p: Property, why: 'owing' | 'new rent' | 'moved' = 'owing'): void {
+  const by = landlordName(w, p);
+  // What was owed stays owed, by the one who held it: to a landlord as a debt; to Mr Lim, no house again until it's paid.
+  if (p.holder && p.owing > 0) {
+    if (p.landlord) addDebt(w, p.holder, p.landlord, 'iou', p.owing, 'rent');
+    else w.state.arrears[p.holder] = (w.state.arrears[p.holder] ?? 0) + p.owing;
+  }
   for (const r of household(w, placeId)) {
     r.homeId = ROUGH;
     w.remember(r.id, why === 'owing'
-      ? `Mr Lim has let ${placeLabel(placeId)} go for the rent owing: it's no longer your home. You'll have to sleep where you can.`
+      ? `${by} has ${p.landlord ? 'taken back' : 'let go'} ${placeLabel(placeId)} for the rent owing: it's no longer your home. You'll have to sleep where you can.`
       : `The new rent for ${placeLabel(placeId)} was never agreed, so you've had to leave it: it's no longer your home. You'll have to sleep where you can.`);
-    w.emit({ type: why === 'owing' ? 'evicted' : 'left_home', who: r.id, place: placeId });
+    const type = why === 'owing' ? 'evicted' as const : 'left_home' as const;
+    w.emit(p.landlord ? { type, who: r.id, place: placeId, owner: p.landlord } : { type, who: r.id, place: placeId });
     w.state.evictedWith[r.id] = p.holder ?? r.id;
   }
-  p.holder = null;
+  if (p.landlord && p.holder && why !== 'moved') w.notify(p.landlord, `${w.nameOf(p.holder)} is out of your house${why === 'owing' ? ', for the rent owing' : ': they never agreed the new rent'}. It's yours again.`);
+  else if (p.landlord && p.holder) w.notify(p.landlord, `${w.nameOf(p.holder)} has moved out of your house. It's yours again.`);
   p.owing = 0;
   p.since = null;
   p.rentToOwn = null;
   p.notice = null;
+  p.grace = null;
+  if (p.landlord) {
+    const owner = w.resident(p.landlord);
+    Object.assign(p, { holder: owner.id, owned: true, landlord: null, freeSince: null });
+    // An owner sleeping rough comes home to it, and their family with them.
+    if (owner.homeId === ROUGH) {
+      moveIn(w, owner, placeId, `${owner.name} has their house back: it's home again.`);
+      w.remember(owner.id, `${cap(placeLabel(placeId))} is yours again, and home.`);
+    }
+    return;
+  }
+  p.holder = null;
   p.freeSince = dayIndex(w.t);
+}
+
+/** The first Monday on or after a day: when Mr Lim comes round. */
+export function mondayOnOrAfter(w: World, day: number): number {
+  let d = day;
+  while (weekdayAt(w.state, dayStart(d)) !== 'Monday') d++;
+  return d;
 }
 
 /** "from Monday, 9 November, Year 1": the day a new rent starts. */
 export const fromDay = (w: World, day: number) => `from ${dateLabel(dateAt(w.state, dayStart(day)))}`;
 
-/** What a tenant knows of a new rent Mr Lim has given notice of (`forId` the tenant, or someone living with them). */
+/** What a tenant knows of a new rent their landlord (Mr Lim, or a resident) has given notice of (`forId` the tenant, or someone living with them). */
 export function noticeLine(w: World, placeId: string, p: Property, forId = p.holder!): string {
   const n = p.notice!;
   const mine = forId === p.holder;
   const name = w.nameOf(p.holder!);
-  const what = `Mr Lim has given ${mine ? 'you' : name} notice: ${fromDay(w, n.from)}, the rent for ${placeWords({ placeId })} ${n.rent < p.rent ? 'comes down' : 'goes up'} to ${formatMoney(n.rent)} a week.`;
+  const by = landlordName(w, p);
+  const what = `${by} has given ${mine ? 'you' : name} notice: ${fromDay(w, n.from)}, the rent for ${placeWords({ placeId })} ${n.rent < p.rent ? 'comes down' : 'goes up'} to ${formatMoney(n.rent)} a week.`;
   if (n.rent < p.rent) return what;
-  if (n.agreed) return `${what} ${mine ? "You've told him you'll pay it." : `${name} has agreed to pay it.`}`;
-  return `${what} ${mine ? "If you don't agree to it at his door by then, you'll have to leave." : `If ${name} doesn't agree to it at his door by then, you'll all have to leave.`}`;
+  if (n.agreed) return `${what} ${mine ? `You've told ${p.landlord ? by : 'him'} you'll pay it.` : `${name} has agreed to pay it.`}`;
+  const where = p.landlord ? `with ${by}` : 'at his door';
+  return `${what} ${mine ? `If you don't agree to it ${where} by then, you'll have to leave.` : `If ${name} doesn't agree to it ${where} by then, you'll all have to leave.`}`;
 }
 
 /** New rents whose Monday has come, at that Monday's round (before it's charged): agreed, or the household leaves. */
@@ -179,10 +217,12 @@ export function rentRound(w: World): void {
     // The old debt paid off, what's left is this week's: its grace starts today.
     p.since = short === 0 ? null : oldLeft === 0 ? today : oldSince;
     if (ownIfPaid(w, r, id, p)) continue;
-    if (short > 0) w.emit({ type: 'rent_owed', who: r.id, place: id, cents: short });
+    if (short > 0) w.emit(p.landlord ? { type: 'rent_owed', who: r.id, place: id, cents: short, to: p.landlord } : { type: 'rent_owed', who: r.id, place: id, cents: short });
+    const by = landlordName(w, p);
     w.remember(r.id, short === 0
-      ? `Mr Lim comes round for the rent: you pay ${formatMoney(paid)} for ${placeLabel(id)}.`
-      : `Mr Lim comes round for the rent. You can't pay it all: you owe Mr Lim ${formatMoney(short)} for ${placeLabel(id)}.`);
+      ? `${by} comes round for the rent: you pay ${formatMoney(paid)} for ${placeLabel(id)}.`
+      : `${by} comes round for the rent. You can't pay it all: you owe ${by} ${formatMoney(short)} for ${placeLabel(id)}.`);
+    if (p.landlord) w.remember(p.landlord, `${r.name} ${paid > 0 ? `pays you ${formatMoney(paid)}` : 'pays you nothing'} in rent for your house${short > 0 ? `, and owes you ${formatMoney(short)}` : ''}.`);
   }
   // His loans: a little back each round, into the fund, as they can.
   for (const loan of w.state.loans) {
@@ -206,7 +246,7 @@ export function householdsMinute(w: World): void {
     const when = dateLabel(dateAt(w.state, dayStart(w.state.rentFrom)));
     const held = new Map<string, string[]>();
     for (const [id, p] of Object.entries(w.state.property)) {
-      if (p.holder && !p.owned) held.set(p.holder, [...(held.get(p.holder) ?? []), `${formatMoney(p.rent)} a week for ${placeLabel(id)}`]);
+      if (p.holder && !p.owned && !p.landlord) held.set(p.holder, [...(held.get(p.holder) ?? []), `${formatMoney(p.rent)} a week for ${placeLabel(id)}`]);
     }
     for (const [holder, rents] of held) {
       if (w.state.rentToldTo.includes(holder) || w.isAsleep(w.resident(holder))) continue;
@@ -236,13 +276,24 @@ export function householdLines(w: World, r: Resident, atHead: boolean): string[]
   for (const [id, p] of heldBy(w, r.id)) if (p.notice) out.push(noticeLine(w, id, p));
   const home = w.state.property[r.homeId];
   if (home?.notice && home.holder !== null && home.holder !== r.id) out.push(noticeLine(w, r.homeId, home, r.id));
+  // Houses let between residents: as tenant, and as landlord.
+  for (const [id, p] of Object.entries(w.state.property).filter(([, p]) => p.landlord && p.holder === r.id)) {
+    const by = w.nameOf(p.landlord!);
+    out.push(`You rent ${placeWords({ placeId: id })} from ${by} for ${formatMoney(p.rent)} a week${p.owing > 0 ? `, and owe ${by} ${formatMoney(p.owing)}` : ''}.`);
+    if (p.notice) out.push(noticeLine(w, id, p));
+  }
+  for (const [id, p] of Object.entries(w.state.property).filter(([, p]) => p.landlord === r.id && p.holder)) {
+    const t = w.nameOf(p.holder!);
+    out.push(`You let ${placeWords({ placeId: id })} to ${t} for ${formatMoney(p.rent)} a week${p.owing > 0 ? `; ${t} owes you ${formatMoney(p.owing)}` : ''}.`);
+    if (p.notice) out.push(`You've given ${t} notice of a new rent, ${formatMoney(p.notice.rent)} a week ${fromDay(w, p.notice.from)}${p.notice.agreed ? `, and ${t} has agreed to it` : ''}.`);
+  }
   const offered = w.state.placeOffers.find((o) => o.who === r.id);
   if (offered) out.push(`You've offered Mr Lim ${offerWords(offered)}; he gives his answers in the evening.`);
   if (!atHead) return out;
   out.push("This is Mr Lim's house. Mr Lim is the village head; the houses and stalls are Mr Lim's to let.");
   const arrears = w.state.arrears[r.id] ?? 0;
   if (arrears > 0) out.push(`You still owe Mr Lim ${formatMoney(arrears)} from the house you lost.`);
-  for (const [id, p] of Object.entries(w.state.property).filter(([, p]) => p.holder === r.id)) {
+  for (const [id, p] of Object.entries(w.state.property).filter(([, p]) => p.holder === r.id && !p.landlord)) {
     if (p.owned) out.push(`${cap(placeLabel(id))} is yours: you own it.`);
     else if (p.rentToOwn) out.push(`You're buying ${placeLabel(id)} week by week: ${formatMoney(p.rentToOwn.paid)} of ${formatMoney(p.rentToOwn.of)} paid, ${formatMoney(weekly(p))} a week.`);
     else out.push(`You rent ${placeLabel(id)} for ${formatMoney(p.rent)} a week.`);
@@ -260,7 +311,7 @@ export const STALL_WORDS = /stall|shop|kopitiam|market/;
 
 /** Which of their places they mean: a house by default, a stall if they say so. */
 export function placeMeant(w: World, r: Resident, item: unknown): [string, Property] | null {
-  const held = Object.entries(w.state.property).filter(([, p]) => p.holder === r.id);
+  const held = Object.entries(w.state.property).filter(([, p]) => p.holder === r.id && !p.landlord);
   const s = typeof item === 'string' ? item.toLowerCase() : '';
   const stall = STALL_WORDS.test(s);
   return held.find(([id]) => (stall ? !id.startsWith('house-') : id.startsWith('house-'))) ?? null;
@@ -320,18 +371,48 @@ export function letTo(w: World, r: Resident, placeId: string, kind: 'rent' | 'bu
     w.state.fund += cents;
   }
   w.emit(kind === 'buy' ? { type: 'bought_place', who: r.id, place: placeId, cents } : { type: 'rent_paid', who: r.id, place: placeId, cents });
-  Object.assign(p, { holder: r.id, owned: kind === 'buy', rentToOwn: null, owing: 0, since: null, grace: null, freeSince: null, notice: null });
+  Object.assign(p, { holder: r.id, owned: kind === 'buy', rentToOwn: null, owing: 0, since: null, grace: null, freeSince: null, notice: null, landlord: null });
   if (kind === 'rent') p.rent = cents;
   if (!moving || !placeId.startsWith('house-')) return [];
-  // Whoever was turned out with them (from the same house) comes home too.
+  return moveIn(w, r, placeId, `${r.name} has a house from Mr Lim: it's home now.`);
+}
+
+/**
+ * r's household makes a house home: whoever was turned out with them (from the
+ * same house), and everyone living in a house r holds. A house r rented and
+ * leaves empty goes back (to Mr Lim, or its owner). Who moved.
+ */
+export function moveIn(w: World, r: Resident, placeId: string, heard: string): string[] {
+  const old = r.homeId;
+  const oldPlace = old !== placeId ? w.state.property[old] : undefined;
+  const theirs = oldPlace?.holder === r.id;
   const group = w.state.evictedWith[r.id] ?? r.id;
-  const family = w.state.residents.filter((o) => o.id === r.id || (o.homeId === ROUGH && (w.state.evictedWith[o.id] === group || w.state.evictedWith[o.id] === r.id)));
+  const family = w.state.residents.filter((o) => o.id === r.id || (theirs && o.homeId === old)
+    || (o.homeId === ROUGH && (w.state.evictedWith[o.id] === group || w.state.evictedWith[o.id] === r.id)));
   for (const o of family) {
     o.homeId = placeId;
     delete w.state.evictedWith[o.id];
     w.learnPlace(o, placeId);
-    if (o.id !== r.id) w.remember(o.id, `${r.name} has a house from Mr Lim: it's home now.`);
+    if (o.id !== r.id) w.remember(o.id, heard);
     w.emit({ type: 'moved_in', who: o.id, place: placeId });
   }
+  if (theirs && !oldPlace.owned && household(w, old).length === 0) {
+    const by = landlordName(w, oldPlace);
+    const owing = oldPlace.owing;
+    evict(w, old, oldPlace, 'moved');
+    w.remember(r.id, `You give ${placeLabel(old)} you rented back to ${by}${owing > 0 ? `, still owing ${by} ${formatMoney(owing)}` : ''}.`);
+  }
   return family.map((o) => o.id);
+}
+
+/** Everyone living in a house its owner has sold or let moves out: to another house the owner holds, or to sleep rough together. */
+export function moveOut(w: World, placeId: string, ownerId: string, why: string, staying: string | null = null): void {
+  const other = Object.entries(w.state.property).find(([id, p]) => id !== placeId && id.startsWith('house-') && p.holder === ownerId)?.[0] ?? null;
+  for (const o of household(w, placeId).filter((x) => x.id !== staying)) {
+    o.homeId = other ?? ROUGH;
+    if (other) w.learnPlace(o, other);
+    else w.state.evictedWith[o.id] = ownerId;
+    w.remember(o.id, `${cap(placeLabel(placeId))} ${why}: it's no longer your home. ${other ? `Home is ${w.nameOf(ownerId) === o.name ? 'your' : `${w.nameOf(ownerId)}'s`} other house now.` : "You'll have to sleep where you can."}`);
+    w.emit({ type: 'moved_out', who: o.id, place: placeId });
+  }
 }

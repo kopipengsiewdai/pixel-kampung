@@ -65,6 +65,7 @@ export function skipQuietly(w: World, to: number): void {
   osmanSkip(w);
   w.state.jobOffers = w.state.jobOffers.filter((o) => o.expires > to);
   w.state.trades = w.state.trades.filter((o) => o.expires > to);
+  w.state.placeDeals = w.state.placeDeals.filter((o) => o.expires > to);
   w.state.debtOffers = w.state.debtOffers.filter((o) => o.expires > to);
   w.state.priceOffers = w.state.priceOffers.filter((o) => o.expires > to);
   // Travellers who came in the gap found the town quiet; anything on the stove is done.

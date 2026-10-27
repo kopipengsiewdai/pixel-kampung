@@ -108,6 +108,7 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
     placeOffers: [],
     offersDay: -1,
     rentReviewDay: -1,
+    placeDeals: [],
     rentFrom: firstRentDay({ calendar: { firstDay: dayIndex(t) } }, dayIndex(t)),
     rentNoticed: false,
     rentToldTo: [],

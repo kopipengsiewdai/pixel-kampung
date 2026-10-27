@@ -463,6 +463,15 @@ export const UPGRADES: readonly Upgrade[] = [
       return { world: { ...world, property, rentReviewDay: world.rentReviewDay ?? -1 }, brains };
     },
   },
+  {
+    from: 27,
+    why: 'A house a resident owns can be sold or let to another, at any price they agree: offered and agreed in person. A tenant of theirs pays them at the Monday round, and a landlord changes the rent with a week\'s notice, as Mr Lim does. Nobody lets to anybody yet.',
+    save: ({ world, brains }) => {
+      const property = Object.fromEntries(Object.entries(world.property as Record<string, Record<string, unknown>>)
+        .map(([id, p]) => [id, 'landlord' in p ? p : { ...p, landlord: null }]));
+      return { world: { ...world, property, placeDeals: world.placeDeals ?? [] }, brains };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

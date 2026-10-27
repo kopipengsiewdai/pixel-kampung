@@ -272,6 +272,7 @@ export interface WorldState {
   offersDay: number;
   /** The Monday he last looked over the rents. */
   rentReviewDay: number;
+  placeDeals: PlaceDeal[];
   /** The day rent is first due (a Monday), and whether everyone has been told. */
   rentFrom: number;
   rentNoticed: boolean;
@@ -306,8 +307,10 @@ export interface Property {
   grace: { until: number; given: number } | null;
   /** The day it was last left free (null while someone holds it). */
   freeSince: number | null;
-  /** A new rent Mr Lim has given the holder notice of: from which day, and whether they've agreed (a lower rent needs no agreeing). */
+  /** A new rent the holder has been given notice of (by Mr Lim, or their landlord): from which day, and whether they've agreed (a lower rent needs no agreeing). */
   notice: { rent: Cents; from: number; agreed: boolean } | null;
+  /** A resident who owns it and lets it to the holder (null: it's Mr Lim's, or the holder's own). */
+  landlord: string | null;
   holder: string | null;
   rent: Cents;
   owned: boolean;
@@ -315,6 +318,9 @@ export interface Property {
   owing: Cents;
   since: number | null;
 }
+
+/** An offer between residents to sell or let a house one of them owns, standing until agreed, refused or lapsed. */
+export interface PlaceDeal { id: number; fromId: string; toId: string; placeId: string; kind: 'sale' | 'let'; cents: Cents; expires: number; /** Whose it was, and whether let, when offered: it stands only while that's so. */ ownerId: string; wasLet: boolean }
 
 /** An offer made at Mr Lim's door (households-build.md "Housing market"): for a house standing free (no place), or to buy the place they hold. */
 export interface PlaceOffer { id: number; placeId: string | null; who: string; kind: 'rent' | 'buy'; cents: Cents; t: number }

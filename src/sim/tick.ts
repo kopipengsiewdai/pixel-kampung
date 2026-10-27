@@ -187,6 +187,7 @@ export function advance(w: World): void {
 
   w.state.jobOffers = w.state.jobOffers.filter((o) => o.expires > t);
   w.state.trades = w.state.trades.filter((o) => o.expires > t);
+  w.state.placeDeals = w.state.placeDeals.filter((o) => o.expires > t);
   w.state.debtOffers = w.state.debtOffers.filter((o) => o.expires > t);
   lapsePriceOffers(w);
   lapseErrands(w);

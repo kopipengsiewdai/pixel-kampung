@@ -70,6 +70,7 @@ export function toIntent(input: unknown): Intent | null {
   for (const [from, to] of copy) if (d[from] !== undefined && d[from] !== null) out[to] = d[from];
   if (out.where === undefined && typeof i.person === 'string') out.where = i.person;
   if (d.buying === true) out.side = 'buy';
+  if (d.renting === true) out.renting = true;
   if (d.wanted !== undefined && d.wanted !== null) out.limit = d.wanted;
   return out;
 }

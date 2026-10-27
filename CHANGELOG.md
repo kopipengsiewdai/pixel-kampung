@@ -4,6 +4,16 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+Mr Lim's thinking head, part two: a free market in houses, step three ([households-build.md](docs/design/households-build.md) "Housing market"):
+- **Residents sell and let houses they own to one another, at any price they agree.** Either side offers in person (`offer_place`): a price to buy, or a rent a week. The other agrees or refuses, like a trade.
+  - A sale moves the buyer's household in and the seller's out. A house sold while it's let keeps its tenant, and the buyer becomes their landlord on the same rent.
+  - A tenant pays their landlord at the Monday round. Owing over a week, they're out and the house goes back to its owner, who is owed the debt.
+  - A landlord changes the rent with a week's notice (`change_rent`): the tenant agrees, or leaves when it starts.
+  - Only houses someone owns; Mr Lim stays out of them.
+- **Living town:** upgrades to save v28. Nobody lets to anybody yet, and there are no offers.
+
 ## 0.33.0 (2026-10-27): rents change with notice
 
 Mr Lim's thinking head, part two: a free market in houses, step two ([households-build.md](docs/design/households-build.md) "Housing market"):
