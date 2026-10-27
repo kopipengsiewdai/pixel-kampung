@@ -17,7 +17,7 @@ import { ITEMS, type ItemId } from './items.ts';
 import { ACHING_HUNGER, FAINT_HUNGER, HUNGRY_FROM } from './perception.ts';
 import { dayIndex, isNight, minuteOfDay } from './time.ts';
 import { kinOf } from '../seed/cast.ts';
-import { noticeIllKin, sicknessMinute } from './sickness.ts';
+import { noticeIll, sicknessMinute } from './sickness.ts';
 import { mrLimMinute } from './mr-lim.ts';
 import { firesMinute } from './cooking.ts';
 import { schoolMinute, schoolProgress } from './school.ts';
@@ -163,7 +163,7 @@ export function advance(w: World): void {
     if (r.activity?.kind !== 'sleeping') {
       lookAbout(w, r);
       noticeFaintKin(w, r);
-      noticeIllKin(w, r);
+      noticeIll(w, r);
     }
     const a = r.activity;
     if (a?.kind !== 'sleeping' && r.energy <= 0) {

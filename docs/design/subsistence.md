@@ -61,6 +61,18 @@ Kopi stays a drink.
   falls ill. They're too weak to work a shift, do chores or fish, they tire quickly,
   and they mostly rest at home.
 - **Others see it:** "Aminah looks ill." Kin remember it, as with fainting.
+- **Water (amended by the owner, 2026-10-28: "Both"):** ill residents in the
+  living town couldn't fetch water, so they couldn't cook and stayed hungry
+  and ill (Siti and Mak Esah were told they were short of water ten times and
+  more). Two changes:
+  - (a) Someone ill may still fetch water, one pail at a time and slowly (half
+    an hour instead of ten minutes), and only for themselves: not while
+    carrying a pail already, and not as a paid errand. Shifts, fishing,
+    foraging, firewood and odd jobs stay blocked.
+  - (b) Kin and neighbours who can see them, when they have no water with
+    them, notice it in-world ("Aminah looked ill, too weak to be fetching
+    water."), once a day each, so they can bring some. Not while they're seen
+    drawing a pail at the well.
 - **Getting well:** about six hours after hunger falls below hungry, they're well again.
 - **Never death.**
 - Being ill is saved state, so it takes the next save version.
