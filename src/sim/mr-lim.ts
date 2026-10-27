@@ -116,7 +116,7 @@ export function askForHelp(w: World, r: Resident, said: string | null = null): A
 }
 
 /** The place r holds that has rent owing, if any. */
-const owingPlace = (w: World, r: Resident) => Object.values(w.state.property).find((p) => p.holder === r.id && !p.owned && p.owing > 0) ?? null;
+const owingPlace = (w: World, r: Resident) => Object.values(w.state.property).find((p) => p.holder === r.id && !p.owned && !p.landlord && p.owing > 0) ?? null;
 
 /** Answers to anyone who asked for help: his head chooses grace, a loan or no, within his bounds; his own way otherwise. */
 export async function mrLimHelps(w: World, head: MrLimHead | null, realMs: number): Promise<void> {
@@ -373,7 +373,7 @@ export async function mrLimReviews(w: World, head: MrLimHead | null, realMs: num
   w.state.rentReviewDay = today;
   // Before rent has started, rents stand as everyone was told.
   if (!head?.review || today + RENT_NOTICE_DAYS < w.state.rentFrom) return;
-  const lets = Object.entries(w.state.property).filter(([id, p]) => id.startsWith('house-') && p.holder !== null && !p.owned && !p.rentToOwn && !p.notice
+  const lets = Object.entries(w.state.property).filter(([id, p]) => id.startsWith('house-') && p.holder !== null && !p.owned && !p.landlord && !p.rentToOwn && !p.notice
     && w.state.residents.some((r) => r.id === p.holder));
   if (!lets.length) return;
   const got = await head.review({

@@ -4,6 +4,7 @@ import { canForageToday, CHORE_DOING, errandLines } from './actions/chores.ts';
 import { cookable, type CookAt } from './actions/owners.ts';
 import { FEELINGS_SHOWN, feelingLine, strength } from './bonds.ts';
 import { householdLines } from './households.ts';
+import { dealLines } from './place-deals.ts';
 import { offersFor } from './actions/haggle.ts';
 import { servers } from './travellers.ts';
 import { newestOfEach, type DealKind } from './talk.ts';
@@ -342,7 +343,7 @@ export function perceive(w: World, r: Resident): Perception {
     hungerPang: hungerPang(r.hunger),
     ill: r.ill !== null,
     foodWays: foodWays(w, r),
-    household: householdLines(w, r, w.isAt(r, 'village-head')),
+    household: [...householdLines(w, r, w.isAt(r, 'village-head')), ...dealLines(w, r)],
     cooking: [...cookingLines(w, r), ...schoolLines(w, r)],
     villageHead: (() => { const m = mrLimAt(w, w.t); return m.out && distance(m.pos, r.pos) <= NEARBY_TILES ? m.doing : null; })(),
     oddJob: (() => { const j = doneToday(w, r) ? null : openJobHere(w, r); return j ? { what: whatOf(j.kind), pay: j.pay } : null; })(),

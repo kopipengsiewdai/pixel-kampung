@@ -13,6 +13,7 @@ import { TOO_ILL, TOO_ILL_FOR } from '../sickness.ts';
 import { fireGround, fireNear, KITCHEN_ID, kitchenBuilt, lightFire } from '../cooking.ts';
 import { canJoinClass, CLASS_FEE, joinClass } from '../school.ts';
 import { agreeToRent, askForHelp, canAgree, canAskHelp, canOffer, doneToday, offerForPlace, openJobHere, whatOf } from '../mr-lim.ts';
+import { changeRent, offerPlace, somethingAboutHouses } from '../place-deals.ts';
 import { formatMoney } from '../money.ts';
 import { moneyOf, ok as yes } from './common.ts';
 
@@ -39,7 +40,7 @@ const atLorry = (w: World, r: Resident) => w.isAt(r, 'lorry-stop') && w.state.lo
 const at = (id: string) => (w: World, r: Resident) => w.isAt(r, id);
 const withPeople = (w: World, r: Resident) => w.nearby(r).some((o) => !w.isAsleep(o));
 /** Something someone offered or asked r that waits on a yes or no. */
-const somethingOffered = (w: World, r: Resident) => w.state.debtOffers.some((o) => o.toId === r.id) || offersFor(w, r).length > 0
+const somethingOffered = (w: World, r: Resident) => w.state.debtOffers.some((o) => o.toId === r.id) || offersFor(w, r).length > 0 || somethingAboutHouses(w, r)
   || w.state.errands.some((e) => !e.taken && e.runnerId === r.id) || w.state.lessonOffers.some((o) => o.learnerId === r.id);
 
 /** The whole v1 action space (spec §3). Nothing else can be done. */
@@ -71,6 +72,16 @@ export const ACTIONS: Record<string, ActionDef> = {
   pay_lorry_man: {
     run: owners.payLorryMan, ownersOnly: false, says: 'pay the lorry man what you owe him (money for only part)',
     here: (w, r) => atLorry(w, r) && (w.state.osman.accounts[r.id]?.owes ?? 0) > 0,
+  },
+  offer_place: {
+    run: offerPlace, ownersOnly: false,
+    says: 'offer to sell, buy, let or rent a house one of you owns (person; item: my house, or your house; money: the price, or the rent a week; renting: true for a rent a week)',
+    here: (w, r) => withPeople(w, r) && Object.values(w.state.property).some((p) => p.owned || p.landlord),
+  },
+  change_rent: {
+    run: changeRent, ownersOnly: false,
+    says: "give a tenant of yours a week's notice of a new rent (person, money: the rent a week)",
+    here: (w, r) => withPeople(w, r) && Object.values(w.state.property).some((p) => p.landlord === r.id),
   },
   offer_trade: { run: everyone.offerTrade, ownersOnly: false, says: 'offer someone a trade (person; details: give and want, each with items and money)', here: withPeople },
   accept_trade: {

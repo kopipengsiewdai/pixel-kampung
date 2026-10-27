@@ -88,11 +88,12 @@ export type EventBody =
   | { type: 'kampung_quiet' }
   /** Two people have swapped several lines with nothing done between them (talk-circles.md). */
   | { type: 'circles'; a: string; b: string }
-  | { type: 'rent_paid'; who: string; place: string; cents: Cents }
+  | { type: 'rent_paid'; who: string; place: string; cents: Cents; to?: string }
   | { type: 'rent_owed'; who: string; place: string; cents: Cents }
   | { type: 'evicted'; who: string; place: string }
   | { type: 'left_home'; who: string; place: string }
-  | { type: 'bought_place'; who: string; place: string; cents: Cents }
+  | { type: 'bought_place'; who: string; place: string; cents: Cents; from?: string }
+  | { type: 'moved_out'; who: string; place: string }
   | { type: 'moved_in'; who: string; place: string };
 
 export type EventType = EventBody['type'];

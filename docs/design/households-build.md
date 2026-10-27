@@ -46,7 +46,8 @@ it's drawn as a bigger house. Every resident who has lived here knows it.
 - `pay_rent`: pay what you owe, in full or in part.
 - `offer_for_place` (replaced `buy_place`, `rent_to_own` and `rent_house` with the housing market, 0.32.0): offer Mr Lim a rent a week or a price to buy, for a house standing free or the place you hold. See "Housing market" below. A rent-to-own already running finishes on its terms.
 - `agree_to_rent` (0.33.0): tell Mr Lim you'll pay the new rent he's given you notice of.
-- `sell_place` (to another resident, anywhere they're both standing): an offer they agree to, like a trade.
+- `offer_place` (0.34.0, replacing the planned `sell_place`): to another resident, wherever they're both standing, offer to sell, buy, let or rent a house one of you owns. They `agree` or `refuse`, like a trade.
+- `change_rent` (0.34.0): a landlord gives their tenant, in person, a week's notice of a new rent. The tenant agrees (`agree`) or leaves when it starts.
   - The buyer pays the seller through the ledger.
   - The place passes to the buyer, and so does the household if it was the buyer's home.
 
@@ -117,7 +118,15 @@ Built in four parts:
   - A higher rent must be agreed at his door (`agree_to_rent`) by then, or the household leaves that morning, owing only what they already owed, and the house stands free. A lower rent needs no agreeing.
   - A notice goes with the house if it's let go for rent owing, or bought. Places being bought week by week, and owned ones, aren't looked over; nor are stalls, until (d).
   - The day he last looked is saved, so a restart doesn't make him look twice.
-- (c) Selling or letting between residents.
+- **(c) Selling or letting between residents** (0.34.0, agreed with the owner via Kampung 2026-10-27).
+  - Only a house you own: one rented from Mr Lim isn't yours to sell or sublet.
+  - Either side offers, wherever both are standing: a price to buy, or a rent a week. The other agrees or refuses; an offer lapses after half an hour, like a trade. The money is checked when it's agreed.
+  - A sale: the money goes from buyer to seller, and the house is the buyer's. The seller's household moves to another house the seller holds, or sleeps rough together. The buyer's household moves in; a house the buyer rented and leaves empty goes back to Mr Lim (or its owner).
+  - A let: the first week is paid up front, the owner's household moves out and the tenant's in. The tenant pays the landlord, not the fund, at Mr Lim's Monday round. Owing over a week, the tenant is out and the house goes back to its owner, the debt owed to them.
+  - A landlord changes the rent as Mr Lim does (`change_rent`): a week's notice, agreed in person, or the tenant leaves when it starts.
+  - A house sold while it's let keeps its sitting tenant: the buyer is their landlord, on the same rent (any notice lapses). A tenant may buy the house they rent.
+  - Mr Lim stays out of it: no rent review, offer, help or pay-rent for a house let between residents.
+  - Houses only, until (d).
 - (d) Letting a stall go for rent owing.
 
 ## PR C: marriage (after A and B)

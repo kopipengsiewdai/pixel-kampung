@@ -10,6 +10,8 @@ import { howTo, type LessonOffer } from '../skills.ts';
 import { lessonFrom, refuseLesson, takeLesson } from './teach.ts';
 import { describeErrand, errandFrom, refuseErrand, takeErrand } from './chores.ts';
 import { acceptPrice, priceOfferFrom, refusePrice } from './haggle.ts';
+import { agreeDeal, agreeRent, dealFrom, noticeFrom, refuseDeal, refuseRent } from '../place-deals.ts';
+import type { PlaceDeal, Property } from '../state.ts';
 import { type ActionResult, type Intent, moneyOf, no, ok, personNearby, quoted, textOf } from './common.ts';
 
 export const DEBT_OFFER_MINUTES = 30;
@@ -90,16 +92,24 @@ function offerFrom(w: World, r: Resident, from: unknown): { o: Resident; offer: 
  * Which of someone's offers r means: a price at r's counter (when r names the
  * item, or it's the only one), a money offer, or neither (asked which).
  */
+type House = { o: Resident; deal: PlaceDeal } | { o: Resident; notice: [string, Property] };
+
 function whichOffer(w: World, r: Resident, i: Intent):
-  { price: NonNullable<ReturnType<typeof priceOfferFrom>> } | { money: { o: Resident; offer: DebtOffer } } | { errand: Errand } | { lesson: LessonOffer } | string {
+  { price: NonNullable<ReturnType<typeof priceOfferFrom>> } | { money: { o: Resident; offer: DebtOffer } } | { errand: Errand } | { lesson: LessonOffer } | { house: House } | string {
   const moneyOrWhy = offerFrom(w, r, i.from);
   const money = typeof moneyOrWhy === 'string' ? null : moneyOrWhy;
   const price = priceOfferFrom(w, r, i.from);
   const errand = errandFrom(w, r, i.from);
   const lesson = lessonFrom(w, r, i.from);
-  const found = [money && { money }, price && { price }, errand && { errand }, lesson && { lesson }].filter((x) => !!x);
+  // A house: an offer to sell or let, or a landlord's new rent.
+  const o = w.residentByName(i.from, r);
+  const deal = o ? dealFrom(w, r, o) : null;
+  const notice = o && !deal ? noticeFrom(w, r, o) : null;
+  const house: House | null = o && deal ? { o, deal } : o && notice ? { o, notice } : null;
+  const found = [money && { money }, price && { price }, errand && { errand }, lesson && { lesson }, house && { house }].filter((x) => !!x);
   if (found.length === 0) return moneyOrWhy as string;
   if (found.length === 1) return found[0]!;
+  if (house && /\b(house|home|rent|let|sell|sold|buy)/i.test(typeof i.text === 'string' ? `${i.text} ${String(i.item ?? '')}` : String(i.item ?? ''))) return { house };
   if (price && i.item !== undefined && i.item !== null && i.item !== '') return { price };
   // Words choose between an errand (it, or what it's about) and money (a loan, an IOU).
   const words = typeof i.text === 'string' ? i.text : '';
@@ -110,12 +120,13 @@ function whichOffer(w: World, r: Resident, i: Intent):
   if (about.length === 1) return about[0]!;
   const name = w.residentByName(i.from, r)!.name;
   const parts = [
+    house ? 'asked you about a house' : null,
     money ? 'asked you about money' : null,
     price ? `offered ${formatMoney(price.offer.cents)} for ${quantityLabel(price.offer.item, price.offer.qty)}` : null,
     errand ? describeErrand(w, errand) : null,
     lesson ? `offered to show you ${howTo(lesson.skill)}` : null,
   ].filter((x): x is string => !!x);
-  const say = [money ? '"the loan"' : null, price ? `the ${price.offer.item}` : null, errand ? '"the errand"' : null, lesson ? '"the lesson"' : null].filter((x): x is string => !!x);
+  const say = [house ? '"the house"' : null, money ? '"the loan"' : null, price ? `the ${price.offer.item}` : null, errand ? '"the errand"' : null, lesson ? '"the lesson"' : null].filter((x): x is string => !!x);
   return `${name} has ${parts.length === 2 ? parts.join(' and ') : `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`}. Which do you mean? Say ${say.length === 2 ? say.join(' or ') : `${say.slice(0, -1).join(', ')} or ${say.at(-1)}`}.`;
 }
 
@@ -130,6 +141,7 @@ export function agree(w: World, r: Resident, i: Intent): ActionResult {
   if ('price' in which) return acceptPrice(w, r, which.price);
   if ('errand' in which) return takeErrand(w, r, which.errand);
   if ('lesson' in which) return takeLesson(w, r, which.lesson);
+  if ('house' in which) return 'deal' in which.house ? agreeDeal(w, r, which.house.o, which.house.deal) : agreeRent(w, r, which.house.o, which.house.notice);
   const found = which.money;
   const { o, offer: x } = found;
   const near = personNearby(w, r, o.name);
@@ -163,6 +175,7 @@ export function refuse(w: World, r: Resident, i: Intent): ActionResult {
   if ('price' in which) return refusePrice(w, r, which.price);
   if ('errand' in which) return refuseErrand(w, r, which.errand);
   if ('lesson' in which) return refuseLesson(w, r, which.lesson);
+  if ('house' in which) return 'deal' in which.house ? refuseDeal(w, r, which.house.o, which.house.deal) : refuseRent(w, r, which.house.o, which.house.notice);
   const found = which.money;
   const { o, offer: x } = found;
   const sum = formatMoney(x.cents);
