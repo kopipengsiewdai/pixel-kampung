@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.32.0 (2026-10-27): houses go by offer
 
 Mr Lim's thinking head, part two: a free market in houses, step one ([households-build.md](docs/design/households-build.md) "Housing market"):
 - **Houses go by offer, with no fixed prices.** Each morning Mr Lim pins a note of the houses standing free.
