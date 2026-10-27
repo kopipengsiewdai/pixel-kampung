@@ -8,12 +8,12 @@
  * Mr Lim does: a week's notice, agreed, or the tenant leaves when it starts.
  * Only houses as yet: a stall changes hands with its shop later.
  */
-import { formatMoney, type Cents } from './money.ts';
+import { formatMoney } from './money.ts';
 import { GROWN_AGE, type PlaceDeal, type Property, type Resident, type World } from './state.ts';
 import { type ActionResult, type Intent, moneyOf, no, ok, personNearby } from './actions/common.ts';
 import { addDebt } from './actions/debts.ts';
 import { TRADE_OFFER_MINUTES } from './actions/everyone.ts';
-import { fromDay, moveIn, moveOut, noticeLine } from './households.ts';
+import { fromDay, mondayOnOrAfter, moveIn, moveOut, noticeLine } from './households.ts';
 import { RENT_NOTICE_DAYS } from './mr-lim.ts';
 import { dayIndex } from './time.ts';
 
@@ -26,36 +26,75 @@ export function ownedBy(w: World, r: Resident): [string, Property][] {
     .sort(([a], [b]) => Number(b === r.homeId) - Number(a === r.homeId));
 }
 
-/** Whose house they mean: "my house", "your house", or whichever of the two owns one. */
-function houseMeant(w: World, r: Resident, o: Resident, item: unknown): { placeId: string; p: Property; owner: Resident; other: Resident } | string {
+const lives = (w: World, id: string) => w.state.residents.some((x) => x.homeId === id);
+
+/** Which house, in words they'd know it by (as `forId` sees it). */
+function houseWords(w: World, id: string, p: Property, owner: Resident, forId: string): string {
+  if (p.landlord) return p.holder === forId ? 'the one you rent' : `the one ${w.nameOf(p.holder!)} rents`;
+  if (id === owner.homeId) return owner.id === forId ? 'the one you live in' : `the one ${owner.name} lives in`;
+  return lives(w, id) ? 'the one your family lives in' : 'the one standing empty';
+}
+
+/** A Mr Lim house they're buying week by week, and would lose by moving. */
+const buyingFromLim = (w: World, r: Resident) => { const p = w.state.property[r.homeId]; return !!p && p.holder === r.id && !!p.rentToOwn; };
+const BUYING_FROM_LIM = "You're buying your house from Mr Lim week by week: you'd lose it if you moved.";
+
+/** Whose house, and which, they mean: "my house", "your house", or whichever of the two owns one; a let takes one not let already. */
+function houseMeant(w: World, r: Resident, o: Resident, item: unknown, kind: PlaceDeal['kind']): { placeId: string; p: Property; owner: Resident; other: Resident } | string {
   const s = typeof item === 'string' ? item.toLowerCase() : '';
   const yours = /\b(your|yours)\b/.test(s);
   const mine = /\b(my|mine|our|ours)\b/.test(s);
-  const order = yours ? [o] : mine ? [r] : [r, o];
-  for (const owner of order) {
-    const [first] = ownedBy(w, owner);
-    if (first) return { placeId: first[0], p: first[1], owner, other: owner === r ? o : r };
-  }
-  const who = order.length === 1 ? order[0]! : null;
   const fromLim = (x: Resident) => Object.values(w.state.property).some((p) => p.holder === x.id && !p.owned && !p.landlord);
-  if (who) {
-    const whose = who === r ? 'yours' : `${o.name}'s`;
-    return fromLim(who) ? `That house is Mr Lim's: it isn't ${whose} to sell or let.` : `${who === r ? "You haven't" : `${o.name} hasn't`} a house of ${who === r ? 'your' : 'their'} own.`;
+  let owner: Resident;
+  if (yours || mine) {
+    owner = yours ? o : r;
+    if (!ownedBy(w, owner).length) {
+      const whose = owner === r ? 'yours' : `${o.name}'s`;
+      return fromLim(owner) ? `That house is Mr Lim's: it isn't ${whose} to sell or let.` : `${owner === r ? "You haven't" : `${o.name} hasn't`} a house of ${owner === r ? 'your' : 'their'} own.`;
+    }
+  } else {
+    const owners = [r, o].filter((x) => ownedBy(w, x).length > 0);
+    if (owners.length === 2) return `You both have a house of your own. Whose do you mean: say my house, or your house.`;
+    if (!owners.length) return fromLim(r) || fromLim(o) ? "The houses you two live in are Mr Lim's: neither is yours to sell or let." : 'Neither of you has a house of your own.';
+    owner = owners[0]!;
   }
-  return fromLim(r) || fromLim(o) ? "The houses you two live in are Mr Lim's: neither is yours to sell or let." : 'Neither of you has a house of your own.';
+  const other = owner === r ? o : r;
+  let houses = ownedBy(w, owner);
+  if (kind === 'let') {
+    houses = houses.filter(([, p]) => !p.landlord);
+    if (!houses.length) return `${owner === r ? 'Your' : `${owner.name}'s`} house is let already.`;
+  }
+  // A sale to the one who rents it: that house.
+  const theirs = houses.find(([, p]) => p.landlord && p.holder === other.id);
+  if (theirs && kind === 'sale') houses = [theirs];
+  // Or what they say of it.
+  const said = houses.filter(([id, p]) => (/\b(empty|free|spare)\b/.test(s) && !lives(w, id))
+    || (/\b(live|lives|living|home)\b/.test(s) && id === owner.homeId) || (/\b(let|rent|rents|rented|tenant)\b/.test(s) && !!p.landlord));
+  if (said.length) houses = said;
+  // A let: rather one standing empty than the owner's own home.
+  if (kind === 'let' && houses.length > 1) {
+    const empty = houses.filter(([id]) => !lives(w, id));
+    if (empty.length) houses = empty;
+  }
+  if (houses.length > 1) return `Which house do you mean: ${houses.map(([id, p]) => houseWords(w, id, p, owner, r.id)).join(', or ')}?`;
+  const [placeId, p] = houses[0]!;
+  return { placeId, p, owner, other };
 }
 
 /** The offer in words, as `forId` sees it. */
 export function dealWords(w: World, d: PlaceDeal, forId: string): string {
-  const p = w.state.property[d.placeId]!;
-  const owner = ownerOf(p);
+  const owner = d.ownerId;
   const from = d.fromId === forId ? 'You' : w.nameOf(d.fromId);
   const to = d.toId === forId ? 'you' : w.nameOf(d.toId);
-  const house = owner === forId ? 'your house' : owner === d.fromId ? 'their house' : `${w.nameOf(owner ?? d.toId)}'s house`;
+  const house = owner === forId ? 'your house' : owner === d.fromId ? 'their house' : `${w.nameOf(owner)}'s house`;
   const money = formatMoney(d.cents);
-  if (d.kind === 'sale') return owner === d.fromId ? `${from} offer${from === 'You' ? '' : 's'} to sell ${to} ${house} for ${money}` : `${from} offer${from === 'You' ? '' : 's'} ${to} ${money} for ${house}`;
-  return owner === d.fromId ? `${from} offer${from === 'You' ? '' : 's'} to let ${to} ${house} for ${money} a week` : `${from} offer${from === 'You' ? '' : 's'} ${to} ${money} a week to rent ${house}`;
+  const s = from === 'You' ? '' : 's';
+  if (d.kind === 'sale') return owner === d.fromId ? `${from} offer${s} to sell ${to} ${house} for ${money}` : `${from} offer${s} ${to} ${money} for ${house}`;
+  return owner === d.fromId ? `${from} offer${s} to let ${to} ${house} for ${money} a week` : `${from} offer${s} ${to} ${money} a week to rent ${house}`;
 }
+
+/** Whether the payer would move in (and so leave their home). */
+const movesIn = (d: Pick<PlaceDeal, 'kind' | 'wasLet'>) => d.kind === 'let' || !d.wasLet;
 
 export function offerPlace(w: World, r: Resident, i: Intent): ActionResult {
   const o = personNearby(w, r, i.to);
@@ -63,14 +102,14 @@ export function offerPlace(w: World, r: Resident, i: Intent): ActionResult {
   if (w.ageOf(r) < GROWN_AGE || w.ageOf(o) < GROWN_AGE) return no('Houses are for grown-ups to settle between them.');
   const cents = moneyOf(i.money);
   if (cents === null || cents === 0) return no("That doesn't sound like money.");
-  const found = houseMeant(w, r, o, i.item);
+  const kind = i.renting === true ? 'let' : 'sale';
+  const found = houseMeant(w, r, o, i.item, kind);
   if (typeof found === 'string') return no(found);
   const { placeId, p, owner, other } = found;
-  const kind = i.renting === true ? 'let' : 'sale';
-  if (kind === 'let' && p.landlord) return no(`${owner === r ? 'Your' : `${owner.name}'s`} house is let to ${p.holder === other.id ? (other === r ? 'you' : other.name) : w.nameOf(p.holder!)} already.`);
+  const deal: PlaceDeal = { id: w.nextId(), fromId: r.id, toId: o.id, placeId, kind, cents, expires: w.t + TRADE_OFFER_MINUTES, ownerId: owner.id, wasLet: !!p.landlord };
+  if (other === r && movesIn(deal) && buyingFromLim(w, r)) return no(BUYING_FROM_LIM);
   // Whoever pays must have it now: the price, or the first week.
   if (other === r && r.money < cents) return no(`You haven't ${formatMoney(cents)}.`);
-  const deal: PlaceDeal = { id: w.nextId(), fromId: r.id, toId: o.id, placeId, kind, cents, expires: w.t + TRADE_OFFER_MINUTES };
   // One offer from one to another: a new one takes the place of the last.
   w.state.placeDeals = [...w.state.placeDeals.filter((d) => !(d.fromId === r.id && d.toId === o.id)), deal];
   w.notify(o.id, `${dealWords(w, deal, o.id)}.`);
@@ -84,16 +123,17 @@ export function agreeDeal(w: World, r: Resident, o: Resident, d: PlaceDeal): Act
   const near = personNearby(w, r, o.name);
   if (typeof near === 'string') return no(near);
   const p = w.state.property[d.placeId]!;
-  const ownerId = ownerOf(p);
-  // The house must still be the owner's (and, to let, not let meanwhile).
-  if (!ownerId || ![d.fromId, d.toId].includes(ownerId) || (d.kind === 'let' && p.landlord)) {
+  // The house must stand as it did when offered: the same owner, let or not.
+  if (ownerOf(p) !== d.ownerId || !!p.landlord !== d.wasLet) {
     w.state.placeDeals = w.state.placeDeals.filter((x) => x.id !== d.id);
-    return no("That offer doesn't stand now: the house isn't theirs to sell or let any more.");
+    return no("That offer doesn't stand now: the house has changed hands since.");
   }
-  const owner = w.resident(ownerId);
+  const owner = w.resident(d.ownerId);
   const payer = owner === r ? o : r;
+  if (movesIn(d) && buyingFromLim(w, payer)) return no(payer === r ? BUYING_FROM_LIM : `${payer.name} is buying their house from Mr Lim week by week, and can't move.`);
   if (payer.money < d.cents) return no(payer === r ? `You haven't ${formatMoney(d.cents)}.` : `${payer.name} hasn't the money now.`);
-  w.state.placeDeals = w.state.placeDeals.filter((x) => x.id !== d.id);
+  // This house changes hands: no other offer for it stands.
+  w.state.placeDeals = w.state.placeDeals.filter((x) => x.placeId !== d.placeId);
   const money = formatMoney(d.cents);
   if (d.kind === 'sale') {
     w.transfer(payer.id, owner.id, d.cents, 'bought a house');
@@ -110,7 +150,7 @@ export function agreeDeal(w: World, r: Resident, o: Resident, d: PlaceDeal): Act
     } else {
       moveOut(w, d.placeId, owner.id, `has been sold to ${payer.name}`);
       Object.assign(p, { holder: payer.id, owned: true, owing: 0, since: null, notice: null, grace: null });
-      moveIn(w, payer, d.placeId, owner.name);
+      moveIn(w, payer, d.placeId, `${payer.name} has bought a house from ${owner.name}: it's home now.`);
     }
     w.notify(o.id, `${r.name} agrees: ${payer === o ? `you pay ${money}, and the house is yours` : `you're paid ${money} for the house`}.`);
     return ok(payer === r ? `You pay ${o.name} ${money}: the house is yours now, and nobody can take it.` : `${o.name} pays you ${money}: the house is theirs now.`);
@@ -120,7 +160,7 @@ export function agreeDeal(w: World, r: Resident, o: Resident, d: PlaceDeal): Act
   w.emit({ type: 'rent_paid', who: payer.id, place: d.placeId, cents: d.cents, to: owner.id });
   moveOut(w, d.placeId, owner.id, `is let to ${payer.name}`);
   Object.assign(p, { holder: payer.id, owned: false, landlord: owner.id, rent: d.cents, owing: 0, since: null, grace: null, notice: null });
-  moveIn(w, payer, d.placeId, owner.name);
+  moveIn(w, payer, d.placeId, `${payer.name} rents a house from ${owner.name}: it's home now.`);
   w.notify(o.id, `${r.name} agrees: ${payer === o ? `you pay the first week, ${money}, and the house is your home` : `the first week's ${money} is paid, and the house is let`}.`);
   return ok(payer === r ? `You pay ${o.name} the first week, ${money}: the house is your home now. The rent is due each Monday.` : `${o.name} pays you the first week, ${money}: the house is let to them.`);
 }
@@ -131,7 +171,7 @@ export function refuseDeal(w: World, r: Resident, o: Resident, d: PlaceDeal): Ac
   return ok(`You turn down ${o.name}'s offer.`);
 }
 
-/** A landlord gives their tenant notice of a new rent, in person: a week on, agreed, or they leave. */
+/** A landlord gives their tenant notice of a new rent, in person: from the Monday round a week or more on, agreed, or they leave. */
 export function changeRent(w: World, r: Resident, i: Intent): ActionResult {
   const o = personNearby(w, r, i.to);
   if (typeof o === 'string') return no(o);
@@ -142,7 +182,7 @@ export function changeRent(w: World, r: Resident, i: Intent): ActionResult {
   if (cents === null || cents === 0) return no("That doesn't sound like money.");
   if (p.notice) return no(`You've given ${o.name} notice of a new rent already.`);
   if (cents === p.rent) return no(`${o.name} pays ${formatMoney(cents)} a week already.`);
-  p.notice = { rent: cents, from: dayIndex(w.t) + RENT_NOTICE_DAYS, agreed: cents < p.rent };
+  p.notice = { rent: cents, from: mondayOnOrAfter(w, dayIndex(w.t) + RENT_NOTICE_DAYS), agreed: cents < p.rent };
   w.notify(o.id, noticeLine(w, id, p));
   for (const x of w.state.residents) if (x.homeId === id && x.id !== o.id) w.notify(x.id, noticeLine(w, id, p, x.id));
   return ok(`You give ${o.name} notice: ${fromDay(w, p.notice.from)}, the rent for your house is ${formatMoney(cents)} a week.${cents > p.rent ? ` If ${o.name} won't pay it, they'll have to leave.` : ''}`);
@@ -167,7 +207,7 @@ export function refuseRent(w: World, r: Resident, o: Resident, [, p]: [string, P
   return ok(`You tell ${o.name} you won't pay ${formatMoney(p.notice!.rent)} a week. You'll have to leave when it starts, ${fromDay(w, p.notice!.from).replace(/^from /, 'on ')}.`);
 }
 
-/** Offers and notices waiting on r's word, in their words. */
+/** Offers waiting on r's word, in their words. */
 export function dealLines(w: World, r: Resident): string[] {
   return w.state.placeDeals.filter((d) => d.toId === r.id).map((d) => `${dealWords(w, d, r.id)}; you could agree, or refuse.`);
 }
@@ -175,4 +215,3 @@ export function dealLines(w: World, r: Resident): string[] {
 /** Whether anything about a house waits on r's word. */
 export const somethingAboutHouses = (w: World, r: Resident) => w.state.placeDeals.some((d) => d.toId === r.id)
   || Object.values(w.state.property).some((p) => p.landlord && p.holder === r.id && p.notice && !p.notice.agreed);
-

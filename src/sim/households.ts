@@ -122,7 +122,8 @@ function evict(w: World, placeId: string, p: Property, why: 'owing' | 'new rent'
     w.remember(r.id, why === 'owing'
       ? `${by} has ${p.landlord ? 'taken back' : 'let go'} ${placeLabel(placeId)} for the rent owing: it's no longer your home. You'll have to sleep where you can.`
       : `The new rent for ${placeLabel(placeId)} was never agreed, so you've had to leave it: it's no longer your home. You'll have to sleep where you can.`);
-    w.emit({ type: why === 'owing' ? 'evicted' : 'left_home', who: r.id, place: placeId });
+    const type = why === 'owing' ? 'evicted' as const : 'left_home' as const;
+    w.emit(p.landlord ? { type, who: r.id, place: placeId, owner: p.landlord } : { type, who: r.id, place: placeId });
     w.state.evictedWith[r.id] = p.holder ?? r.id;
   }
   if (p.landlord && p.holder && why !== 'moved') w.notify(p.landlord, `${w.nameOf(p.holder)} is out of your house${why === 'owing' ? ', for the rent owing' : ': they never agreed the new rent'}. It's yours again.`);
@@ -133,11 +134,21 @@ function evict(w: World, placeId: string, p: Property, why: 'owing' | 'new rent'
   p.notice = null;
   p.grace = null;
   if (p.landlord) {
-    Object.assign(p, { holder: p.landlord, owned: true, landlord: null, freeSince: null });
+    const owner = w.resident(p.landlord);
+    Object.assign(p, { holder: owner.id, owned: true, landlord: null, freeSince: null });
+    // An owner with no home of their own comes home to it, and their family with them.
+    if (w.state.property[owner.homeId]?.holder !== owner.id) moveIn(w, owner, placeId, `${owner.name} has their house back: it's home again.`);
     return;
   }
   p.holder = null;
   p.freeSince = dayIndex(w.t);
+}
+
+/** The first Monday on or after a day: when Mr Lim comes round. */
+export function mondayOnOrAfter(w: World, day: number): number {
+  let d = day;
+  while (weekdayAt(w.state, dayStart(d)) !== 'Monday') d++;
+  return d;
 }
 
 /** "from Monday, 9 November, Year 1": the day a new rent starts. */
@@ -203,7 +214,7 @@ export function rentRound(w: World): void {
     // The old debt paid off, what's left is this week's: its grace starts today.
     p.since = short === 0 ? null : oldLeft === 0 ? today : oldSince;
     if (ownIfPaid(w, r, id, p)) continue;
-    if (short > 0) w.emit({ type: 'rent_owed', who: r.id, place: id, cents: short });
+    if (short > 0) w.emit(p.landlord ? { type: 'rent_owed', who: r.id, place: id, cents: short, to: p.landlord } : { type: 'rent_owed', who: r.id, place: id, cents: short });
     const by = landlordName(w, p);
     w.remember(r.id, short === 0
       ? `${by} comes round for the rent: you pay ${formatMoney(paid)} for ${placeLabel(id)}.`
@@ -232,7 +243,7 @@ export function householdsMinute(w: World): void {
     const when = dateLabel(dateAt(w.state, dayStart(w.state.rentFrom)));
     const held = new Map<string, string[]>();
     for (const [id, p] of Object.entries(w.state.property)) {
-      if (p.holder && !p.owned) held.set(p.holder, [...(held.get(p.holder) ?? []), `${formatMoney(p.rent)} a week for ${placeLabel(id)}`]);
+      if (p.holder && !p.owned && !p.landlord) held.set(p.holder, [...(held.get(p.holder) ?? []), `${formatMoney(p.rent)} a week for ${placeLabel(id)}`]);
     }
     for (const [holder, rents] of held) {
       if (w.state.rentToldTo.includes(holder) || w.isAsleep(w.resident(holder))) continue;
@@ -360,7 +371,7 @@ export function letTo(w: World, r: Resident, placeId: string, kind: 'rent' | 'bu
   Object.assign(p, { holder: r.id, owned: kind === 'buy', rentToOwn: null, owing: 0, since: null, grace: null, freeSince: null, notice: null, landlord: null });
   if (kind === 'rent') p.rent = cents;
   if (!moving || !placeId.startsWith('house-')) return [];
-  return moveIn(w, r, placeId, 'Mr Lim');
+  return moveIn(w, r, placeId, `${r.name} has a house from Mr Lim: it's home now.`);
 }
 
 /**
@@ -368,7 +379,7 @@ export function letTo(w: World, r: Resident, placeId: string, kind: 'rent' | 'bu
  * same house), and everyone living in a house r holds. A house r rented and
  * leaves empty goes back (to Mr Lim, or its owner). Who moved.
  */
-export function moveIn(w: World, r: Resident, placeId: string, from: string): string[] {
+export function moveIn(w: World, r: Resident, placeId: string, heard: string): string[] {
   const old = r.homeId;
   const oldPlace = old !== placeId ? w.state.property[old] : undefined;
   const theirs = oldPlace?.holder === r.id;
@@ -379,10 +390,15 @@ export function moveIn(w: World, r: Resident, placeId: string, from: string): st
     o.homeId = placeId;
     delete w.state.evictedWith[o.id];
     w.learnPlace(o, placeId);
-    if (o.id !== r.id) w.remember(o.id, `${r.name} has a house from ${from}: it's home now.`);
+    if (o.id !== r.id) w.remember(o.id, heard);
     w.emit({ type: 'moved_in', who: o.id, place: placeId });
   }
-  if (theirs && !oldPlace.owned && household(w, old).length === 0) evict(w, old, oldPlace, 'moved');
+  if (theirs && !oldPlace.owned && household(w, old).length === 0) {
+    const by = landlordName(w, oldPlace);
+    const owing = oldPlace.owing;
+    evict(w, old, oldPlace, 'moved');
+    w.remember(r.id, `You give ${placeLabel(old)} you rented back to ${by}${owing > 0 ? `, still owing ${by} ${formatMoney(owing)}` : ''}.`);
+  }
   return family.map((o) => o.id);
 }
 

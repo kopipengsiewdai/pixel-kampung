@@ -309,8 +309,10 @@ src/sim/state.ts WorldState {
     fromId: string
     id: number
     kind: "let" | "sale"
+    ownerId: string
     placeId: string
     toId: string
+    wasLet: false | true
   }[]
   placeOffers: {
     cents: number

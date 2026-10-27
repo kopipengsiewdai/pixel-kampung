@@ -123,7 +123,11 @@ Built in four parts:
   - Either side offers, wherever both are standing: a price to buy, or a rent a week. The other agrees or refuses; an offer lapses after half an hour, like a trade. The money is checked when it's agreed.
   - A sale: the money goes from buyer to seller, and the house is the buyer's. The seller's household moves to another house the seller holds, or sleeps rough together. The buyer's household moves in; a house the buyer rented and leaves empty goes back to Mr Lim (or its owner).
   - A let: the first week is paid up front, the owner's household moves out and the tenant's in. The tenant pays the landlord, not the fund, at Mr Lim's Monday round. Owing over a week, the tenant is out and the house goes back to its owner, the debt owed to them.
-  - A landlord changes the rent as Mr Lim does (`change_rent`): a week's notice, agreed in person, or the tenant leaves when it starts.
+  - A landlord changes the rent as Mr Lim does (`change_rent`): a week's notice, from his Monday round a week or more on, agreed in person, or the tenant leaves when it starts.
+  - An offer stands only while the house is as it was when offered (the same owner, let or not); once a house changes hands, every other offer for it lapses.
+  - When a let ends (rent owing, a new rent refused, the tenant moving on), an owner with no home of their own comes home to it, family too.
+  - Someone with more than one house: a let takes one not let (rather one standing empty than their home); a sale to the tenant, the house they rent; otherwise they're asked which. When both own a house, they say whose.
+  - Someone buying Mr Lim's house week by week can't move away from it. Anyone else leaving a rented house for one bought or let gives it back (to Mr Lim, or its owner), still owing what they owed.
   - A house sold while it's let keeps its sitting tenant: the buyer is their landlord, on the same rent (any notice lapses). A tenant may buy the house they rent.
   - Mr Lim stays out of it: no rent review, offer, help or pay-rent for a house let between residents.
   - Houses only, until (d).

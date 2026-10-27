@@ -320,7 +320,7 @@ export interface Property {
 }
 
 /** An offer between residents to sell or let a house one of them owns, standing until agreed, refused or lapsed. */
-export interface PlaceDeal { id: number; fromId: string; toId: string; placeId: string; kind: 'sale' | 'let'; cents: Cents; expires: number }
+export interface PlaceDeal { id: number; fromId: string; toId: string; placeId: string; kind: 'sale' | 'let'; cents: Cents; expires: number; /** Whose it was, and whether let, when offered: it stands only while that's so. */ ownerId: string; wasLet: boolean }
 
 /** An offer made at Mr Lim's door (households-build.md "Housing market"): for a house standing free (no place), or to buy the place they hold. */
 export interface PlaceOffer { id: number; placeId: string | null; who: string; kind: 'rent' | 'buy'; cents: Cents; t: number }

@@ -101,32 +101,37 @@ function whichOffer(w: World, r: Resident, i: Intent):
   const price = priceOfferFrom(w, r, i.from);
   const errand = errandFrom(w, r, i.from);
   const lesson = lessonFrom(w, r, i.from);
-  // A house: an offer to sell or let, or a landlord's new rent.
+  // A house: an offer to sell or let, and a landlord's new rent, each its own.
   const o = w.residentByName(i.from, r);
-  const deal = o ? dealFrom(w, r, o) : null;
-  const notice = o && !deal ? noticeFrom(w, r, o) : null;
-  const house: House | null = o && deal ? { o, deal } : o && notice ? { o, notice } : null;
-  const found = [money && { money }, price && { price }, errand && { errand }, lesson && { lesson }, house && { house }].filter((x) => !!x);
+  const dealOffer = o ? dealFrom(w, r, o) : null;
+  const noticeOf = o ? noticeFrom(w, r, o) : null;
+  const deal: House | null = o && dealOffer ? { o, deal: dealOffer } : null;
+  const notice: House | null = o && noticeOf ? { o, notice: noticeOf } : null;
+  const found = [money && { money }, price && { price }, errand && { errand }, lesson && { lesson }, deal && { house: deal }, notice && { house: notice }].filter((x) => !!x);
   if (found.length === 0) return moneyOrWhy as string;
   if (found.length === 1) return found[0]!;
-  if (house && /\b(house|home|rent|let|sell|sold|buy)/i.test(typeof i.text === 'string' ? `${i.text} ${String(i.item ?? '')}` : String(i.item ?? ''))) return { house };
   if (price && i.item !== undefined && i.item !== null && i.item !== '') return { price };
   // Words choose between an errand (it, or what it's about) and money (a loan, an IOU).
   const words = typeof i.text === 'string' ? i.text : '';
   const aboutErrand = errand !== null && (/\berrand|\bfetch|\bwater\b/i.test(words) || errandWords(w, errand).some((x) => words.toLowerCase().includes(x)));
   const aboutMoney = money !== null && /\b(money|loan|lend|borrow|owe|iou)/i.test(words);
   const aboutLesson = lesson !== null && /\b(show|teach|learn|lesson)/i.test(words);
-  const about = [aboutErrand && { errand: errand! }, aboutMoney && { money: money! }, aboutLesson && { lesson: lesson! }].filter((x) => !!x);
+  const said = `${words} ${typeof i.item === 'string' ? i.item : ''}`;
+  const aboutNotice = notice !== null && /\b(new rent|notice)\b/i.test(said);
+  const aboutDeal = deal !== null && !aboutNotice && /\b(house|home|buy|buying|sell|selling|sold|let|letting|rent|renting)\b/i.test(said);
+  const about = [aboutErrand && { errand: errand! }, aboutMoney && { money: money! }, aboutLesson && { lesson: lesson! },
+    aboutDeal && { house: deal! }, aboutNotice && { house: notice! }].filter((x) => !!x);
   if (about.length === 1) return about[0]!;
   const name = w.residentByName(i.from, r)!.name;
   const parts = [
-    house ? 'asked you about a house' : null,
+    deal ? 'made you an offer for a house' : null,
+    notice ? 'given you notice of a new rent' : null,
     money ? 'asked you about money' : null,
     price ? `offered ${formatMoney(price.offer.cents)} for ${quantityLabel(price.offer.item, price.offer.qty)}` : null,
     errand ? describeErrand(w, errand) : null,
     lesson ? `offered to show you ${howTo(lesson.skill)}` : null,
   ].filter((x): x is string => !!x);
-  const say = [house ? '"the house"' : null, money ? '"the loan"' : null, price ? `the ${price.offer.item}` : null, errand ? '"the errand"' : null, lesson ? '"the lesson"' : null].filter((x): x is string => !!x);
+  const say = [deal ? '"the house"' : null, notice ? '"the new rent"' : null, money ? '"the loan"' : null, price ? `the ${price.offer.item}` : null, errand ? '"the errand"' : null, lesson ? '"the lesson"' : null].filter((x): x is string => !!x);
   return `${name} has ${parts.length === 2 ? parts.join(' and ') : `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`}. Which do you mean? Say ${say.length === 2 ? say.join(' or ') : `${say.slice(0, -1).join(', ')} or ${say.at(-1)}`}.`;
 }
 

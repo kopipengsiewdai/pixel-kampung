@@ -124,12 +124,12 @@ describe('selling and letting houses between residents (households-build.md "Hou
     const kow = letToKow(w, 40);
     accepted(act(w, tan.id, { verb: 'change_rent', to: 'Ah Kow', money: 60 }));
     const notice = w.state.property[tanHome]!.notice!;
-    expect(notice).toMatchObject({ rent: 60, from: dayIndex(w.t) + 7, agreed: false });
+    expect(notice).toMatchObject({ rent: 60, from: dayIndex(sgt(0, 0, 14)), agreed: false });
     expectInWorld(kow.recent.at(-1)!.text);
     expect(seen(w, 'Ah Kow')).toMatch(/Mdm Tan has given you notice/);
     accepted(act(w, kow.id, { verb: 'agree', from: 'Mdm Tan' }));
     expect(w.state.property[tanHome]!.notice!.agreed).toBe(true);
-    // The notice runs from Tuesday: the round after a week (the second Monday) starts it.
+    // Given on a Tuesday: it starts at the round on the Monday after a week (the second).
     round(w, 1);
     expect(w.state.property[tanHome]!.rent).toBe(40);
     round(w, 2);
@@ -178,6 +178,95 @@ describe('selling and letting houses between residents (households-build.md "Hou
     expect(w.state.property[tanHome]!.holder).toBe(tan.id);
     void FUND_ID;
     void HOUSE_RENT;
+  });
+});
+
+describe('review fixes (houses between residents)', () => {
+  it('an old offer the other way round can\'t be agreed once the house has changed hands', () => {
+    const { w, tan, tanHome } = town();
+    const [, raju] = at(w, 'Mdm Tan', 'Raju');
+    raju!.money = 5000;
+    tan.money = 0;
+    accepted(act(w, tan.id, { verb: 'offer_place', to: 'Raju', item: 'my house', money: 1000 }));
+    accepted(act(w, raju!.id, { verb: 'offer_place', to: 'Mdm Tan', item: 'your house', money: 800 }));
+    accepted(act(w, tan.id, { verb: 'agree', from: 'Raju' }));
+    expect(w.state.property[tanHome]!.holder).toBe(raju!.id);
+    // Raju now owns it; Mdm Tan's old offer to sell it to him doesn't stand.
+    tan.money += 5000;
+    refused(act(w, raju!.id, { verb: 'agree', from: 'Mdm Tan' }));
+    expect(w.state.property[tanHome]!.holder).toBe(raju!.id);
+    expect(tan.money).toBe(5800);
+  });
+
+  it('a let that ends: the owner with nowhere else comes home again, family too', () => {
+    const { w, tan, tanHome } = town();
+    const family = living(w, tanHome);
+    const kow = letToKow(w, 40);
+    kow.money = 0;
+    round(w, 1);
+    round(w, 2);
+    for (const r of family) expect(r.homeId).toBe(tanHome);
+    expect(w.state.property[tanHome]).toMatchObject({ holder: tan.id, owned: true });
+  });
+
+  it("Mr Lim's help is sized from his own rents, not a dear let between residents", async () => {
+    const { mrLimHelps, LOAN_WEEKS } = await import('../src/sim/mr-lim.ts');
+    const { w } = town();
+    const kow = letToKow(w, 900);
+    kow.money = 0;
+    w.mrLim.asks.push({ who: kow.id, said: null });
+    await mrLimHelps(w, null, 0);
+    const loan = w.state.loans.find((l) => l.who === kow.id);
+    expect(loan?.owed ?? 0).toBeLessThanOrEqual(LOAN_WEEKS * HOUSE_RENT);
+  });
+
+  it('with more than one house: a let takes one not let, a sale to the tenant their house, and two owners say whose', () => {
+    const { w, tan, tanHome } = town();
+    // Mdm Tan owns a second house, standing empty.
+    const [spare] = Object.entries(w.state.property).find(([id, p]) => id.startsWith('house-') && p.holder === null)!;
+    Object.assign(w.state.property[spare]!, { holder: tan.id, owned: true, freeSince: null });
+    const [, kow] = at(w, 'Mdm Tan', 'Ah Kow');
+    kow!.money = 10_000;
+    accepted(act(w, tan.id, { verb: 'offer_place', to: 'Ah Kow', item: 'my house', money: 40, renting: true }));
+    expect(w.state.placeDeals[0]!.placeId).toBe(spare);
+    accepted(act(w, kow!.id, { verb: 'agree', from: 'Mdm Tan' }));
+    expect(tan.homeId).toBe(tanHome);
+    // The tenant offers to buy the house they rent, not her home.
+    accepted(act(w, kow!.id, { verb: 'offer_place', to: 'Mdm Tan', item: 'your house', money: 3000 }));
+    expect(w.state.placeDeals.at(-1)!.placeId).toBe(spare);
+    // Both own a house: they must say whose.
+    const [, raju] = at(w, 'Mdm Tan', 'Raju');
+    w.state.property[raju!.homeId]!.owned = true;
+    refused(act(w, raju!.id, { verb: 'offer_place', to: 'Mdm Tan', item: 'house', money: 3000 }), /whose/i);
+  });
+
+  it('"agree to the new rent" agrees the rent, even with an offer to sell standing too', () => {
+    const { w, tan, tanHome } = town();
+    const kow = letToKow(w, 40);
+    accepted(act(w, tan.id, { verb: 'change_rent', to: 'Ah Kow', money: 60 }));
+    accepted(act(w, tan.id, { verb: 'offer_place', to: 'Ah Kow', item: 'my house', money: 500 }));
+    kow.money = 10_000;
+    accepted(act(w, kow.id, { verb: 'agree', from: 'Mdm Tan', text: 'I agree to the new rent' }));
+    expect(w.state.property[tanHome]).toMatchObject({ landlord: tan.id, notice: { agreed: true } });
+    expect(kow.money).toBe(10_000);
+  });
+
+  it("someone buying Mr Lim's house week by week can't move away from it", () => {
+    const { w } = town();
+    const [tan, kow] = at(w, 'Mdm Tan', 'Ah Kow');
+    w.state.property[kow!.homeId]!.rentToOwn = { paid: 500, of: 3300 };
+    kow!.money = 1000;
+    refused(act(w, kow!.id, { verb: 'offer_place', to: 'Mdm Tan', item: 'your house', money: 40, renting: true }), /week by week/);
+    accepted(act(w, tan!.id, { verb: 'offer_place', to: 'Ah Kow', item: 'my house', money: 40, renting: true }));
+    refused(act(w, kow!.id, { verb: 'agree', from: 'Mdm Tan' }), /week by week/);
+  });
+
+  it("a landlord's new rent starts on a Monday, at his round", () => {
+    const { w, tan, tanHome } = town();
+    letToKow(w, 40);
+    accepted(act(w, tan.id, { verb: 'change_rent', to: 'Ah Kow', money: 60 }));
+    expect(w.state.property[tanHome]!.notice!.from).toBe(dayIndex(sgt(0, 0, 14)));
+    expect(seen(w, 'Ah Kow')).toMatch(/from Monday/);
   });
 });
 
