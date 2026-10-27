@@ -17,6 +17,8 @@ import { doneToday, finishOddJob, fitFor, jobsToday, ODD_JOB_MINUTES, openJobHer
 
 /** How long each chore takes, in game minutes. */
 export const CHORE_MINUTES: Record<ChoreKind, number> = { fetch_water: 10, mend_nets: 30, sweep: 15, cast_net: 45, gather_wood: 20, forage: 30, odd_job: ODD_JOB_MINUTES };
+/** Ill, a pail takes this long to draw up and carry (subsistence.md Q4, owner 2026-10-28). */
+export const ILL_FETCH_MINUTES = 30;
 /** Forages a day each (subsistence.md Q1): a meal or two, not a living. */
 export const FORAGES_A_DAY = 2;
 /** Mended nets bring one more fish on this many catches, the same day. */
@@ -37,14 +39,20 @@ function endOfDay(t: number): number {
   return (dayIndex(t) + 1) * MINUTES_PER_DAY - SGT_OFFSET_MIN;
 }
 
-function start(w: World, r: Resident, chore: ChoreKind, shopId: string | null, forId: string | null): void {
+function start(w: World, r: Resident, chore: ChoreKind, shopId: string | null, forId: string | null, minutes = CHORE_MINUTES[chore]): void {
   const a = r.activity;
   const shift = a?.kind === 'working' ? { jobId: a.jobId, until: a.until, worked: a.worked } : null;
-  r.activity = { kind: 'chore', chore, until: w.t + CHORE_MINUTES[chore], shopId, forId, shift, job: null };
+  r.activity = { kind: 'chore', chore, until: w.t + minutes, shopId, forId, shift, job: null };
 }
 
 export function fetchWater(w: World, r: Resident): ActionResult {
   if (!w.isAt(r, 'well')) return no('You need to be at the well to fetch water.');
+  // Ill, they can still manage a pail, slowly, but only one at a time.
+  if (r.ill) {
+    if (countGoods(r.items, 'water') > 0) return no("You're too weak to carry more than the one pail.");
+    start(w, r, 'fetch_water', null, null, ILL_FETCH_MINUTES);
+    return ok('Weak as you are, you let the pail down into the well, slowly.');
+  }
   start(w, r, 'fetch_water', null, null);
   return ok('You let the pail down into the well.');
 }

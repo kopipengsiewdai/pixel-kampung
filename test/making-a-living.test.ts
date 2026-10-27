@@ -135,8 +135,6 @@ describe('sickness from hunger (Q4): never death', () => {
     put(w, 'Siti', 'jetty');
     expectInWorld(refused(act(w, siti.id, { verb: 'fish' })));
     expectInWorld(refused(act(w, siti.id, { verb: 'forage' })));
-    put(w, 'Siti', 'well');
-    expectInWorld(refused(act(w, siti.id, { verb: 'fetch_water' })));
     const huat = put(w, 'Ah Huat', 'kopitiam');
     put(w, 'Siti', 'kopitiam');
     w.state.jobs.push({ id: 99, employerId: huat.id, workerId: siti.id, placeId: 'kopitiam', wage: 100, startHour: 9, hours: 4, lastWorkedDay: null });
@@ -198,6 +196,7 @@ describe('sickness from hunger (Q4): never death', () => {
     const w = newWorld(9);
     const aminah = put(w, 'Aminah', 'well');
     aminah.ill = { since: w.t, better: null };
+    aminah.items = { water: 1 };
     const fatimah = put(w, 'Fatimah', 'well');
     expect(seen(w, 'Fatimah')).toMatch(/Aminah \([^)]*looking ill/);
     advance(w);
