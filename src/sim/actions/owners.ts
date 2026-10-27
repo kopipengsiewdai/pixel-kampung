@@ -46,6 +46,8 @@ export function setPrice(w: World, r: Resident, i: Intent): ActionResult {
   }
   if (cents === 0) delete prices[item];
   else prices[item] = cents;
+  // A dish stopped stays off the counter when more is cooked; priced again, it's on again.
+  if (side === 'sell') shop.notSelling = cents === 0 ? [...new Set([...shop.notSelling, item])] : shop.notSelling.filter((x) => x !== item);
   if (side === 'buy') {
     if (limit !== null && cents > 0) shop.buyLimits[item] = limit;
     else delete shop.buyLimits[item];
@@ -273,6 +275,13 @@ export function cook(w: World, r: Resident, i: Intent): ActionResult {
   const item = named === 'rice' ? 'bubur' : named === 'fish' ? 'grilled fish' : named;
   const recipe = item ? RECIPES[item] : undefined;
   if (!item || !recipe || skillLevel(r, 'cooking') < (recipe.level ?? 1)) return no(`You don't know how to make ${quoted(i.item)}.`);
+  // "Fish" in a kitchen that could make fish porridge too: they say which.
+  if (named === 'fish' && typeof shop === 'object' && shop !== null) {
+    const porridge = RECIPES['fish porridge']!;
+    const mine = w.shopOf(r.id)?.id === shop.id;
+    const could = (Object.entries(porridge.needs) as [ItemId, number][]).every(([need, n]) => countGoods(shop.stock, need) + (mine ? countGoods(r.items, need) : 0) >= n);
+    if (could) return no('Grilled fish, or fish porridge? Say which.');
+  }
   const batches = qtyOf(i.batches);
   if (batches === null) return no(SAY_NOTHING_SENSIBLE);
   if (shop === 'home') return cookAtHome(w, r, item, batches);

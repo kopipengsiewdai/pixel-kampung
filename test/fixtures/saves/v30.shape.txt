@@ -576,6 +576,7 @@ src/sim/state.ts WorldState {
       served: number
     }
     id: string
+    notSelling: ("banana" | "boiled kangkong" | "bread" | "bubur" | "chilli" | "coconut" | "coffee" | "firewood" | "fish porridge" | "fish" | "grilled fish" | "kerosene" | "kopi" | "papaya" | "pot" | "red snapper" | "rice" | "sambal kangkong" | "vegetable rice" | "vegetables" | "water")[]
     ownerId: null | string
     queue: {
       item: "banana" | "boiled kangkong" | "bread" | "bubur" | "chilli" | "coconut" | "coffee" | "firewood" | "fish porridge" | "fish" | "grilled fish" | "kerosene" | "kopi" | "papaya" | "pot" | "red snapper" | "rice" | "sambal kangkong" | "vegetable rice" | "vegetables" | "water"
