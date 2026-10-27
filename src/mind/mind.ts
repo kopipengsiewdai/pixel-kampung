@@ -85,7 +85,9 @@ export class Mind {
 
 /** A thought with any echo of the instruction to think in English taken off its front. */
 export function cleanThought(text: string): string {
-  return text.replace(/^\s*[*_(]*\s*(?:think(?:ing)? to (?:myself|yourself))\s*[:)]*\s*[*_)]*\s*:?\s*/i, '').trim();
+  const off = text.replace(/^\s*[*_(]*\s*(?:think(?:ing)? to (?:myself|yourself)|think(?:ing)?(?=\s*:))\s*[:)]*\s*[*_)]*\s*:?\s*/i, '');
+  // The emphasis it opened is closed at the end: that goes too.
+  return (off === text ? off : off.replace(/[*_]+\s*$/, '')).trim();
 }
 
 /** Their own thoughts, plans and reflections that aren't in English (from before they thought in English) don't come back to mind; things heard do. */

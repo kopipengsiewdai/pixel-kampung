@@ -34,6 +34,18 @@ describe('which language with whom (B5)', () => {
     expect(ask).toMatch(/to Raju, bazaar Malay/);
     expectInWorld(ask);
   });
+
+  it('the ask ends with thinking in English, after the language to speak (thoughts drifted into Malay after "use Malay")', () => {
+    const w = newWorld(9);
+    put(w, 'Siti', 'well');
+    put(w, 'Mak Esah', 'well');
+    const p = perceive(w, w.state.residents.find((r) => r.name === 'Siti')!);
+    for (const kind of ['act', 'business'] as const) {
+      const ask = userPrompt(kind, p, [], null).split('\n').at(-1)!;
+      expect(ask).toMatch(/use Malay\.\)/);
+      expect(ask).toMatch(/in English\.$/);
+    }
+  });
 });
 
 describe('their own words, in English', () => {
@@ -53,5 +65,8 @@ describe('their own words, in English', () => {
     expect(cleanThought('(Thinking to myself) The lorry is late.')).toBe('The lorry is late.');
     expect(cleanThought('Think to myself: Rahim owes me 50 cents.')).toBe('Rahim owes me 50 cents.');
     expect(cleanThought('I think to myself that it will rain.')).toBe('I think to myself that it will rain.');
+    expect(cleanThought('*Think: Huat is hungry and eating.*')).toBe('Huat is hungry and eating.');
+    expect(cleanThought('*Thinking: Seng is still dizzy.')).toBe('Seng is still dizzy.');
+    expect(cleanThought('Thinking about it, the lorry is late.')).toBe('Thinking about it, the lorry is late.');
   });
 });

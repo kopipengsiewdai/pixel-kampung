@@ -12,6 +12,8 @@ import { POTTER } from './tools.ts';
  * In-world words only (CLAUDE.md hard rule): no talk of games, systems,
  * features, prices or how anything in the kampung works.
  */
+const THINK_IN_ENGLISH = 'Think to yourself in English.';
+
 /** age: their age now, as the kampung's years go by (the card's, if not given). */
 export function systemPrompt(card: Card, role: Role, shop: string | null, age = card.age): string {
   // Only an owner's line: it can't go stale. Whether someone has work is in the notes each moment.
@@ -27,7 +29,7 @@ export function systemPrompt(card: Card, role: Role, shop: string | null, age = 
     `Live as ${card.name} would, one moment at a time. Each moment you get notes on where you are, what you notice and remember, and what you could do right now.`,
     `Choose one of those things and do it, with do. If nothing is worth doing, ${POTTER}. You may first write a short thought to yourself.`,
     'Speak plainly, as people in the kampung do. Only what you have seen, heard or worked out yourself is real to you.',
-    'Think to yourself in English. Say things aloud in the language you would really use with that person, written in plain Roman letters.',
+    `${THINK_IN_ENGLISH} Say things aloud in the language you would really use with that person, written in plain Roman letters.`,
   ].filter(Boolean).join('\n');
 }
 
@@ -71,6 +73,7 @@ export function userPrompt(kind: ThinkKind, p: Perception, memories: readonly Me
     const doable = [...p.actions.map((a) => `- ${a.verb}: ${a.says}`), `- ${POTTER}`];
     parts.push(`\nThings you could do right now:\n${doable.join('\n')}`);
   }
-  parts.push(`\n${kind === 'plan' ? planAsk(p) : `${ASK[kind]}${kind === 'act' || kind === 'business' ? speakAs(p) : ''}`}`);
+  // The language to speak comes before the reminder to think in English: read last, "use Malay" carried thoughts into Malay.
+  parts.push(`\n${kind === 'plan' ? planAsk(p) : `${ASK[kind]}${kind === 'act' || kind === 'business' ? `${speakAs(p)} ${THINK_IN_ENGLISH}` : ''}`}`);
   return parts.filter(Boolean).join('\n');
 }
