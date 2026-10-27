@@ -4,6 +4,14 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+Food fixes from the living town ([daily-life.md](docs/design/daily-life.md) "Cooked dishes on the counter"):
+- **What a keeper cooks at their stall goes on sale.** A dish with no price there goes on the counter at another stall's price for it, else at what goes into it and half as much again; they're told, and change it as they like. A dish they've stopped selling stays off. Stock with no price shows as not for sale.
+- **A keeper at their stall can hand over from its stock** (Ah Huat was refused "you don't have a bowl of bubur" 83 times in a day while it sat in his kitchen). Away from it, they hear where it is.
+- **"Cook fish" grills it**, and "ikan" is fish (Raju was refused 23 times).
+- **Living town:** upgrades to save v30. Dishes already sitting unpriced in a kept stall (the kopitiam's bubur and grilled fish) go on the counter the same way (bubur 20¢, grilled fish 85¢).
+
 ## 0.35.0 (2026-10-27): stalls change hands
 
 Mr Lim's thinking head, part two: a free market in houses, step four ([households-build.md](docs/design/households-build.md) "Housing market"):

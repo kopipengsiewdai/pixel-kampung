@@ -477,6 +477,42 @@ export const UPGRADES: readonly Upgrade[] = [
     why: "A stall can stand free: let go for rent owing (or a new rent never agreed), its keeper takes the stock home and it's shut until someone takes it, by offer at Mr Lim's door. Stalls join Mr Lim's rent review, and a stall someone owns can be sold or let between residents. Every stall is kept as it was.",
     save: ({ world, brains }) => ({ world, brains }),
   },
+  {
+    from: 29,
+    why: "What a keeper cooks at their stall now goes on its counter at a first price (what goes into it and half as much again) when it has none, unless they've stopped selling it. Dishes already sitting unpriced in a kept stall go on the counter the same way; nobody has stopped selling anything yet.",
+    save: ({ world, brains }) => {
+      // The recipes and the town's going prices as of this step (frozen, so this step never changes).
+      const RECIPES: Record<string, { needs: Record<string, number>; yields: number }> = {
+        kopi: { needs: { coffee: 1, water: 1 }, yields: 5 }, 'fish porridge': { needs: { fish: 1, rice: 1, water: 1 }, yields: 2 },
+        'vegetable rice': { needs: { vegetables: 1, rice: 1 }, yields: 2 }, 'sambal kangkong': { needs: { vegetables: 1, chilli: 1 }, yields: 3 },
+        bubur: { needs: { rice: 1, water: 1 }, yields: 3 }, 'grilled fish': { needs: { fish: 2 }, yields: 2 }, 'boiled kangkong': { needs: { vegetables: 2 }, yields: 2 },
+      };
+      const GOING: Record<string, number> = { rice: 35, coffee: 75, fish: 55, vegetables: 35, chilli: 40 };
+      type S = { id: string; ownerId: string | null; stock: Record<string, number>; sellPrices: Record<string, number>; buyPrices: Record<string, number>; notSelling?: string[] };
+      const shops = world.shops as S[];
+      const first = (s: S, item: string): number => {
+        const elsewhere = shops.filter((x) => x !== s && x.ownerId !== null).map((x) => x.sellPrices[item] ?? 0).filter((c) => c > 0);
+        if (elsewhere.length) return Math.min(...elsewhere);
+        const r = RECIPES[item]!;
+        let cost = 0;
+        for (const [need, n] of Object.entries(r.needs)) {
+          if (need === 'water') continue;
+          const each = s.buyPrices?.[need] ?? GOING[need];
+          if (each === undefined) return 20;
+          cost += each * n;
+        }
+        return Math.max(5, Math.ceil((cost / r.yields) * 1.5 / 5) * 5);
+      };
+      const shopsAfter = shops.map((s) => {
+        const withList = { ...s, notSelling: s.notSelling ?? [] };
+        if (s.ownerId === null) return withList;
+        const unpriced = Object.entries(s.stock).filter(([i, n]) => RECIPES[i] && n > 0 && !s.sellPrices[i]).map(([i]) => i);
+        if (!unpriced.length) return withList;
+        return { ...withList, sellPrices: { ...s.sellPrices, ...Object.fromEntries(unpriced.map((i) => [i, first(s, i)])) } };
+      });
+      return { world: { ...world, shops: shopsAfter }, brains };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

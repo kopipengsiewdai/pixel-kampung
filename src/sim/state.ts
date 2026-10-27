@@ -106,6 +106,8 @@ export interface Shop {
   hour: { served: number; cents: Cents; left: number };
   /** The day it was last swept: travellers wait longer in a swept shop. */
   sweptDay: number | null;
+  /** Dishes the keeper has stopped selling: what they cook of these stays off the counter. */
+  notSelling: ItemId[];
 }
 
 /** A shop with a keeper: open for trade. */

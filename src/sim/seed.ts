@@ -66,7 +66,7 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
     if (c.role !== 'owner' || !c.business) return [];
     return [{
       id: c.business, ownerId: residents[i]!.id, stock: { ...SHOP_STOCK[c.business] }, sellPrices: {}, buyPrices: {}, buyLimits: {},
-      queue: [], serving: [], today: freshDay(dayIndex(t)), hour: { served: 0, cents: 0, left: 0 }, sweptDay: null,
+      queue: [], serving: [], today: freshDay(dayIndex(t)), hour: { served: 0, cents: 0, left: 0 }, sweptDay: null, notSelling: [],
     }];
   });
   return {

@@ -24,7 +24,7 @@ export interface ItemDef {
 }
 
 export const ITEMS: Record<ItemId, ItemDef> = {
-  fish: { id: 'fish', one: 'a fish', many: '{n} fish', aliases: ['fishes'], food: { hunger: 150 } },
+  fish: { id: 'fish', one: 'a fish', many: '{n} fish', aliases: ['fishes', 'ikan', 'raw fish'], food: { hunger: 150 } },
   vegetables: {
     id: 'vegetables', one: 'a bunch of vegetables', many: '{n} bunches of vegetables',
     aliases: ['vegetable', 'veg', 'veggies', 'kangkong'], food: { hunger: 100 },

@@ -691,8 +691,23 @@ export function give(w: World, r: Resident, i: Intent): ActionResult {
   if (i.qty === 0 || i.qty === '0') return no(GIVING_NOTHING);
   const qty = qtyOf(i.qty);
   if (qty === null) return no(SAY_NOTHING_SENSIBLE);
-  if (countGoods(r.items, item) < qty) return no(`You don't have ${quantityLabel(item, qty)}.`);
-  addGoods(r.items, item, -qty);
+  // A keeper standing at their own stall hands over from its stock too (what's in their hands first).
+  const here = shopHere(w, r);
+  const stall = here?.ownerId === r.id ? here : null;
+  const inHand = countGoods(r.items, item);
+  if (inHand + (stall ? countGoods(stall.stock, item) : 0) < qty) {
+    const kept = w.shopOf(r.id);
+    if (kept && kept !== stall && inHand + countGoods(kept.stock, item) >= qty) {
+      return no(`You haven't ${quantityLabel(item, qty)} on you: ${inHand ? 'the rest is' : "it's"} in your stock at ${PLACE_BY_ID.get(kept.id)?.name ?? 'your stall'}; you'd have to be there.`);
+    }
+    return no(`You don't have ${quantityLabel(item, qty)}.`);
+  }
+  const fromHand = Math.min(inHand, qty);
+  addGoods(r.items, item, -fromHand);
+  if (qty > fromHand) {
+    addGoods(stall!.stock, item, -(qty - fromHand));
+    w.emit({ type: 'took_stock', who: r.id, shop: stall!.id, item, qty: qty - fromHand });
+  }
   addGoods(o.items, item, qty);
   w.emit({ type: 'gave', who: r.id, to: o.id, item, qty, cents: 0 });
   w.notify(o.id, `${r.name} gave you ${quantityLabel(item, qty)}.`);

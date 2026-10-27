@@ -210,7 +210,7 @@ export function handOverStall(w: World, placeId: string, toId: string | null): v
   for (const x of w.state.osman.visit?.offers ?? []) if (x.forShop === placeId) x.forShop = null;
   for (const r of w.state.residents) if (r.stove?.shopId === placeId) r.stove.shopId = POT_TO_HANDS;
   w.state.priceOffers = w.state.priceOffers.filter((x) => x.shopId !== placeId);
-  Object.assign(shop, { ownerId: toId, stock: {}, sellPrices: {}, buyPrices: {}, buyLimits: {}, queue: [], serving: [], today: freshDay(dayIndex(w.t)), hour: { served: 0, cents: 0, left: 0 } });
+  Object.assign(shop, { ownerId: toId, stock: {}, sellPrices: {}, buyPrices: {}, buyLimits: {}, notSelling: [], queue: [], serving: [], today: freshDay(dayIndex(w.t)), hour: { served: 0, cents: 0, left: 0 } });
   // The new keeper has a stall to run: any work they had elsewhere they give up (a shift under way is paid).
   for (const j of w.state.jobs.filter((x) => x.workerId === toId)) {
     const keeper = w.resident(toId!);

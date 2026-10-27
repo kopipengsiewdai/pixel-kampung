@@ -210,6 +210,14 @@ unserved today; a seeker asks for work on seeing "serving alone".
   The servings go into the kitchen when it's done.
 - A minute serving tires like a shift.
 
+## Cooked dishes on the counter (0.36.0)
+
+The living town showed a keeper cooking dish after dish that never sold: the kopitiam held 35 bowls of bubur with no price on them, so nobody could buy one (game day 20762).
+- What a keeper cooks at their own stall (or a worker cooks there) goes on the counter at a first price when it has none: what another stall asks for it; else what goes into a serving (at what the stall buys it for, or the town's going price) and half as much again, to the next 5¢; else 20¢. The keeper hears it, and changes the price whenever they like. A dish they've stopped selling (price 0) stays off the counter when more is cooked, until they price it again.
+- A keeper's notes show what's in stock with no price on it as "not for sale".
+- A keeper standing at their stall hands things over from its stock (their hands first). Away from it, they're told the rest is in the stock there.
+- "Cook fish" means grilling it, as "cook rice" means boiling it; "ikan" is fish. In a kitchen that could make fish porridge too, the cook is asked which.
+
 ## Haggling at the counter (PR 15)
 
 A buyer can name the money they offer with `buy`; below the shop's price it

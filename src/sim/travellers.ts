@@ -6,8 +6,8 @@
  * up to each shop's daily budget (an owner's dial, src/sim/dials.ts).
  */
 import { practise, skillLevel } from './skills.ts';
-import { quantityLabel, type ItemId } from './items.ts';
-import type { Cents } from './money.ts';
+import { quantityLabel, RECIPES, type ItemId } from './items.ts';
+import { formatMoney, type Cents } from './money.ts';
 import { addGoods, countGoods, isKept, TRAVELLERS_ID, type Resident, type Shop, type World } from './state.ts';
 import { dayIndex, minuteOfDay } from './time.ts';
 
@@ -203,6 +203,33 @@ export function isServing(w: World, r: Resident): boolean {
   return w.state.shops.some((s) => s.serving.some((x) => x.by === r.id));
 }
 
+/** Where nothing else says, a dish's first price. */
+export const FIRST_DISH_PRICE: Cents = 20;
+/** A first price is what goes into a serving and half as much again. */
+export const DISH_MARGIN = 1.5;
+
+/**
+ * What a dish cooked at a stall goes on its counter at, when it has no price
+ * there yet: what another stall asks for it; else what goes into a serving
+ * (at what the stall buys it for, or the town's going price) and half as much
+ * again, to the next 5¢; else a modest first price. The keeper changes it as
+ * they like.
+ */
+export function startingPrice(w: World, shop: Shop, item: ItemId): Cents {
+  const elsewhere = w.state.shops.filter((s) => s !== shop && isKept(s)).map((s) => s.sellPrices[item] ?? 0).filter((c) => c > 0);
+  if (elsewhere.length) return Math.min(...elsewhere);
+  const recipe = RECIPES[item];
+  if (!recipe) return FIRST_DISH_PRICE;
+  let cost = 0;
+  for (const [need, n] of Object.entries(recipe.needs) as [ItemId, number][]) {
+    if (need === 'water') continue;
+    const each = shop.buyPrices[need] ?? TRAVELLER_PAYS[need];
+    if (each === undefined) return FIRST_DISH_PRICE;
+    cost += each * n;
+  }
+  return Math.max(5, Math.ceil((cost / recipe.yields) * DISH_MARGIN / 5) * 5);
+}
+
 /** One minute at the stove: a batch done when its time is up, the servings into the kitchen. */
 export function stoveMinute(w: World, r: Resident): void {
   const s = r.stove;
@@ -212,6 +239,12 @@ export function stoveMinute(w: World, r: Resident): void {
   // A pot at home goes into the cook's hands.
   if (shop) addGoods(shop.stock, s.item, s.qty);
   else addGoods(r.items, s.item, s.qty);
+  // Cooked at a stall: on its counter, at a first price if it has none.
+  if (shop && isKept(shop) && !shop.sellPrices[s.item] && !shop.notSelling.includes(s.item)) {
+    const price = startingPrice(w, shop, s.item);
+    shop.sellPrices[s.item] = price;
+    w.notify(shop.ownerId, `The ${s.item} goes on your counter at ${formatMoney(price)} each; you can change its price whenever you like.`);
+  }
   w.emit({ type: 'cooked', who: r.id, item: s.item, qty: s.qty });
   // Word gets round on the road: travellers pay a little more where a master cooked today.
   if (shop && skillLevel(r, 'cooking') === 5) shop.today.masterCooked = true;
