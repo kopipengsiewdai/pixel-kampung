@@ -59,7 +59,7 @@ describe("Mr Lim's odd jobs", () => {
     expect(jobs.length).toBeLessThanOrEqual(3);
     expect(new Set(jobs.map((j) => j.placeId)).size).toBe(jobs.length);
     for (const j of jobs) expect(j.pay).toBe(ODD_JOB_PAY);
-    const notes = w.state.notes.filter((n) => n.authorId === MR_LIM_ID && !/^Wanted, for /.test(n.text));
+    const notes = w.state.notes.filter((n) => n.authorId === MR_LIM_ID && /^Wanted: /.test(n.text));
     expect(notes.length).toBe(jobs.length);
     const events: string[] = [];
     // The board reads them as Mr Lim's.
@@ -77,7 +77,7 @@ describe("Mr Lim's odd jobs", () => {
     runTo(w, sgt(9, 0, 1));
     expect(today(w).every((j) => !first.includes(j.id))).toBe(true);
     expect(w.state.oddJobs.some((j) => first.includes(j.id) && j.doneBy === null)).toBe(false);
-    expect(w.state.notes.filter((n) => n.authorId === MR_LIM_ID).length).toBe(new Set(w.state.oddJobs.filter((j) => j.day === dayIndex(w.t)).map((j) => j.noteId)).size);
+    expect(w.state.notes.filter((n) => n.authorId === MR_LIM_ID && /^Wanted/.test(n.text)).length).toBe(new Set(w.state.oddJobs.filter((j) => j.day === dayIndex(w.t)).map((j) => j.noteId)).size);
   });
 
   it('done at its place as an hour\'s chore, paid from Mr Lim\'s purse, at most one a day each', () => {
@@ -191,9 +191,9 @@ describe('review fixes', () => {
   it('when the day turns, yesterday\'s open job notes come down', () => {
     const w = newWorld(6, 0);
     runTo(w, sgt(9, 0));
-    expect(w.state.notes.some((n) => n.authorId === MR_LIM_ID)).toBe(true);
+    expect(w.state.notes.some((n) => n.authorId === MR_LIM_ID && /^Wanted/.test(n.text))).toBe(true);
     runTo(w, sgt(0, 5, 1));
-    expect(w.state.notes.some((n) => n.authorId === MR_LIM_ID)).toBe(false);
+    expect(w.state.notes.some((n) => n.authorId === MR_LIM_ID && /^Wanted/.test(n.text))).toBe(false);
   });
 
   it('the money views count odd-job pay', async () => {

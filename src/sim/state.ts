@@ -267,6 +267,9 @@ export interface WorldState {
   bonds: Record<string, Bond>;
   /** Every house and stall, by place id, and who holds it (households.md). */
   property: Record<string, Property>;
+  /** Offers waiting on Mr Lim's answer, one a person, and the last day he answered them. */
+  placeOffers: PlaceOffer[];
+  offersDay: number;
   /** The day rent is first due (a Monday), and whether everyone has been told. */
   rentFrom: number;
   rentNoticed: boolean;
@@ -299,6 +302,8 @@ export interface WorldState {
 export interface Property {
   /** A week's grace Mr Lim has given on rent owing: until which day, and the day he gave it (hardship help). */
   grace: { until: number; given: number } | null;
+  /** The day it was last left free (null while someone holds it). */
+  freeSince: number | null;
   holder: string | null;
   rent: Cents;
   owned: boolean;
@@ -306,6 +311,9 @@ export interface Property {
   owing: Cents;
   since: number | null;
 }
+
+/** An offer made at Mr Lim's door (households-build.md "Housing market"): for a house standing free (no place), or to buy the place they hold. */
+export interface PlaceOffer { id: number; placeId: string | null; who: string; kind: 'rent' | 'buy'; cents: Cents; t: number }
 
 /** One resident's view of another: trust (money, keeping your word) and fondness (company, kindness), -100 to 100. */
 export interface Bond {

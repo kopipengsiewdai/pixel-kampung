@@ -44,8 +44,7 @@ it's drawn as a bigger house. Every resident who has lived here knows it.
 
 **Paying and buying** (new verbs, at the village head's house):
 - `pay_rent`: pay what you owe, in full or in part.
-- `buy_place`: buy your house or stall outright, at a year's rent. You can also buy a free house you can afford, which makes it your home.
-- `rent_to_own`: switch your place to rent-to-own. Instalments are one and a half times the rent, and it's yours after 44 weeks, about a quarter more than buying outright.
+- `offer_for_place` (replaced `buy_place`, `rent_to_own` and `rent_house` with the housing market, 0.32.0): offer Mr Lim a rent a week or a price to buy, for a house standing free or the place you hold. See "Housing market" below. A rent-to-own already running finishes on its terms.
 - `sell_place` (to another resident, anywhere they're both standing): an offer they agree to, like a trade.
   - The buyer pays the seller through the ledger.
   - The place passes to the buyer, and so does the household if it was the buyer's home.
@@ -55,7 +54,7 @@ it's drawn as a bigger house. Every resident who has lived here knows it.
 - The evicted lose that house as home (`homeId` becomes `rough`) and sleep rough at the jetty, where energy comes back at half speed. They keep what they carry.
 - An owned place can never be taken.
 
-**Renting a free house.** `rent_house` at the village head's house: any resident sleeping rough, or living in a shared house, can rent a free house. It becomes their home, from the next Monday's rent.
+**Renting a free house.** By offer at the village head's house (see "Housing market"): any resident sleeping rough, or living in a shared house, can offer for a free house. Once Mr Lim takes the offer it becomes their home, the first week paid then and rent from the next Monday's round.
 
 **Watch page.**
 - The wiki shows each place: its holder, rent, what's owing, whether it's owned, and the fund's balance.
@@ -97,6 +96,22 @@ placeholder. The market replaces them:
 5. **Existing deals are honoured** (one world forever): a rent-to-own already running finishes on its terms, and a place already bought stays bought.
 
 This ships with Mr Lim's head (PR B), because he is the one who decides.
+
+Built in four parts:
+- **(a) Offers for free houses and to buy your own** (0.32.0).
+  - Each morning Mr Lim pins a note of the houses standing free.
+  - At his door, a grown-up offers a rent a week, or a price to buy, for a house standing free, or a price for the place they hold. The offer has no floor, but they must have the money (the first week's rent, or the price). One offer per person: a new one replaces the last.
+  - At 17:00 he answers. For houses standing free, he weighs the best offer first, a price against a year's rent. For each offer to buy a held place, he answers on its own.
+  - His head accepts one offer, counters, or waits (at most three calls an evening). His own way when there's no head:
+    - for a free house, accept at least half the old rent (half a year's rent to buy), or the best rent offer once it has stood free three days. He never sells below half a year's rent on his own;
+    - for your own place, accept half a year's rent, or counter with that.
+  - Accepted: the first week, or the price, is paid into the fund, and the household moves in (everyone turned out of the same house comes home together). Offers that weren't taken are told when the houses are gone.
+  - A place already being bought week by week can't be offered for. An offer from someone owing rent by the evening isn't taken.
+  - The day he last answered is saved, so a restart doesn't make him answer twice.
+  - Stalls stand free only once (d) lets one go.
+- (b) A sitting tenant's rent changes with notice and agreement.
+- (c) Selling or letting between residents.
+- (d) Letting a stall go for rent owing.
 
 ## PR C: marriage (after A and B)
 
