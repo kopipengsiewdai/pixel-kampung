@@ -4,6 +4,14 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+Mr Lim's thinking head, part two: a free market in houses, step two ([households-build.md](docs/design/households-build.md) "Housing market"):
+- **A sitting tenant's rent can change, with a week's notice.** On Monday evenings Mr Lim's head looks over the houses he lets and may give notice of a new rent, starting at his round a week on. His own way, he never changes a rent.
+  - A higher rent must be agreed at his door (`agree_to_rent`), or the household leaves when it starts. A lower rent needs no agreeing.
+  - Places being bought week by week, owned places and stalls aren't touched.
+- **Living town:** upgrades to save v27. No notices are given until the first Monday evening after the upgrade.
+
 ## 0.32.0 (2026-10-27): houses go by offer
 
 Mr Lim's thinking head, part two: a free market in houses, step one ([households-build.md](docs/design/households-build.md) "Housing market"):

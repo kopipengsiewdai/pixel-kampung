@@ -45,6 +45,7 @@ it's drawn as a bigger house. Every resident who has lived here knows it.
 **Paying and buying** (new verbs, at the village head's house):
 - `pay_rent`: pay what you owe, in full or in part.
 - `offer_for_place` (replaced `buy_place`, `rent_to_own` and `rent_house` with the housing market, 0.32.0): offer Mr Lim a rent a week or a price to buy, for a house standing free or the place you hold. See "Housing market" below. A rent-to-own already running finishes on its terms.
+- `agree_to_rent` (0.33.0): tell Mr Lim you'll pay the new rent he's given you notice of.
 - `sell_place` (to another resident, anywhere they're both standing): an offer they agree to, like a trade.
   - The buyer pays the seller through the ledger.
   - The place passes to the buyer, and so does the household if it was the buyer's home.
@@ -109,7 +110,13 @@ Built in four parts:
   - A place already being bought week by week can't be offered for. An offer from someone owing rent by the evening isn't taken.
   - The day he last answered is saved, so a restart doesn't make him answer twice.
   - Stalls stand free only once (d) lets one go.
-- (b) A sitting tenant's rent changes with notice and agreement.
+- **(b) A sitting tenant's rent changes with notice and agreement** (0.33.0).
+  - On Monday evenings, before the evening's offers, his head looks over the houses he lets (one call a week) and may set a new rent for any: at most double, or down to half, at a time (a guard against a slip of the unit). His own way, he never changes a rent. Not before rent has started.
+  - The tenant and everyone living with them hear at once, and keep seeing it: the new rent starts at his round a week on (or that round caught up after downtime). His words go only with a rise.
+  - Downtime that swallows a day or more of the notice week gives the tenant that time back, in whole weeks.
+  - A higher rent must be agreed at his door (`agree_to_rent`) by then, or the household leaves that morning, owing only what they already owed, and the house stands free. A lower rent needs no agreeing.
+  - A notice goes with the house if it's let go for rent owing, or bought. Places being bought week by week, and owned ones, aren't looked over; nor are stalls, until (d).
+  - The day he last looked is saved, so a restart doesn't make him look twice.
 - (c) Selling or letting between residents.
 - (d) Letting a stall go for rent owing.
 

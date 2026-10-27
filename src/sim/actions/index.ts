@@ -12,7 +12,7 @@ import * as households from '../households.ts';
 import { TOO_ILL, TOO_ILL_FOR } from '../sickness.ts';
 import { fireGround, fireNear, KITCHEN_ID, kitchenBuilt, lightFire } from '../cooking.ts';
 import { canJoinClass, CLASS_FEE, joinClass } from '../school.ts';
-import { askForHelp, canAskHelp, canOffer, doneToday, offerForPlace, openJobHere, whatOf } from '../mr-lim.ts';
+import { agreeToRent, askForHelp, canAgree, canAskHelp, canOffer, doneToday, offerForPlace, openJobHere, whatOf } from '../mr-lim.ts';
 import { formatMoney } from '../money.ts';
 import { moneyOf, ok as yes } from './common.ts';
 
@@ -164,6 +164,11 @@ export const ACTIONS: Record<string, ActionDef> = {
     run: (w, r, i) => offerForPlace(w, r, i.item, i.money, i.side === 'buy'), ownersOnly: false,
     says: 'make Mr Lim an offer for a house standing free, or to buy your own (item: a house, or my house; money: the rent a week, or the price; buying: true to buy)',
     here: (w, r) => canOffer(w, r),
+  },
+  agree_to_rent: {
+    run: (w, r) => agreeToRent(w, r), ownersOnly: false,
+    says: "tell Mr Lim you'll pay the new rent he's given you notice of",
+    here: (w, r) => canAgree(w, r),
   },
   accept_job: {
     run: everyone.acceptJob, ownersOnly: false, says: 'accept a job someone offered you (person)',

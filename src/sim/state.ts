@@ -270,6 +270,8 @@ export interface WorldState {
   /** Offers waiting on Mr Lim's answer, one a person, and the last day he answered them. */
   placeOffers: PlaceOffer[];
   offersDay: number;
+  /** The Monday he last looked over the rents. */
+  rentReviewDay: number;
   /** The day rent is first due (a Monday), and whether everyone has been told. */
   rentFrom: number;
   rentNoticed: boolean;
@@ -304,6 +306,8 @@ export interface Property {
   grace: { until: number; given: number } | null;
   /** The day it was last left free (null while someone holds it). */
   freeSince: number | null;
+  /** A new rent Mr Lim has given the holder notice of: from which day, and whether they've agreed (a lower rent needs no agreeing). */
+  notice: { rent: Cents; from: number; agreed: boolean } | null;
   holder: string | null;
   rent: Cents;
   owned: boolean;

@@ -454,6 +454,15 @@ export const UPGRADES: readonly Upgrade[] = [
       return { world: { ...world, property, placeOffers: world.placeOffers ?? [], offersDay: world.offersDay ?? -1 }, brains };
     },
   },
+  {
+    from: 26,
+    why: "A sitting tenant's rent can change: on Monday evenings Mr Lim may give a week's notice of a new rent, which the tenant agrees to at his door or leaves when it starts. No notices given yet.",
+    save: ({ world, brains }) => {
+      const property = Object.fromEntries(Object.entries(world.property as Record<string, Record<string, unknown>>)
+        .map(([id, p]) => [id, 'notice' in p ? p : { ...p, notice: null }]));
+      return { world: { ...world, property, rentReviewDay: world.rentReviewDay ?? -1 }, brains };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

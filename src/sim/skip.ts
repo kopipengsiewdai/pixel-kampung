@@ -6,6 +6,7 @@ import { osmanSkip } from './osman.ts';
 import { stoveMinute } from './travellers.ts';
 import { finishChore } from './actions/chores.ts';
 import { fadeSkills, lapseLessons } from './skills.ts';
+import { quietNotices } from './households.ts';
 
 /**
  * Gaps up to this long (ten real minutes) are simply replayed
@@ -28,6 +29,7 @@ export function skipQuietly(w: World, to: number): void {
   const gap = to - from;
   if (gap <= 0) return;
   w.state.t = to;
+  quietNotices(w, from, to);
   const longRest = gap >= 6 * 60 || dayIndex(from) !== dayIndex(to) || isNight(from) || isNight(to);
   for (const r of w.state.residents) {
     // A chore done within a short pause is done; one caught by a long rest or the night is cut short.
