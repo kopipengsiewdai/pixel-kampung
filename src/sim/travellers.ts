@@ -6,8 +6,8 @@
  * up to each shop's daily budget (an owner's dial, src/sim/dials.ts).
  */
 import { practise, skillLevel } from './skills.ts';
-import { quantityLabel, type ItemId } from './items.ts';
-import type { Cents } from './money.ts';
+import { quantityLabel, RECIPES, type ItemId } from './items.ts';
+import { formatMoney, type Cents } from './money.ts';
 import { addGoods, countGoods, isKept, TRAVELLERS_ID, type Resident, type Shop, type World } from './state.ts';
 import { dayIndex, minuteOfDay } from './time.ts';
 
@@ -204,6 +204,21 @@ export function isServing(w: World, r: Resident): boolean {
 }
 
 /** One minute at the stove: a batch done when its time is up, the servings into the kitchen. */
+/** Where nothing else says, a dish's first price. */
+export const FIRST_DISH_PRICE: Cents = 20;
+
+/**
+ * What a dish cooked at a stall goes on its counter at, when it has no price
+ * there yet: the keeper's cheapest dish, else what another stall asks for it,
+ * else a modest first price. They change it as they like.
+ */
+export function startingPrice(w: World, shop: Shop, item: ItemId): Cents {
+  const dishes = (Object.entries(shop.sellPrices) as [ItemId, Cents][]).filter(([i, c]) => RECIPES[i] && c > 0).map(([, c]) => c);
+  if (dishes.length) return Math.min(...dishes);
+  const elsewhere = w.state.shops.filter((s) => s !== shop && isKept(s)).map((s) => s.sellPrices[item] ?? 0).filter((c) => c > 0);
+  return elsewhere.length ? Math.min(...elsewhere) : FIRST_DISH_PRICE;
+}
+
 export function stoveMinute(w: World, r: Resident): void {
   const s = r.stove;
   if (!s || w.t < s.until) return;
@@ -212,6 +227,12 @@ export function stoveMinute(w: World, r: Resident): void {
   // A pot at home goes into the cook's hands.
   if (shop) addGoods(shop.stock, s.item, s.qty);
   else addGoods(r.items, s.item, s.qty);
+  // Cooked at a stall: on its counter, at a first price if it has none.
+  if (shop && isKept(shop) && !shop.sellPrices[s.item]) {
+    const price = startingPrice(w, shop, s.item);
+    shop.sellPrices[s.item] = price;
+    w.notify(shop.ownerId, `The ${s.item} goes on your counter at ${formatMoney(price)} each; you can change its price whenever you like.`);
+  }
   w.emit({ type: 'cooked', who: r.id, item: s.item, qty: s.qty });
   // Word gets round on the road: travellers pay a little more where a master cooked today.
   if (shop && skillLevel(r, 'cooking') === 5) shop.today.masterCooked = true;

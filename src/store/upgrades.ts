@@ -477,6 +477,29 @@ export const UPGRADES: readonly Upgrade[] = [
     why: "A stall can stand free: let go for rent owing (or a new rent never agreed), its keeper takes the stock home and it's shut until someone takes it, by offer at Mr Lim's door. Stalls join Mr Lim's rent review, and a stall someone owns can be sold or let between residents. Every stall is kept as it was.",
     save: ({ world, brains }) => ({ world, brains }),
   },
+  {
+    from: 29,
+    why: "What a keeper cooks at their stall now goes on its counter at a first price (their cheapest dish) when it has none. Dishes already sitting unpriced in a kept stall go on the counter the same way.",
+    save: ({ world, brains }) => {
+      // The dishes as of this step (frozen, so this step never changes): those with a recipe.
+      const DISHES = ['kopi', 'fish porridge', 'vegetable rice', 'sambal kangkong', 'bubur', 'grilled fish', 'boiled kangkong'];
+      type S = { id: string; ownerId: string | null; stock: Record<string, number>; sellPrices: Record<string, number> };
+      const shops = world.shops as S[];
+      const shopsAfter = shops.map((s) => {
+        if (s.ownerId === null) return s;
+        const own = Object.entries(s.sellPrices).filter(([i, c]) => DISHES.includes(i) && c > 0).map(([, c]) => c);
+        const unpriced = Object.entries(s.stock).filter(([i, n]) => DISHES.includes(i) && n > 0 && !s.sellPrices[i]).map(([i]) => i);
+        if (!unpriced.length) return s;
+        const price = (i: string) => {
+          if (own.length) return Math.min(...own);
+          const elsewhere = shops.filter((x) => x !== s && x.ownerId !== null).map((x) => x.sellPrices[i] ?? 0).filter((c) => c > 0);
+          return elsewhere.length ? Math.min(...elsewhere) : 20;
+        };
+        return { ...s, sellPrices: { ...s.sellPrices, ...Object.fromEntries(unpriced.map((i) => [i, price(i)])) } };
+      });
+      return { world: { ...world, shops: shopsAfter }, brains };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

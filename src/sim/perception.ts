@@ -111,6 +111,8 @@ export interface Perception {
     place: string;
     atShop: boolean;
     stock: { item: ItemId; qty: number }[];
+    /** What's in stock with no price on it: not for sale. */
+    unpriced: { item: ItemId; qty: number }[];
     sells: PriceTag[];
     buys: PriceTag[];
     workers: string[];
@@ -368,6 +370,7 @@ export function perceive(w: World, r: Resident): Perception {
       place: PLACE_BY_ID.get(own.id)!.name,
       atShop: w.isAt(r, own.id),
       stock: goodsList(own.stock),
+      unpriced: goodsList(own.stock).filter((g) => !own.sellPrices[g.item]),
       sells: tags(own.sellPrices, own.stock),
       buys: buyTags(own),
       workers: w.state.jobs.filter((j) => j.employerId === r.id).map((j) => w.resident(j.workerId).name),
@@ -551,6 +554,7 @@ export function describe(p: Perception): string {
   if (p.business) {
     lines.push(`You run ${p.business.place}. It's yours alone. In stock: ${p.business.stock.map((s) => quantityLabel(s.item, s.qty)).join(', ') || 'nothing'}.`);
     lines.push(`Your prices: ${p.business.sells.map(priceLine).join(', ') || 'none set'}.`);
+    if (p.business.unpriced.length) lines.push(`Not for sale: ${p.business.unpriced.map((s) => quantityLabel(s.item, s.qty)).join(', ')} (no price on them).`);
     if (p.business.buys.length) lines.push(`You're buying: ${p.business.buys.map(priceLine).join(', ')}.`);
     if (p.business.workers.length) lines.push(`Working for you: ${p.business.workers.join(', ')}.`);
     if (p.business.owed.length) lines.push(`You owe wages: ${p.business.owed.map((o) => `${o.name} ${formatMoney(o.cents)}`).join(', ')}.`);

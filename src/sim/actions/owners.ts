@@ -268,9 +268,9 @@ export function kitchenFor(w: World, r: Resident): Shop | 'home' | 'shared' | 'f
 export function cook(w: World, r: Resident, i: Intent): ActionResult {
   const shop = kitchenFor(w, r);
   if (shop !== 'home' && shop !== 'shared' && shop !== 'fire' && typeof shop === 'string') return no(shop);
-  // Cooking "rice" can only mean boiling it.
+  // Cooking "rice" can only mean boiling it; cooking "fish", grilling it.
   const named = itemOf(i.item);
-  const item = named === 'rice' ? 'bubur' : named;
+  const item = named === 'rice' ? 'bubur' : named === 'fish' ? 'grilled fish' : named;
   const recipe = item ? RECIPES[item] : undefined;
   if (!item || !recipe || skillLevel(r, 'cooking') < (recipe.level ?? 1)) return no(`You don't know how to make ${quoted(i.item)}.`);
   const batches = qtyOf(i.batches);
