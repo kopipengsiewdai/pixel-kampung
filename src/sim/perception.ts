@@ -120,6 +120,8 @@ export interface Perception {
     today: { served: number; left: number; lost: Cents; tooDear: { item: ItemId; n: number }[] };
   } | null;
   shop: { name: string; staffed: boolean; sells: PriceTag[]; buys: PriceTag[] } | null;
+  /** The stall they keep, by its name (it can change hands). */
+  keeps: string | null;
   /** At the lorry stop: the lorry man (by name, once met), his prices for you today, his room, your slate and what you asked him to bring. */
   lorry: {
     here: boolean; who: string; sells: PriceTag[]; buys: PriceTag[]; room: number; owes: Cents;
@@ -403,6 +405,7 @@ export function perceive(w: World, r: Resident): Perception {
       owedYou: debtsBy(w, (d) => d.creditor === r.id, (d) => d.debtor),
       wages: w.state.owed.filter((o) => o.workerId === r.id).map((o) => ({ name: w.resident(o.employerId).name, cents: o.cents })),
     },
+    keeps: ((s) => (s ? PLACE_BY_ID.get(s.id)?.name ?? null : null))(w.shopOf(r.id)),
     busyShop: shop && shop.ownerId !== r.id && !(r.activity?.kind === 'working') ? busyShopOf(w, shop) : null,
     servedToday: r.activity?.kind === 'working' && jobRow ? (w.shop(jobRow.placeId)?.today.servedBy[r.id] ?? 0) : null,
     skills: skillLines(w, r),

@@ -111,7 +111,8 @@ export function dealWords(w: World, d: PlaceDeal, forId: string): string {
 /** Whether the payer would move in (and so leave their home): a house, not let, or to rent. */
 const movesIn = (d: Pick<PlaceDeal, 'kind' | 'wasLet' | 'placeId'>) => d.placeId.startsWith('house-') && (d.kind === 'let' || !d.wasLet);
 /** Whether the payer would keep a stall, and keeps another already. */
-const keepsAnother = (w: World, payer: Resident, placeId: string) => !placeId.startsWith('house-') && keepsStall(w, payer) && w.shop(placeId)?.ownerId !== payer.id;
+const keepsAnother = (w: World, payer: Resident, placeId: string) => !placeId.startsWith('house-') && keepsStall(w, payer) && w.shop(placeId)?.ownerId !== payer.id
+  && w.state.property[placeId]?.landlord !== payer.id;
 
 export function offerPlace(w: World, r: Resident, i: Intent): ActionResult {
   const o = personNearby(w, r, i.to);
@@ -124,7 +125,7 @@ export function offerPlace(w: World, r: Resident, i: Intent): ActionResult {
   if (typeof found === 'string') return no(found);
   const { placeId, p, owner, other } = found;
   const deal: PlaceDeal = { id: w.nextId(), fromId: r.id, toId: o.id, placeId, kind, cents, expires: w.t + TRADE_OFFER_MINUTES, ownerId: owner.id, wasLet: !!p.landlord };
-  if (keepsAnother(w, other, placeId) && (kind === 'let' || !p.landlord)) return no(other === r ? 'You keep a stall already.' : `${other.name} keeps a stall already.`);
+  if (keepsAnother(w, other, placeId)) return no(other === r ? 'You keep a stall already.' : `${other.name} keeps a stall already.`);
   if (kind === 'let' && other.homeId === placeId) return no(other === r ? 'You live there already.' : `${other.name} lives there already.`);
   if (other === r && movesIn(deal) && buyingFromLim(w, r)) return no(BUYING_FROM_LIM);
   // Whoever pays must have it now: the price, or the first week.
@@ -149,7 +150,7 @@ export function agreeDeal(w: World, r: Resident, o: Resident, d: PlaceDeal): Act
   }
   const owner = w.resident(d.ownerId);
   const payer = owner === r ? o : r;
-  if (keepsAnother(w, payer, d.placeId) && (d.kind === 'let' || !d.wasLet)) return no(payer === r ? 'You keep a stall already.' : `${payer.name} keeps a stall already.`);
+  if (keepsAnother(w, payer, d.placeId)) return no(payer === r ? 'You keep a stall already.' : `${payer.name} keeps a stall already.`);
   if (d.kind === 'let' && payer.homeId === d.placeId) return no(payer === r ? 'You live there already.' : `${payer.name} lives there already.`);
   if (movesIn(d) && buyingFromLim(w, payer)) return no(payer === r ? BUYING_FROM_LIM : `${payer.name} is buying their house from Mr Lim week by week, and can't move.`);
   if (payer.money < d.cents) return no(payer === r ? `You haven't ${formatMoney(d.cents)}.` : `${payer.name} hasn't the money now.`);

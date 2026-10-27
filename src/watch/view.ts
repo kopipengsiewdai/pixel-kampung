@@ -256,7 +256,7 @@ export function placeCardOf(frame: Frame, layout: Layout, id: string): PlaceCard
   const shop = frame.shops.find((s) => s.id === id);
   if (shop) {
     card.shop = {
-      owner: name(shop.ownerId)!, serving: mindingLabel(shop, (x) => name(x)!), workers: (shop.workers ?? []).map((w) => name(w)!),
+      owner: shop.ownerId ? name(shop.ownerId)! : 'nobody (standing free)', serving: mindingLabel(shop, (x) => name(x)!), workers: (shop.workers ?? []).map((w) => name(w)!),
       stock: shop.stock, sells: shop.sells, buys: shop.buys,
     };
   }

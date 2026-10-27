@@ -153,3 +153,58 @@ describe('stalls between residents', () => {
     void availableActions;
   });
 });
+
+describe('review fixes (stalls)', () => {
+  it('the new keeper runs the stall (prices, hiring); the old one is free to be hired', async () => {
+    const w = town();
+    const { rahim } = letGo(w);
+    w.state.t = sgt(10, 0, 15);
+    const kow = put(w, 'Ah Kow', 'village-head');
+    kow.money = 1000;
+    accepted(act(w, kow.id, { verb: 'offer_for_place', item: 'the market stall', money: 80 }));
+    w.state.t = sgt(17, 0, 15);
+    await mrLimDecides(w, null, 0);
+    w.state.t = sgt(10, 0, 16);
+    put(w, 'Ah Kow', 'market-stall');
+    accepted(act(w, kow.id, { verb: 'set_price', item: 'fish', price: 30 }));
+    expect(availableActions(w, rahim).map((a) => a.verb)).not.toContain('set price');
+    expect(rahim.role).not.toBe('owner');
+    // What each keeps, as their own mind is told it, follows the change.
+    expect(perceive(w, kow).keeps).toMatch(/stall/);
+    expect(perceive(w, rahim).keeps).toBe(null);
+    const { systemPrompt } = await import('../src/mind/prompt.ts');
+    const card = { name: 'Ah Kow', age: 30, personality: 'p', want: 'w', worry: 'w', knows: '', languages: '' };
+    expect(systemPrompt(card, 'owner', perceive(w, kow).keeps)).toMatch(/You own .*stall/);
+  });
+
+  it('a landlord of a stall counts as keeping one: no second stall from Mr Lim', () => {
+    const w = town();
+    letGo(w);
+    // Mdm Tan owns her shop and lets it to Raju.
+    Object.assign(w.state.property['provision-shop']!, { holder: who(w, 'Raju').id, owned: false, landlord: who(w, 'Mdm Tan').id });
+    w.shop('provision-shop')!.ownerId = who(w, 'Raju').id;
+    w.state.t = sgt(10, 0, 15);
+    const tan = put(w, 'Mdm Tan', 'village-head');
+    tan.money = 1000;
+    refused(act(w, tan.id, { verb: 'offer_for_place', item: 'the market stall', money: 80 }), /stall/);
+  });
+
+  it('goods ordered from the lorry for a stall that is let go come to the keeper\'s hands instead', () => {
+    const w = town();
+    const rahim = who(w, 'Rahim');
+    w.state.osman.orders.push({ id: w.nextId(), who: rahim.id, item: 'fish', qty: 2, each: 20, deposit: 0, forShop: 'market-stall', brought: null } as never);
+    letGo(w);
+    expect(w.state.osman.orders.find((o) => o.who === rahim.id)!.forShop).toBe(null);
+  });
+
+  it('naming another stall is never an offer for your own', () => {
+    const w = town();
+    // The kopitiam stands free; Rahim keeps the market stall and rents his house.
+    Object.assign(w.state.property['kopitiam']!, { holder: null, freeSince: dayIndex(w.t) });
+    w.shop('kopitiam')!.ownerId = null;
+    const rahim = put(w, 'Rahim', 'village-head');
+    rahim.money = 100_000;
+    refused(act(w, rahim.id, { verb: 'offer_for_place', item: 'the kopitiam', money: 5000, side: 'buy' }), /keep a stall/);
+    expect(w.state.placeOffers).toEqual([]);
+  });
+});

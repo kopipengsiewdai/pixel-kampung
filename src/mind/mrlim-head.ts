@@ -141,7 +141,7 @@ export class ModelMrLimHead implements MrLimHead {
 
   async review(b: ReviewBrief, at: { t: number; realMs: number }): Promise<ReviewAnswer | null> {
     const user = [
-      `It's Monday evening, and you look over the rents of the houses and stalls you let. ${b.free === 0 ? 'No house stands free' : `${b.free} house${b.free === 1 ? ' stands' : 's stand'} free`}, and ${b.offers === 0 ? 'nobody is waiting' : `${b.offers} ${b.offers === 1 ? 'person is' : 'people are'} waiting`} on an offer for one.`,
+      `It's Monday evening, and you look over the rents of the houses and stalls you let. ${b.free === 0 ? 'Nothing of yours stands free' : `${b.free} of your places stand${b.free === 1 ? 's' : ''} free`}, and ${b.offers === 0 ? 'nobody is waiting' : `${b.offers} ${b.offers === 1 ? 'person is' : 'people are'} waiting`} on an offer for a house.`,
       ...b.lets.map((l) => `${l.n}. ${l.name} pays ${formatMoney(l.rent)} a week for ${l.place}${l.owing ? `, and owes ${formatMoney(l.owing)}` : ''}.`),
       "A new rent starts a week from today. A tenant who won't pay a higher rent gives the place up; a lower one they take gladly. A rent can go at most to double, or down to half, at a time. Change any rents you want to, or none.",
     ].join('\n');

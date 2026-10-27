@@ -55,7 +55,9 @@ export class Mind {
   /** allowance: their share of the hourly thinking allowance (1 is a full one). */
   brainFor(residentId: string, name: string, role: Role, shop: string | null, t: number, allowance = 1, age?: number): MindBrain {
     const card = this.cards.find((c) => c.name === name) ?? { name, age: 30, personality: 'Ordinary.', want: 'a decent life', worry: 'about hard times', knows: '', languages: '' };
-    return new MindBrain(this, residentId, systemPrompt(card, role, shop, age ?? card.age), t, allowance);
+    // Who keeps a stall can change (one let go, one taken): their own line follows what they keep now.
+    const systemFor = (keeps: string | null) => systemPrompt(card, keeps ? 'owner' : role === 'owner' ? 'seeker' : role, keeps, age ?? card.age);
+    return new MindBrain(this, residentId, systemFor, shop, t, allowance);
   }
 
   observe = (residentId: string, t: number, text: string): void => {
@@ -117,7 +119,8 @@ interface MindState {
 export class MindBrain implements Brain {
   private readonly mind: Mind;
   private readonly id: string;
-  private readonly system: string;
+  private system: string;
+  private readonly systemFor: (keeps: string | null) => string;
   private s: MindState;
   private budget: Budget;
   /** The game minute whose thought was last counted against today's plan. */
@@ -126,10 +129,11 @@ export class MindBrain implements Brain {
   /** Their share of the hourly thinking allowance. */
   readonly allowance: number;
 
-  constructor(mind: Mind, id: string, system: string, t: number, allowance = 1) {
+  constructor(mind: Mind, id: string, systemFor: (keeps: string | null) => string, keeps: string | null, t: number, allowance = 1) {
     this.mind = mind;
     this.id = id;
-    this.system = system;
+    this.systemFor = systemFor;
+    this.system = systemFor(keeps);
     this.allowance = allowance;
     this.budget = new Budget(t, undefined, allowance);
     this.s = { budget: this.budget.save(), planDay: null, plan: null, planMisses: 0, businessDay: null, businessCalls: 0, reflectedDay: null };
@@ -223,6 +227,7 @@ export class MindBrain implements Brain {
       .filter((m, i, all) => !seen.has(m.text) && all.findIndex((x) => x.text === m.text) === i)
       .slice(-8);
     const user = userPrompt(kind, p, memories, this.s.plan);
+    this.system = this.systemFor(p.keeps);
     if (this.mind.keepSent) this.mind.sent.push({ kind, system: this.system, user });
     let res: ThinkResponse;
     try {
