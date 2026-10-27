@@ -168,7 +168,6 @@ describe('review fixes (stalls)', () => {
     put(w, 'Ah Kow', 'market-stall');
     accepted(act(w, kow.id, { verb: 'set_price', item: 'fish', price: 30 }));
     expect(availableActions(w, rahim).map((a) => a.verb)).not.toContain('set price');
-    expect(rahim.role).not.toBe('owner');
     // What each keeps, as their own mind is told it, follows the change.
     expect(perceive(w, kow).keeps).toMatch(/stall/);
     expect(perceive(w, rahim).keeps).toBe(null);
@@ -206,5 +205,46 @@ describe('review fixes (stalls)', () => {
     rahim.money = 100_000;
     refused(act(w, rahim.id, { verb: 'offer_for_place', item: 'the kopitiam', money: 5000, side: 'buy' }), /keep a stall/);
     expect(w.state.placeOffers).toEqual([]);
+  });
+});
+
+describe('second review fixes (stalls)', () => {
+  it('wages owed for a shift cut short can still be paid by the old keeper', () => {
+    const w = town();
+    const rahim = who(w, 'Rahim');
+    const kow = who(w, 'Ah Kow');
+    w.state.property[rahim.homeId]!.owned = true;
+    const job = { id: w.nextId(), employerId: rahim.id, workerId: kow.id, placeId: 'market-stall', wage: 40, startHour: 8, hours: 4, lastWorkedDay: null };
+    w.state.jobs.push(job);
+    rahim.money = 0;
+    round(w, 1);
+    w.state.t = sgt(9, 0, 14) - 30;
+    put(w, 'Ah Kow', 'market-stall');
+    kow.activity = { kind: 'working', jobId: job.id, until: w.t + 120, worked: 60 };
+    round(w, 2);
+    expect(w.state.owed.some((o) => o.employerId === rahim.id && o.workerId === kow.id && o.cents > 0)).toBe(true);
+    w.state.t = sgt(10, 0, 14);
+    put(w, 'Rahim', 'well');
+    put(w, 'Ah Kow', 'well');
+    rahim.money = 1000;
+    expect(availableActions(w, rahim).map((a) => a.verb)).toContain('pay wages');
+    accepted(act(w, rahim.id, { verb: 'pay_wages', to: 'Ah Kow' }));
+  });
+
+  it('whoever takes a stall gives up work they had elsewhere', async () => {
+    const w = town();
+    letGo(w);
+    const kow = who(w, 'Ah Kow');
+    const huat = who(w, 'Ah Huat');
+    w.state.jobs = w.state.jobs.filter((j) => j.workerId !== kow.id);
+    w.state.jobs.push({ id: w.nextId(), employerId: huat.id, workerId: kow.id, placeId: 'kopitiam', wage: 40, startHour: 8, hours: 4, lastWorkedDay: null });
+    w.state.t = sgt(10, 0, 15);
+    put(w, 'Ah Kow', 'village-head');
+    kow.money = 1000;
+    accepted(act(w, kow.id, { verb: 'offer_for_place', item: 'the market stall', money: 80 }));
+    w.state.t = sgt(17, 0, 15);
+    await mrLimDecides(w, null, 0);
+    expect(w.state.jobs.filter((j) => j.workerId === kow.id)).toEqual([]);
+    expect(huat.recent.at(-1)!.text).toMatch(/Ah Kow/);
   });
 });

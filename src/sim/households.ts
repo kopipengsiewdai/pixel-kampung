@@ -204,20 +204,26 @@ export function handOverStall(w: World, placeId: string, toId: string | null): v
     w.state.jobOffers = w.state.jobOffers.filter((x) => x.employerId !== old);
     // Their own offers for it lapse with it.
     w.state.placeOffers = w.state.placeOffers.filter((x) => !(x.placeId === placeId && x.who === old));
-    // Someone who keeps no stall now is no shopkeeper.
-    if (keeper.role === 'owner' && !w.state.shops.some((s) => s !== shop && s.ownerId === old)) keeper.role = 'seeker';
   }
   // Goods ordered from the lorry for its shelves go to whoever ordered them; a pot on its stove, into the cook's hands.
   for (const x of w.state.osman.orders) if (x.forShop === placeId) x.forShop = null;
   for (const x of w.state.osman.visit?.offers ?? []) if (x.forShop === placeId) x.forShop = null;
-  for (const r of w.state.residents) if (r.stove?.shopId === placeId) r.stove.shopId = r.homeId;
+  for (const r of w.state.residents) if (r.stove?.shopId === placeId) r.stove.shopId = POT_TO_HANDS;
   w.state.priceOffers = w.state.priceOffers.filter((x) => x.shopId !== placeId);
   Object.assign(shop, { ownerId: toId, stock: {}, sellPrices: {}, buyPrices: {}, buyLimits: {}, queue: [], serving: [], today: freshDay(dayIndex(w.t)), hour: { served: 0, cents: 0, left: 0 } });
-  if (toId) {
-    const keeper = w.resident(toId);
-    if (keeper.role !== 'owner') keeper.role = 'owner';
+  // The new keeper has a stall to run: any work they had elsewhere they give up (a shift under way is paid).
+  for (const j of w.state.jobs.filter((x) => x.workerId === toId)) {
+    const keeper = w.resident(toId!);
+    const a = keeper.activity;
+    if ((a?.kind === 'working' && a.jobId === j.id) || (a?.kind === 'chore' && a.shift?.jobId === j.id)) interrupt(w, keeper);
+    w.notify(j.employerId, `${keeper.name} keeps ${name} now, and gives up the work for you.`);
+    w.notify(keeper.id, `You keep ${name} now, so you give up your work for ${w.nameOf(j.employerId)}.`);
   }
+  if (toId) w.state.jobs = w.state.jobs.filter((x) => x.workerId !== toId);
 }
+
+/** A pot whose stall changed hands comes off into the cook's own hands (no stove anywhere has this place). */
+const POT_TO_HANDS = 'hands';
 
 /** The first Monday on or after a day: when Mr Lim comes round. */
 export function mondayOnOrAfter(w: World, day: number): number {

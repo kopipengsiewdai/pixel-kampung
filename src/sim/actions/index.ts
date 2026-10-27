@@ -43,6 +43,9 @@ const withPeople = (w: World, r: Resident) => w.nearby(r).some((o) => !w.isAslee
 const somethingOffered = (w: World, r: Resident) => w.state.debtOffers.some((o) => o.toId === r.id) || offersFor(w, r).length > 0 || somethingAboutHouses(w, r)
   || w.state.errands.some((e) => !e.taken && e.runnerId === r.id) || w.state.lessonOffers.some((o) => o.learnerId === r.id);
 
+/** A shopkeeper: whoever keeps a stall now (stalls change hands). */
+const keeper = (w: World, r: Resident) => w.shopOf(r.id) !== null;
+
 /** The whole v1 action space (spec §3). Nothing else can be done. */
 export const ACTIONS: Record<string, ActionDef> = {
   walk_to: { run: everyone.walkTo, ownersOnly: false, says: 'walk to a place or a person you know, or north, south, east or west (where)' },
@@ -200,7 +203,7 @@ export const ACTIONS: Record<string, ActionDef> = {
     here: (w, r) => w.state.jobs.some((j) => j.employerId === r.id),
   },
   pay_wages: {
-    run: owners.payWages, ownersOnly: true, says: 'pay a worker wages you owe (person, and money to pay only part)',
+    run: owners.payWages, ownersOnly: false, says: 'pay a worker wages you owe (person, and money to pay only part)',
     here: (w, r) => w.state.owed.some((o) => o.employerId === r.id),
   },
   order_stock: {
@@ -263,7 +266,7 @@ export function act(w: World, residentId: string, intent: unknown): ActionResult
   if (isNight(w.t)) return no("It's the middle of the night. You should be asleep.");
   const def = Object.hasOwn(ACTIONS, verb) ? ACTIONS[verb] : undefined;
   if (!def) return no("You're not sure how to do that.");
-  if (def.ownersOnly && r.role !== 'owner') return no("That's for shopkeepers. You don't have a shop.");
+  if (def.ownersOnly && !keeper(w, r)) return no("That's for shopkeepers. You don't have a shop.");
   if (r.ill && TOO_ILL_FOR.has(verb)) return no(TOO_ILL);
   return def.run(w, r, intent as Intent);
 }
@@ -272,7 +275,7 @@ export function act(w: World, residentId: string, intent: unknown): ActionResult
 export function availableActions(w: World, r: Resident): { verb: string; says: string }[] {
   const working = r.activity?.kind === 'working';
   return Object.entries(ACTIONS)
-    .filter(([verb, d]) => (!d.ownersOnly || r.role === 'owner') && (!d.here || d.here(w, r)) && (!working || ON_SHIFT.has(verb)) && (!r.stove || AT_STOVE.has(verb))
+    .filter(([verb, d]) => (!d.ownersOnly || keeper(w, r)) && (!d.here || d.here(w, r)) && (!working || ON_SHIFT.has(verb)) && (!r.stove || AT_STOVE.has(verb))
       && !(r.ill && TOO_ILL_FOR.has(verb)))
     .map(([verb, d]) => ({ verb: verb.replace(/_/g, ' '), says: typeof d.says === 'string' ? d.says : d.says(w, r) }));
 }

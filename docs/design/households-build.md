@@ -135,7 +135,7 @@ Built in four parts:
   - A stall is let go on the house rule: rent owing over a week at the Monday round (Mr Lim's grace and loans still apply); what was owed stays owed, as arrears.
   - The keeper loses the stall and takes its stock home. Anyone working there is told the job is over. The shop is shut while it stands free: nobody buys, sells or works there, and no traveller stops.
   - A free stall goes on Mr Lim's to-let note, and takes offers at his door (a rent a week, or a price), answered in the evening as for houses, with the same fallback.
-  - Whoever takes it keeps it: empty, with no prices yet (they set their own), and becomes a shopkeeper (prices, hiring, ordering); one who keeps no stall now isn't one. Nobody keeps two stalls, counting one they own and have let.
+  - Whoever takes it keeps it: empty, with no prices yet (they set their own), and becomes the shopkeeper (prices, hiring, ordering: whoever keeps a stall now, not a fixed part), giving up any work they had elsewhere. Wages still owed for a shift cut short can be paid by anyone. Nobody keeps two stalls, counting one they own and have let.
   - When a stall changes keeper, a shift under way there ends and is paid as a shift does; goods ordered from the lorry for its shelves go to whoever ordered them; a pot on its stove comes off into the cook's hands.
   - Stalls join (b) and (c): Mr Lim's head looks over stall rents too, and a stall someone owns can be sold or let between residents.
 

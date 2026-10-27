@@ -111,8 +111,7 @@ export function dealWords(w: World, d: PlaceDeal, forId: string): string {
 /** Whether the payer would move in (and so leave their home): a house, not let, or to rent. */
 const movesIn = (d: Pick<PlaceDeal, 'kind' | 'wasLet' | 'placeId'>) => d.placeId.startsWith('house-') && (d.kind === 'let' || !d.wasLet);
 /** Whether the payer would keep a stall, and keeps another already. */
-const keepsAnother = (w: World, payer: Resident, placeId: string) => !placeId.startsWith('house-') && keepsStall(w, payer) && w.shop(placeId)?.ownerId !== payer.id
-  && w.state.property[placeId]?.landlord !== payer.id;
+const keepsAnother = (w: World, payer: Resident, placeId: string) => !placeId.startsWith('house-') && keepsStall(w, payer) && w.shop(placeId)?.ownerId !== payer.id;
 
 export function offerPlace(w: World, r: Resident, i: Intent): ActionResult {
   const o = personNearby(w, r, i.to);
