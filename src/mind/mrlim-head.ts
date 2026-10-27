@@ -143,7 +143,7 @@ export class ModelMrLimHead implements MrLimHead {
     const user = [
       `It's Monday evening, and you look over the rents of the houses you let. ${b.free === 0 ? 'No house stands free' : `${b.free} house${b.free === 1 ? ' stands' : 's stand'} free`}, and ${b.offers === 0 ? 'nobody is waiting' : `${b.offers} ${b.offers === 1 ? 'person is' : 'people are'} waiting`} on an offer for one.`,
       ...b.lets.map((l) => `House ${l.n}: ${l.name} pays ${formatMoney(l.rent)} a week${l.owing ? `, and owes ${formatMoney(l.owing)}` : ''}.`),
-      "A new rent starts a week from today. A tenant who won't pay a higher rent leaves the house; a lower one they take gladly. Change any rents you want to, or none.",
+      "A new rent starts a week from today. A tenant who won't pay a higher rent leaves the house; a lower one they take gladly. A rent can go at most to double, or down to half, at a time. Change any rents you want to, or none.",
     ].join('\n');
     return this.ask(user, at, REVIEW_TOOL);
   }

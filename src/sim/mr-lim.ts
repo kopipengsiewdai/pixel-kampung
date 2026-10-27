@@ -342,6 +342,8 @@ export async function mrLimDecides(w: World, head: MrLimHead | null, realMs: num
  * being bought week by week keeps its terms; stalls wait for their own turn.
  */
 export const RENT_NOTICE_DAYS = 7;
+/** A new rent is at most double, and at least half, the old one, in one go. */
+export const RENT_CHANGE_BOUNDS = [0.5, 2] as const;
 
 /** What his head is told of the houses he lets (each by its number), and what it may answer: new rents by number. */
 export interface ReviewBrief { free: number; offers: number; lets: { n: number; place: string; name: string; rent: Cents; owing: Cents }[] }
@@ -369,7 +371,8 @@ export async function mrLimReviews(w: World, head: MrLimHead | null, realMs: num
   const today = dayIndex(w.t);
   if (w.state.rentReviewDay === today || minuteOfDay(w.t) < DECIDE_AT || weekdayAt(w.state, w.t) !== 'Monday') return;
   w.state.rentReviewDay = today;
-  if (!head?.review) return;
+  // Before rent has started, rents stand as everyone was told.
+  if (!head?.review || today + RENT_NOTICE_DAYS < w.state.rentFrom) return;
   const lets = Object.entries(w.state.property).filter(([id, p]) => id.startsWith('house-') && p.holder !== null && !p.owned && !p.rentToOwn && !p.notice
     && w.state.residents.some((r) => r.id === p.holder));
   if (!lets.length) return;
@@ -382,12 +385,14 @@ export async function mrLimReviews(w: World, head: MrLimHead | null, realMs: num
   for (const c of Array.isArray(got?.changes) ? got.changes as unknown[] : []) {
     const { house, rent } = (c ?? {}) as { house?: unknown; rent?: unknown };
     const entry = typeof house === 'number' && Number.isInteger(house) ? lets[house - 1] : undefined;
-    if (!entry || typeof rent !== 'number' || !Number.isFinite(rent)) continue;
+    if (!entry || typeof rent !== 'number' || !Number.isFinite(rent) || rent < 1) continue;
     const [id, p] = entry;
-    const cents = Math.min(Math.round(rent), 1_000_000);
-    if (cents < 1 || cents === p.rent || p.notice) continue;
+    const cents = Math.max(1, Math.ceil(p.rent * RENT_CHANGE_BOUNDS[0]), Math.min(Math.round(rent), Math.floor(p.rent * RENT_CHANGE_BOUNDS[1])));
+    if (cents === p.rent || p.notice) continue;
     p.notice = { rent: cents, from: today + RENT_NOTICE_DAYS, agreed: cents < p.rent };
-    w.notify(p.holder!, `${words ? `Mr Lim says to you: "${words}" ` : ''}${noticeLine(w, id, p)}`);
+    // His words go with a rise.
+    w.notify(p.holder!, `${words && cents > p.rent ? `Mr Lim says to you: "${words}" ` : ''}${noticeLine(w, id, p)}`);
+    for (const o of w.state.residents) if (o.homeId === id && o.id !== p.holder) w.notify(o.id, noticeLine(w, id, p, o.id));
   }
 }
 

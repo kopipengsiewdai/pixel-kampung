@@ -152,6 +152,70 @@ describe("a sitting tenant's rent changes only with a week's notice and their ag
   });
 });
 
+describe('review fixes (rent changes)', () => {
+  it('his head is held to at most double, or half, a rent in one go (a slip of the unit can\'t empty the town)', async () => {
+    const w = monday();
+    const kow = who(w, 'Ah Kow');
+    const raju = who(w, 'Raju');
+    await mrLimReviews(w, head({ 'Ah Kow': 5000, Raju: 1 }), 0);
+    expect(w.state.property[kow.homeId]!.notice!.rent).toBe(HOUSE_RENT * 2);
+    expect(w.state.property[raju.homeId]!.notice!.rent).toBe(HOUSE_RENT / 2);
+  });
+
+  it('the town down over the Monday: a new rent never agreed is settled before that week is charged', async () => {
+    const w = monday();
+    const kow = who(w, 'Ah Kow');
+    kow.money = 1000;
+    await mrLimReviews(w, head({ 'Ah Kow': 80 }), 0);
+    // Wakes on the Tuesday before nine: the Monday round is caught up.
+    w.state.t = sgt(8, 0, 8);
+    householdsMinute(w);
+    expect(kow.homeId).toBe(ROUGH);
+    expect(kow.money).toBe(1000);
+    expect(w.state.arrears[kow.id] ?? 0).toBe(0);
+  });
+
+  it('a quiet spell that swallows the notice week gives the tenant their week back', async () => {
+    const { skipQuietly } = await import('../src/sim/skip.ts');
+    const w = monday();
+    const kow = who(w, 'Ah Kow');
+    await mrLimReviews(w, head({ 'Ah Kow': 80 }), 0);
+    const from = w.state.property[kow.homeId]!.notice!.from;
+    skipQuietly(w, sgt(8, 0, 7));
+    expect(w.state.property[kow.homeId]!.notice!.from).toBe(from + 7);
+    // A short pause inside the week doesn't.
+    const w2 = monday();
+    await mrLimReviews(w2, head({ 'Ah Kow': 80 }), 0);
+    skipQuietly(w2, w2.t + 30);
+    expect(w2.state.property[who(w2, 'Ah Kow').homeId]!.notice!.from).toBe(from);
+  });
+
+  it('before rent has started, he leaves rents be', async () => {
+    const w = monday();
+    w.state.rentFrom = dayIndex(w.t) + 28;
+    const h = head({ 'Ah Kow': 80 });
+    await mrLimReviews(w, h, 0);
+    expect(h.briefs).toHaveLength(0);
+  });
+
+  it('everyone at home hears of it; his words go only to those whose rent goes up', async () => {
+    const w = monday();
+    // A tenant with family at home.
+    const [, home] = Object.entries(w.state.property).find(([id, p]) => id.startsWith('house-') && p.holder && w.state.residents.filter((r) => r.homeId === id).length > 1)!;
+    const kow = w.resident(home.holder!);
+    const raju = w.state.residents.find((r) => r.homeId !== kow.homeId && w.state.property[r.homeId]?.holder === r.id)!;
+    const others = w.state.residents.filter((r) => r.homeId === kow.homeId && r.id !== kow.id);
+    await mrLimReviews(w, head({ [kow.name]: 80, [raju.name]: 30 }), 0);
+    for (const o of others) {
+      expectInWorld(o.recent.at(-1)!.text);
+      expect(o.recent.at(-1)!.text).toContain(kow.name);
+      expect(seen(w, o.name)).toMatch(/80¢ a week/);
+    }
+    expect(kow.recent.at(-1)!.text).toMatch(/Times are hard/);
+    expect(raju.recent.at(-1)!.text).not.toMatch(/Times are hard/);
+  });
+});
+
 describe('the upgrade (save v27)', () => {
   it('no notices given yet, no review yet', async () => {
     const { UPGRADES } = await import('../src/store/upgrades.ts');

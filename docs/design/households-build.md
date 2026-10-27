@@ -111,8 +111,9 @@ Built in four parts:
   - The day he last answered is saved, so a restart doesn't make him answer twice.
   - Stalls stand free only once (d) lets one go.
 - **(b) A sitting tenant's rent changes with notice and agreement** (0.33.0).
-  - On Monday evenings his head looks over the houses he lets (one call a week) and may set a new rent for any, from a cent up. His own way, he never changes a rent.
-  - The tenant hears at once, and keeps seeing it: the new rent starts at his round a week on.
+  - On Monday evenings, before the evening's offers, his head looks over the houses he lets (one call a week) and may set a new rent for any: at most double, or down to half, at a time (a guard against a slip of the unit). His own way, he never changes a rent. Not before rent has started.
+  - The tenant and everyone living with them hear at once, and keep seeing it: the new rent starts at his round a week on (or that round caught up after downtime). His words go only with a rise.
+  - Downtime that swallows a day or more of the notice week gives the tenant that time back, in whole weeks.
   - A higher rent must be agreed at his door (`agree_to_rent`) by then, or the household leaves that morning, owing only what they already owed, and the house stands free. A lower rent needs no agreeing.
   - A notice goes with the house if it's let go for rent owing, or bought. Places being bought week by week, and owned ones, aren't looked over; nor are stalls, until (d).
   - The day he last looked is saved, so a restart doesn't make him look twice.

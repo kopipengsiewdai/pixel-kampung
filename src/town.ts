@@ -211,8 +211,9 @@ export class Town {
     await teacherThinks(w, this.teacher, realMs);
     await mrLimThinks(w, this.mrLim, realMs);
     await mrLimHelps(w, this.mrLim, realMs);
-    await mrLimDecides(w, this.mrLim, realMs);
+    // Rents looked over before the evening's offers, so a house let tonight isn't.
     await mrLimReviews(w, this.mrLim, realMs);
+    await mrLimDecides(w, this.mrLim, realMs);
     if (mod >= EVENING_FROM) {
       for (const r of w.state.residents) {
         const brain = this.brains.get(r.id)!;
