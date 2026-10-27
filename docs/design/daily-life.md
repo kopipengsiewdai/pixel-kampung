@@ -384,3 +384,11 @@ Art: our own, drawn in `scripts/art/build_art.py` (CC BY-NC-SA, per
 4. **Order:** A → B → C, then D after the village head.
 5. **Cooking needs pails of water**, as a light chore: yes.
 6. **"Pray"** is quiet time with no game effect, when D comes.
+
+## What a keeper carries sells at their stall (Kampung for the owner, 2026-10-28)
+
+The living town showed Rahim carrying 24 fish for days while his wet-market stall, priced at 60¢ a fish, stood empty and sold nothing. Stocking it meant standing at the stall and "selling" to himself, and in three days he never went there.
+- A keeper at their own stall sells what they carry at the stall's prices, to villagers and to travellers, and from haggled offers. The stall's stock goes first, then what's in their hands. The last few are still kept back for the kampung's own people.
+- Away from the stall, what they carry isn't on its counter: someone minding it for them sells only its stock.
+- They see it. At the stall, what they carry counts in "fish 60¢ (24 left)". Away from it, they're told "You carry 24 fish: at the wet-market stall they'd sell at your price." At the stall, putting goods into stock is called just that.
+- Whether they go to the stall, sell to the lorry or fish on is up to them.

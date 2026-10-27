@@ -651,4 +651,24 @@ export function countGoods(g: Goods, item: ItemId): number {
   return g[item] ?? 0;
 }
 
+/** The keeper, when they're at their own stall: what they carry sells there too (owner via Kampung, 2026-10-28). */
+export function keeperHere(w: World, shop: Shop): Resident | null {
+  if (!isKept(shop)) return null;
+  const k = w.resident(shop.ownerId);
+  return w.isAt(k, shop.id) && k.activity?.kind !== 'sleeping' ? k : null;
+}
+
+/** How many a stall has to sell: its stock, and what its keeper carries while they're there. */
+export function onCounter(w: World, shop: Shop, item: ItemId): number {
+  const k = keeperHere(w, shop);
+  return countGoods(shop.stock, item) + (k ? countGoods(k.items, item) : 0);
+}
+
+/** Sold off the counter: from the stock first, then from what the keeper carries. */
+export function takeFromCounter(w: World, shop: Shop, item: ItemId, qty: number): void {
+  const fromStock = Math.min(qty, countGoods(shop.stock, item));
+  addGoods(shop.stock, item, -fromStock);
+  if (qty > fromStock) addGoods(keeperHere(w, shop)!.items, item, -(qty - fromStock));
+}
+
 export const HOUSE_IDS = PLACES.filter((p) => p.kind === 'house').map((p) => p.id);

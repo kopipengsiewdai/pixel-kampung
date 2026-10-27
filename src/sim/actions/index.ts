@@ -63,7 +63,8 @@ export const ACTIONS: Record<string, ActionDef> = {
   },
   sell: {
     run: everyone.sell, ownersOnly: false, here: (w, r) => atShop(w, r) || atLorry(w, r),
-    says: (w, r) => (atLorry(w, r) ? 'sell something to the lorry man (item, amount, and money if you ask more than he pays)' : 'sell something here (item, amount)'),
+    says: (w, r) => (atLorry(w, r) ? 'sell something to the lorry man (item, amount, and money if you ask more than he pays)'
+      : everyone.shopHere(w, r)?.ownerId === r.id ? 'put something you carry into your stock (item, amount)' : 'sell something here (item, amount)'),
   },
   ask_to_bring: {
     run: owners.askToBring, ownersOnly: false, says: 'ask the lorry man to bring something next time (item, amount, and money for a deposit)', here: (w, r) => atLorry(w, r),
