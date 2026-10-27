@@ -120,11 +120,9 @@ describe("a sitting tenant's rent changes only with a week's notice and their ag
     w.state.property[siti.homeId]!.rentToOwn = { paid: 0, of: 3300 };
     const h: MrLimHead & { briefs: ReviewBrief[] } = { briefs: [], plan: async () => null, review: async (b) => { h.briefs.push(b); return { changes: [{ house: 0, rent: 90 }, { house: 1, rent: 0 }, { house: 2, rent: HOUSE_RENT }, { house: 3, rent: 'lots' }, { house: 4.5, rent: 70 }, 'x'] }; } };
     await mrLimReviews(w, h, 0);
-    const names = h.briefs[0]!.lets.map((l) => l.name);
+    const names = h.briefs[0]!.lets.filter((l) => l.place === 'a house').map((l) => l.name);
     expect(names).not.toContain('Mdm Tan');
     expect(names).not.toContain('Siti');
-    // Stalls aren't looked over yet.
-    expect(h.briefs[0]!.lets.every((l) => l.place === 'a house')).toBe(true);
     expect(Object.values(w.state.property).filter((p) => p.notice)).toEqual([]);
     // A head that answers nothing, or fails, changes nothing.
     const w2 = monday();
@@ -238,7 +236,7 @@ describe('his head on the model looks over the rents', () => {
     const got = await head.review({ free: 2, offers: 1, lets: [{ n: 1, place: 'a house', name: 'Ah Kow', rent: 50, owing: 20 }] }, { t: 0, realMs: 0 });
     expect(got).toEqual({ changes: [] });
     expect(asked[0]!.tools[0]!.name).toBe(REVIEW_TOOL.name);
-    expect(asked[0]!.user).toMatch(/House 1: Ah Kow pays 50¢ a week, and owes 20¢/);
+    expect(asked[0]!.user).toMatch(/1\. Ah Kow pays 50¢ a week for a house, and owes 20¢/);
     for (const line of asked[0]!.user.split('\n')) expectInWorld(line);
   });
 });

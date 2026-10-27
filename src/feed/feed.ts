@@ -174,6 +174,7 @@ export function feedText(e: GameEvent, n: Names): { text: string; notable: boole
     case 'left_home': return line(`${n(e.who)} left their home rather than pay ${e.owner ? `${n(e.owner)}'s` : "Mr Lim's"} new rent, and sleeps rough now.`, true);
     case 'bought_place': return line(`${n(e.who)} bought ${place(e.place)} from ${e.from ? n(e.from) : 'Mr Lim'} for ${formatMoney(e.cents)}.`, true);
     case 'moved_out': return line(`${n(e.who)} moved out of ${place(e.place)}.`, true);
+    case 'lost_stall': return line(`${n(e.who)} gave up ${place(e.place)}: it stands empty now.`, true);
     case 'moved_in': return line(`${n(e.who)} moved into a house of their own.`, true);
     case 'found_place': return line(`${n(e.who)} comes across ${place(e.place)} for the first time.`);
     case 'quiet_spell': return line(`The kampung was quiet for a while (${Math.floor(e.minutes / 60)}h ${e.minutes % 60}m). Everyone rested or worked quietly.`);

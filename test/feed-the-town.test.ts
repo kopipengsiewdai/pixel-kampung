@@ -105,7 +105,7 @@ describe('hungry, they are pointed only where someone will serve them', () => {
     stall.sellPrices = { fish: 40 };
     stall.stock = { fish: 3 };
     for (const s of w.state.shops) if (s.id !== 'market-stall') s.stock = {};
-    if (minded) put(w, w.resident(stall.ownerId).name, 'market-stall');
+    if (minded) put(w, w.resident(stall.ownerId!).name, 'market-stall');
     const siti = put(w, 'Siti', 'well');
     siti.knownPlaces.push('market-stall', 'jetty');
     siti.hunger = 820;
@@ -139,7 +139,7 @@ describe("nobody minding the shop: asking again this minute won't help", () => {
     const w = town.world;
     for (const r of w.state.residents) r.thinkAt = start + 1000;
     const stall = w.shop('market-stall')!;
-    put(w, w.resident(stall.ownerId).name, w.resident(stall.ownerId).homeId);
+    put(w, w.resident(stall.ownerId!).name, w.resident(stall.ownerId!).homeId);
     const siti = put(w, 'Siti', 'market-stall');
     siti.thinkAt = start + 1;
     await town.runUntil(start + 1);

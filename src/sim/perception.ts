@@ -120,6 +120,8 @@ export interface Perception {
     today: { served: number; left: number; lost: Cents; tooDear: { item: ItemId; n: number }[] };
   } | null;
   shop: { name: string; staffed: boolean; sells: PriceTag[]; buys: PriceTag[] } | null;
+  /** The stall they keep, by its name (it can change hands). */
+  keeps: string | null;
   /** At the lorry stop: the lorry man (by name, once met), his prices for you today, his room, your slate and what you asked him to bring. */
   lorry: {
     here: boolean; who: string; sells: PriceTag[]; buys: PriceTag[]; room: number; owes: Cents;
@@ -313,6 +315,7 @@ function placeLabel(w: World, r: Resident, here: Place): string {
   const shop = w.shop(here.id);
   if (!shop) return w.placeName(here);
   const what = here.name.replace(/^the /, '');
+  if (shop.ownerId === null) return `the ${what}, standing empty`;
   return shop.ownerId === r.id ? `your ${what}` : `${w.resident(shop.ownerId).name}'s ${what}`;
 }
 
@@ -402,6 +405,7 @@ export function perceive(w: World, r: Resident): Perception {
       owedYou: debtsBy(w, (d) => d.creditor === r.id, (d) => d.debtor),
       wages: w.state.owed.filter((o) => o.workerId === r.id).map((o) => ({ name: w.resident(o.employerId).name, cents: o.cents })),
     },
+    keeps: ((s) => (s ? PLACE_BY_ID.get(s.id)?.name ?? null : null))(w.shopOf(r.id)),
     busyShop: shop && shop.ownerId !== r.id && !(r.activity?.kind === 'working') ? busyShopOf(w, shop) : null,
     servedToday: r.activity?.kind === 'working' && jobRow ? (w.shop(jobRow.placeId)?.today.servedBy[r.id] ?? 0) : null,
     skills: skillLines(w, r),
@@ -457,7 +461,7 @@ function debtsBy(w: World, mine: (d: Debt) => boolean, other: (d: Debt) => strin
 }
 
 function busyShopOf(w: World, shop: Shop): { server: string; owner: string; alone: boolean; waiting: number } | null {
-  if (!shop.queue.length) return null;
+  if (!shop.queue.length || shop.ownerId === null) return null;
   const on = servers(w, shop);
   return { server: on[0] ? on[0].name : w.resident(shop.ownerId).name, owner: w.resident(shop.ownerId).name, alone: on.length === 1, waiting: shop.queue.length };
 }

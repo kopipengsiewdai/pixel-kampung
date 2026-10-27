@@ -75,7 +75,7 @@ export function offerJob(w: World, r: Resident, i: Intent): ActionResult {
   if (typeof shop === 'string') return no("You don't have a business to hire for.");
   const o = personNearby(w, r, i.to);
   if (typeof o === 'string') return no(o);
-  if (o.role === 'owner') return no(`${o.name} has a business to run.`);
+  if (w.shopOf(o.id)) return no(`${o.name} has a business to run.`);
   if (w.ageOf(o) < GROWN_AGE) return no(`${o.name} is too young to work a shift.`);
   const job = w.jobOf(o.id);
   if (job?.employerId === r.id) return no(`${o.name} already works for you.`);

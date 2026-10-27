@@ -6,7 +6,7 @@
  */
 import { quantityLabel, type ItemId } from '../items.ts';
 import { formatMoney, type Cents } from '../money.ts';
-import { addGoods, countGoods, type PriceOffer, type Resident, type Shop, type World } from '../state.ts';
+import { addGoods, countGoods, isKept, type KeptShop, type PriceOffer, type Resident, type Shop, type World } from '../state.ts';
 import { type ActionResult, no, ok } from './common.ts';
 import { isStaffed, recordFirstSale } from './everyone.ts';
 
@@ -43,13 +43,13 @@ export function lapsePriceOffers(w: World): void {
   const keep: PriceOffer[] = [];
   for (const o of w.state.priceOffers) {
     if (o.expires > w.t && stillAtCounter(w, o)) keep.push(o);
-    else w.notify(o.buyerId, `${w.resident(w.shop(o.shopId)!.ownerId).name} didn't take your offer for the ${o.item}.`);
+    else { const keeper = w.shop(o.shopId)?.ownerId; w.notify(o.buyerId, `${keeper ? w.resident(keeper).name : 'Nobody'} didn't take your offer for the ${o.item}.`); }
   }
   w.state.priceOffers = keep;
 }
 
 /** Puts a price below the shop's to whoever minds the counter. */
-export function offerPrice(w: World, r: Resident, shop: Shop, item: ItemId, qty: number, cents: Cents): ActionResult {
+export function offerPrice(w: World, r: Resident, shop: KeptShop, item: ItemId, qty: number, cents: Cents): ActionResult {
   if (r.money < cents) return no(`You don't have ${formatMoney(cents)}.`);
   w.state.priceOffers = w.state.priceOffers.filter((o) => !(o.buyerId === r.id && o.shopId === shop.id));
   w.state.priceOffers.push({ id: w.nextId(), buyerId: r.id, shopId: shop.id, item, qty, cents, expires: w.t + PRICE_OFFER_MINUTES });
@@ -60,14 +60,15 @@ export function offerPrice(w: World, r: Resident, shop: Shop, item: ItemId, qty:
 }
 
 /** The price offer from someone named, at a counter r is minding. */
-export function priceOfferFrom(w: World, r: Resident, from: unknown): { buyer: Resident; offer: PriceOffer; shop: Shop } | null {
+export function priceOfferFrom(w: World, r: Resident, from: unknown): { buyer: Resident; offer: PriceOffer; shop: KeptShop } | null {
   const buyer = w.residentByName(from, r);
   if (!buyer) return null;
   const offer = offersFor(w, r).find((o) => o.buyerId === buyer.id);
-  return offer ? { buyer, offer, shop: w.shop(offer.shopId)! } : null;
+  const shop = offer ? w.shop(offer.shopId) : null;
+  return offer && isKept(shop) ? { buyer, offer, shop } : null;
 }
 
-export function acceptPrice(w: World, r: Resident, found: { buyer: Resident; offer: PriceOffer; shop: Shop }): ActionResult {
+export function acceptPrice(w: World, r: Resident, found: { buyer: Resident; offer: PriceOffer; shop: KeptShop }): ActionResult {
   const { buyer, offer, shop } = found;
   const what = `${formatMoney(offer.cents)} for ${quantityLabel(offer.item, offer.qty)}`;
   if (!w.isAt(buyer, shop.id)) return no(`${buyer.name} has gone.`);

@@ -8,7 +8,7 @@
 import { practise, skillLevel } from './skills.ts';
 import { quantityLabel, type ItemId } from './items.ts';
 import type { Cents } from './money.ts';
-import { addGoods, countGoods, TRAVELLERS_ID, type Resident, type Shop, type World } from './state.ts';
+import { addGoods, countGoods, isKept, TRAVELLERS_ID, type Resident, type Shop, type World } from './state.ts';
 import { dayIndex, minuteOfDay } from './time.ts';
 
 /** Minutes a customer takes to serve. */
@@ -68,6 +68,7 @@ function every(shopId: string, mod: number): number | null {
 /** Who can serve at this shop now: the owner there (awake, not walking, not at the stove) and each worker on shift there not cooking. */
 export function servers(w: World, shop: Shop): Resident[] {
   const out: Resident[] = [];
+  if (shop.ownerId === null) return out;
   const owner = w.resident(shop.ownerId);
   if (w.isAt(owner, shop.id) && !owner.activity && !owner.stove) out.push(owner);
   for (const r of w.state.residents) {
@@ -112,6 +113,12 @@ export function travellersMinute(w: World): void {
   const day = dayIndex(w.t);
   for (const shop of w.state.shops) {
     if (shop.today.day !== day) shop.today = freshDay(day);
+    // A stall standing free is shut: no traveller stops.
+    if (!isKept(shop)) {
+      shop.queue = [];
+      shop.serving = [];
+      continue;
+    }
     // Finished serving: the sale goes through if the thing is still there.
     for (const s of shop.serving.filter((x) => x.until <= w.t)) {
       const price = shop.sellPrices[s.item];

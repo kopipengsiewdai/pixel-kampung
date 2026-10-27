@@ -52,7 +52,7 @@ it's drawn as a bigger house. Every resident who has lived here knows it.
   - The place passes to the buyer, and so does the household if it was the buyer's home.
 
 **Eviction.**
-- If a place has rent owing for more than seven days after the Monday it was missed, the holder's whole household is evicted on the next rent round. A stall's holder loses the stall: its stock stays in the shop, and Mr Lim lets it again.
+- If a place has rent owing for more than seven days after the Monday it was missed, the holder's whole household is evicted on the next rent round. A stall's keeper loses the stall: its stock goes home with them (the goods were theirs; the next keeper doesn't get them free), and Mr Lim lets it again (part d, 0.35.0).
 - The evicted lose that house as home (`homeId` becomes `rough`) and sleep rough at the jetty, where energy comes back at half speed. They keep what they carry.
 - An owned place can never be taken.
 
@@ -110,7 +110,7 @@ Built in four parts:
   - Accepted: the first week, or the price, is paid into the fund, and the household moves in (everyone turned out of the same house comes home together). Offers that weren't taken are told when the houses are gone.
   - A place already being bought week by week can't be offered for. An offer from someone owing rent by the evening isn't taken.
   - The day he last answered is saved, so a restart doesn't make him answer twice.
-  - Stalls stand free only once (d) lets one go.
+  - Stalls stand free only once (d) lets one go; from 0.35.0 a free stall takes offers the same way.
 - **(b) A sitting tenant's rent changes with notice and agreement** (0.33.0).
   - On Monday evenings, before the evening's offers, his head looks over the houses he lets (one call a week) and may set a new rent for any: at most double, or down to half, at a time (a guard against a slip of the unit). His own way, he never changes a rent. Not before rent has started.
   - The tenant and everyone living with them hear at once, and keep seeing it: the new rent starts at his round a week on (or that round caught up after downtime). His words go only with a rise.
@@ -130,8 +130,14 @@ Built in four parts:
   - Someone buying Mr Lim's house week by week can't move away from it. Anyone else leaving a rented house for one bought or let gives it back (to Mr Lim, or its owner), still owing what they owed.
   - A house sold while it's let keeps its sitting tenant: the buyer is their landlord, on the same rent (any notice lapses). A tenant may buy the house they rent.
   - Mr Lim stays out of it: no rent review, offer, help or pay-rent for a house let between residents.
-  - Houses only, until (d).
-- (d) Letting a stall go for rent owing.
+  - Stalls too, from (d): a stall someone owns is sold or let the same way, its keeper changing to the buyer or tenant; nobody moves house for a stall, and nobody keeps two stalls.
+- **(d) Letting a stall go, and stalls changing hands** (0.35.0, agreed with the owner via Kampung 2026-10-27).
+  - A stall is let go on the house rule: rent owing over a week at the Monday round (Mr Lim's grace and loans still apply); what was owed stays owed, as arrears.
+  - The keeper loses the stall and takes its stock home. Anyone working there is told the job is over. The shop is shut while it stands free: nobody buys, sells or works there, and no traveller stops.
+  - A free stall goes on Mr Lim's to-let note, and takes offers at his door (a rent a week, or a price), answered in the evening as for houses, with the same fallback.
+  - Whoever takes it keeps it: empty, with no prices yet (they set their own), and becomes the shopkeeper (prices, hiring, ordering: whoever keeps a stall now, not a fixed part), giving up any work they had elsewhere. Wages still owed for a shift cut short can be paid by anyone. Nobody keeps two stalls, counting one they own and have let.
+  - When a stall changes keeper, a shift under way there ends and is paid as a shift does; goods ordered from the lorry for its shelves go to whoever ordered them; a pot on its stove comes off into the cook's hands.
+  - Stalls join (b) and (c): Mr Lim's head looks over stall rents too, and a stall someone owns can be sold or let between residents.
 
 ## PR C: marriage (after A and B)
 

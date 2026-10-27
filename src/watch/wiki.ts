@@ -152,7 +152,7 @@ export const MONEY_ENTRIES = 100;
 export function moneyOf(
   id: string,
   events: readonly GameEvent[],
-  now: { t: number; people: readonly { id: string; name: string }[]; shops: readonly { id: string; ownerId: string; name: string }[] },
+  now: { t: number; people: readonly { id: string; name: string }[]; shops: readonly { id: string; ownerId: string | null; name: string }[] },
   w: { calendar: Calendar },
 ): MoneyView | null {
   const person = now.people.find((p) => p.id === id);

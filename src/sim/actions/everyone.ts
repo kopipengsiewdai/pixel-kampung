@@ -11,7 +11,7 @@ import { perceive } from '../perception.ts';
 import { PLACE_WORDS } from '../places.ts';
 import { BEST_DAY_YIELD, effectiveLevel, HANDY_YIELD, practise, skillLevel } from '../skills.ts';
 import {
-  addGoods, type Bed, type Crop, CIRCLE_LINES, countGoods, REPEAT_MINUTES, REPEAT_WORDS, SAID_KEPT, type Resident, type Shop, type World, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, SAID_ALL_LINES, type TalkRecord, UNANSWERED_LINES,
+  addGoods, isKept, type KeptShop, type Bed, type Crop, CIRCLE_LINES, countGoods, REPEAT_MINUTES, REPEAT_WORDS, SAID_KEPT, type Resident, type Shop, type World, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, SAID_ALL_LINES, type TalkRecord, UNANSWERED_LINES,
 } from '../state.ts';
 import { atTimeOfDay, dayIndex, sgtHour } from '../time.ts';
 import { looksForeign } from '../../watch/foreign.ts';
@@ -261,13 +261,25 @@ export function say(w: World, r: Resident, i: Intent): ActionResult {
 }
 
 /** The shop whose premises the resident is standing in, if any. */
-export function shopHere(w: World, r: Resident): Shop | null {
+/** The shop where r stands, if it has a keeper (one standing free is shut). */
+export function shopHere(w: World, r: Resident): KeptShop | null {
   const p = w.placeOf(r);
-  return p ? w.shop(p.id) : null;
+  const s = p ? w.shop(p.id) : null;
+  return isKept(s) ? s : null;
 }
+
+/** A stall standing free where r stands, shut. */
+export function shutHere(w: World, r: Resident): Shop | null {
+  const p = w.placeOf(r);
+  const s = p ? w.shop(p.id) : null;
+  return s && !isKept(s) ? s : null;
+}
+
+const standsEmpty = (w: World, s: Shop) => `${capital(PLACE_BY_ID.get(s.id)?.name ?? 'the stall')} stands empty: nobody keeps it now.`;
 
 /** Someone is serving: the owner is there and awake, or a worker is on shift there. */
 export function isStaffed(w: World, shop: Shop): boolean {
+  if (!isKept(shop)) return false;
   const owner = w.resident(shop.ownerId);
   if (w.isAt(owner, shop.id) && !w.isAsleep(owner) && owner.activity?.kind !== 'walking') return true;
   return w.state.residents.some((x) => {
@@ -285,7 +297,7 @@ function capital(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-export function recordFirstSale(w: World, shop: Shop): void {
+export function recordFirstSale(w: World, shop: KeptShop): void {
   const key = `first-sale:${shop.id}`;
   if (w.state.firsts.includes(key)) return;
   w.state.firsts.push(key);
@@ -301,7 +313,7 @@ export function buy(w: World, r: Resident, i: Intent): ActionResult {
     return lorryBuy(w, r, itemOf(i.item), qty, { forShop: null, money, later: saysLater(i.later) });
   }
   const shop = shopHere(w, r);
-  if (!shop) return no("There's nothing for sale here.");
+  if (!shop) { const shut = shutHere(w, r); return no(shut ? standsEmpty(w, shut) : "There's nothing for sale here."); }
   const item = itemOf(i.item);
   const name = capital(shopName(shop));
   if (!item) return no(`${name} doesn't sell ${quoted(i.item)}.`);
@@ -347,7 +359,7 @@ export function sell(w: World, r: Resident, i: Intent): ActionResult {
     return lorrySell(w, r, item, qty, money);
   }
   const shop = shopHere(w, r);
-  if (!shop) return no("There's nobody here to sell to.");
+  if (!shop) { const shut = shutHere(w, r); return no(shut ? standsEmpty(w, shut) : "There's nobody here to sell to."); }
   const name = capital(shopName(shop));
   if (!item) return no(`${name} doesn't buy ${quoted(i.item)}.`);
   if (countGoods(r.items, item) < qty) return no(`You don't have ${quantityLabel(item, qty)}.`);

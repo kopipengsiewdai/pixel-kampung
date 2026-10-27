@@ -47,7 +47,7 @@ export interface WatchSource {
 }
 
 /** The shops in a frame, named as on the map. */
-function shopsOf(frame: Frame, layout: Layout): { id: string; ownerId: string; name: string }[] {
+function shopsOf(frame: Frame, layout: Layout): { id: string; ownerId: string | null; name: string }[] {
   return frame.shops.map((s) => ({ id: s.id, ownerId: s.ownerId, name: layout.places.find((p) => p.id === s.id)?.name ?? s.name }));
 }
 
