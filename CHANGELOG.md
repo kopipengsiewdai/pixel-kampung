@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.34.0 (2026-10-28): houses between residents
 
 Mr Lim's thinking head, part two: a free market in houses, step three ([households-build.md](docs/design/households-build.md) "Housing market"):
 - **Residents sell and let houses they own to one another, at any price they agree.** Either side offers in person (`offer_place`): a price to buy, or a rent a week. The other agrees or refuses, like a trade.
