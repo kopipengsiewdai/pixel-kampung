@@ -65,7 +65,7 @@ describe('their own words, in English', () => {
     expect(cleanThought('(Thinking to myself) The lorry is late.')).toBe('The lorry is late.');
     expect(cleanThought('Think to myself: Rahim owes me 50 cents.')).toBe('Rahim owes me 50 cents.');
     expect(cleanThought('I think to myself that it will rain.')).toBe('I think to myself that it will rain.');
-    expect(cleanThought('*Think: Huat is hungry and eating.*')).toBe('Huat is hungry and eating.*');
+    expect(cleanThought('*Think: Huat is hungry and eating.*')).toBe('Huat is hungry and eating.');
     expect(cleanThought('*Thinking: Seng is still dizzy.')).toBe('Seng is still dizzy.');
     expect(cleanThought('Thinking about it, the lorry is late.')).toBe('Thinking about it, the lorry is late.');
   });
