@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.39.0 (2026-10-28): marriage
 
 - **Marriage** ([households.md](docs/design/households.md) Marriage). Two grown (18+) residents who aren't family can marry, if each feels fond enough of the other (70) and trusts them enough (50): one asks, the other says yes or no, and an unanswered proposal lapses at the end of the day. Once married, either can move in with the other; a rented house they leave goes back, rent owing still owed. Purses stay separate. The wedding is in the story feed, kin and anyone there remember it, and the watch card shows who's married to whom. Living town: save v31 (nobody is married or asked yet); residents discover it when they feel that way about someone nearby.
 
