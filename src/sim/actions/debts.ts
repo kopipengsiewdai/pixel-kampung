@@ -113,13 +113,15 @@ function whichOffer(w: World, r: Resident, i: Intent):
   if (found.length === 0) return moneyOrWhy as string;
   if (found.length === 1) return found[0]!;
   const houseWords = /\b(house|home|rent|let|sell|sold|buy|buying)\b/i;
-  if (price && i.item !== undefined && i.item !== null && i.item !== '' && !((deal || notice) && houseWords.test(String(i.item)))) return { price };
+  const marryWords = /\b(marr|wed\b|wedding|propos|husband|wife)/i;
+  if (price && i.item !== undefined && i.item !== null && i.item !== '' && !((deal || notice) && houseWords.test(String(i.item)))
+    && !(proposal && marryWords.test(String(i.item)))) return { price };
   // Words choose between an errand (it, or what it's about) and money (a loan, an IOU).
   const words = typeof i.text === 'string' ? i.text : '';
   const aboutErrand = errand !== null && (/\berrand|\bfetch|\bwater\b/i.test(words) || errandWords(w, errand).some((x) => words.toLowerCase().includes(x)));
   const aboutMoney = money !== null && /\b(money|loan|lend|borrow|owe|iou)/i.test(words);
   const aboutLesson = lesson !== null && /\b(show|teach|learn|lesson)/i.test(words);
-  const aboutProposal = proposal !== null && /\b(marr|wed|propos|husband|wife)/i.test(`${words} ${typeof i.item === 'string' ? i.item : ''}`);
+  const aboutProposal = proposal !== null && marryWords.test(`${words} ${typeof i.item === 'string' ? i.item : ''}`);
   const said = `${words} ${typeof i.item === 'string' ? i.item : ''}`;
   // With a landlord's notice standing, "rent" is the rent, unless the offer is to let.
   const aboutNotice = notice !== null && (/\b(new rent|notice)\b/i.test(said) || (dealOffer?.kind !== 'let' && /\brent\b/i.test(said)));

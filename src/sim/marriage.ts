@@ -42,7 +42,7 @@ function bar(w: World, r: Resident, o: Resident): string | null {
 /** Someone nearby r could ask: offered only then. */
 export function someoneToAsk(w: World, r: Resident): boolean {
   return w.nearby(r).some((o) => !w.isAsleep(o) && bar(w, r, o) === null && feelsEnough(w, r, o)
-    && !w.state.proposals.some((p) => p.fromId === r.id && p.toId === o.id));
+    && !w.state.proposals.some((p) => (p.fromId === r.id && p.toId === o.id) || (p.fromId === o.id && p.toId === r.id)));
 }
 
 /** The start of the next day: when an unanswered proposal lapses. */
@@ -77,7 +77,10 @@ export function acceptProposal(w: World, r: Resident, x: Proposal): ActionResult
   const why = bar(w, r, o);
   if (why) return no(why);
   if (!feelsEnough(w, r, o)) return no("You're not ready to say yes to that.");
-  w.state.proposals = w.state.proposals.filter((p) => ![p.fromId, p.toId].some((id) => id === r.id || id === o.id));
+  const couple = (id: string) => id === r.id || id === o.id;
+  // Anyone else who had asked either of them, or been asked, hears of it wherever they are.
+  const others = w.state.proposals.filter((p) => couple(p.fromId) !== couple(p.toId)).map((p) => (couple(p.fromId) ? p.toId : p.fromId));
+  w.state.proposals = w.state.proposals.filter((p) => !couple(p.fromId) && !couple(p.toId));
   r.spouseId = o.id;
   o.spouseId = r.id;
   w.emit({ type: 'married', who: r.id, to: o.id });
@@ -85,6 +88,11 @@ export function acceptProposal(w: World, r: Resident, x: Proposal): ActionResult
   // Kin hear of it wherever they are; anyone there saw it.
   const told = new Set([r.id, o.id]);
   const news = `${o.name} and ${r.name} are married.`;
+  for (const id of others) {
+    if (told.has(id)) continue;
+    told.add(id);
+    w.remember(id, news);
+  }
   for (const k of [...kinOf(r.id), ...kinOf(o.id)]) {
     if (told.has(k.id) || !w.state.residents.some((x) => x.id === k.id)) continue;
     told.add(k.id);
@@ -118,8 +126,13 @@ export function moveInWith(w: World, r: Resident, _i: Intent): ActionResult {
   if (s.homeId === r.homeId) return no(`You and ${s.name} already live together.`);
   if (s.homeId === ROUGH) return no(`${s.name} has no home to move into.`);
   const place = w.placeName(w.home(s));
-  moveIn(w, r, s.homeId, `${r.name} moves in with ${s.name}: ${place} is home now.`);
+  // Sleeping rough with the household they were turned out with, only they go: it isn't their household to bring.
+  const alone = r.homeId === ROUGH && (w.state.evictedWith[r.id] ?? r.id) !== r.id;
+  moveIn(w, r, s.homeId, `${r.name} moves in with ${s.name}: ${place} is home now.`, alone);
   w.notify(s.id, `${r.name} moves in with you.`);
+  // Whoever holds the house, if not the spouse, hears of it.
+  const holder = w.state.property[s.homeId]?.holder;
+  if (holder && holder !== s.id && holder !== r.id) w.notify(holder, `${r.name} moves in with ${s.name}, at ${place}.`);
   return ok(`You move in with ${s.name}: ${place} is home now.`);
 }
 

@@ -131,6 +131,55 @@ describe('marriage', () => {
     expect(w.state.property[old]!.holder).toBe(raju.id);
   });
 
+  it('sleeping rough with the household they were turned out with, only the one who married moves in', () => {
+    const w = newWorld(9);
+    const tan = who(w, 'Mdm Tan');
+    const meiLing = put(w, 'Mei Ling', 'well');
+    const raju = put(w, 'Raju', 'well');
+    for (const r of [tan, meiLing]) { r.homeId = 'rough'; w.state.evictedWith[r.id] = tan.id; }
+    feels(w, 'Mei Ling', 'Raju');
+    feels(w, 'Raju', 'Mei Ling');
+    accepted(act(w, raju.id, { verb: 'propose', to: 'Mei Ling' }));
+    accepted(act(w, meiLing.id, { verb: 'agree', from: 'Raju' }));
+    accepted(act(w, meiLing.id, { verb: 'move_in_with', to: 'Raju' }));
+    expect(meiLing.homeId).toBe(raju.homeId);
+    expect(tan.homeId).toBe('rough');
+  });
+
+  it('"marrying" chooses the proposal over a price offered at their counter', () => {
+    const w = newWorld(9);
+    const rahim = put(w, 'Rahim', 'market-stall');
+    const siti = put(w, 'Siti', 'market-stall');
+    w.shop('market-stall')!.stock = { fish: 3 };
+    w.shop('market-stall')!.sellPrices = { fish: 60 };
+    siti.money = 500;
+    feels(w, 'Siti', 'Rahim');
+    feels(w, 'Rahim', 'Siti');
+    accepted(act(w, siti.id, { verb: 'buy', item: 'fish', money: '30¢' }));
+    accepted(act(w, siti.id, { verb: 'propose', to: 'Rahim' }));
+    accepted(act(w, rahim.id, { verb: 'agree', from: 'Siti', item: 'marrying' }));
+    expect(rahim.spouseId).toBe(siti.id);
+    expect(siti.items.fish ?? 0).toBe(0);
+  });
+
+  it('someone who had asked one of them hears they married', () => {
+    const { w, siti, raju } = couple();
+    // Ah Kow: not kin to either, and away by the time she says yes.
+    const kow = put(w, 'Ah Kow', 'well');
+    feels(w, 'Ah Kow', 'Siti');
+    accepted(act(w, kow.id, { verb: 'propose', to: 'Siti' }));
+    accepted(act(w, raju.id, { verb: 'propose', to: 'Siti' }));
+    put(w, 'Ah Kow', 'farm');
+    accepted(act(w, siti.id, { verb: 'agree', from: 'Raju' }));
+    expect(kow.recent.some((m) => /Siti/.test(m.text) && /married/.test(m.text))).toBe(true);
+  });
+
+  it('asked already by them, they are not offered to ask back', () => {
+    const { w, raju } = couple();
+    accepted(act(w, raju.id, { verb: 'propose', to: 'Siti' }));
+    expect(verbs(w, 'Siti')).not.toContain('propose');
+  });
+
   it('the upgrade (save v31): nobody is married or asked yet', async () => {
     const { UPGRADES } = await import('../src/store/upgrades.ts');
     const step = UPGRADES.find((u) => u.from === 30)!;
