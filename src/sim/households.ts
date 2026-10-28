@@ -468,12 +468,12 @@ export function letTo(w: World, r: Resident, placeId: string, kind: 'rent' | 'bu
  * same house), and everyone living in a house r holds. A house r rented and
  * leaves empty goes back (to Mr Lim, or its owner). Who moved.
  */
-export function moveIn(w: World, r: Resident, placeId: string, heard: string): string[] {
+export function moveIn(w: World, r: Resident, placeId: string, heard: string, alone = false): string[] {
   const old = r.homeId;
   const oldPlace = old !== placeId ? w.state.property[old] : undefined;
   const theirs = oldPlace?.holder === r.id;
   const group = w.state.evictedWith[r.id] ?? r.id;
-  const family = w.state.residents.filter((o) => o.id === r.id || (theirs && o.homeId === old)
+  const family = alone ? [r] : w.state.residents.filter((o) => o.id === r.id || (theirs && o.homeId === old)
     || (o.homeId === ROUGH && (w.state.evictedWith[o.id] === group || w.state.evictedWith[o.id] === r.id)));
   for (const o of family) {
     o.homeId = placeId;

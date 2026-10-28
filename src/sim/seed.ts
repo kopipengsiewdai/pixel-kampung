@@ -53,6 +53,7 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
       foraged: null,
       faintFrom: null,
       ill: null,
+      spouseId: null,
       // Home first; a newcomer knows only a few places, everyone else the whole kampung.
       knownPlaces: [homeId, ...(c.places ?? PLACES.map((p) => p.id)).filter((id) => id !== homeId)],
       // Family and old friends are known from day one; everyone else is met in play.
@@ -91,6 +92,7 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
     errands: [],
     lessons: [],
     lessonOffers: [],
+    proposals: [],
     beds: Array.from({ length: FARM_BEDS }, (_, n) => ({ n: n + 1, planterId: null, plantedDay: 0, wateredDays: 0, lastWateredDay: null, readyDay: null, crop: 'kangkong' as const, pickedDay: null })),
     notes: [],
     lorryHere: false,

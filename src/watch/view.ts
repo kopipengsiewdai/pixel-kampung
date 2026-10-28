@@ -166,6 +166,7 @@ export class FrameBuilder {
         hungerWord: hungerWord(r.hunger),
         energyWord: energyWord(r.energy),
         ill: r.ill !== null,
+        married: r.spouseId ? w.resident(r.spouseId).name : null,
         job: jobLine(w, r),
         carrying: carried(r.items),
         said: latestLine(w, r),
