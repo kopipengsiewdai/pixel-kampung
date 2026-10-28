@@ -16,7 +16,7 @@ import { doneToday, mrLimAt, openJobHere, whatOf } from './mr-lim.ts';
 import { cookingLines, KITCHEN_ID, kitchenBuilt } from './cooking.ts';
 import { schoolLines } from './school.ts';
 import { formatMoney, type Cents } from './money.ts';
-import { CIRCLE_LINES, countGoods, NEARBY_TILES, SAID_ALL_LINES, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, UNANSWERED_LINES, WORD_MINUTES, type Bond, type Debt, type Goods, type Observation, type Resident, type Shop, type TalkRecord, type World } from './state.ts';
+import { CIRCLE_LINES, countGoods, keeperHere, NEARBY_TILES, SAID_ALL_LINES, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, UNANSWERED_LINES, WORD_MINUTES, type Bond, type Debt, type Goods, type Observation, type Resident, type Shop, type TalkRecord, type World } from './state.ts';
 import { nowLabel } from './calendar.ts';
 import { dayIndex, sgtHour, sgtMinute } from './time.ts';
 
@@ -113,6 +113,8 @@ export interface Perception {
     stock: { item: ItemId; qty: number }[];
     /** What's in stock with no price on it: not for sale. */
     unpriced: { item: ItemId; qty: number }[];
+    /** What they carry that it sells. */
+    carried: { item: ItemId; qty: number }[];
     sells: PriceTag[];
     buys: PriceTag[];
     workers: string[];
@@ -193,7 +195,7 @@ function foodWays(w: World, r: Resident): string[] {
   if (r.hunger < HUNGRY_FROM || (Object.keys(r.items) as ItemId[]).some((i) => ITEMS[i]?.food && (r.items[i] ?? 0) > 0)) return [];
   const here = w.placeOf(r)?.id ?? null;
   const shops = w.state.shops.filter((s) => s.id !== here && r.knownPlaces.includes(s.id) && isStaffed(w, s)
-    && (Object.entries(s.sellPrices) as [ItemId, number][]).some(([i, price]) => ITEMS[i].food && (s.stock[i] ?? 0) > 0 && price <= r.money))
+    && (Object.entries(s.sellPrices) as [ItemId, number][]).some(([i, price]) => ITEMS[i].food && (counterGoods(w, s)[i] ?? 0) > 0 && price <= r.money))
     .map((s) => w.placeName(PLACE_BY_ID.get(s.id)!));
   const v = w.state.osman.visit;
   if (v && here !== 'lorry-stop' && r.knownPlaces.includes('lorry-stop')
@@ -299,6 +301,15 @@ function lorryView(w: World, r: Resident): NonNullable<Perception['lorry']> {
   };
 }
 
+/** A stall's stock, with what its keeper carries while they're there (that sells too). */
+function counterGoods(w: World, shop: Shop): Goods {
+  const k = keeperHere(w, shop);
+  if (!k) return shop.stock;
+  const all: Goods = { ...shop.stock };
+  for (const [i, n] of Object.entries(k.items) as [ItemId, number][]) if (shop.sellPrices[i]) all[i] = (all[i] ?? 0) + n;
+  return all;
+}
+
 function tags(prices: Partial<Record<ItemId, Cents>>, stock?: Goods): PriceTag[] {
   return (Object.entries(prices) as [ItemId, Cents][]).map(([item, price]) =>
     (stock ? { item, price, stock: stock[item] ?? 0 } : { item, price }));
@@ -371,7 +382,9 @@ export function perceive(w: World, r: Resident): Perception {
       atShop: w.isAt(r, own.id),
       stock: goodsList(own.stock),
       unpriced: goodsList(own.stock).filter((g) => !own.sellPrices[g.item]),
-      sells: tags(own.sellPrices, own.stock),
+      sells: tags(own.sellPrices, counterGoods(w, own)),
+      // What they carry that it sells: on the counter while they're there; away, it would sell there.
+      carried: goodsList(r.items).filter((g) => own.sellPrices[g.item]),
       buys: buyTags(own),
       workers: w.state.jobs.filter((j) => j.employerId === r.id).map((j) => w.resident(j.workerId).name),
       owed: w.state.owed.filter((o) => o.employerId === r.id).map((o) => ({ name: w.resident(o.workerId).name, cents: o.cents })),
@@ -388,7 +401,7 @@ export function perceive(w: World, r: Resident): Perception {
     shop: shop && shop.ownerId !== r.id ? {
       name: PLACE_BY_ID.get(shop.id)!.name,
       staffed: isStaffed(w, shop),
-      sells: tags(shop.sellPrices, shop.stock),
+      sells: tags(shop.sellPrices, counterGoods(w, shop)),
       buys: buyTags(shop),
     } : null,
     lorry: w.isAt(r, 'lorry-stop') ? lorryView(w, r) : null,
@@ -552,8 +565,11 @@ export function describe(p: Perception): string {
     if (p.kitchen.lorryHas.length) lines.push(`The lorry at the lorry stop has ${andOr(p.kitchen.lorryHas.map(stuff), 'and')} today.`);
   }
   if (p.business) {
-    lines.push(`You run ${p.business.place}. It's yours alone. In stock: ${p.business.stock.map((s) => quantityLabel(s.item, s.qty)).join(', ') || 'nothing'}.`);
+    const carried = p.business.carried.map((g) => quantityLabel(g.item, g.qty)).join(', ');
+    const here = p.business.atShop && carried ? `, and the ${carried} you carry` : '';
+    lines.push(`You run ${p.business.place}. It's yours alone. In stock: ${p.business.stock.map((s) => quantityLabel(s.item, s.qty)).join(', ') || 'nothing'}${here}.`);
     lines.push(`Your prices: ${p.business.sells.map(priceLine).join(', ') || 'none set'}.`);
+    if (!p.business.atShop && carried) lines.push(`You carry ${carried}: at ${p.business.place} ${p.business.carried.length === 1 && p.business.carried[0]!.qty === 1 ? 'it' : 'they'}'d sell at your price.`);
     if (p.business.unpriced.length) lines.push(`Not for sale: ${p.business.unpriced.map((s) => quantityLabel(s.item, s.qty)).join(', ')} (no price on them).`);
     if (p.business.buys.length) lines.push(`You're buying: ${p.business.buys.map(priceLine).join(', ')}.`);
     if (p.business.workers.length) lines.push(`Working for you: ${p.business.workers.join(', ')}.`);

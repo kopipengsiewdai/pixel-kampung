@@ -6,7 +6,7 @@
  */
 import { quantityLabel, type ItemId } from '../items.ts';
 import { formatMoney, type Cents } from '../money.ts';
-import { addGoods, countGoods, isKept, type KeptShop, type PriceOffer, type Resident, type Shop, type World } from '../state.ts';
+import { addGoods, isKept, onCounter, takeFromCounter, type KeptShop, type PriceOffer, type Resident, type Shop, type World } from '../state.ts';
 import { type ActionResult, no, ok } from './common.ts';
 import { isStaffed, recordFirstSale } from './everyone.ts';
 
@@ -78,11 +78,11 @@ export function acceptPrice(w: World, r: Resident, found: { buyer: Resident; off
   // A worker can take an offer only down to what the owner would (owner, 2026-10-25: four-fifths of the price).
   if (shop.ownerId !== r.id && cents < WORKER_FLOOR * asking) return no(`That's below what ${w.resident(shop.ownerId).name} lets you take.`);
   if (buyer.money < cents) return no(`${buyer.name} doesn't have ${formatMoney(cents)} any more.`);
-  const have = countGoods(shop.stock, offer.item);
+  const have = onCounter(w, shop, offer.item);
   if (have < offer.qty) return no(have === 0 ? `There's no ${offer.item} left.` : `There's only ${quantityLabel(offer.item, have)} left.`);
   w.state.priceOffers = w.state.priceOffers.filter((o) => o.id !== offer.id);
   w.transfer(buyer.id, shop.ownerId, cents, `bought ${offer.item}`);
-  addGoods(shop.stock, offer.item, -offer.qty);
+  takeFromCounter(w, shop, offer.item, offer.qty);
   addGoods(buyer.items, offer.item, offer.qty);
   w.emit({ type: 'bought', who: buyer.id, from: shop.ownerId, shop: shop.id, item: offer.item, qty: offer.qty, cents });
   recordFirstSale(w, shop);

@@ -8,7 +8,7 @@
 import { practise, skillLevel } from './skills.ts';
 import { quantityLabel, RECIPES, type ItemId } from './items.ts';
 import { formatMoney, type Cents } from './money.ts';
-import { addGoods, countGoods, isKept, TRAVELLERS_ID, type Resident, type Shop, type World } from './state.ts';
+import { addGoods, countGoods, isKept, onCounter, takeFromCounter, TRAVELLERS_ID, type Resident, type Shop, type World } from './state.ts';
 import { dayIndex, minuteOfDay } from './time.ts';
 
 /** Minutes a customer takes to serve. */
@@ -81,7 +81,7 @@ export function servers(w: World, shop: Shop): Resident[] {
 /** The thing a traveller wants: one of what the shop sells and has, picked by fixed weights (no randomness). */
 function wanted(w: World, shop: Shop): ItemId | null {
   const choices = (Object.entries(WANTS[shop.id] ?? {}) as [ItemId, number][])
-    .filter(([item]) => shop.sellPrices[item] && countGoods(shop.stock, item) > w.dials.travellerReserve);
+    .filter(([item]) => shop.sellPrices[item] && onCounter(w, shop, item) > w.dials.travellerReserve);
   const total = choices.reduce((n, [, k]) => n + k, 0);
   if (!total) return null;
   let pick = (Math.imul(w.t, 2654435761) >>> 0) % total;
@@ -100,7 +100,7 @@ function wanted(w: World, shop: Shop): ItemId | null {
 function lost(w: World, shop: Shop, item: ItemId): void {
   const price = shop.sellPrices[item] ?? 0;
   const stock = (Object.entries(shop.sellPrices) as [ItemId, number][])
-    .reduce((n, [i, p]) => n + p * Math.max(0, countGoods(shop.stock, i) - w.dials.travellerReserve), 0);
+    .reduce((n, [i, p]) => n + p * Math.max(0, onCounter(w, shop, i) - w.dials.travellerReserve), 0);
   shop.today.lost = Math.max(shop.today.lost, Math.min(shop.today.lost + price, w.dials.travellerBudgetCents - shop.today.cents, stock));
 }
 
@@ -123,8 +123,8 @@ export function travellersMinute(w: World): void {
     for (const s of shop.serving.filter((x) => x.until <= w.t)) {
       const price = shop.sellPrices[s.item];
       // The last few are kept back for the kampung's own people (an owner's dial).
-      if (price && countGoods(shop.stock, s.item) > w.dials.travellerReserve && price <= travellerPays(shop, s.item)) {
-        addGoods(shop.stock, s.item, -1);
+      if (price && onCounter(w, shop, s.item) > w.dials.travellerReserve && price <= travellerPays(shop, s.item)) {
+        takeFromCounter(w, shop, s.item, 1);
         w.transfer(TRAVELLERS_ID, shop.ownerId, price, `travellers bought ${s.item}`);
         // Clerks and servicemen on the road pay a little more where they're served in English (school.md).
         const server = w.state.residents.find((r) => r.id === s.by);

@@ -4,6 +4,10 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **What a keeper carries sells at their own stall** ([daily-life.md](docs/design/daily-life.md)). Rahim carried 24 fish for days while his stall, priced for fish, stood empty. At their stall, a keeper's catch or goods now sell at their prices to villagers and travellers, after the stock. Away from it, they're told what they carry would sell there. Living town: nothing saved changes; from the next minute.
+
 ## 0.37.0 (2026-10-28): water for the ill, thoughts in English
 
 - **The ill can fetch water again, slowly, one pail at a time** (owner, 2026-10-28; [subsistence.md](docs/design/subsistence.md) Q4). Siti and Mak Esah, ill, couldn't fetch the water to cook and stayed hungry. Anyone who sees someone ill with no water by them now notices they're too weak to be fetching it, so they can bring some. Living town: nothing saved changes; the ill can fetch water from the next minute.

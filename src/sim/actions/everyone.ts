@@ -11,7 +11,7 @@ import { perceive } from '../perception.ts';
 import { PLACE_WORDS } from '../places.ts';
 import { BEST_DAY_YIELD, effectiveLevel, HANDY_YIELD, practise, skillLevel } from '../skills.ts';
 import {
-  addGoods, isKept, type KeptShop, type Bed, type Crop, CIRCLE_LINES, countGoods, REPEAT_MINUTES, REPEAT_WORDS, SAID_KEPT, type Resident, type Shop, type World, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, SAID_ALL_LINES, type TalkRecord, UNANSWERED_LINES,
+  addGoods, isKept, onCounter, takeFromCounter, type KeptShop, type Bed, type Crop, CIRCLE_LINES, countGoods, REPEAT_MINUTES, REPEAT_WORDS, SAID_KEPT, type Resident, type Shop, type World, TALK_GAP_MINUTES, TALK_SOFT_LIMIT, talkKey, SAID_ALL_LINES, type TalkRecord, UNANSWERED_LINES,
 } from '../state.ts';
 import { atTimeOfDay, dayIndex, sgtHour } from '../time.ts';
 import { looksForeign } from '../../watch/foreign.ts';
@@ -319,8 +319,8 @@ export function buy(w: World, r: Resident, i: Intent): ActionResult {
   if (!item) return no(`${name} doesn't sell ${quoted(i.item)}.`);
   const qty = qtyOf(i.qty);
   if (qty === null) return no(SAY_NOTHING_SENSIBLE);
-  const have = countGoods(shop.stock, item);
   if (shop.ownerId === r.id) {
+    const have = countGoods(shop.stock, item);
     if (have < qty) return no(have === 0 ? `You've no ${item} left in stock.` : `You only have ${quantityLabel(item, have)} in stock.`);
     addGoods(shop.stock, item, -qty);
     addGoods(r.items, item, qty);
@@ -330,6 +330,7 @@ export function buy(w: World, r: Resident, i: Intent): ActionResult {
   if (!isStaffed(w, shop)) return no(`Nobody's minding ${shopName(shop)} right now.`);
   const price = shop.sellPrices[item];
   if (!price) return no(`${name} doesn't sell ${item}.`);
+  const have = onCounter(w, shop, item);
   if (have === 0) return no(`${name} has run out of ${item}.`);
   if (have < qty) return no(`${name} only has ${quantityLabel(item, have)} left.`);
   const cost = price * qty;
@@ -341,7 +342,7 @@ export function buy(w: World, r: Resident, i: Intent): ActionResult {
   }
   if (r.money < cost) return no(`You can't afford that: ${quantityLabel(item, qty)} costs ${formatMoney(cost)} and you have ${formatMoney(r.money)}.`);
   w.transfer(r.id, shop.ownerId, cost, `bought ${item}`);
-  addGoods(shop.stock, item, -qty);
+  takeFromCounter(w, shop, item, qty);
   addGoods(r.items, item, qty);
   w.emit({ type: 'bought', who: r.id, from: shop.ownerId, shop: shop.id, item, qty, cents: cost });
   recordFirstSale(w, shop);
