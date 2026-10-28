@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.38.0 (2026-10-28): a keeper's catch sells at their stall
 
 - **What a keeper carries sells at their own stall** ([daily-life.md](docs/design/daily-life.md)). Rahim carried 24 fish for days while his stall, priced for fish, stood empty. At their stall, a keeper's catch or goods now sell at their prices to villagers and travellers, after the stock. Away from it, they're told what they carry would sell there. Living town: nothing saved changes; from the next minute.
 
