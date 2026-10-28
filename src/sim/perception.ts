@@ -113,7 +113,7 @@ export interface Perception {
     stock: { item: ItemId; qty: number }[];
     /** What's in stock with no price on it: not for sale. */
     unpriced: { item: ItemId; qty: number }[];
-    /** Away from it, what they carry that it sells. */
+    /** What they carry that it sells. */
     carried: { item: ItemId; qty: number }[];
     sells: PriceTag[];
     buys: PriceTag[];
@@ -383,8 +383,8 @@ export function perceive(w: World, r: Resident): Perception {
       stock: goodsList(own.stock),
       unpriced: goodsList(own.stock).filter((g) => !own.sellPrices[g.item]),
       sells: tags(own.sellPrices, counterGoods(w, own)),
-      // Away from it, what they carry that it sells: it would sell there.
-      carried: w.isAt(r, own.id) ? [] : goodsList(r.items).filter((g) => own.sellPrices[g.item]),
+      // What they carry that it sells: on the counter while they're there; away, it would sell there.
+      carried: goodsList(r.items).filter((g) => own.sellPrices[g.item]),
       buys: buyTags(own),
       workers: w.state.jobs.filter((j) => j.employerId === r.id).map((j) => w.resident(j.workerId).name),
       owed: w.state.owed.filter((o) => o.employerId === r.id).map((o) => ({ name: w.resident(o.workerId).name, cents: o.cents })),
@@ -565,9 +565,11 @@ export function describe(p: Perception): string {
     if (p.kitchen.lorryHas.length) lines.push(`The lorry at the lorry stop has ${andOr(p.kitchen.lorryHas.map(stuff), 'and')} today.`);
   }
   if (p.business) {
-    lines.push(`You run ${p.business.place}. It's yours alone. In stock: ${p.business.stock.map((s) => quantityLabel(s.item, s.qty)).join(', ') || 'nothing'}.`);
+    const carried = p.business.carried.map((g) => quantityLabel(g.item, g.qty)).join(', ');
+    const here = p.business.atShop && carried ? `, and the ${carried} you carry` : '';
+    lines.push(`You run ${p.business.place}. It's yours alone. In stock: ${p.business.stock.map((s) => quantityLabel(s.item, s.qty)).join(', ') || 'nothing'}${here}.`);
     lines.push(`Your prices: ${p.business.sells.map(priceLine).join(', ') || 'none set'}.`);
-    if (p.business.carried.length) lines.push(`You carry ${p.business.carried.map((g) => quantityLabel(g.item, g.qty)).join(', ')}: at ${p.business.place} ${p.business.carried.length === 1 && p.business.carried[0]!.qty === 1 ? 'it' : 'they'}'d sell at your price.`);
+    if (!p.business.atShop && carried) lines.push(`You carry ${carried}: at ${p.business.place} ${p.business.carried.length === 1 && p.business.carried[0]!.qty === 1 ? 'it' : 'they'}'d sell at your price.`);
     if (p.business.unpriced.length) lines.push(`Not for sale: ${p.business.unpriced.map((s) => quantityLabel(s.item, s.qty)).join(', ')} (no price on them).`);
     if (p.business.buys.length) lines.push(`You're buying: ${p.business.buys.map(priceLine).join(', ')}.`);
     if (p.business.workers.length) lines.push(`Working for you: ${p.business.workers.join(', ')}.`);

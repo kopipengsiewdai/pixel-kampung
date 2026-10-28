@@ -76,6 +76,23 @@ describe('what a keeper carries at their own stall is for sale there', () => {
     expectInWorld(line);
   });
 
+  it('walking off, what he carries is no longer on the counter', () => {
+    const { w, rahim } = catchInHand();
+    const muthu = put(w, 'Muthu', 'market-stall');
+    w.state.jobs.push({ id: 99, employerId: rahim.id, workerId: muthu.id, placeId: 'market-stall', wage: 50, startHour: 8, hours: 4, lastWorkedDay: null });
+    muthu.activity = { kind: 'working', jobId: 99, until: w.t + 120, worked: 0 };
+    rahim.activity = { kind: 'walking', path: [{ x: 0, y: 0 }], dest: 'house-3', thenSleep: false };
+    const tan = put(w, 'Mdm Tan', 'market-stall');
+    tan.money = 1000;
+    expect(act(w, tan.id, { verb: 'buy', item: 'fish' }).ok).toBe(false);
+    expect(rahim.items.fish).toBe(24);
+  });
+
+  it('at the stall, the stock line says what he carries for sale too', () => {
+    const { w } = catchInHand();
+    expect(seen(w, 'Rahim')).toMatch(/In stock: nothing, and the 24 fish you carry\./);
+  });
+
   it('at his stall, putting things into stock is called that', () => {
     const { w, rahim } = catchInHand();
     const sell = availableActions(w, rahim).find((a) => a.verb === 'sell');

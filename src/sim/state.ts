@@ -655,7 +655,8 @@ export function countGoods(g: Goods, item: ItemId): number {
 export function keeperHere(w: World, shop: Shop): Resident | null {
   if (!isKept(shop)) return null;
   const k = w.resident(shop.ownerId);
-  return w.isAt(k, shop.id) && k.activity?.kind !== 'sleeping' ? k : null;
+  // Minding it, as anyone serving is: not asleep, nor walking off.
+  return w.isAt(k, shop.id) && k.activity?.kind !== 'sleeping' && k.activity?.kind !== 'walking' ? k : null;
 }
 
 /** How many a stall has to sell: its stock, and what its keeper carries while they're there. */
