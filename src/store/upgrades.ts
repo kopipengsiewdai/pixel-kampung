@@ -513,6 +513,15 @@ export const UPGRADES: readonly Upgrade[] = [
       return { world: { ...world, shops: shopsAfter }, brains };
     },
   },
+  {
+    from: 30,
+    why: 'Marriage (households.md): who is married to whom, and proposals waiting on an answer. Nobody is married or asked yet.',
+    save: ({ world, brains }) => {
+      type R = { spouseId?: string | null };
+      const residents = (world.residents as R[]).map((r) => ({ ...r, spouseId: r.spouseId ?? null }));
+      return { world: { ...world, residents, proposals: (world.proposals as unknown[] | undefined) ?? [] }, brains };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

@@ -74,6 +74,24 @@ Either way:
 - **Money:** purses stay separate.
 - **Not yet:** no divorce and no children.
 
+Details agreed by Kampung for the owner, 2026-10-28 (shipped 0.39.0, save v31):
+1. **Grown** means 18 or over.
+2. **Each by their own feelings:** someone may ask only if they feel fondness
+   at least 70 and trust at least 50 for the other, and the other can say yes
+   only if they feel the same for the asker ("You're not ready to say yes to
+   that"). Nobody learns the other's feelings. The married ask nobody else
+   and can't be asked.
+3. **An unanswered proposal lapses** at the end of the day, and the asker
+   hears there was no answer.
+4. **Moving in:** once married, either can move in with the other. A house
+   the mover rented goes back to its landlord, with any rent owing still
+   owed; a house they own stays theirs to let or sell. Those living in a
+   house the mover holds come too (Aminah and Hassan with Fatimah).
+5. **News:** the wedding is a line in the story feed; kin of both remember
+   it wherever they are, and so does anyone who saw it. The watch page's
+   card says who someone is married to.
+6. **A wedding is free:** no cost and no feast, for now.
+
 ## Save
 
 Rent, ownership, the village fund, who sleeps rough and marriages are all saved

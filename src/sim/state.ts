@@ -12,6 +12,7 @@ import { CAST } from '../seed/cast.ts';
 import type { Lesson, LessonOffer, SkillId, SkillState } from './skills.ts';
 import type { GameClock } from './time.ts';
 import type { OsmanState } from './osman.ts';
+import type { Proposal } from './marriage.ts';
 
 /** An owner runs a business; a seeker looks for work; family live with family (Mak Esah, Aminah, Hassan). */
 export type Role = 'owner' | 'seeker' | 'family';
@@ -84,6 +85,8 @@ export interface Resident {
   faintFrom: number | null;
   /** Ill from hunger: since when, and since when they've been getting better (hunger first fell below hungry; null until then, or since going faint again). */
   ill: { since: number; better: number | null } | null;
+  /** Who they're married to (households.md, Marriage), if anyone. */
+  spouseId: string | null;
 }
 
 export interface Shop {
@@ -258,6 +261,8 @@ export interface WorldState {
   /** Masters showing someone how, today; and offers to, waiting. */
   lessons: Lesson[];
   lessonOffers: LessonOffer[];
+  /** Asked to marry, waiting on a yes or no until the end of the day. */
+  proposals: Proposal[];
   beds: Bed[];
   notes: Note[];
   /** Whether the lorry is at the stop (Pak Osman's visit, below, is the whole of it). */

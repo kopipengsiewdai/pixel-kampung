@@ -337,6 +337,7 @@ function renderCard(c: Card): void {
       close),
     el('p', { class: 'now' }, el('b', {}, 'Now: '), nowLine(c)),
     el('p', { class: 'job' }, el('b', {}, 'Work: '), c.job ?? 'none yet'),
+    c.married ? el('p', { class: 'job' }, el('b', {}, 'Married to: '), c.married) : null,
     c.wages.length ? el('p', { class: 'job' }, el('b', {}, 'Wages: '), c.wages.join('; ')) : null,
     c.carrying.length ? el('div', { class: 'chips' }, ...c.carrying.map((x) => el('span', { class: 'chip' }, x.label))) : null,
   ];

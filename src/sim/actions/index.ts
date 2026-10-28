@@ -8,6 +8,7 @@ import * as everyone from './everyone.ts';
 import { offersFor } from './haggle.ts';
 import * as owners from './owners.ts';
 import * as teach from './teach.ts';
+import * as marriage from '../marriage.ts';
 import * as households from '../households.ts';
 import { TOO_ILL, TOO_ILL_FOR } from '../sickness.ts';
 import { fireGround, fireNear, KITCHEN_ID, kitchenBuilt, lightFire } from '../cooking.ts';
@@ -41,7 +42,8 @@ const at = (id: string) => (w: World, r: Resident) => w.isAt(r, id);
 const withPeople = (w: World, r: Resident) => w.nearby(r).some((o) => !w.isAsleep(o));
 /** Something someone offered or asked r that waits on a yes or no. */
 const somethingOffered = (w: World, r: Resident) => w.state.debtOffers.some((o) => o.toId === r.id) || offersFor(w, r).length > 0 || somethingAboutHouses(w, r)
-  || w.state.errands.some((e) => !e.taken && e.runnerId === r.id) || w.state.lessonOffers.some((o) => o.learnerId === r.id);
+  || w.state.errands.some((e) => !e.taken && e.runnerId === r.id) || w.state.lessonOffers.some((o) => o.learnerId === r.id)
+  || w.state.proposals.some((p) => p.toId === r.id);
 
 /** A shopkeeper: whoever keeps a stall now (stalls change hands). */
 const keeper = (w: World, r: Resident) => w.shopOf(r.id) !== null;
@@ -133,6 +135,11 @@ export const ACTIONS: Record<string, ActionDef> = {
   help: {
     run: chores.help, ownersOnly: false, says: 'help someone with their work here (person)',
     here: (w, r) => w.state.residents.some((o) => o.id !== r.id && w.knowsPerson(r, o.id) && chores.canHelp(w, r, o) !== null),
+  },
+  propose: { run: marriage.propose, ownersOnly: false, says: 'ask someone to marry you (person)', here: marriage.someoneToAsk },
+  move_in_with: {
+    run: marriage.moveInWith, ownersOnly: false, here: marriage.canMoveIn,
+    says: (w, r) => `move in with ${r.spouseId ? w.resident(r.spouseId).name : 'them'}`,
   },
   teach: {
     run: teach.teach, ownersOnly: false, says: 'show someone nearby how to do what you do best (person, and item: what)',

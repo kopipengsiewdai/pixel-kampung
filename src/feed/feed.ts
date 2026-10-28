@@ -27,7 +27,7 @@ const KEY_TYPES: ReadonlySet<string> = new Set([
   'job_offered', 'hired', 'quit', 'let_go', 'wages_paid',
   'gave', 'trade_offered', 'traded', 'trade_declined', 'note_pinned', 'price_set', 'found_place',
   'travellers_hour', 'errand_taken', 'errand_done', 'skill_up', 'lesson_agreed', 'helped', 'price_offered', 'price_refused', 'debt_offered', 'debt_agreed', 'debt_refused', 'repaid', 'let_off',
-  'kampung_quiet', 'quiet_spell', 'odd_job_done',
+  'kampung_quiet', 'quiet_spell', 'odd_job_done', 'proposed', 'married',
 ]);
 
 /** Whether an event is a key moment: a key kind, anything notable, or talk claiming a deal done in words. */
@@ -137,6 +137,9 @@ export function feedText(e: GameEvent, n: Names): { text: string; notable: boole
     case 'skill_lost': return line(`${n(e.who)}'s ${e.skill} has slipped for want of practice.`);
     case 'lesson_offered': return line(`${n(e.who)} offered to show ${n(e.to)} ${howTo(e.skill)}.`);
     case 'lesson_agreed': return line(`${n(e.from)} is showing ${n(e.who)} ${howTo(e.skill)}.`);
+    case 'proposed': return line(`${n(e.who)} asked ${n(e.to)} to marry them.`);
+    case 'proposal_refused': return line(`${n(e.who)} said no to marrying ${n(e.from)}.`);
+    case 'married': return line(`${n(e.to)} and ${n(e.who)} are married.`);
     case 'lesson_refused': return line(`${n(e.who)} turned down ${n(e.from)}'s offer to show them ${howTo(e.skill)}.`);
     case 'travellers_hour': return line(`Travellers from the road bought ${e.served} ${e.served === 1 ? 'thing' : 'things'} at ${place(e.shop)} this past hour, for ${formatMoney(e.cents)}${e.left ? `; ${e.left} left without being served` : ''}.`);
     case 'price_offered': return line(`${n(e.who)} offers ${formatMoney(e.cents)} for ${quantityLabel(e.item, e.qty)} at ${place(e.shop)}.`);
