@@ -522,6 +522,15 @@ export const UPGRADES: readonly Upgrade[] = [
       return { world: { ...world, residents, proposals: (world.proposals as unknown[] | undefined) ?? [] }, brains };
     },
   },
+  {
+    from: 31,
+    why: 'Where each resident last saw each other one (Kampung, 2026-10-29), for "X is not nearby". Nobody has seen anyone yet: it fills as they go about.',
+    save: ({ world, brains }) => {
+      type R = { lastSeen?: Record<string, unknown> };
+      const residents = (world.residents as R[]).map((r) => ({ ...r, lastSeen: r.lastSeen ?? {} }));
+      return { world: { ...world, residents }, brains };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

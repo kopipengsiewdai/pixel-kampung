@@ -19,6 +19,7 @@ import { ACHING_HUNGER, FAINT_HUNGER, HUNGRY_FROM } from './perception.ts';
 import { dayIndex, isNight, minuteOfDay } from './time.ts';
 import { kinOf } from '../seed/cast.ts';
 import { noticeIll, sicknessMinute } from './sickness.ts';
+import { noteSightings } from './sightings.ts';
 import { mrLimMinute } from './mr-lim.ts';
 import { firesMinute } from './cooking.ts';
 import { schoolMinute, schoolProgress } from './school.ts';
@@ -163,6 +164,7 @@ export function advance(w: World): void {
     stoveMinute(w, r);
     if (r.activity?.kind !== 'sleeping') {
       lookAbout(w, r);
+      noteSightings(w, r);
       noticeFaintKin(w, r);
       noticeIll(w, r);
     }
