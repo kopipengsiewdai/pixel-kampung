@@ -157,6 +157,12 @@ export class SqliteStore {
     return rows.map((r) => JSON.parse(r.data) as GameEvent);
   }
 
+  /** Every event from game minute `from` up to, not including, `to` (one kampung day for the paper). */
+  eventsBetween(from: number, to: number): GameEvent[] {
+    const rows = this.db.prepare('SELECT data FROM events WHERE seq >= ? AND t < ? ORDER BY seq').all(this.seqAfter(from - 1), to) as { data: string }[];
+    return rows.map((r) => JSON.parse(r.data) as GameEvent);
+  }
+
   /** Ledger entries from game minute t on. */
   ledgerSince(t: number): LedgerEntry[] {
     const rows = this.db.prepare('SELECT seq, t, from_id, to_id, cents, reason FROM ledger WHERE t >= ? ORDER BY seq').all(t) as

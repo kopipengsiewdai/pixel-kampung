@@ -12,6 +12,7 @@ import { extname, join, resolve, sep } from 'node:path';
 import { ReplayReader } from './replay.ts';
 import { ReplaySource, type ReplayCommand, type WatchSource } from './source.ts';
 import type { Update } from './types.ts';
+import type { Issue, IssueSummary } from '../news/types.ts';
 
 export const HOST = '127.0.0.1';
 export const DEFAULT_PORT = 8160;
@@ -57,6 +58,8 @@ export interface WatchServerOptions {
   lanAddresses?: string[];
   /** English for lines residents said or thought (a thinking town only). */
   translate?: (texts: string[]) => Promise<(string | null)[]>;
+  /** Kampung News, the owner's daily paper (a thinking town only). */
+  news?: { list(): IssueSummary[]; get(n: number): Issue | null };
 }
 
 /** Private (home-network) IPv4 addresses of this PC: 10.x, 172.16-31.x and 192.168.x. */
@@ -339,6 +342,17 @@ export async function startWatchServer(opts: WatchServerOptions): Promise<WatchS
       const money = source.money(path.slice('/api/money/'.length));
       if (money) json(res, 200, money);
       else send(res, 404, 'text/plain; charset=utf-8', 'Nobody by that name.');
+      return;
+    }
+    if (path === '/api/news') {
+      json(res, 200, opts.news ? { issues: opts.news.list() } : { issues: [], off: true });
+      return;
+    }
+    if (path.startsWith('/api/news/')) {
+      const n = /^\d{1,6}$/.test(path.slice('/api/news/'.length)) ? Number(path.slice('/api/news/'.length)) : null;
+      const issue = n !== null ? opts.news?.get(n) : null;
+      if (issue) json(res, 200, issue);
+      else send(res, 404, 'text/plain; charset=utf-8', 'No such issue.');
       return;
     }
     if (path === '/api/wiki') {

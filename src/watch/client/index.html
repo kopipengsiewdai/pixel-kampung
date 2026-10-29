@@ -14,6 +14,7 @@
       <div class="version" id="version"></div>
       <div class="mode" id="mode"></div>
       <button type="button" class="wiki-open" id="wiki-open" aria-haspopup="dialog">Wiki</button>
+      <button type="button" class="wiki-open news-open" id="news-open" aria-haspopup="dialog">News</button>
     </div>
     <div class="replay" id="replay" hidden>
       <button type="button" id="play" aria-label="Play or pause">❚❚</button>
@@ -67,6 +68,15 @@
     </nav>
     <div class="wiki-body" id="wiki-body"></div>
     <footer>Owner's view. Nothing in the wiki ever reaches a resident.</footer>
+  </section>
+  <section class="wiki paper" id="news" role="dialog" aria-label="Kampung News" hidden>
+    <header>
+      <h2>Kampung News</h2>
+      <button type="button" class="close" id="news-close" aria-label="Close the paper">×</button>
+    </header>
+    <nav class="issues" id="news-issues" aria-label="Back issues"></nav>
+    <div class="wiki-body paper-body" id="news-body"></div>
+    <footer>Owner's view. No resident ever reads the paper.</footer>
   </section>
   <script src="/app.js"></script>
 </body>

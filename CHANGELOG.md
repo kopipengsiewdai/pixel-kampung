@@ -4,6 +4,10 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **Kampung News** ([news.md](docs/design/news.md)), the owner's daily paper, on the watch page's new News button. Each morning from about 07:00 it's written in a 1960s broadsheet voice from what really happened in the kampung days since the last issue (facts only: a report quoting words not on record is dropped), and ends with a computed "behind the scenes" box per day: meals, hunger, illness, repeated refusals, talk circles, money, and the AI spend against the cap, with a mark where a figure crosses a line. One cheap call an issue, inside the cap. Living town: nothing saved changes; the first issue comes out the next morning and looks back five kampung days.
+
 ## 0.40.0 (2026-10-29): clearer refusals, where you last saw someone
 
 - **Clearer refusals, fewer repeats** (Kampung, 2026-10-29). Residents tried the same thing 10–30 times a day because the answer read as something else. Short of something to cook with now says what's missing plainly ("You have no water: each batch takes a bag of rice and a pail of water", "There's fish for only 2 batches: …") instead of "short of water", which was read as "make one batch". Bread, grilled fish and coconuts answer to roti, ikan panggang, kelapa muda and air kelapa. Watering and harvesting are offered only to someone with a bed planted, and asking without one says "Nothing of yours is planted on the plot now." Living town: nothing saved changes; from the next minute.

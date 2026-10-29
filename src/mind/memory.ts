@@ -90,6 +90,12 @@ export class MemoryStore {
       .all(resident, upTo, ...kinds, n) as unknown as Memory[];
   }
 
+  /** The replies every resident was given from game minute `from` up to `to` (the paper's box counts refusals). */
+  didBetween(from: number, to: number): { resident: string; text: string }[] {
+    return this.db.prepare("SELECT resident, text FROM memories WHERE kind = 'did' AND t >= ? AND t < ? ORDER BY t, id")
+      .all(from, to) as unknown as { resident: string; text: string }[];
+  }
+
   since(resident: string, t: number): Memory[] {
     return this.all(resident).filter((m) => m.t >= t);
   }
