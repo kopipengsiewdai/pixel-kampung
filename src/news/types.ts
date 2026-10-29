@@ -31,12 +31,16 @@ export interface Issue {
   toDay: number;
   /** The town was down for part of the stretch. */
   gap: boolean;
+  /** Kampung days before this issue's stretch that no issue covered (after a long stretch with none). */
+  leftOut?: number;
   headline: string;
   lead: string;
   reports: { headline: string; text: string }[];
   box: {
     rows: (BoxRow & { date: string })[];
     spend: { day: string; usd: number; cap: number; over: boolean }[];
+    /** The real month so far against the monthly cap. */
+    month?: { usd: number; cap: number };
     ledgerCheck: string | null;
   };
 }

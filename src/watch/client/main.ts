@@ -747,8 +747,9 @@ function newsBox(i: Issue): Node[] {
     el('h4', {}, 'Behind the scenes'),
     el('div', { class: 'scroll' }, el('table', { class: 'econ box' }, el('thead', {}, el('tr', {}, ...head)), el('tbody', {}, ...rows))),
     ...i.box.spend.map((s) => el('p', { class: 'note' }, `AI spend ${s.day}: US$${s.usd.toFixed(2)} of US$${s.cap.toFixed(2)}`, mark(s.over, "Above the day's cap"))),
+    i.box.month ? el('p', { class: 'note' }, `This month: US$${i.box.month.usd.toFixed(2)} of US$${i.box.month.cap.toFixed(2)}`) : null,
     el('p', { class: 'note' }, i.box.ledgerCheck ?? 'No money check yet.'),
-  ];
+  ].filter((n): n is HTMLElement => n !== null);
 }
 
 function newsIssue(i: Issue): Node[] {
@@ -758,6 +759,7 @@ function newsIssue(i: Issue): Node[] {
     i.gap ? el('p', { class: 'note' }, 'The town was down for part of this stretch.') : null,
     el('p', { class: 'lead' }, i.lead),
     ...i.reports.flatMap((r) => [el('h4', { class: 'report' }, r.headline), el('p', {}, r.text)]),
+    i.leftOut ? el('p', { class: 'note' }, `No issue came out for the ${i.leftOut} kampung days before these.`) : null,
     ...newsBox(i),
   ].filter((n): n is Node => n !== null);
 }

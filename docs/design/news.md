@@ -69,13 +69,22 @@ circles, or spend above the day's cap.
   day, covering every whole kampung day since the last issue (the first
   looks back five). One routine (Haiku) call, `kind: news`, in the cost log
   as `kampung-news` and checked against the day's cap first; a failed or
-  capped issue is tried again ten minutes later, never skipped.
+  capped issue is tried again ten minutes later, never skipped. At most three
+  paid tries a real day (a refused or unusable answer counts); then it waits
+  for the next morning. One issue covers at most seven kampung days: after a
+  longer stretch with none, the latest week, saying how many it leaves out.
+- "The town was down" means a quiet spell (the town stopped and came back),
+  not the cap's quiet; a spell that ended today still marks the days it
+  covered. The box's spend shows each real day since the last issue came out,
+  and the month so far against the monthly cap.
 - The writer sees only a digest: who's who (family from the cast, who is
   married), each day's key moments from the saved events (the same line
   repeated is folded into one, with how often), up to eight lines of notable
   talk a day put into English with the watch page's translator, meals,
   hunger, illness, and money across the edge of town. A report quoting words
-  that aren't in the digest is dropped; so is such a sentence in the lead.
+  that aren't in the digest (in "…", “…” or ‘…’, curly apostrophes matched) is
+  dropped; a lead or headline that does goes whole, and the first report on
+  record takes its place.
 - The box (`src/news/box.ts`) is computed per kampung day. Hunger at 1000,
   residents with no money and the village fund are read at each midnight
   into `$KAMPUNG_HOME/news/days.jsonl`; days before the paper began show

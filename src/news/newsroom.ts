@@ -11,7 +11,7 @@ import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, write
 import { join } from 'node:path';
 import { feedText, isKeyMoment } from '../feed/feed.ts';
 import { kinOf } from '../seed/cast.ts';
-import { dayCap } from '../mind/budget.ts';
+import { dayCap, MONTHLY_CAP } from '../mind/budget.ts';
 import type { CostLog } from '../mind/cost-log.ts';
 import type { ModelClient } from '../mind/model.ts';
 import { dateAt, MONTHS, type Calendar } from '../sim/calendar.ts';
@@ -26,9 +26,13 @@ export type { Issue, IssueSummary };
 
 /** The first issue looks back this many whole kampung days. */
 export const FIRST_ISSUE_DAYS = 5;
+/** Most kampung days one issue covers: after a long stretch with none, the latest week, saying how many it leaves out. */
+export const MAX_ISSUE_DAYS = 7;
+/** Most paid tries at the morning's issue in a real day (a refused or unusable answer counts); then it waits for the next morning. */
+export const MAX_TRIES_A_DAY = 3;
 /** The hour (SGT) from which the morning's issue is due. */
 export const ISSUE_HOUR = 7;
-/** Checked against the day's cap before the call: one issue is a few cents at most. */
+/** Checked against the day's cap before the call: a few cents at most for five days' notes (more for a longer stretch). */
 export const NEWS_ESTIMATE = 0.02;
 /** Most key moments and talk lines a kampung day puts in the digest. */
 export const DIGEST_MOMENTS = 60;
@@ -75,7 +79,8 @@ export interface NewsDesk {
   ledgerCheck(): string | null;
 }
 
-const QUIET = new Set(['quiet_spell', 'kampung_quiet']);
+/** The town was down (a quiet spell is dated when it came back, and says how long it lasted). Not the cap's quiet. */
+type QuietSpell = Extract<GameEvent, { type: 'quiet_spell' }>;
 /** Talk worth a line in the digest: deals, money, houses, marrying, work, illness. */
 const NOTABLE_TALK = /\b(marr|wed|rent|owe|debt|lend|borrow|pay|paid|price|sell|buy|job|work|hire|sick|ill|hungry|lorry|house|sorry|angry|thank)/i;
 
@@ -90,11 +95,13 @@ export function dateline(cal: Calendar, t: number): string {
   return `Kampung, ${dayTitle(cal, dayIndex(t))}`;
 }
 
-/** Quoted words ("…" or “…”) of a few words or more. */
+/** Quoted words, in "…", “…” or ‘…’ (an apostrophe inside, as in Don’t, isn't a closing quote). */
 function quotes(text: string): string[] {
-  return [...text.matchAll(/["“]([^"”]{12,})["”]/g)].map((m) => m[1]!.trim());
+  const double = [...text.matchAll(/["“]([^"”]{8,})["”]/g)].map((m) => m[1]!);
+  const single = [...text.matchAll(/‘(.{8,}?)’(?![a-z])/gi)].map((m) => m[1]!);
+  return [...double, ...single].map((q) => q.trim());
 }
-const squash = (s: string) => s.toLowerCase().replace(/\s+/g, ' ');
+const squash = (s: string) => s.toLowerCase().replace(/[’‘]/g, "'").replace(/[“”]/g, '"').replace(/\s+/g, ' ');
 
 export class Newsroom {
   private readonly dir: string;
@@ -109,6 +116,7 @@ export class Newsroom {
   private ends = new Map<number, DayEnd>();
   private busy: Promise<Issue | null> | null = null;
   private retryAt = 0;
+  private tries = { day: '', n: 0 };
 
   constructor(opts: {
     dir: string; client: ModelClient; costs: CostLog; desk: NewsDesk;
@@ -177,6 +185,7 @@ export class Newsroom {
   publishIfDue(realMs = this.now()): Promise<Issue | null> {
     if (this.busy) return this.busy;
     if (!this.due(realMs) || realMs < this.retryAt) return Promise.resolve(null);
+    if (this.tries.day === this.sgtDay(realMs) && this.tries.n >= MAX_TRIES_A_DAY) return Promise.resolve(null);
     this.busy = this.publish(realMs)
       .catch((err: unknown) => { this.onError(err); return null; })
       .then((issue) => { if (!issue) this.retryAt = realMs + RETRY_MS; return issue; })
@@ -187,20 +196,28 @@ export class Newsroom {
   private async publish(realMs: number): Promise<Issue | null> {
     const today = dayIndex(this.desk.t());
     const last = this.issues.at(-1);
-    const fromDay = last ? last.toDay + 1 : today - FIRST_ISSUE_DAYS;
     const toDay = today - 1;
+    const since = last ? last.toDay + 1 : today - FIRST_ISSUE_DAYS;
+    const fromDay = Math.max(since, toDay - MAX_ISSUE_DAYS + 1);
+    const leftOut = fromDay - since;
     if (toDay < fromDay) return null;
     // Within the day's cap, or it waits for later: an issue is never skipped.
     const cap = this.townCap ?? dayCap(this.costs, realMs);
-    if (this.costs.spentOn(this.costs.dayKey(realMs)) + NEWS_ESTIMATE > cap) return null;
+    const estimate = NEWS_ESTIMATE * Math.max(1, (toDay - fromDay + 1) / FIRST_ISSUE_DAYS);
+    if (this.costs.spentOn(this.costs.dayKey(realMs)) + estimate > cap) return null;
 
     const residents = this.desk.residents();
     const days: DayFacts[] = [];
     for (let d = fromDay; d <= toDay; d++) days.push({ ...this.desk.facts(d), end: this.ends.get(d) ?? null });
-    const gap = days.some((d) => d.events.some((e) => QUIET.has(e.type)));
+    // Down at some point in these days: a quiet spell recorded in them, or one that ended today but began in them.
+    const rangeEnd = (toDay + 1) * MINUTES_PER_DAY - SGT_OFFSET_MIN;
+    const spells = [...days.flatMap((d) => d.events), ...this.desk.facts(today).events].filter((e): e is QuietSpell => e.type === 'quiet_spell');
+    const gap = spells.some((e) => e.t - e.minutes < rangeEnd && e.t >= fromDay * MINUTES_PER_DAY - SGT_OFFSET_MIN);
     const rows = days.map((d) => ({ ...boxRow(d, residents), date: dayTitle(this.desk.calendar, d.day) }));
-    const digest = await this.digest(days, rows);
+    const digest = await this.digest(days, rows, gap, leftOut);
 
+    const day = this.sgtDay(realMs);
+    this.tries = { day, n: (this.tries.day === day ? this.tries.n : 0) + 1 };
     let res;
     try {
       res = await this.client.think({
@@ -209,7 +226,7 @@ export class Newsroom {
       });
     } catch (err) {
       // Unreachable or timed out: it may still be billed, so its estimate counts.
-      this.costs.add({ t: this.desk.t(), realMs, resident: 'kampung-news', kind: 'news', model: 'failed', usage: { input_tokens: 0, output_tokens: 0 }, estimatedUsd: NEWS_ESTIMATE });
+      this.costs.add({ t: this.desk.t(), realMs, resident: 'kampung-news', kind: 'news', model: 'failed', usage: { input_tokens: 0, output_tokens: 0 }, estimatedUsd: estimate });
       throw err;
     }
     for (const a of res.attempts) this.costs.add({ t: this.desk.t(), realMs, resident: 'kampung-news', kind: 'news', model: a.model, usage: a.usage });
@@ -220,22 +237,32 @@ export class Newsroom {
     const onRecord = (text: string) => quotes(text).every((q) => known.includes(squash(q)));
     const reports = (Array.isArray(out.reports) ? out.reports : [])
       .filter((r): r is { headline: string; text: string } => !!r && typeof r.headline === 'string' && typeof r.text === 'string' && r.text.trim() !== '')
-      .filter((r) => onRecord(r.text))
+      .filter((r) => onRecord(r.headline) && onRecord(r.text))
       .slice(0, MAX_REPORTS)
       .map((r) => ({ headline: r.headline.trim(), text: r.text.trim() }));
-    const lead = onRecord(out.lead) ? out.lead.trim()
-      : out.lead.split(/(?<=[.!?])\s+/).filter((s) => onRecord(s)).join(' ').trim();
-
-    const spendDays: { day: string; usd: number; cap: number }[] = [];
-    const since = last ? this.sgtDay(last.publishedMs) : this.sgtDay(realMs - 86_400_000 * 2);
-    for (let ms = realMs - 86_400_000 * 6; ms <= realMs; ms += 86_400_000) {
-      const day = this.costs.dayKey(ms);
-      if (day > since) spendDays.push({ day, usd: this.costs.spentOn(day), cap: dayCap(this.costs, ms) });
+    // A lead quoting words not on record goes whole; the first report on record takes its place.
+    let headline = out.headline.trim();
+    let lead = out.lead.trim();
+    if (!lead || !onRecord(headline) || !onRecord(lead)) {
+      const first = reports.shift();
+      if (!first) return null;
+      ({ headline, text: lead } = first);
     }
+
+    // The spend for each real day since the last issue came out (that day whole now), and the month so far.
+    const spendDays: { day: string; usd: number; cap: number }[] = [];
+    const sinceDay = last ? this.sgtDay(last.publishedMs) : this.sgtDay(realMs - 86_400_000);
+    for (let ms = realMs - 86_400_000 * 6; ms <= realMs; ms += 86_400_000) {
+      const d = this.costs.dayKey(ms);
+      if (d >= sinceDay) spendDays.push({ day: d, usd: this.costs.spentOn(d), cap: dayCap(this.costs, ms) });
+    }
+    const [y, m, dd] = this.costs.dayKey(realMs).split('-');
+    let month = 0;
+    for (let k = 1; k <= Number(dd); k++) month += this.costs.spentOn(`${y}-${m}-${String(k).padStart(2, '0')}`);
     const issue: Issue = {
-      n: (last?.n ?? 0) + 1, publishedMs: realMs, dateline: dateline(this.desk.calendar, this.desk.t()), fromDay, toDay, gap,
-      headline: out.headline.trim(), lead, reports,
-      box: { rows, spend: spendLines(spendDays), ledgerCheck: this.desk.ledgerCheck() },
+      n: (last?.n ?? 0) + 1, publishedMs: realMs, dateline: dateline(this.desk.calendar, this.desk.t()), fromDay, toDay, gap, leftOut,
+      headline, lead, reports,
+      box: { rows, spend: spendLines(spendDays), month: { usd: month, cap: MONTHLY_CAP }, ledgerCheck: this.desk.ledgerCheck() },
     };
     mkdirSync(join(this.dir, 'issues'), { recursive: true });
     writeFileSync(join(this.dir, 'issues', `${issue.n}.json`), JSON.stringify(issue));
@@ -255,7 +282,7 @@ export class Newsroom {
   }
 
   /** The notes the writer may report from: each day's key moments, its talk (in English), and plain figures. */
-  private async digest(days: readonly DayFacts[], rows: readonly BoxRow[]): Promise<string> {
+  private async digest(days: readonly DayFacts[], rows: readonly BoxRow[], gap = false, leftOut = 0): Promise<string> {
     const n = (id: string) => this.desk.names(id);
     const talk = days.map((d) => {
       const seen = new Set<string>();
@@ -274,7 +301,10 @@ export class Newsroom {
       }
     }
     const inEnglish = new Map(texts.map((t, i) => [t, english[i] ?? t]));
-    const out: string[] = ['Notes for the issue, day by day. Times are the kampung clock.', '', ...this.whoIsWho()];
+    const out: string[] = ['Notes for the issue, day by day. Times are the kampung clock.'];
+    if (leftOut) out.push(`These notes cover only the latest ${days.length} days: no issue came out for the ${leftOut} earlier days, and they go unreported.`);
+    if (gap) out.push('The town was down for a spell in these days: the kampung went quiet, and nothing was recorded while it was.');
+    out.push('', ...this.whoIsWho());
     days.forEach((d, i) => {
       const row = rows[i]!;
       out.push('', `== ${dayTitle(this.desk.calendar, d.day)} ==`);
