@@ -4,6 +4,10 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## 0.42.3 (2026-10-30): work for Mr Lim, thought of first
+
+- **An idle resident thinks first of places with work for Mr Lim** ([m1-sim-rules.md](docs/design/m1-sim-rules.md); Kampung, 2026-10-30: the schoolhouse stood at 2 jobs of 12 and the village kitchen at 5 of 8, their jobs on site and nobody ever going there). The "You could walk to …" reminder names places they know with one of today's jobs still to be had (not done, nobody at it, and they've done none today), the building sites first, ahead of the jetty and the farm plot; and isn't said where there's such a job to hand. Living town: picked up on restart; no save change.
+
 ## 0.42.2 (2026-10-29): fuel in hand, seen
 
 - **Fuel in someone's hands is seen** ([home-cooking.md](docs/design/home-cooking.md); Kampung, 2026-10-29, from house-9: Aminah held a tin of kerosene while Fatimah was told 26 times the stove needed fuel). Firewood and kerosene show beside whoever holds them, like food, and a stove refused for fuel says who there has some ("Aminah has a tin of kerosene."). The stove still burns only the cook's own fuel. Living town: picked up on restart; no save change.

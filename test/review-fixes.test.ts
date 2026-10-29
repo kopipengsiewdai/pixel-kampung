@@ -8,6 +8,7 @@ import type { GameEvent } from '../src/sim/events.ts';
 import { describe as describePerception, perceive } from '../src/sim/perception.ts';
 import { CIRCLE_LINES } from '../src/sim/state.ts';
 import { advance } from '../src/sim/tick.ts';
+import { dayIndex } from '../src/sim/time.ts';
 import { QUIET_THINK_MINUTES, Town } from '../src/town.ts';
 import { accepted, act, expectInWorld, newWorld, put, refused, sgt, who } from './helpers.ts';
 
@@ -74,6 +75,9 @@ describe('a resident with nothing to do', () => {
 
   it('after pottering about with nothing done for half an hour, is reminded of places with work first', async () => {
     const { town, start } = await idleTown();
+    // No work for Mr Lim today (places with his jobs come first: site-nudge.test.ts).
+    town.world.state.oddJobsDay = dayIndex(start);
+    town.world.state.oddJobs = [];
     put(town.world, 'Siti', 'well');
     expect(await thinkAt(town, 'Siti', start + 1)).toBeNull();
     const text = (await thinkAt(town, 'Siti', start + 3 * QUIET_THINK_MINUTES))!;

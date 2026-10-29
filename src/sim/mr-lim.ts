@@ -540,6 +540,12 @@ export function openJobHere(w: World, r: Resident): World['state']['oddJobs'][nu
     .sort((a, b) => b.pay - a.pay)[0] ?? null;
 }
 
+/** Today's jobs at placeId that r could take on arriving: nobody has done or is doing them, and r has done none today. */
+export function jobsOpenAt(w: World, r: Resident, placeId: string | null): World['state']['oddJobs'] {
+  if (doneToday(w, r)) return [];
+  return jobsToday(w).filter((j) => j.doneBy === null && j.placeId === placeId && !workingAt(w, j.id) && fitFor(w, r, j.kind));
+}
+
 export const whatOf = (kind: string) => (kind === LEDGER_JOB.kind ? LEDGER_JOB.what : ODD_JOB_KINDS.find((k) => k.kind === kind)?.what ?? projectJobOf(kind)?.what ?? 'odd work');
 
 /** Each minute: once he's at the board (or the town wakes later in the day), yesterday's jobs come down and today's go up. */
