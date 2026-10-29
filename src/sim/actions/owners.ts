@@ -1,13 +1,13 @@
 import { effectiveLevel, HANDY_COOK, skillLevel } from '../skills.ts';
 import { endShift } from '../activities.ts';
-import { RECIPES, quantityLabel, type ItemId } from '../items.ts';
+import { ITEMS, RECIPES, quantityLabel, type ItemId } from '../items.ts';
 import { askToBring as osmanAsk, collect as osmanCollect, lorryBuy, payOsman } from '../osman.ts';
 import { PLACE_BY_ID } from '../map.ts';
 import { formatMoney } from '../money.ts';
 import { COOK_MINUTES } from '../travellers.ts';
-import { addGoods, countGoods, GROWN_AGE, type Resident, type Shop, type World } from '../state.ts';
+import { addGoods, countGoods, GROWN_AGE, type Goods, type Resident, type Shop, type World } from '../state.ts';
 import {
-  type ActionResult, type Intent, MAX_PRICE, SAY_NOTHING_SENSIBLE, goodsLabel, itemOf, moneyOf, no, ok,
+  type ActionResult, type Intent, MAX_PRICE, SAY_NOTHING_SENSIBLE, itemOf, moneyOf, no, ok,
   personNearby, qtyOf, quoted, hasMoney, saysLater,
 } from './common.ts';
 import { shiftLabel } from './everyone.ts';
@@ -176,7 +176,7 @@ function cookAtHome(w: World, r: Resident, item: ItemId, asked: number, stoveAt:
   // One small pot: one batch at a time.
   const batches = 1;
   for (const [need, n] of Object.entries(recipe.needs) as [ItemId, number][]) {
-    if (countGoods(r.items, need) < n * batches) return no(`Each batch takes ${goodsLabel(recipe.needs)}, and you're short of ${need}.`);
+    if (countGoods(r.items, need) < n * batches) return no(shortOf(need, countGoods(r.items, need), n, batches, recipe.needs, 'You have'));
   }
   // Fuel for every batch: kerosene already in the stove, then a tin poured in, then firewood.
   if ((w.state.stoves[home] ?? 0) + countGoods(r.items, 'kerosene') * KEROSENE_BATCHES + countGoods(r.items, 'firewood') < batches) {
@@ -204,6 +204,22 @@ const cookMinutes = (r: Resident, item: ItemId) => Math.round((COOK_MINUTES[item
 /** What can go over an open fire: grilled fish, and with a pot, bubur. */
 const FIRE_DISHES: readonly ItemId[] = ['grilled fish', 'bubur'];
 
+/** A thing as stuff, with no count: "water", "fish", "coffee powder". */
+const stuffOf = (item: ItemId) => ITEMS[item].many.replace(/^\{n\} (?:\w+ of )?/, '');
+
+/**
+ * What's missing for a dish, said plainly (a bare "short of water" was read as
+ * "make one batch only"): none at all, only some, or enough for fewer batches.
+ */
+function shortOf(need: ItemId, have: number, perBatch: number, batches: number, needs: Goods, who: 'You have' | 'The kitchen has' | 'The kitchen and your bag have', each = 'each batch takes'): string {
+  const parts = (Object.entries(needs) as [ItemId, number][]).filter(([, n]) => n > 0).map(([i, n]) => quantityLabel(i, n));
+  const takes = `${each} ${parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}` : parts.join('')}`;
+  if (have <= 0) return `${who} no ${stuffOf(need)}: ${takes}.`;
+  if (have < perBatch) return `${who} only ${quantityLabel(need, have)}: ${takes}.`;
+  const k = Math.floor(have / perBatch);
+  return `There's enough ${stuffOf(need)} for only ${k} batch${k === 1 ? '' : 'es'}: ${takes}.`;
+}
+
 /** A pot over a cooking fire (subsistence.md "Where cooking happens"): simple food from what they carry, into their hands. */
 function cookAtFire(w: World, r: Resident, item: ItemId): ActionResult {
   const fire = fireNear(w, r)!;
@@ -211,7 +227,7 @@ function cookAtFire(w: World, r: Resident, item: ItemId): ActionResult {
   if (item === 'bubur' && countGoods(r.items, 'pot') < 1) return no("You'd need a pot to boil rice over the fire.");
   const recipe = RECIPES[item]!;
   for (const [need, n] of Object.entries(recipe.needs) as [ItemId, number][]) {
-    if (countGoods(r.items, need) < n) return no(`That takes ${goodsLabel(recipe.needs)}, and you're short of ${need}.`);
+    if (countGoods(r.items, need) < n) return no(shortOf(need, countGoods(r.items, need), n, 1, recipe.needs, 'You have', 'that takes'));
   }
   const minutes = cookMinutes(r, item);
   if (fire.until - w.t < minutes) return no('The fire is burning too low for that.');
@@ -290,10 +306,8 @@ export function cook(w: World, r: Resident, i: Intent): ActionResult {
   if (typeof shop === 'string') return no(shop);
   const own = w.shopOf(r.id)?.id === shop.id;
   for (const [need, n] of Object.entries(recipe.needs) as [ItemId, number][]) {
-    if (countGoods(shop.stock, need) + (own ? countGoods(r.items, need) : 0) < n * batches) {
-      const perBatch = goodsLabel(recipe.needs);
-      return no(`Each batch takes ${perBatch}, and the kitchen is short of ${need}.`);
-    }
+    const have = countGoods(shop.stock, need) + (own ? countGoods(r.items, need) : 0);
+    if (have < n * batches) return no(shortOf(need, have, n, batches, recipe.needs, own ? 'The kitchen and your bag have' : 'The kitchen has'));
   }
   // The kitchen's stock first, then (in their own kitchen) what the cook has brought along.
   for (const [need, n] of Object.entries(recipe.needs) as [ItemId, number][]) {

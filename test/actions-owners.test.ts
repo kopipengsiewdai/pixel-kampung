@@ -255,7 +255,7 @@ describe('cook', () => {
     refused(act(w, huat.id, { verb: 'cook', item: 'kopi' }), /in your kitchen/);
     put(w, 'Ah Huat', 'kopitiam');
     refused(act(w, huat.id, { verb: 'cook', item: 'bread' }), /don't know how to make "bread"/);
-    refused(act(w, huat.id, { verb: 'cook', item: 'fish porridge', batches: 3 }), /short of fish/);
+    refused(act(w, huat.id, { verb: 'cook', item: 'fish porridge', batches: 3 }), /fish for only 2 batches/);
   });
 });
 

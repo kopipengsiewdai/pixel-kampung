@@ -37,7 +37,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     id: 'coffee', one: 'a tin of coffee powder', many: '{n} tins of coffee powder',
     aliases: ['coffee powder', 'kopi powder'], inedible: 'Dry coffee powder? It needs brewing first.',
   },
-  bread: { id: 'bread', one: 'a loaf of bread', many: '{n} loaves of bread', aliases: ['loaf', 'loaves'], food: { hunger: 200 } },
+  bread: { id: 'bread', one: 'a loaf of bread', many: '{n} loaves of bread', aliases: ['loaf', 'loaves', 'roti'], food: { hunger: 200 } },
   water: {
     id: 'water', one: 'a pail of water', many: '{n} pails of water', aliases: ['pail', 'pails', 'pail of water', 'pails of water'],
     inedible: "You'd want to boil it first.",
@@ -61,7 +61,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     inedible: "You can't eat firewood.",
   },
   'grilled fish': {
-    id: 'grilled fish', one: 'a grilled fish', many: '{n} grilled fish', aliases: ['ikan bakar', 'fried fish', 'cooked fish', 'grilled fishes'], food: { hunger: 360 },
+    id: 'grilled fish', one: 'a grilled fish', many: '{n} grilled fish', aliases: ['ikan bakar', 'ikan panggang', 'fried fish', 'cooked fish', 'grilled fishes'], food: { hunger: 360 },
   },
   'boiled kangkong': {
     id: 'boiled kangkong', one: 'a plate of boiled kangkong', many: '{n} plates of boiled kangkong',
@@ -72,7 +72,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     inedible: "Kerosene? That's for the lamp, not for drinking.",
   },
   banana: { id: 'banana', one: 'a hand of bananas', many: '{n} hands of bananas', aliases: ['bananas', 'pisang', 'hand of bananas', 'hands of bananas'], food: { hunger: 150 } },
-  coconut: { id: 'coconut', one: 'a coconut', many: '{n} coconuts', aliases: ['coconuts', 'kelapa', 'young coconut'], food: { hunger: 180 } },
+  coconut: { id: 'coconut', one: 'a coconut', many: '{n} coconuts', aliases: ['coconuts', 'kelapa', 'young coconut', 'kelapa muda', 'air kelapa', 'coconut water'], food: { hunger: 180 } },
   pot: {
     id: 'pot', one: 'a cooking pot', many: '{n} cooking pots', aliases: ['pots', 'cooking pot', 'periuk', 'pan'],
     inedible: "You can't eat a pot. It's for cooking in.",

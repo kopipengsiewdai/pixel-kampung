@@ -130,7 +130,7 @@ describe('the kopitiam needs water', () => {
     const huat = put(w, 'Ah Huat', 'kopitiam');
     const shop = w.shop('kopitiam')!;
     shop.stock = { coffee: 2, fish: 1, rice: 2, vegetables: 1 };
-    refused(act(w, huat.id, { verb: 'cook', item: 'kopi' }), /short of water/);
+    refused(act(w, huat.id, { verb: 'cook', item: 'kopi' }), /no water/);
     accepted(act(w, huat.id, { verb: 'cook', item: 'vegetable rice' }));
     run(w, 10);
     shop.stock.water = 1;

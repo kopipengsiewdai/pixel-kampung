@@ -23,7 +23,7 @@ describe('a kitchen short of something: no going round in circles (B1)', () => {
     huat.thinkAt = start + 1;
     await town.runUntil(start + 1);
     expect(tries).toBe(1);
-    expect(huat.reply?.text).toMatch(/short of rice/);
+    expect(huat.reply?.text).toMatch(/The kitchen and your bag have no rice/);
   });
 
   it('the stove wanting fuel ends the thought too', async () => {

@@ -170,8 +170,8 @@ export const ACTIONS: Record<string, ActionDef> = {
       return more.length ? `plant a free bed (item: kangkong, ${more.map((c) => (c === 'papaya' ? 'or a papaya tree' : 'chilli')).join(', ')})` : 'plant kangkong in a free bed';
     },
   },
-  water: { run: everyone.water, ownersOnly: false, says: 'water your beds', here: at('farm') },
-  harvest: { run: everyone.harvest, ownersOnly: false, says: 'harvest your beds', here: at('farm') },
+  water: { run: everyone.water, ownersOnly: false, says: 'water your beds', here: (w, r) => w.isAt(r, 'farm') && everyone.hasBeds(w, r) },
+  harvest: { run: everyone.harvest, ownersOnly: false, says: 'harvest your beds', here: (w, r) => w.isAt(r, 'farm') && everyone.hasBeds(w, r) },
   eat: {
     run: everyone.eat, ownersOnly: false, says: 'eat or drink something you carry, or from your own shop (item)',
     here: (w, r) => (Object.keys(r.items) as ItemId[]).some((i) => ITEMS[i]?.food && countGoods(r.items, i) > 0) || everyone.shopHere(w, r)?.ownerId === r.id,

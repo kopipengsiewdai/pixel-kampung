@@ -253,8 +253,8 @@ describe('plant / water / harvest', () => {
     refused(act(w, siti.id, { verb: 'water' }), /farm plot/);
     refused(act(w, siti.id, { verb: 'harvest' }), /farm plot/);
     put(w, 'Siti', 'farm');
-    refused(act(w, siti.id, { verb: 'water' }), /haven't planted/);
-    refused(act(w, siti.id, { verb: 'harvest' }), /haven't planted/);
+    refused(act(w, siti.id, { verb: 'water' }), /Nothing of yours is planted/);
+    refused(act(w, siti.id, { verb: 'harvest' }), /Nothing of yours is planted/);
     accepted(act(w, siti.id, { verb: 'plant' }));
     accepted(act(w, siti.id, { verb: 'water' }));
     refused(act(w, siti.id, { verb: 'water' }), /already watered/);
