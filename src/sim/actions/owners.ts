@@ -180,7 +180,13 @@ function cookAtHome(w: World, r: Resident, item: ItemId, asked: number, stoveAt:
   }
   // Fuel for every batch: kerosene already in the stove, then a tin poured in, then firewood.
   if ((w.state.stoves[home] ?? 0) + countGoods(r.items, 'kerosene') * KEROSENE_BATCHES + countGoods(r.items, 'firewood') < batches) {
-    return no("The stove needs firewood or kerosene for that. There's dry wood to gather past the farm plot, and the lorry sells kerosene.");
+    // Someone here holding fuel: said, so it can be asked for. The stove never takes it from their hands.
+    // Awake, so they can be asked; their own household first.
+    const held = w.nearby(r).filter((o) => !w.isAsleep(o))
+      .sort((a, b) => Number(b.homeId === r.homeId) - Number(a.homeId === r.homeId))
+      .flatMap((o) => STOVE_FUEL.filter((f) => countGoods(o.items, f) > 0).slice(0, 1)
+      .map((f) => ` ${o.name} has ${quantityLabel(f, countGoods(o.items, f))}.`)).slice(0, 2);
+    return no(`The stove needs firewood or kerosene for that. There's dry wood to gather past the farm plot, and the lorry sells kerosene.${held.join('')}`);
   }
   for (let b = 0; b < batches; b++) {
     if ((w.state.stoves[home] ?? 0) === 0 && countGoods(r.items, 'kerosene') > 0) {
@@ -235,6 +241,9 @@ function cookAtFire(w: World, r: Resident, item: ItemId): ActionResult {
   r.stove = { item, batches: 1, qty: HOME_YIELD, shopId: `fire:${fire.id}`, until: w.t + minutes };
   return ok(`You set ${item === 'bubur' ? 'your pot' : 'the fish'} over the fire.`);
 }
+
+/** What a stove burns, as anyone can see it in someone's hands. */
+export const STOVE_FUEL: readonly ItemId[] = ['kerosene', 'firewood'];
 
 /** The plain dish a raw thing makes, when nothing else can be made from it yet. */
 const PLAIN_DISH: Partial<Record<ItemId, ItemId>> = { rice: 'bubur', fish: 'grilled fish', vegetables: 'boiled kangkong' };
