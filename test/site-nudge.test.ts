@@ -47,6 +47,17 @@ describe('an idle resident, with work for Mr Lim waiting somewhere they know', (
     }
   });
 
+  it("ahead of the day's other jobs, and not while there's one to be had where they stand", async () => {
+    const { town: t, w, start } = await town();
+    w.state.oddJobs[0]!.doneBy = null;
+    w.state.oddJobs.push({ id: 9004, kind: 'carry', placeId: 'lorry-stop', pay: 50, day: dayIndex(start), doneBy: null, noteId: 9104, project: null });
+    for (let k = 0; k < 3; k++) {
+      expect(await nudgeAt(t, start + (3 + k) * QUIET_THINK_MINUTES)).toMatch(/You could walk to the schoolhouse, the (lorry stop|jetty), the (lorry stop|jetty), the farm plot/);
+    }
+    who(w, 'Siti').reply = null;
+    expect(await nudgeAt(t, start + 6 * QUIET_THINK_MINUTES, 'lorry-stop')).toBe('');
+  });
+
   it('not once they have done a job for him today, nor where someone is already at it', async () => {
     const { town: t, w, siti, start } = await town();
     w.state.oddJobs[0]!.doneBy = siti.id;

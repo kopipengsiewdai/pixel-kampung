@@ -14,7 +14,7 @@ import { World, type Resident, type WorldState } from './sim/state.ts';
 import { advance } from './sim/tick.ts';
 import { osmanThinks, priceFor, type OsmanHead } from './sim/osman.ts';
 import { teacherThinks, type TeacherHead } from './sim/school.ts';
-import { jobOpenAt, mrLimDecides, mrLimHelps, mrLimReviews, mrLimThinks, type MrLimHead } from './sim/mr-lim.ts';
+import { jobsOpenAt, mrLimDecides, mrLimHelps, mrLimReviews, mrLimThinks, type MrLimHead } from './sim/mr-lim.ts';
 import { isNight, minuteOfDay, realMsAt } from './sim/time.ts';
 import type { SqliteStore } from './store/sqlite-store.ts';
 import { SCHEMA_VERSION } from './store/upgrades.ts';
@@ -69,11 +69,14 @@ function pottered(w: World, r: Resident, p: Perception): void {
     return;
   }
   if (r.lastDone && w.t - r.lastDone.t < POTTERS_BEFORE_NUDGE * QUIET_THINK_MINUTES) return;
-  // Places they know with something to do there first: any with a job of Mr Lim's still to be had (Kampung,
-  // 2026-10-30: building-site jobs sat untaken, nothing ever bringing anyone there), then the jetty and the
-  // farm plot, then one more, turning with the time.
+  // Work for Mr Lim right here: there is something more to do here.
+  if (jobsOpenAt(w, r, p.placeId).length) return;
+  // Places they know with something to do there first: any with a job of Mr Lim's still to be had, what he's
+  // having built first (Kampung, 2026-10-30: building-site jobs sat untaken, nothing ever bringing anyone
+  // there), then the jetty and the farm plot, then one more, turning with the time.
   const known = PLACES.filter((pl) => pl.kind !== 'house' && pl.id !== p.placeId && r.knownPlaces.includes(pl.id));
-  const jobs = known.filter((pl) => jobOpenAt(w, r, pl.id));
+  const site = (id: string) => jobsOpenAt(w, r, id).some((j) => j.project !== null);
+  const jobs = known.filter((pl) => jobsOpenAt(w, r, pl.id).length).sort((a, b) => Number(site(b.id)) - Number(site(a.id)));
   const work = known.filter((pl) => NUDGE_FIRST.includes(pl.id) && !jobs.includes(pl));
   const rest = known.filter((pl) => !NUDGE_FIRST.includes(pl.id) && !jobs.includes(pl));
   const places = [...jobs, ...work, ...(rest.length ? [rest[Math.floor(w.t / QUIET_THINK_MINUTES) % rest.length]!] : [])].map((pl) => pl.name);
