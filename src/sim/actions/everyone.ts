@@ -524,10 +524,18 @@ export function plant(w: World, r: Resident, i: Intent = { verb: 'plant' }): Act
     : `You plant ${CROPS[crop].planted} in bed ${bed.n}. They'll need water every day.`);
 }
 
+/** Said when nothing of theirs is planted: a bed harvested or withered is free again. */
+export const NOTHING_PLANTED = 'Nothing of yours is planted on the plot now.';
+
+/** Whether r has a bed planted on the plot (watering and harvesting are offered only then). */
+export function hasBeds(w: World, r: Resident): boolean {
+  return myBeds(w, r).length > 0;
+}
+
 export function water(w: World, r: Resident): ActionResult {
   if (!w.isAt(r, 'farm')) return no('You need to be at the farm plot to water anything.');
   const beds = myBeds(w, r);
-  if (beds.length === 0) return no("You haven't planted anything here.");
+  if (beds.length === 0) return no(NOTHING_PLANTED);
   const today = dayIndex(w.t);
   const dry = beds.filter((b) => b.lastWateredDay !== today);
   if (dry.length === 0) return no("You've already watered your beds today.");
@@ -540,7 +548,7 @@ export function water(w: World, r: Resident): ActionResult {
 export function harvest(w: World, r: Resident): ActionResult {
   if (!w.isAt(r, 'farm')) return no('You need to be at the farm plot to harvest anything.');
   const beds = myBeds(w, r);
-  if (beds.length === 0) return no("You haven't planted anything here.");
+  if (beds.length === 0) return no(NOTHING_PLANTED);
   const ripe = beds.filter((b) => isRipe(w, b));
   if (ripe.length === 0) {
     if (beds.every((b) => b.crop === 'papaya')) return no('Nothing on your tree is ripe yet.');

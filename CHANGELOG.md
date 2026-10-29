@@ -4,6 +4,10 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **Clearer refusals, fewer repeats** (Kampung, 2026-10-29). Residents tried the same thing 10–30 times a day because the answer read as something else. Short of something to cook with now says what's missing plainly ("You have no water: each batch takes a bag of rice and a pail of water", "There's fish for only 2 batches: …") instead of "short of water", which was read as "make one batch". Bread, grilled fish and coconuts answer to roti, ikan panggang, kelapa muda and air kelapa. Watering and harvesting are offered only to someone with a bed planted, and asking without one says "Nothing of yours is planted on the plot now." Living town: nothing saved changes; from the next minute.
+
 ## 0.39.1 (2026-10-29): travellers buy the newer dishes
 
 - **Travellers buy bubur, grilled fish and boiled kangkong** ([daily-life.md](docs/design/daily-life.md) B). Travellers at the kopitiam only ever wanted kopi, fish porridge, vegetable rice and sambal kangkong, so a kopitiam making the newer dishes (and out of coffee powder) had no outside trade for three days. They now pay up to 20¢ for bubur, 50¢ for grilled fish and 45¢ for boiled kangkong. A traveller who finds one thing too dear now takes something else they want at a price they'll pay (the keeper still hears it was too dear). Living town: nothing saved changes; from the next minute.

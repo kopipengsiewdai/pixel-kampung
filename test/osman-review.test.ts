@@ -55,7 +55,7 @@ describe("a worker doesn't stock the boss's kitchen from their own bag", () => {
     delete stock.rice;
     stock.water = 3;
     siti.items = { rice: 3 };
-    refused(act(w, siti.id, { verb: 'cook', item: 'bubur' }), /short of rice/);
+    refused(act(w, siti.id, { verb: 'cook', item: 'bubur' }), /no rice/);
     expect(siti.items.rice).toBe(3);
   });
 });

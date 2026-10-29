@@ -48,7 +48,7 @@ describe('a cook can use what they carry', () => {
     const stock = w.shop('kopitiam')!.stock;
     delete stock.coffee;
     huat.items = {};
-    refused(act(w, huat.id, { verb: 'cook', item: 'kopi' }), /short of coffee/);
+    refused(act(w, huat.id, { verb: 'cook', item: 'kopi' }), /no coffee powder/);
   });
 });
 
