@@ -6,6 +6,7 @@
  */
 import { quantityLabel, type ItemId } from '../items.ts';
 import { formatMoney, type Cents } from '../money.ts';
+import { noteReceived } from '../meals.ts';
 import { addGoods, isKept, onCounter, takeFromCounter, type KeptShop, type PriceOffer, type Resident, type Shop, type World } from '../state.ts';
 import { type ActionResult, no, ok } from './common.ts';
 import { isStaffed, recordFirstSale } from './everyone.ts';
@@ -84,6 +85,7 @@ export function acceptPrice(w: World, r: Resident, found: { buyer: Resident; off
   w.transfer(buyer.id, shop.ownerId, cents, `bought ${offer.item}`);
   takeFromCounter(w, shop, offer.item, offer.qty);
   addGoods(buyer.items, offer.item, offer.qty);
+  noteReceived(w, buyer, shop.ownerId);
   w.emit({ type: 'bought', who: buyer.id, from: shop.ownerId, shop: shop.id, item: offer.item, qty: offer.qty, cents });
   recordFirstSale(w, shop);
   if (shop.ownerId !== r.id) w.remember(shop.ownerId, `${buyer.name} bought ${quantityLabel(offer.item, offer.qty)} for ${formatMoney(cents)}.`);

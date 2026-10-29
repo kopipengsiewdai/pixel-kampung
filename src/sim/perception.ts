@@ -198,7 +198,12 @@ export const FAINT_HUNGER = 950;
  * and the sea, which always has fish. Only places they know.
  */
 function foodWays(w: World, r: Resident): string[] {
-  if (r.hunger < HUNGRY_FROM || (Object.keys(r.items) as ItemId[]).some((i) => ITEMS[i]?.food && (r.items[i] ?? 0) > 0)) return [];
+  if (r.hunger < HUNGRY_FROM) return [];
+  // Holding food, they can eat it; but raw fish or greens could be cooked into more.
+  if ((Object.keys(r.items) as ItemId[]).some((i) => ITEMS[i]?.food && (r.items[i] ?? 0) > 0)) {
+    const cook = homeCooking(w, r);
+    return cook ? [cook] : [];
+  }
   const here = w.placeOf(r)?.id ?? null;
   const shops = w.state.shops.filter((s) => s.id !== here && r.knownPlaces.includes(s.id) && isStaffed(w, s)
     && (Object.entries(s.sellPrices) as [ItemId, number][]).some(([i, price]) => ITEMS[i].food && (counterGoods(w, s)[i] ?? 0) > 0 && price <= r.money))
@@ -401,7 +406,8 @@ export function perceive(w: World, r: Resident): Perception {
       .map((x) => feelingLine(x.b, x.o.name)!),
     people: w.nearby(r).map((o) => {
       const l = looks(o);
-      const h = holdingFood(o);
+      const kept = w.shopOf(o.id);
+      const h = kept && w.isAt(o, kept.id) ? null : holdingFood(o);
       return { name: o.name, doing: doing(w, o), ...(l ? { looks: l } : {}), ...(h ? { holding: h } : {}) };
     }),
     given: givenLines(w, r),

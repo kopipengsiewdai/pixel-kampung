@@ -432,6 +432,7 @@ export function acceptTrade(w: World, r: Resident, i: Intent): ActionResult {
       addGoods(from.items, item, -n);
       addGoods(to.items, item, n);
     }
+    if (Object.keys(b.items).length) noteReceived(w, to, from.id);
     if (b.cents > 0) w.transfer(from.id, to.id, b.cents, 'trade');
   };
   move(o, r, offer.give);

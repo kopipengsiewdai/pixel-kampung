@@ -163,3 +163,59 @@ describe('(e) sharing a meal', () => {
     refused(act(w, fatimah.id, { verb: 'share_meal' }));
   });
 });
+
+describe('(a)-(e), after review', () => {
+  it('(b) a meal shared, a debt repaid or wages paid from that person count as something back', () => {
+    const w = newWorld(19, 0);
+    const siti = put(w, 'Siti', 'well');
+    const mak = put(w, 'Mak Esah', 'well');
+    siti.money = 1000;
+    siti.hunger = 700;
+    accepted(act(w, siti.id, { verb: 'give', to: 'Mak Esah', money: '$3' }));
+    expect(seen(w, 'Siti')).toMatch(/given Mak Esah/);
+    mak.items = { bubur: 1 };
+    accepted(act(w, mak.id, { verb: 'share_meal' }));
+    expect(seen(w, 'Siti')).not.toMatch(/given Mak Esah/);
+    accepted(act(w, siti.id, { verb: 'give', to: 'Mak Esah', money: '$1' }));
+    expect(seen(w, 'Siti')).not.toMatch(/given Mak Esah/);
+    w.state.t += 1440;
+    accepted(act(w, siti.id, { verb: 'give', to: 'Mak Esah', money: '$1' }));
+    expect(seen(w, 'Siti')).toMatch(/given Mak Esah/);
+    w.transfer(mak.id, siti.id, 50, 'repaid');
+    expect(seen(w, 'Siti')).not.toMatch(/given Mak Esah/);
+  });
+
+  it('(e) a named food they do not hold is refused, not swapped; someone busy is not served', () => {
+    const w = newWorld(9);
+    const fatimah = put(w, 'Fatimah', 'well');
+    const aminah = put(w, 'Aminah', 'well');
+    const hassan = put(w, 'Hassan', 'well');
+    aminah.hunger = 700;
+    hassan.hunger = 700;
+    fatimah.items = { fish: 3 };
+    expect(refused(act(w, fatimah.id, { verb: 'share_meal', item: 'bubur' }))).toMatch(/bubur/);
+    hassan.activity = { kind: 'chore', chore: 'fetch_water', until: w.t + 10 } as never;
+    accepted(act(w, fatimah.id, { verb: 'share_meal', item: 'fish' }));
+    expect(aminah.hunger).toBeLessThan(700);
+    expect(hassan.hunger).toBe(700);
+  });
+
+  it('(c) raw fish in hand: told they could grill it at home', () => {
+    const w = newWorld(19, 0);
+    const raju = put(w, 'Raju', 'well');
+    raju.hunger = 800;
+    raju.items = { fish: 2, firewood: 1 };
+    expect(seen(w, 'Raju')).toMatch(/You could cook grilled fish at home: you have what it takes\./);
+  });
+
+  it('(d) a keeper at their own stall is not "holding" their wares', () => {
+    const w = newWorld(9);
+    const rahim = put(w, 'Rahim', 'market-stall');
+    put(w, 'Siti', 'market-stall');
+    rahim.items = { fish: 14 };
+    expect(seen(w, 'Siti')).not.toMatch(/Rahim \([^)]*holding/);
+    put(w, 'Rahim', 'well');
+    put(w, 'Siti', 'well');
+    expect(seen(w, 'Siti')).toMatch(/Rahim \([^)]*holding 14 fish/);
+  });
+});

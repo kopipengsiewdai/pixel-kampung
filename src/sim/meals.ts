@@ -4,7 +4,7 @@
  * and remembering money given today with nothing back.
  */
 import { kinOf } from '../seed/cast.ts';
-import { type ActionResult, type Intent, itemOf, no, ok } from './actions/common.ts';
+import { type ActionResult, type Intent, itemOf, no, ok, quoted } from './actions/common.ts';
 import { eat } from './actions/everyone.ts';
 import { ROUGH } from './households.ts';
 import { ITEMS, type ItemId } from './items.ts';
@@ -27,7 +27,7 @@ function family(a: Resident, b: Resident): boolean {
 
 /** Family, or the household they live with, here with them, awake and hungry. */
 function company(w: World, r: Resident): Resident[] {
-  return w.nearby(r).filter((o) => !w.isAsleep(o) && o.hunger >= SERVE_FROM && family(r, o));
+  return w.nearby(r).filter((o) => !o.activity && !o.stove && o.hunger >= SERVE_FROM && family(r, o));
 }
 
 /** Offered only with real food in hand and someone hungry of theirs with them. */
@@ -37,8 +37,10 @@ export function canShareMeal(w: World, r: Resident): boolean {
 
 /** A cook holding food serves hungry family or household with them, one serving each, eaten just as they'd eat it themselves. */
 export function shareMeal(w: World, r: Resident, i: Intent): ActionResult {
-  const named = i.item !== undefined && i.item !== null && i.item !== '' ? itemOf(i.item) : null;
-  const item = named && heldFood(r).includes(named) ? named : heldFood(r)[0];
+  const asked = i.item !== undefined && i.item !== null && i.item !== '';
+  const named = asked ? itemOf(i.item) : null;
+  if (asked && (!named || !heldFood(r).includes(named))) return no(named ? `You don't have any ${named} to share.` : `You don't have anything called ${quoted(i.item)}.`);
+  const item = named ?? heldFood(r)[0];
   if (!item) return no("You've no food with you to share.");
   const served: Resident[] = [];
   for (const o of company(w, r)) {
@@ -51,6 +53,7 @@ export function shareMeal(w: World, r: Resident, i: Intent): ActionResult {
       continue;
     }
     served.push(o);
+    noteReceived(w, o, r.id);
     w.notify(o.id, `${r.name} serves you ${ITEMS[item].one}, and you eat it with them.`);
   }
   if (!served.length) return no("There's nobody hungry of yours here to share it with.");
