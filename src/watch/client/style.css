@@ -349,3 +349,17 @@ table.money th:first-child, table.money td:first-child { text-align: left; }
   .toggle button { min-height: 44px; padding: 8px 12px; font-size: 14px; }
   .card dd, .card li { overflow-wrap: anywhere; }
 }
+
+/* Kampung News: a 1960s broadsheet look inside the wiki's sheet. */
+.news-open { margin-left: 6px; }
+.paper .issues { display: flex; gap: 6px; overflow-x: auto; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.paper .issues button { background: none; border: 1px solid var(--line); border-radius: 3px; color: var(--muted); font: inherit; font-size: 12px; padding: 2px 8px; cursor: pointer; white-space: nowrap; }
+.paper .issues button[aria-current=true] { color: var(--ink); border-color: var(--accent); font-weight: 600; }
+.paper-body { font-family: Georgia, 'Times New Roman', serif; }
+.paper-body .dateline { font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-top: 10px; }
+.paper-body .headline { font-size: 22px; text-transform: uppercase; letter-spacing: 0.02em; margin: 4px 0 8px; border-bottom: 2px solid var(--ink); padding-bottom: 4px; }
+.paper-body .lead { font-size: 15px; }
+.paper-body h4.report { color: var(--ink); text-transform: none; letter-spacing: 0; font-size: 14px; }
+.paper-body table.box { font-family: system-ui, sans-serif; font-size: 12px; }
+.paper-body table.box td, .paper-body table.box th { vertical-align: top; padding: 2px 6px; }
+.paper-body .mark { color: #c0392b; }

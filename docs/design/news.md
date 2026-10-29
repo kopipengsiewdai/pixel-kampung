@@ -63,6 +63,28 @@ circles, or spend above the day's cap.
   the repo. If they go into the save, that change ships with an upgrade step
   and a frozen fixture (docs/design/upgrades.md).
 
+## As built (0.41.0)
+
+- `src/news/newsroom.ts` writes an issue from about 07:00 SGT once a real
+  day, covering every whole kampung day since the last issue (the first
+  looks back five). One routine (Haiku) call, `kind: news`, in the cost log
+  as `kampung-news` and checked against the day's cap first; a failed or
+  capped issue is tried again ten minutes later, never skipped.
+- The writer sees only a digest: who's who (family from the cast, who is
+  married), each day's key moments from the saved events (the same line
+  repeated is folded into one, with how often), up to eight lines of notable
+  talk a day put into English with the watch page's translator, meals,
+  hunger, illness, and money across the edge of town. A report quoting words
+  that aren't in the digest is dropped; so is such a sentence in the lead.
+- The box (`src/news/box.ts`) is computed per kampung day. Hunger at 1000,
+  residents with no money and the village fund are read at each midnight
+  into `$KAMPUNG_HOME/news/days.jsonl`; days before the paper began show
+  them as unknown. Refusals are counted by their wording (residents' replies
+  keep no ok flag), so the page labels them an estimate.
+- Issues are `$KAMPUNG_HOME/news/issues/<n>.json`. The watch page's **News**
+  button opens them, newest first. Only a thinking town (`--minds`) writes
+  the paper. Nothing is saved in the town's save, so there's no upgrade step.
+
 ## Not yet
 
 - Residents reading a paper, or a notice board press. That would be an

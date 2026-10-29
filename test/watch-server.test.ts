@@ -241,3 +241,21 @@ describe('home Wi-Fi mode', () => {
     expect((await rawGet(server.port, '/api/layout', `192.168.1.50:${server.port}`)).status).toBe(403);
   });
 });
+
+describe('the News page (docs/design/news.md)', () => {
+  it('lists back issues newest first and serves one by number; nothing to list without a paper', async () => {
+    const live = new LiveSource({ label: 'Live town', msPerMinute: 1000, everyMs: 0 });
+    Town.create(42, START, live.hooks());
+    const issue = { n: 2, headline: 'RICE DEARER' };
+    const news = { list: () => [{ n: 2, dateline: 'Kampung, Monday 1 January, Year 0', headline: 'RICE DEARER', fromDay: 1, toDay: 5 }], get: (n: number) => (n === 2 ? issue : null) };
+    const server = await startWatchServer({ source: live, client: CLIENT, assetsDir: tmp(), port: 0, news: news as never });
+    cleanups.push(() => server.close());
+    expect(await (await fetch(`${server.url}api/news`)).json()).toEqual({ issues: news.list() });
+    expect(await (await fetch(`${server.url}api/news/2`)).json()).toEqual(issue);
+    expect((await fetch(`${server.url}api/news/9`)).status).toBe(404);
+    expect((await fetch(`${server.url}api/news/..%2f..%2fsecret`)).status).toBe(404);
+    const bare = await startWatchServer({ source: live, client: CLIENT, assetsDir: tmp(), port: 0 });
+    cleanups.push(() => bare.close());
+    expect(await (await fetch(`${bare.url}api/news`)).json()).toEqual({ issues: [], off: true });
+  });
+});

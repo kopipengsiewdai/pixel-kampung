@@ -44,6 +44,7 @@ const ASK: Record<ThinkKind, string> = {
   plan: "A new day. In a few short lines, what do you mean to do today? (Just plan; don't act yet.)",
   trader: 'Answer briefly.',
   translate: 'Translate.',
+  news: 'Write the issue.',
   reflect: 'The day is nearly over. In a few short lines to yourself: what happened today that matters, and what have you learned?',
 };
 

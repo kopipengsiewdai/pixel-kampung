@@ -7,6 +7,7 @@ import type { Card, Economy, FeedLine, Hello, MoneyView, PlaceCard, ReplayState,
 import { startGame, type TownScene } from './scene.ts';
 import { looksForeign } from '../foreign.ts';
 import { EnglishAsker } from './english.ts';
+import type { Issue, IssueSummary } from '../../news/types.ts';
 
 const FEED_KEPT = 200;
 
@@ -557,7 +558,8 @@ function wireZoom(): void {
 
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
-  if (wikiOpen) showWiki(false);
+  if (newsOpen) showNews(false);
+  else if (wikiOpen) showWiki(false);
   else pick(null);
 });
 
@@ -715,6 +717,103 @@ function wireWiki(): void {
   }
 }
 
+// ---------------------------------------------------------------- Kampung News (docs/design/news.md)
+
+let newsOpen = false;
+
+const MARK_TITLE = {
+  meals: 'Someone ate fewer than 2 times', hunger: 'Someone at hunger 1000', refusals: 'The same refusal 10 or more times', circles: 'More than 30 talk circles',
+} as const;
+
+/** The behind-the-scenes box: one row a kampung day, a mark where a figure crosses a line. */
+function newsBox(i: Issue): Node[] {
+  const mark = (on: boolean, why: string) => (on ? el('span', { class: 'mark', title: why }, ' ⚠') : null);
+  const names = (xs: string[] | null) => (xs === null ? '–' : xs.length ? xs.join(', ') : 'none');
+  const rows = i.box.rows.map((r) => el('tr', {},
+    el('td', {}, r.date),
+    el('td', {}, `${r.meals} (${r.perResident.toFixed(1)} each)`, mark(r.warn.includes('meals'), MARK_TITLE.meals)),
+    el('td', {}, names(r.under2)),
+    el('td', {}, names(r.hunger1000), mark(r.warn.includes('hunger'), MARK_TITLE.hunger)),
+    el('td', {}, `${names(r.fellIll)} / ${names(r.gotWell)}`),
+    el('td', {}, r.refusals.length ? r.refusals.map((x) => `${x.who} ×${x.n}: ${x.text.length > 70 ? `${x.text.slice(0, 70)}…` : x.text}`).join(' · ') : 'none', mark(r.warn.includes('refusals'), MARK_TITLE.refusals)),
+    el('td', {}, String(r.circles), mark(r.warn.includes('circles'), MARK_TITLE.circles)),
+    el('td', {}, names(r.noMoney)),
+    el('td', {}, r.fund === null ? '–' : money(r.fund)),
+    el('td', {}, `${money(r.edgeIn)} / ${money(r.edgeOut)}`),
+  ));
+  const head = ['Day', 'Meals', 'Ate < 2', 'Hunger 1000', 'Fell ill / got well', 'Refusals repeated (by wording, an estimate)', 'Circles', 'No money', 'Village fund', 'From / to outside']
+    .map((h) => el('th', {}, h));
+  return [
+    el('h4', {}, 'Behind the scenes'),
+    el('div', { class: 'scroll' }, el('table', { class: 'econ box' }, el('thead', {}, el('tr', {}, ...head)), el('tbody', {}, ...rows))),
+    ...i.box.spend.map((s) => el('p', { class: 'note' }, `AI spend ${s.day}: US$${s.usd.toFixed(2)} of US$${s.cap.toFixed(2)}`, mark(s.over, "Above the day's cap"))),
+    el('p', { class: 'note' }, i.box.ledgerCheck ?? 'No money check yet.'),
+  ];
+}
+
+function newsIssue(i: Issue): Node[] {
+  return [
+    el('p', { class: 'dateline' }, i.dateline),
+    el('h3', { class: 'headline' }, i.headline),
+    i.gap ? el('p', { class: 'note' }, 'The town was down for part of this stretch.') : null,
+    el('p', { class: 'lead' }, i.lead),
+    ...i.reports.flatMap((r) => [el('h4', { class: 'report' }, r.headline), el('p', {}, r.text)]),
+    ...newsBox(i),
+  ].filter((n): n is Node => n !== null);
+}
+
+async function openIssue(n: number): Promise<void> {
+  for (const b of $('news-issues').querySelectorAll('button')) b.setAttribute('aria-current', String((b as HTMLElement).dataset.n === String(n)));
+  try {
+    const res = await fetch(`/api/news/${n}`);
+    if (!res.ok || !newsOpen) return;
+    const issue = await res.json() as Issue;
+    if (newsOpen) $('news-body').replaceChildren(...newsIssue(issue));
+  } catch {
+    $('news-body').replaceChildren(el('p', { class: 'note' }, "Couldn't fetch that issue just now. Pick it again to retry."));
+  }
+}
+
+async function loadNews(): Promise<void> {
+  try {
+    const res = await fetch('/api/news');
+    if (!res.ok || !newsOpen) return;
+    const got = await res.json() as { issues: IssueSummary[]; off?: boolean };
+    if (!newsOpen) return;
+    $('news-issues').replaceChildren(...got.issues.map((s) => {
+      const b = el('button', { type: 'button', 'data-n': String(s.n) }, `${s.dateline.replace(/^Kampung, /, '')}: ${s.headline}`);
+      b.addEventListener('click', () => { void openIssue(s.n); });
+      return b;
+    }));
+    if (got.issues.length) await openIssue(got.issues[0]!.n);
+    else $('news-body').replaceChildren(el('p', { class: 'note' }, got.off
+      ? 'The paper is written only while the town is thinking for real.'
+      : 'No issue yet: the first comes out at about 7 in the morning.'));
+  } catch {
+    $('news-body').replaceChildren(el('p', { class: 'note' }, "Couldn't reach the town just now. Close the paper and open it again to retry."));
+  }
+}
+
+/** Opens the paper (its back issues, the newest shown) or closes it, moving focus in and back out. */
+function showNews(open: boolean): void {
+  newsOpen = open;
+  $('news').hidden = !open;
+  document.body.classList.toggle('sheet', open || wikiOpen || !$('card').hidden);
+  if (open) {
+    $('news-issues').replaceChildren();
+    $('news-body').replaceChildren(el('p', { class: 'note' }, 'Opening…'));
+    void loadNews();
+    $('news-close').focus();
+  } else {
+    $('news-open').focus();
+  }
+}
+
+function wireNews(): void {
+  $('news-open').addEventListener('click', () => showNews(true));
+  $('news-close').addEventListener('click', () => showNews(false));
+}
+
 // ---------------------------------------------------------------- replay controls
 
 async function control(body: Record<string, unknown>): Promise<void> {
@@ -814,4 +913,5 @@ wireReplay();
 wireZoom();
 wireFeed();
 wireWiki();
+wireNews();
 connect();

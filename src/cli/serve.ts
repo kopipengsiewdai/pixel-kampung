@@ -17,7 +17,7 @@ import { feedLine, formatFeedLine } from '../feed/feed.ts';
 import type { GameEvent } from '../sim/events.ts';
 import { SystemClock } from '../sim/clock.ts';
 import { auditLedger } from '../sim/audit.ts';
-import { dayIndex, gameMinuteAt, gameMinuteFromMs, REAL_MS_PER_GAME_MINUTE } from '../sim/time.ts';
+import { dayIndex, gameMinuteAt, gameMinuteFromMs, MINUTES_PER_DAY, REAL_MS_PER_GAME_MINUTE, SGT_OFFSET_MIN } from '../sim/time.ts';
 import { Town } from '../town.ts';
 import { numArg, parseArgs } from './args.ts';
 import { openSave } from './open-save.ts';
@@ -41,6 +41,8 @@ import { DEFAULT_PORT, startWatchServer } from '../watch/server.ts';
 import { Translator } from '../watch/translate.ts';
 import { FEED_KEPT, LiveSource } from '../watch/source.ts';
 import { ECONOMY_EVENTS } from '../watch/wiki.ts';
+import { Newsroom } from '../news/newsroom.ts';
+import type { ModelClient } from '../mind/model.ts';
 
 const args = parseArgs(process.argv.slice(2));
 const home = kampungHome();
@@ -62,6 +64,7 @@ let mindOpts: Partial<TownOptions> = { dials: settings.dials };
 let memory: MemoryStore | null = null;
 let costs: CostLog | null = null;
 let translator: Translator | null = null;
+let writer: ModelClient | null = null;
 if (args.minds === true) {
   const apiKey = readApiKey(home);
   if (!apiKey) {
@@ -85,6 +88,7 @@ if (args.minds === true) {
   const mrLim = new ModelMrLimHead({ client: mind.client, costs, onError: mind.onError });
   // The owner's watch page can ask for English, on the same model and the same cap (in the cost log as watch-page).
   translator = new Translator({ client: mind.client, costs, file: join(home, 'translations.json'), onError: mind.onError });
+  writer = mind.client;
   mindOpts = { ...mindOpts, brains: mindBrains(mind, fakeBrains), observer: mind.observe, osman, teacher, mrLim };
 }
 
@@ -116,10 +120,28 @@ live.attach(town.world);
 live.seed(store.recentEvents(FEED_KEPT * 10));
 console.log(`Pixel Kampung is running. Saving to ${dbPath(home)}`);
 
+// Kampung News, the owner's daily paper (news.md): written each morning from the save, on the same model and cap (as kampung-news).
+const newsroom = writer && costs && mem ? new Newsroom({
+  dir: home, client: writer, costs, onError: (err) => console.error(`Kampung News couldn't be written just now (${err instanceof Error ? err.constructor.name : 'Error'}); it will try again.`),
+  translate: translator ? (t) => translator!.english(t) : undefined,
+  desk: {
+    t: () => town.t,
+    calendar: town.world.state.calendar,
+    residents: () => town.world.state.residents.map((r) => ({ id: r.id, name: r.name, spouse: r.spouseId ? town.world.nameOf(r.spouseId) : null })),
+    names: (id) => town.world.nameOf(id),
+    facts: (day) => {
+      const from = day * MINUTES_PER_DAY - SGT_OFFSET_MIN;
+      const to = from + MINUTES_PER_DAY;
+      return { day, events: store.eventsBetween(from, to), ledger: store.ledgerSince(from).filter((l) => l.t < to), did: mem.didBetween(from, to) };
+    },
+    ledgerCheck: () => lastAudit,
+  },
+}) : null;
+
 const port = numArg(args, 'port', DEFAULT_PORT);
 // Not awaited: the town's first minute never waits on the page.
 const page = buildClient()
-  .then((client) => startWatchServer({ source: live, client, assetsDir: ASSETS_DIR, port, lan: args.lan === true, ...(translator ? { translate: (t: string[]) => translator!.english(t) } : {}) }))
+  .then((client) => startWatchServer({ source: live, client, assetsDir: ASSETS_DIR, port, lan: args.lan === true, ...(translator ? { translate: (t: string[]) => translator!.english(t) } : {}), ...(newsroom ? { news: newsroom } : {}) }))
   .then((server) => {
     console.log(`Watch the kampung at ${server.url}  (this PC only)`);
     for (const u of server.lanUrls) console.log(`On a phone on the same Wi-Fi: ${u}`);
@@ -141,6 +163,11 @@ let lastAudit: string | null = null;
 function audit(): void {
   const day = dayIndex(town.t);
   if (day === auditedDay) return;
+  // How the day just over ended, for the paper's box (only when the town ran through its midnight).
+  if (auditedDay !== null && day === auditedDay + 1) {
+    const rs = town.world.state.residents;
+    newsroom?.recordDayEnd({ day: auditedDay, hunger1000: rs.filter((r) => r.hunger >= 1000).map((r) => r.id), noMoney: rs.filter((r) => r.money <= 0).map((r) => r.id), fund: town.world.state.fund });
+  }
   auditedDay = day;
   lastAudit = auditLedger(store.ledger(), town.world.state.residents).line;
   console.log(lastAudit);
@@ -154,6 +181,8 @@ async function tick(): Promise<void> {
     const t = now();
     if (t > town.t) await town.catchUp(t);
     audit();
+    // Not awaited: the town's minute never waits on the paper.
+    void newsroom?.publishIfDue(clock.nowMs());
     writeFileSync(heartbeatPath(home), JSON.stringify({ at: new Date(clock.nowMs()).toISOString(), t: town.t }));
   } finally {
     busy = false;
