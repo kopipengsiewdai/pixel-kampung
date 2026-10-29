@@ -18,10 +18,10 @@ describe('someone who has gone', () => {
     const w = newWorld(9);
     const raju = put(w, 'Raju', 'well');
     put(w, 'Ah Seng', 'jetty');
-    expect(refused(act(w, raju.id, { verb: 'say', to: 'Ah Seng', text: 'Oi!' }))).toBe("Ah Seng isn't nearby. There's nobody here with you.");
+    expect(refused(act(w, raju.id, { verb: 'say', to: 'Ah Seng', text: 'Oi!' }))).toBe("Ah Seng isn't nearby. You haven't seen Ah Seng lately. There's nobody here with you.");
     put(w, 'Siti', 'well');
     put(w, 'Muthu', 'well');
-    expect(refused(act(w, raju.id, { verb: 'say', to: 'Ah Seng', text: 'Oi!' }))).toBe("Ah Seng isn't nearby. Here with you: Siti and Muthu.");
+    expect(refused(act(w, raju.id, { verb: 'say', to: 'Ah Seng', text: 'Oi!' }))).toBe("Ah Seng isn't nearby. You haven't seen Ah Seng lately. Here with you: Siti and Muthu.");
   });
 
   it("someone not in the kampung at all is answered so, in the kampung's words", () => {

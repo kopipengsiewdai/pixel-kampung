@@ -1,6 +1,7 @@
 import { ITEMS, findItem, quantityLabel, type ItemId } from '../items.ts';
 import { formatMoney, parseMoney, type Cents } from '../money.ts';
 import type { Bundle, Goods, Resident, World } from '../state.ts';
+import { lastSeenLine } from '../sightings.ts';
 
 /** What a resident asks to do. Fields come from a brain, so they're checked, never trusted. */
 export interface Intent {
@@ -66,7 +67,8 @@ export function personNearby(w: World, r: Resident, name: unknown, opts: { awake
   if (!o && typeof name === 'string' && /^(mr\.? ?lim|lim|the village head|village head|penghulu)$/i.test(name.trim())) return MR_LIM_BUSY;
   if (!o) return `You don't know anyone called ${quoted(name)}; there's nobody by that name in the kampung.`;
   if (o.id === r.id) return "That's you.";
-  if (!w.isNear(r, o)) return `${o.name} isn't nearby. ${whoIsHere(w, r)}`;
+  // Where they last saw them, as they remember it: never where they are now.
+  if (!w.isNear(r, o)) return `${o.name} isn't nearby. ${lastSeenLine(w, r, o)} ${whoIsHere(w, r)}`;
   if (opts.awake !== false && w.isAsleep(o)) return `${o.name} is fast asleep.`;
   return o;
 }
