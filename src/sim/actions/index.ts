@@ -9,6 +9,7 @@ import { offersFor } from './haggle.ts';
 import * as owners from './owners.ts';
 import * as teach from './teach.ts';
 import * as marriage from '../marriage.ts';
+import { canShareMeal, shareMeal } from '../meals.ts';
 import * as households from '../households.ts';
 import { TOO_ILL, TOO_ILL_FOR } from '../sickness.ts';
 import { fireGround, fireNear, KITCHEN_ID, kitchenBuilt, lightFire } from '../cooking.ts';
@@ -176,6 +177,10 @@ export const ACTIONS: Record<string, ActionDef> = {
     run: everyone.eat, ownersOnly: false, says: 'eat or drink something you carry, or from your own shop (item)',
     here: (w, r) => (Object.keys(r.items) as ItemId[]).some((i) => ITEMS[i]?.food && countGoods(r.items, i) > 0) || everyone.shopHere(w, r)?.ownerId === r.id,
   },
+  share_meal: {
+    run: shareMeal, ownersOnly: false, here: canShareMeal,
+    says: 'share the food you hold with your hungry family here, one serving each (item)',
+  },
   sleep: { run: everyone.sleep, ownersOnly: false, says: 'sleep', here: (w, r) => w.isAt(r, w.home(r).id) },
   pay_rent: {
     run: (w, r, i) => {
@@ -259,8 +264,17 @@ const BUSY: Record<string, string> = {
 /** What can be done while a batch is cooking. */
 export const AT_STOVE = new Set(['look_around', 'say']);
 
-/** What can still be done in the middle of a shift, without leaving it. */
-export const ON_SHIFT = new Set(['look_around', 'say', 'cook', 'agree', 'refuse', 'sweep']);
+/** What can still be done in the middle of a shift, without leaving it: a bite, and buying it at the counter they mind (Kampung, 2026-10-29). */
+export const ON_SHIFT = new Set(['look_around', 'say', 'cook', 'agree', 'refuse', 'sweep', 'eat', 'buy']);
+
+/** On shift, buying is only at the counter they're minding. */
+function shiftAllows(w: World, r: Resident, verb: string): boolean {
+  if (!ON_SHIFT.has(verb)) return false;
+  if (verb !== 'buy') return true;
+  const a = r.activity;
+  const job = a?.kind === 'working' ? w.state.jobs.find((j) => j.id === a.jobId) : undefined;
+  return !!job && w.isAt(r, job.placeId);
+}
 
 /** The action asked for, as written in ACTIONS ("Walk to" → walk_to); '' if none. */
 export function verbOf(intent: unknown): string {
@@ -273,7 +287,7 @@ export function act(w: World, residentId: string, intent: unknown): ActionResult
   const r = w.resident(residentId);
   const verb = verbOf(intent);
   if (r.activity?.kind === 'chore') return no(chores.busyAt(r.activity.chore));
-  if (r.activity && !(r.activity.kind === 'working' && ON_SHIFT.has(verb))) return no(BUSY[r.activity.kind]!);
+  if (r.activity && !(r.activity.kind === 'working' && shiftAllows(w, r, verb))) return no(BUSY[r.activity.kind]!);
   if (r.stove && !AT_STOVE.has(verb)) return no("You're busy at the stove.");
   if (isNight(w.t)) return no("It's the middle of the night. You should be asleep.");
   const def = Object.hasOwn(ACTIONS, verb) ? ACTIONS[verb] : undefined;
@@ -287,7 +301,7 @@ export function act(w: World, residentId: string, intent: unknown): ActionResult
 export function availableActions(w: World, r: Resident): { verb: string; says: string }[] {
   const working = r.activity?.kind === 'working';
   return Object.entries(ACTIONS)
-    .filter(([verb, d]) => (!d.ownersOnly || keeper(w, r)) && (!d.here || d.here(w, r)) && (!working || ON_SHIFT.has(verb)) && (!r.stove || AT_STOVE.has(verb))
+    .filter(([verb, d]) => (!d.ownersOnly || keeper(w, r)) && (!d.here || d.here(w, r)) && (!working || shiftAllows(w, r, verb)) && (!r.stove || AT_STOVE.has(verb))
       && !(r.ill && TOO_ILL_FOR.has(verb)))
     .map(([verb, d]) => ({ verb: verb.replace(/_/g, ' '), says: typeof d.says === 'string' ? d.says : d.says(w, r) }));
 }

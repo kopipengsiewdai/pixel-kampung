@@ -4,6 +4,10 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **Meals together, and paying for nothing** ([home-cooking.md](docs/design/home-cooking.md), [daily-life.md](docs/design/daily-life.md); Kampung, 2026-10-29). A cook holding food can share it with hungry family or household with them, one serving each; people see the food someone nearby is holding; a hungry resident is told what they could cook at home from what they really have, and the one thing missing. A worker on shift can buy from the counter they mind and eat there. Money given with nothing back is remembered that day ("Today you've given Mdm Tan $6.55 and had nothing back"). Living town: save v33 (nobody has given anything yet today).
+
 ## 0.41.3 (2026-10-29): Pak Osman by name
 
 - **Pak Osman is someone you can ask for by name.** Speaking to "Pak Osman" or "the lorry man" used to answer "You don't know anyone called…; there's nobody by that name in the kampung" (30 times since game day 20756, from residents who'd just sold him fish). At the lorry he now nods and deals from it (buy, sell, ask him to bring something); away from it, his lorry comes to the lorry stop in the mornings. Living town: nothing saved changes; from the next minute.

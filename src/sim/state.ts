@@ -89,6 +89,8 @@ export interface Resident {
   spouseId: string | null;
   /** Where (in words, as it was then: "at home", "at the well") and when they last saw each other resident themselves. */
   lastSeen: Record<string, { where: string; t: number }>;
+  /** Money they gave each other resident today, and whether anything came back from them (meals.ts). */
+  given: Record<string, { day: number; cents: number; got: boolean }>;
 }
 
 export interface Shop {

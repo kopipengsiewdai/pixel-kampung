@@ -140,6 +140,7 @@ export function feedText(e: GameEvent, n: Names): { text: string; notable: boole
     case 'proposed': return line(`${n(e.who)} asked ${n(e.to)} to marry them.`);
     case 'proposal_refused': return line(`${n(e.who)} said no to marrying ${n(e.from)}.`);
     case 'married': return line(`${n(e.to)} and ${n(e.who)} are married.`);
+    case 'shared_meal': return line(`${n(e.who)} shared ${e.item} with ${e.with.map(n).join(' and ')}.`);
     case 'lesson_refused': return line(`${n(e.who)} turned down ${n(e.from)}'s offer to show them ${howTo(e.skill)}.`);
     case 'travellers_hour': return line(`Travellers from the road bought ${e.served} ${e.served === 1 ? 'thing' : 'things'} at ${place(e.shop)} this past hour, for ${formatMoney(e.cents)}${e.left ? `; ${e.left} left without being served` : ''}.`);
     case 'price_offered': return line(`${n(e.who)} offers ${formatMoney(e.cents)} for ${quantityLabel(e.item, e.qty)} at ${place(e.shop)}.`);

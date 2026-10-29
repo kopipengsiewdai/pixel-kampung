@@ -211,7 +211,7 @@ describe('cook, as a kopitiam worker on shift', () => {
     const { w, siti } = withWorker();
     accepted(act(w, siti.id, { verb: 'work_shift' }));
     const p = perceive(w, siti);
-    expect(p.actions.map((a) => a.verb).sort()).toEqual(['cook', 'say', 'sweep']);
+    expect(p.actions.map((a) => a.verb).sort()).toEqual(['buy', 'cook', 'say', 'sweep']);
     expect(p.job?.stock).toContainEqual({ item: 'fish', qty: 2 });
     accepted(act(w, siti.id, { verb: 'cook', item: 'fish porridge' }));
     for (let i = 0; i < 10; i++) advance(w);
@@ -265,7 +265,7 @@ describe('the action space', () => {
       'accept_job', 'accept_trade', 'agree', 'agree_to_rent', 'ask_errand', 'ask_mr_lim_for_help', 'ask_to_bring', 'borrow', 'buy', 'cast_net', 'change_rent', 'collect', 'cook',
       'decline_trade', 'do_odd_job', 'eat', 'fetch_water', 'fish', 'forage', 'gather_firewood', 'give', 'go_with', 'harvest', 'help', 'join_english_class', 'lend', 'let_go', 'let_off', 'light_fire',
       'look_around', 'mend_nets', 'move_in_with', 'offer_for_place', 'offer_job', 'offer_place', 'offer_trade', 'order_stock', 'pay_lorry_man', 'pay_rent', 'pay_wages', 'pin_note', 'plant', 'propose',
-      'quit_job', 'read_notice_board', 'refuse', 'repay', 'say', 'sell', 'set_price', 'sleep', 'sweep', 'teach',
+      'quit_job', 'read_notice_board', 'refuse', 'repay', 'say', 'sell', 'set_price', 'share_meal', 'sleep', 'sweep', 'teach',
       'walk_to', 'water', 'work_shift', 'write_iou',
     ]);
   });

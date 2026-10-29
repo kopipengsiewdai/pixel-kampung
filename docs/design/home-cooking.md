@@ -22,6 +22,15 @@ into a prompt: residents find it all in-world.
   - **boiled kangkong** (new): two bunches of vegetables. It fills more than raw.
 - **Ingredients** come from what the cook carries, and the servings go back
   into their hands, to eat, give or sell.
+- **Sharing a meal:** a cook holding food can serve hungry family or household
+  with them, one serving each (Kampung, 2026-10-29, owner told). Offered only
+  with real food in hand and someone hungry of theirs there; each eats it just
+  as they'd eat it themselves.
+- **Seeing it:** anyone near someone holding food sees it beside them
+  ("Fatimah (…, holding 2 plates of boiled kangkong)"), and a hungry resident
+  with nothing to eat is told what they could cook at home from what they
+  really have (held, their own shop's stock, their house's stove and fuel),
+  with the one missing thing named (Kampung, 2026-10-29).
 - **Fuel:** a stove needs fuel for each batch.
   - **Firewood:** free. Gathered past the farm plot (a 20-minute chore, one
     bundle). One bundle cooks one batch.

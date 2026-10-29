@@ -70,6 +70,7 @@ export type EventBody =
   | { type: 'proposed'; who: string; to: string }
   | { type: 'proposal_refused'; who: string; from: string }
   | { type: 'married'; who: string; to: string }
+  | { type: 'shared_meal'; who: string; with: string[]; item: ItemId }
   | { type: 'traveller_bought'; shop: string; owner: string; by: string; item: ItemId; cents: Cents }
   | { type: 'travellers_hour'; shop: string; served: number; cents: Cents; left: number }
   | { type: 'price_offered'; who: string; owner: string; shop: string; item: ItemId; qty: number; cents: Cents }

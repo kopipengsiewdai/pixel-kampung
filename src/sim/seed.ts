@@ -55,6 +55,7 @@ export function createWorld(seed: number, t: number, opts: NewWorldOptions = {})
       ill: null,
       spouseId: null,
       lastSeen: {},
+      given: {},
       // Home first; a newcomer knows only a few places, everyone else the whole kampung.
       knownPlaces: [homeId, ...(c.places ?? PLACES.map((p) => p.id)).filter((id) => id !== homeId)],
       // Family and old friends are known from day one; everyone else is met in play.

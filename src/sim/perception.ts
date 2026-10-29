@@ -5,6 +5,9 @@ import { cookable, type CookAt } from './actions/owners.ts';
 import { FEELINGS_SHOWN, feelingLine, strength } from './bonds.ts';
 import { householdLines } from './households.ts';
 import { marriageLines } from './marriage.ts';
+import { givenLines } from './meals.ts';
+import { KEROSENE_BATCHES } from './actions/owners.ts';
+import { ROUGH } from './households.ts';
 import { dealLines } from './place-deals.ts';
 import { offersFor } from './actions/haggle.ts';
 import { servers } from './travellers.ts';
@@ -76,8 +79,10 @@ export interface Perception {
   /** Where they are, as they'd say it: a shop by whose it is ("Mdm Tan's provision shop", "your kopitiam"). */
   where: string;
   atHome: boolean;
-  /** looks: how hungry they look, if it shows. */
-  people: { name: string; doing: string; looks?: string }[];
+  /** looks: how hungry they look, if it shows; holding: the food in their hands, as anyone would see it. */
+  people: { name: string; doing: string; looks?: string; holding?: string }[];
+  /** Money given today to someone here with nothing back, as they remember it. */
+  given: string[];
   /** How they feel about those nearby they know, in words. */
   feelings: string[];
   money: Cents;
@@ -215,7 +220,48 @@ function foodWays(w: World, r: Resident): string[] {
   }
   // Too ill to fish, the sea is no use to them.
   if (here !== 'jetty' && r.knownPlaces.includes('jetty') && !r.ill) out.push('You could catch a fish at the jetty.');
+  const cook = homeCooking(w, r);
+  if (cook) out.push(cook);
   return out;
+}
+
+/** Plain dishes worth a meal, in the order a cook would think of them. */
+const HOME_DISHES: readonly ItemId[] = ['bubur', 'grilled fish', 'boiled kangkong', 'fish porridge', 'vegetable rice'];
+
+/**
+ * A meal they could cook at home from what they really have now: what they
+ * hold, their own shop's stock, and their house's stove and its fuel. Said
+ * only with at most one thing missing, and the missing thing named.
+ */
+function homeCooking(w: World, r: Resident): string | null {
+  if (r.homeId === ROUGH) return null;
+  const shop = w.shopOf(r.id);
+  const stock = (i: ItemId) => (shop ? countGoods(shop.stock, i) : 0);
+  const fuel = (w.state.stoves[r.homeId] ?? 0) + countGoods(r.items, 'kerosene') * KEROSENE_BATCHES + countGoods(r.items, 'firewood') > 0;
+  let best: { dish: ItemId; fromStock: ItemId[]; missing: string[] } | null = null;
+  for (const dish of HOME_DISHES) {
+    const recipe = RECIPES[dish];
+    if (!recipe || recipe.level) continue;
+    const fromStock: ItemId[] = [];
+    const missing: string[] = [];
+    for (const [need, n] of Object.entries(recipe.needs) as [ItemId, number][]) {
+      if (countGoods(r.items, need) >= n) continue;
+      if (countGoods(r.items, need) + stock(need) >= n) fromStock.push(need);
+      else missing.push(need === 'water' ? 'a pail of water from the well' : quantityLabel(need, n));
+    }
+    if (!fuel) missing.push('fuel for the stove: firewood (there is dry wood past the farm plot) or kerosene (from the lorry)');
+    if (missing.length <= 1 && (!best || missing.length < best.missing.length)) best = { dish, fromStock, missing };
+    if (best && !best.missing.length) break;
+  }
+  if (!best) return null;
+  const stocked = best.fromStock.length ? ` with the ${andOr(best.fromStock.map(stuff), 'and')} in your shop's stock` : '';
+  return `You could cook ${best.dish} at home${stocked}${best.missing.length ? `, but you'd need ${best.missing[0]}.` : stocked ? '.' : ': you have what it takes.'}`;
+}
+
+/** The food in someone's hands, as anyone near them would see it ("2 plates of boiled kangkong"); at most two kinds. */
+function holdingFood(o: Resident): string | null {
+  const food = (Object.keys(o.items) as ItemId[]).filter((i) => ITEMS[i]?.food && countGoods(o.items, i) > 0).slice(0, 2);
+  return food.length ? andOr(food.map((i) => quantityLabel(i, countGoods(o.items, i))), 'and') : null;
 }
 
 /** A thing as stuff, with no count: "rice", "coffee powder", "chillies". */
@@ -353,7 +399,12 @@ export function perceive(w: World, r: Resident): Perception {
       .filter((x): x is { o: Resident; b: Bond } => !!x.b && feelingLine(x.b, x.o.name) !== null)
       .sort((x, y) => strength(y.b) - strength(x.b)).slice(0, FEELINGS_SHOWN)
       .map((x) => feelingLine(x.b, x.o.name)!),
-    people: w.nearby(r).map((o) => { const l = looks(o); return l ? { name: o.name, doing: doing(w, o), looks: l } : { name: o.name, doing: doing(w, o) }; }),
+    people: w.nearby(r).map((o) => {
+      const l = looks(o);
+      const h = holdingFood(o);
+      return { name: o.name, doing: doing(w, o), ...(l ? { looks: l } : {}), ...(h ? { holding: h } : {}) };
+    }),
+    given: givenLines(w, r),
     money: r.money,
     carrying: goodsList(r.items),
     hunger: hungerWord(r.hunger),
@@ -525,9 +576,10 @@ function unbackedLine(u: { name: string; kind: DealKind; mine: boolean }): strin
 export function describe(p: Perception): string {
   const lines: string[] = [`It's ${p.time}. You're at ${p.where}.`];
   lines.push(p.people.length
-    ? `Nearby: ${p.people.map((x) => `${x.name} (${x.doing}${x.looks ? `, ${x.looks}` : ''})`).join(', ')}.`
+    ? `Nearby: ${p.people.map((x) => `${x.name} (${x.doing}${x.looks ? `, ${x.looks}` : ''}${x.holding ? `, holding ${x.holding}` : ''})`).join(', ')}.`
     : "There's nobody else around.");
   lines.push(...p.feelings);
+  lines.push(...p.given);
   for (const n of p.unanswered) lines.push(`${n} hasn't answered you.`);
   if (p.atHome && HUNGRY.has(p.hunger) && !p.carrying.some((c) => ITEMS[c.item].food)) lines.push("There's no food in the house.");
   if (p.hungerPang) lines.push(p.hungerPang);

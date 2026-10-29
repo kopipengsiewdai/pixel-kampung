@@ -5,6 +5,7 @@ import { lorryBuy, lorrySell } from '../osman.ts';
 import { MAP_H, MAP_W, PLACES, PLACE_BY_ID, findPath, isWalkable, type Point } from '../map.ts';
 import { learnFromWords } from '../discovery.ts';
 import { handedOver } from './chores.ts';
+import { givenLine, noteGift, noteReceived } from '../meals.ts';
 import { offerPrice } from './haggle.ts';
 import { formatMoney } from '../money.ts';
 import { perceive } from '../perception.ts';
@@ -344,6 +345,7 @@ export function buy(w: World, r: Resident, i: Intent): ActionResult {
   w.transfer(r.id, shop.ownerId, cost, `bought ${item}`);
   takeFromCounter(w, shop, item, qty);
   addGoods(r.items, item, qty);
+  noteReceived(w, r, shop.ownerId);
   w.emit({ type: 'bought', who: r.id, from: shop.ownerId, shop: shop.id, item, qty, cents: cost });
   recordFirstSale(w, shop);
   w.remember(shop.ownerId, `${r.name} bought ${quantityLabel(item, qty)} for ${formatMoney(cost)}.`);
@@ -692,7 +694,11 @@ export function give(w: World, r: Resident, i: Intent): ActionResult {
     w.transfer(r.id, o.id, cents, 'gift');
     w.emit({ type: 'gave', who: r.id, to: o.id, item: null, qty: 0, cents });
     w.notify(o.id, `${r.name} gave you ${formatMoney(cents)}.`);
-    return ok(`You give ${o.name} ${formatMoney(cents)}.`);
+    noteReceived(w, o, r.id);
+    noteGift(w, r, o.id, cents);
+    // Giving again today with nothing back: they remember it as they give.
+    const tally = r.given[o.id]!.cents > cents ? givenLine(w, r, o) : null;
+    return ok(`You give ${o.name} ${formatMoney(cents)}.${tally ? ` ${tally}` : ''}`);
   }
   if (i.item === undefined || i.item === null || i.item === '') return no(GIVING_NOTHING);
   const item = itemOf(i.item);
@@ -718,6 +724,7 @@ export function give(w: World, r: Resident, i: Intent): ActionResult {
     w.emit({ type: 'took_stock', who: r.id, shop: stall!.id, item, qty: qty - fromHand });
   }
   addGoods(o.items, item, qty);
+  noteReceived(w, o, r.id);
   w.emit({ type: 'gave', who: r.id, to: o.id, item, qty, cents: 0 });
   w.notify(o.id, `${r.name} gave you ${quantityLabel(item, qty)}.`);
   handedOver(w, r, o, item);
