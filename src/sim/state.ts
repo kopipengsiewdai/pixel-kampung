@@ -10,7 +10,7 @@ import { Rng } from './rng.ts';
 import { dateAt, type Calendar } from './calendar.ts';
 import { CAST } from '../seed/cast.ts';
 import type { Lesson, LessonOffer, SkillId, SkillState } from './skills.ts';
-import type { GameClock } from './time.ts';
+import { dayIndex, type GameClock } from './time.ts';
 import type { OsmanState } from './osman.ts';
 import type { Proposal } from './marriage.ts';
 
@@ -89,6 +89,8 @@ export interface Resident {
   spouseId: string | null;
   /** Where (in words, as it was then: "at home", "at the well") and when they last saw each other resident themselves. */
   lastSeen: Record<string, { where: string; t: number }>;
+  /** Money they gave each other resident today, and whether anything came back from them (meals.ts). */
+  given: Record<string, { day: number; cents: number; got: boolean }>;
 }
 
 export interface Shop {
@@ -487,7 +489,13 @@ export class World {
       if (from.money < cents) throw new Error(`${fromId} cannot cover ${cents}`);
       from.money -= cents;
     }
-    if (!OUTSIDE.has(toId)) this.resident(toId).money += cents;
+    if (!OUTSIDE.has(toId)) {
+      const to = this.resident(toId);
+      to.money += cents;
+      // Money from someone they'd given money to today: it no longer went for nothing (meals.ts).
+      const given = to.given?.[fromId];
+      if (given && given.day === dayIndex(this.state.t)) given.got = true;
+    }
     this.ledger.push({ seq: ++this.state.ledgerSeq, t: this.state.t, from: fromId, to: toId, cents, reason });
   }
 

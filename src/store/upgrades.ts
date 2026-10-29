@@ -531,6 +531,15 @@ export const UPGRADES: readonly Upgrade[] = [
       return { world: { ...world, residents }, brains };
     },
   },
+  {
+    from: 32,
+    why: 'Money given today with nothing back, as the giver remembers it (Kampung, 2026-10-29). Nobody has given anything yet today: it starts empty.',
+    save: ({ world, brains }) => {
+      type R = { given?: Record<string, unknown> };
+      const residents = (world.residents as R[]).map((r) => ({ ...r, given: r.given ?? {} }));
+      return { world: { ...world, residents }, brains };
+    },
+  },
 ];
 
 /** The save version this code writes and reads. */

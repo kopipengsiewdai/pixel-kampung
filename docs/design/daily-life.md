@@ -411,3 +411,14 @@ as it was then (a house changing hands later doesn't show), and the minute
 (`lastSeen`, save v32; it starts empty and fills as they go about). Muthu
 called for an absent Ah Huat 13 times in a morning at an unminded kopitiam
 with no idea where he'd gone.
+
+## On shift, and money given for nothing (Kampung, 2026-10-29)
+
+- A worker on shift can buy from the counter they're minding, at its price,
+  the money to the owner through the ledger like any sale, and eat there
+  without leaving the shift. Anywhere else, the shift comes first.
+- Money given to someone with nothing back from them that day is remembered:
+  "Today you've given Mdm Tan $6.55 and had nothing back." It shows while
+  they're with that person and when they give again; anything from them (a
+  gift, or a sale at their counter) ends it. Ah Kow paid Mdm Tan $6.55 in
+  seven gifts for grilled fish that wasn't hers to sell.
