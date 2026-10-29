@@ -4,6 +4,10 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## 0.41.3 (2026-10-29): Pak Osman by name
+
+- **Pak Osman is someone you can ask for by name.** Speaking to "Pak Osman" or "the lorry man" used to answer "You don't know anyone called…; there's nobody by that name in the kampung" (30 times since game day 20756, from residents who'd just sold him fish). At the lorry he now nods and deals from it (buy, sell, ask him to bring something); away from it, his lorry comes to the lorry stop in the mornings. Living town: nothing saved changes; from the next minute.
+
 ## 0.41.2 (2026-10-29): English for every line in a batch
 
 - **One bad answer no longer leaves a whole batch untranslated** (the watch page's English button and the paper's quotes). When the translator's answer for a batch can't be read, its lines are tried again one at a time; nothing from a failed batch is kept, so it's asked again next time. Living town: nothing saved changes; from the next request.
