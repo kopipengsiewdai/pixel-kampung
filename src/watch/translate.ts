@@ -76,14 +76,21 @@ export class Translator {
   private async translate(texts: readonly string[], all: boolean): Promise<(string | null)[]> {
     const wanted = [...new Set(texts.filter((x) => typeof x === 'string' && x.length <= MAX_CHARS && (all || looksForeign(x)) && !this.known.has(x)))];
     for (let i = 0; i < wanted.length; i += BATCH) {
-      if (!(await this.call(wanted.slice(i, i + BATCH)))) break;
+      const batch = wanted.slice(i, i + BATCH);
+      const got = await this.call(batch);
+      if (got === 'stop') break;
+      // An answer that couldn't be read leaves nothing kept: its lines are tried again one at a time.
+      if (got === 'unreadable' && batch.length > 1) {
+        for (const line of batch) if ((await this.call([line])) === 'stop') return texts.map((x) => this.known.get(x) ?? null);
+      }
     }
     return texts.map((x) => this.known.get(x) ?? null);
   }
 
-  private async call(lines: string[]): Promise<boolean> {
+  /** One call: done, an answer that couldn't be read, or stop (the cap is spent, or the call failed). */
+  private async call(lines: string[]): Promise<'done' | 'unreadable' | 'stop'> {
     const realMs = this.now();
-    if (this.costs.spentOn(this.costs.dayKey(realMs)) + ESTIMATE.routine > (this.townCap ?? dayCap(this.costs, realMs))) return false;
+    if (this.costs.spentOn(this.costs.dayKey(realMs)) + ESTIMATE.routine > (this.townCap ?? dayCap(this.costs, realMs))) return 'stop';
     const user = `Lines:\n${lines.map((l, i) => `${i + 1}. ${JSON.stringify(l)}`).join('\n')}`;
     try {
       const res = await this.client.think({
@@ -92,17 +99,17 @@ export class Translator {
       });
       for (const a of res.attempts) this.costs.add({ t: 0, realMs, resident: 'watch-page', kind: 'translate', model: a.model, usage: a.usage });
       const english = (res.toolCall?.input as { english?: unknown } | undefined)?.english;
-      if (res.refused || !Array.isArray(english) || english.length !== lines.length) return false;
+      if (res.refused || !Array.isArray(english) || english.length !== lines.length) return 'unreadable';
       lines.forEach((l, i) => {
         const e = english[i];
         if (typeof e === 'string' && e.trim()) this.known.set(l, e.trim().slice(0, MAX_CHARS * 2));
       });
       this.save();
-      return true;
+      return 'done';
     } catch (err) {
       this.onError(err);
       this.costs.add({ t: 0, realMs, resident: 'watch-page', kind: 'translate', model: 'failed', usage: { input_tokens: 0, output_tokens: 0 }, estimatedUsd: ESTIMATE.routine });
-      return false;
+      return 'stop';
     }
   }
 

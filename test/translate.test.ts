@@ -122,3 +122,25 @@ describe('English for the paper', () => {
     expect(calls).toHaveLength(1);
   });
 });
+
+// Kampung, 2026-10-29: one bad answer used to leave its whole batch untranslated.
+describe('a batch answer that cannot be read', () => {
+  it('is tried again a line at a time, and nothing from the failed batch is kept as unknown', async () => {
+    const calls: number[] = [];
+    const client: ModelClient = {
+      async think(req) {
+        const lines = req.user.split('\n').slice(1);
+        calls.push(lines.length);
+        // Wrong count for a batch, right for a single line.
+        const english = lines.length > 1 ? ['only one'] : [`EN ${lines[0]}`];
+        const usage = { input_tokens: 10, output_tokens: 10 };
+        return { model: 'm', text: '', toolCall: { name: 'answer', input: { english } }, usage, attempts: [{ model: 'm', usage }], refused: false };
+      },
+    };
+    const tr = new Translator({ client, costs: new CostLog(null) });
+    const lines = ['Aku lapar sangat hari ni, Mak.', 'Saya nak beli beras dua bungkus.', 'Kau dah makan ke belum?'];
+    const out = await tr.english(lines);
+    expect(calls).toEqual([3, 1, 1, 1]);
+    expect(out.every((x) => typeof x === 'string' && x.startsWith('EN '))).toBe(true);
+  });
+});
