@@ -743,13 +743,14 @@ function newsBox(i: Issue): Node[] {
   ));
   const head = ['Day', 'Meals', 'Ate < 2', 'Hunger 1000', 'Fell ill / got well', 'Refusals repeated (by wording, an estimate)', 'Circles', 'No money', 'Village fund', 'From / to outside']
     .map((h) => el('th', {}, h));
-  return [
+  const parts: (HTMLElement | null)[] = [
     el('h4', {}, 'Behind the scenes'),
     el('div', { class: 'scroll' }, el('table', { class: 'econ box' }, el('thead', {}, el('tr', {}, ...head)), el('tbody', {}, ...rows))),
     ...i.box.spend.map((s) => el('p', { class: 'note' }, `AI spend ${s.day}: US$${s.usd.toFixed(2)} of US$${s.cap.toFixed(2)}`, mark(s.over, "Above the day's cap"))),
     i.box.month ? el('p', { class: 'note' }, `This month: US$${i.box.month.usd.toFixed(2)} of US$${i.box.month.cap.toFixed(2)}`) : null,
     el('p', { class: 'note' }, i.box.ledgerCheck ?? 'No money check yet.'),
-  ].filter((n): n is HTMLElement => n !== null);
+  ];
+  return parts.filter((n): n is HTMLElement => n !== null);
 }
 
 function newsIssue(i: Issue): Node[] {
