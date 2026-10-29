@@ -7,7 +7,7 @@ import { kinOf } from '../seed/cast.ts';
 import { type ActionResult, type Intent, itemOf, no, ok, quoted } from './actions/common.ts';
 import { eat } from './actions/everyone.ts';
 import { ROUGH } from './households.ts';
-import { ITEMS, type ItemId } from './items.ts';
+import { ITEMS, type ItemId, quantityLabel } from './items.ts';
 import { formatMoney } from './money.ts';
 import { addGoods, countGoods, type Resident, type World } from './state.ts';
 import { dayIndex } from './time.ts';
@@ -39,7 +39,15 @@ export function canShareMeal(w: World, r: Resident): boolean {
 export function shareMeal(w: World, r: Resident, i: Intent): ActionResult {
   const asked = i.item !== undefined && i.item !== null && i.item !== '';
   const named = asked ? itemOf(i.item) : null;
-  if (asked && (!named || !heldFood(r).includes(named))) return no(named ? `You don't have any ${named} to share.` : `You don't have anything called ${quoted(i.item)}.`);
+  if (asked && (!named || !heldFood(r).includes(named))) {
+    // What they do hold, so they can share that instead (Kampung, 2026-10-29).
+    const held = heldFood(r).map((f) => quantityLabel(f, countGoods(r.items, f)));
+    const holding = held.length ? ` You are holding ${held.length === 1 ? held[0] : `${held.slice(0, -1).join(', ')} and ${held.at(-1)}`}.` : '';
+    // Holding it, but it's no meal (water, raw rice): what it is, as when eating it.
+    const first = !named ? `You don't have anything called ${quoted(i.item)}.`
+      : countGoods(r.items, named) > 0 ? (ITEMS[named].inedible ?? "That's no meal to share.") : `You have no ${named} in hand.`;
+    return no(`${first}${holding}`);
+  }
   const item = named ?? heldFood(r)[0];
   if (!item) return no("You've no food with you to share.");
   const served: Resident[] = [];
