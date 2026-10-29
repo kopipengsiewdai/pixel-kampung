@@ -30,9 +30,9 @@ describe('short of something to cook with, said plainly', () => {
     const huat = put(w, 'Ah Huat', 'kopitiam');
     huat.items = {};
     w.shop('kopitiam')!.stock = { coffee: 2, rice: 4, fish: 1 };
-    expect(refused(act(w, huat.id, { verb: 'cook', item: 'kopi' }))).toMatch(/^The kitchen has no water\b/);
+    expect(refused(act(w, huat.id, { verb: 'cook', item: 'kopi' }))).toMatch(/^The kitchen and your bag have no water\b/);
     w.shop('kopitiam')!.stock.water = 5;
-    expect(refused(act(w, huat.id, { verb: 'cook', item: 'fish porridge', batches: 3 }))).toMatch(/fish for only 1 batch\b/);
+    expect(refused(act(w, huat.id, { verb: 'cook', item: 'fish porridge', batches: 3 }))).toMatch(/^There's enough fish for only 1 batch\b/);
   });
 
   it('still ends the thought after one try', async () => {

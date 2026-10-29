@@ -7,7 +7,7 @@ import { formatMoney } from '../money.ts';
 import { COOK_MINUTES } from '../travellers.ts';
 import { addGoods, countGoods, GROWN_AGE, type Goods, type Resident, type Shop, type World } from '../state.ts';
 import {
-  type ActionResult, type Intent, MAX_PRICE, SAY_NOTHING_SENSIBLE, goodsLabel, itemOf, moneyOf, no, ok,
+  type ActionResult, type Intent, MAX_PRICE, SAY_NOTHING_SENSIBLE, itemOf, moneyOf, no, ok,
   personNearby, qtyOf, quoted, hasMoney, saysLater,
 } from './common.ts';
 import { shiftLabel } from './everyone.ts';
@@ -211,13 +211,13 @@ const stuffOf = (item: ItemId) => ITEMS[item].many.replace(/^\{n\} (?:\w+ of )?/
  * What's missing for a dish, said plainly (a bare "short of water" was read as
  * "make one batch only"): none at all, only some, or enough for fewer batches.
  */
-function shortOf(need: ItemId, have: number, perBatch: number, batches: number, needs: Goods, who: 'You have' | 'The kitchen has', each = 'each batch takes'): string {
+function shortOf(need: ItemId, have: number, perBatch: number, batches: number, needs: Goods, who: 'You have' | 'The kitchen has' | 'The kitchen and your bag have', each = 'each batch takes'): string {
   const parts = (Object.entries(needs) as [ItemId, number][]).filter(([, n]) => n > 0).map(([i, n]) => quantityLabel(i, n));
   const takes = `${each} ${parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}` : parts.join('')}`;
   if (have <= 0) return `${who} no ${stuffOf(need)}: ${takes}.`;
   if (have < perBatch) return `${who} only ${quantityLabel(need, have)}: ${takes}.`;
   const k = Math.floor(have / perBatch);
-  return `There's ${stuffOf(need)} for only ${k} batch${k === 1 ? '' : 'es'}: ${takes}.`;
+  return `There's enough ${stuffOf(need)} for only ${k} batch${k === 1 ? '' : 'es'}: ${takes}.`;
 }
 
 /** A pot over a cooking fire (subsistence.md "Where cooking happens"): simple food from what they carry, into their hands. */
@@ -307,7 +307,7 @@ export function cook(w: World, r: Resident, i: Intent): ActionResult {
   const own = w.shopOf(r.id)?.id === shop.id;
   for (const [need, n] of Object.entries(recipe.needs) as [ItemId, number][]) {
     const have = countGoods(shop.stock, need) + (own ? countGoods(r.items, need) : 0);
-    if (have < n * batches) return no(shortOf(need, have, n, batches, recipe.needs, 'The kitchen has'));
+    if (have < n * batches) return no(shortOf(need, have, n, batches, recipe.needs, own ? 'The kitchen and your bag have' : 'The kitchen has'));
   }
   // The kitchen's stock first, then (in their own kitchen) what the cook has brought along.
   for (const [need, n] of Object.entries(recipe.needs) as [ItemId, number][]) {
