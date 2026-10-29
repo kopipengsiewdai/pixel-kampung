@@ -25,7 +25,9 @@ into a prompt: residents find it all in-world.
 - **Sharing a meal:** a cook holding food can serve hungry family or household
   with them, one serving each (Kampung, 2026-10-29, owner told). Offered only
   with real food in hand and someone hungry of theirs there; each eats it just
-  as they'd eat it themselves.
+  as they'd eat it themselves. Asked to share a food they don't hold, they
+  hear what they are holding ("You have no boiled kangkong in hand. You are
+  holding 2 bunches of vegetables.").
 - **Seeing it:** anyone near someone holding food sees it beside them
   ("Fatimah (…, holding 2 plates of boiled kangkong)"), and a hungry resident
   with nothing to eat is told what they could cook at home from what they

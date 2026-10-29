@@ -236,6 +236,32 @@ function cookAtFire(w: World, r: Resident, item: ItemId): ActionResult {
   return ok(`You set ${item === 'bubur' ? 'your pot' : 'the fish'} over the fire.`);
 }
 
+/** The plain dish a raw thing makes, when nothing else can be made from it yet. */
+const PLAIN_DISH: Partial<Record<ItemId, ItemId>> = { rice: 'bubur', fish: 'grilled fish', vegetables: 'boiled kangkong' };
+
+/**
+ * "Cook kangkong", "cook fish": the dish they mean, from what it's made of
+ * (Kampung, 2026-10-29). The one dish they know made from it; else the one
+ * they could make from what's to hand; else the plain dish. Two or more they
+ * could make now: the choices, to say which.
+ */
+function dishOf(w: World, r: Resident, raw: ItemId): ItemId | ItemId[] | null {
+  const spot = kitchenFor(w, r);
+  const knows = (Object.entries(RECIPES) as [ItemId, NonNullable<(typeof RECIPES)[ItemId]>][])
+    .filter(([, recipe]) => recipe.needs[raw] && skillLevel(r, 'cooking') >= (recipe.level ?? 1))
+    .map(([dish]) => dish)
+    .sort((a, b) => Number(b === PLAIN_DISH[raw]) - Number(a === PLAIN_DISH[raw]));
+  const known = knows.filter((dish) => !(spot === 'home' && RECIPES[dish]!.level) && (spot !== 'fire' || FIRE_DISHES.includes(dish)));
+  // Nothing of theirs that can be made here: the dish, so they hear why not here ("You can't make that over an open fire.").
+  if (!known.length) return knows[0] ?? null;
+  if (known.length === 1) return known[0]!;
+  const now = cookable(w, r)?.dishes ?? [];
+  const could = known.filter((d) => now.includes(d));
+  if (could.length === 1) return could[0]!;
+  if (could.length > 1) return could;
+  return PLAIN_DISH[raw] && known.includes(PLAIN_DISH[raw]!) ? PLAIN_DISH[raw]! : known;
+}
+
 /** Where r would cook if they cooked now: a kitchen's name for the cook action, the dishes they could make, and whether there's fuel. */
 export type CookAt = 'kitchen' | 'home' | 'village kitchen' | 'fire';
 
@@ -286,18 +312,11 @@ export function kitchenFor(w: World, r: Resident): Shop | 'home' | 'shared' | 'f
 export function cook(w: World, r: Resident, i: Intent): ActionResult {
   const shop = kitchenFor(w, r);
   if (shop !== 'home' && shop !== 'shared' && shop !== 'fire' && typeof shop === 'string') return no(shop);
-  // Cooking "rice" can only mean boiling it; cooking "fish", grilling it.
   const named = itemOf(i.item);
-  const item = named === 'rice' ? 'bubur' : named === 'fish' ? 'grilled fish' : named;
+  const item = named && RECIPES[named] ? named : named ? dishOf(w, r, named) : null;
+  if (Array.isArray(item)) return no(`${`${item.slice(0, -1).join(', ')}, or ${item.at(-1)}`.replace(/^./, (c) => c.toUpperCase())}? Say which.`);
   const recipe = item ? RECIPES[item] : undefined;
   if (!item || !recipe || skillLevel(r, 'cooking') < (recipe.level ?? 1)) return no(`You don't know how to make ${quoted(i.item)}.`);
-  // "Fish" in a kitchen that could make fish porridge too: they say which.
-  if (named === 'fish' && typeof shop === 'object' && shop !== null) {
-    const porridge = RECIPES['fish porridge']!;
-    const mine = w.shopOf(r.id)?.id === shop.id;
-    const could = (Object.entries(porridge.needs) as [ItemId, number][]).every(([need, n]) => countGoods(shop.stock, need) + (mine ? countGoods(r.items, need) : 0) >= n);
-    if (could) return no('Grilled fish, or fish porridge? Say which.');
-  }
   const batches = qtyOf(i.batches);
   if (batches === null) return no(SAY_NOTHING_SENSIBLE);
   if (shop === 'home') return cookAtHome(w, r, item, batches);

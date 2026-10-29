@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { Brain } from '../src/brain/brain.ts';
 import { ITEMS } from '../src/sim/items.ts';
 import { describe as describePerception, perceive } from '../src/sim/perception.ts';
-import type { World } from '../src/sim/state.ts';
+import type { Goods, World } from '../src/sim/state.ts';
 import { advance } from '../src/sim/tick.ts';
 import { Town } from '../src/town.ts';
 import { accepted, act, expectInWorld, newWorld, put, refused, sgt, who } from './helpers.ts';
@@ -16,10 +16,8 @@ describe('bubur: rice and water, a dish any cook knows', () => {
       const w = newWorld(9);
       const huat = put(w, 'Ah Huat', 'kopitiam');
       huat.skills = {};
-      const stock = w.shop('kopitiam')!.stock;
-      stock.rice = 1;
-      stock.water = 1;
-      delete stock.bubur;
+      // Only rice and water in: "rice" can only be bubur (with fish in too, they'd be asked which).
+      const stock: Goods = (w.shop('kopitiam')!.stock = { rice: 1, water: 1 });
       accepted(act(w, huat.id, { verb: 'cook', item: asked }));
       for (let i = 0; i < 15; i++) advance(w);
       expect(stock.bubur).toBe(3);

@@ -222,7 +222,7 @@ The living town showed a keeper cooking dish after dish that never sold: the kop
 - What a keeper cooks at their own stall (or a worker cooks there) goes on the counter at a first price when it has none: what another stall asks for it; else what goes into a serving (at what the stall buys it for, or the town's going price) and half as much again, to the next 5¢; else 20¢. The keeper hears it, and changes the price whenever they like. A dish they've stopped selling (price 0) stays off the counter when more is cooked, until they price it again.
 - A keeper's notes show what's in stock with no price on it as "not for sale".
 - A keeper standing at their stall hands things over from its stock (their hands first). Away from it, they're told the rest is in the stock there.
-- "Cook fish" means grilling it, as "cook rice" means boiling it; "ikan" is fish. In a kitchen that could make fish porridge too, the cook is asked which.
+- A dish can be asked for by what it's made of (Kampung, 2026-10-29): it is the one dish they know from it, or the one they could make from what's to hand (one fish with rice and water: fish porridge), or else the plain dish ("cook fish" is grilled fish, "cook rice" bubur, "cook kangkong" boiled kangkong). Where they could make more than one dish from it with what's to hand (fish porridge too, vegetable rice too), the cook is asked which ("Grilled fish, or fish porridge? Say which."). "Ikan" is fish; "bubur nasi" is bubur.
 
 ## Haggling at the counter (PR 15)
 
