@@ -14,7 +14,7 @@ import { World, type Resident, type WorldState } from './sim/state.ts';
 import { advance } from './sim/tick.ts';
 import { osmanThinks, priceFor, type OsmanHead } from './sim/osman.ts';
 import { teacherThinks, type TeacherHead } from './sim/school.ts';
-import { mrLimDecides, mrLimHelps, mrLimReviews, mrLimThinks, type MrLimHead } from './sim/mr-lim.ts';
+import { jobOpenAt, mrLimDecides, mrLimHelps, mrLimReviews, mrLimThinks, type MrLimHead } from './sim/mr-lim.ts';
 import { isNight, minuteOfDay, realMsAt } from './sim/time.ts';
 import type { SqliteStore } from './store/sqlite-store.ts';
 import { SCHEMA_VERSION } from './store/upgrades.ts';
@@ -69,11 +69,14 @@ function pottered(w: World, r: Resident, p: Perception): void {
     return;
   }
   if (r.lastDone && w.t - r.lastDone.t < POTTERS_BEFORE_NUDGE * QUIET_THINK_MINUTES) return;
-  // Places they know with something to do there first (the jetty, the farm plot), then one more, turning with the time.
+  // Places they know with something to do there first: any with a job of Mr Lim's still to be had (Kampung,
+  // 2026-10-30: building-site jobs sat untaken, nothing ever bringing anyone there), then the jetty and the
+  // farm plot, then one more, turning with the time.
   const known = PLACES.filter((pl) => pl.kind !== 'house' && pl.id !== p.placeId && r.knownPlaces.includes(pl.id));
-  const work = known.filter((pl) => NUDGE_FIRST.includes(pl.id));
-  const rest = known.filter((pl) => !NUDGE_FIRST.includes(pl.id));
-  const places = [...work, ...(rest.length ? [rest[Math.floor(w.t / QUIET_THINK_MINUTES) % rest.length]!] : [])].map((pl) => pl.name);
+  const jobs = known.filter((pl) => jobOpenAt(w, r, pl.id));
+  const work = known.filter((pl) => NUDGE_FIRST.includes(pl.id) && !jobs.includes(pl));
+  const rest = known.filter((pl) => !NUDGE_FIRST.includes(pl.id) && !jobs.includes(pl));
+  const places = [...jobs, ...work, ...(rest.length ? [rest[Math.floor(w.t / QUIET_THINK_MINUTES) % rest.length]!] : [])].map((pl) => pl.name);
   const list = places.length <= 1 ? places.join('') : `${places.slice(0, -1).join(', ')} or ${places.at(-1)}`;
   r.reply = { ok: true, text: places.length ? `There's nothing more to do here. You could walk to ${list}.` : "There's nothing more to do here. You could set off north, south, east or west." };
 }

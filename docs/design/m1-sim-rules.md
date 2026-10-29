@@ -174,8 +174,10 @@ Ordered stock is dropped off at the owner's shop.
   name in the kampung."
 - Pottering about with nothing done for 3 quiet thoughts (30 minutes), a
   resident who isn't busy (walking, fishing, on shift) or minding their own
-  shop is reminded of places they know: the farm plot and the jetty first,
-  then one more turning with the time, never where they are ("There's
+  shop is reminded of places they know: any with a job of Mr Lim's they
+  could take there today first (not done, nobody at it, and they've done
+  none today; Kampung, 2026-10-30, so building-site jobs get taken), then
+  the farm plot and the jetty, then one more turning with the time, never where they are ("There's
   nothing more to do here. You could walk to …"). Read from when they last
   did something, so nothing new is saved.
 - Hungry at home with no food carried: "There's no food in the house." The
