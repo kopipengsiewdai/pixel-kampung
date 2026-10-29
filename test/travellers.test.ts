@@ -282,3 +282,42 @@ describe('the upgrade: shops open their doors to the road', () => {
     expect(up.residents[0]).toMatchObject({ stove: null });
   });
 });
+
+// Kampung, 2026-10-29: travellers buy the dishes added in #110 too, at caps set from comparable dishes.
+describe('travellers buy bubur, grilled fish and boiled kangkong', () => {
+  it('will pay up to 20¢ for bubur, 50¢ for grilled fish and 45¢ for boiled kangkong', () => {
+    expect(TRAVELLER_PAYS.bubur).toBe(20);
+    expect(TRAVELLER_PAYS['grilled fish']).toBe(50);
+    expect(TRAVELLER_PAYS['boiled kangkong']).toBe(45);
+  });
+
+  it('a kopitiam with only those on its counter still sells to the morning rush', () => {
+    const w = newWorld(6, 29);
+    const huat = put(w, 'Ah Huat', 'kopitiam');
+    const shop = w.shop('kopitiam')!;
+    shop.stock = { bubur: 30, 'grilled fish': 30, 'boiled kangkong': 30 };
+    shop.sellPrices = { bubur: 20, 'grilled fish': 45, 'boiled kangkong': 40 };
+    const before = huat.money;
+    const events = run(w, 31, ['Ah Huat']);
+    const bought = events.filter((e) => e.type === 'traveller_bought').map((e) => (e as { item: string }).item);
+    expect(bought.length).toBeGreaterThanOrEqual(5);
+    expect(new Set(bought).size).toBeGreaterThanOrEqual(2);
+    expect(huat.money).toBeGreaterThan(before);
+  });
+});
+
+describe('a traveller finding one thing too dear', () => {
+  it('counts it too dear, then buys something else they want at a price they will pay', () => {
+    const w = newWorld(6, 29);
+    const huat = put(w, 'Ah Huat', 'kopitiam');
+    const shop = w.shop('kopitiam')!;
+    shop.stock = { kopi: 30, 'grilled fish': 30 };
+    shop.sellPrices = { kopi: 20, 'grilled fish': 85 };
+    const before = huat.money;
+    run(w, 31, ['Ah Huat']);
+    // Seven came (06:30 to 07:00): every one either bought kopi or is still being served.
+    expect(shop.today.tooDear['grilled fish'] ?? 0).toBeGreaterThan(0);
+    expect(shop.today.served + shop.queue.length + shop.serving.length).toBe(7);
+    expect(huat.money).toBeGreaterThan(before);
+  });
+});

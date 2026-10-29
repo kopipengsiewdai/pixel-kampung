@@ -4,6 +4,10 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## Unreleased
+
+- **Travellers buy bubur, grilled fish and boiled kangkong** ([daily-life.md](docs/design/daily-life.md) B). Travellers at the kopitiam only ever wanted kopi, fish porridge, vegetable rice and sambal kangkong, so a kopitiam making the newer dishes (and out of coffee powder) had no outside trade for three days. They now pay up to 20¢ for bubur, 50¢ for grilled fish and 45¢ for boiled kangkong. A traveller who finds one thing too dear now takes something else they want at a price they'll pay (the keeper still hears it was too dear). Living town: nothing saved changes; from the next minute.
+
 ## 0.39.0 (2026-10-28): marriage
 
 - **Marriage** ([households.md](docs/design/households.md) Marriage). Two grown (18+) residents who aren't family can marry, if each feels fond enough of the other (70) and trusts them enough (50): one asks, the other says yes or no, and an unanswered proposal lapses at the end of the day. Once married, either can move in with the other; a rented house they leave goes back, rent owing still owed. Purses stay separate. The wedding is in the story feed, kin and anyone there remember it, and the watch card shows who's married to whom. Living town: save v31 (nobody is married or asked yet); residents discover it when they feel that way about someone nearby.
