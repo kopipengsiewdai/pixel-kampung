@@ -4,7 +4,7 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
-## Unreleased
+## 0.40.0 (2026-10-29): clearer refusals, where you last saw someone
 
 - **Clearer refusals, fewer repeats** (Kampung, 2026-10-29). Residents tried the same thing 10–30 times a day because the answer read as something else. Short of something to cook with now says what's missing plainly ("You have no water: each batch takes a bag of rice and a pail of water", "There's fish for only 2 batches: …") instead of "short of water", which was read as "make one batch". Bread, grilled fish and coconuts answer to roti, ikan panggang, kelapa muda and air kelapa. Watering and harvesting are offered only to someone with a bed planted, and asking without one says "Nothing of yours is planted on the plot now." Living town: nothing saved changes; from the next minute.
 - **Where you last saw someone** ([daily-life.md](docs/design/daily-life.md)). Asking for someone who isn't there now also says where you last saw them yourself ("You last saw Ah Huat at home, early this morning.", "You haven't seen Ah Huat since yesterday."), never where they are now. Muthu called for an absent Ah Huat 13 times in a morning. Living town: save v32 (nobody has seen anyone yet; it fills as residents go about).
