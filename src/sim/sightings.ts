@@ -3,17 +3,23 @@
  * for someone who isn't there, they're told where they last saw them
  * themselves, never where that person is now.
  */
-import { PLACE_BY_ID } from './map.ts';
 import type { Resident, World } from './state.ts';
 import { dayIndex, sgtHour } from './time.ts';
 
 /** Within this many minutes, it was "a little while ago". */
 export const LITTLE_WHILE = 30;
 
-/** Everyone r can see this minute: where r saw them (null out on a path) and when. */
+/**
+ * Everyone r can see this minute: where they were (not where r stood: someone
+ * in view can be next door), worded as it was then, so a house later changing
+ * hands or a move r never saw doesn't show; and when.
+ */
 export function noteSightings(w: World, r: Resident): void {
-  const at = w.placeOf(r)?.id ?? null;
-  for (const o of w.nearby(r)) r.lastSeen[o.id] = { at, t: w.t };
+  for (const o of w.nearby(r)) {
+    const p = w.placeOf(o);
+    const where = !p ? 'out walking' : p.id === o.homeId ? 'at home' : p.id === r.homeId ? 'at your house' : `at ${w.placeName(p)}`;
+    r.lastSeen[o.id] = { where, t: w.t };
+  }
 }
 
 function partOfDay(t: number): string {
@@ -29,9 +35,5 @@ export function lastSeenLine(w: World, r: Resident, o: Resident): string {
   const days = dayIndex(w.t) - dayIndex(seen.t);
   if (days === 1) return `You haven't seen ${o.name} since yesterday.`;
   if (days > 1) return `You haven't seen ${o.name} for ${days} days.`;
-  const place = seen.at === null ? 'out walking'
-    : seen.at === o.homeId ? 'at home'
-      : seen.at === r.homeId ? 'at your house'
-        : `at ${w.placeName(PLACE_BY_ID.get(seen.at)!)}`;
-  return `You last saw ${o.name} ${place}${w.t - seen.t <= LITTLE_WHILE ? ' a little while ago' : `, ${partOfDay(seen.t)}`}.`;
+  return `You last saw ${o.name} ${seen.where}${w.t - seen.t <= LITTLE_WHILE ? ' a little while ago' : `, ${partOfDay(seen.t)}`}.`;
 }

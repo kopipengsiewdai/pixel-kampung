@@ -406,7 +406,8 @@ the asker last saw them, from their own sightings only, never where that
 person is now: "You last saw Ah Huat at home, early this morning.", "… at
 the well a little while ago." (within half an hour), "You haven't seen Ah
 Huat since yesterday." / "for 3 days." / "lately." (never). Each resident
-keeps, for everyone else, the place and minute they last had them in view
+keeps, for everyone else, where that person was when last in view, worded
+as it was then (a house changing hands later doesn't show), and the minute
 (`lastSeen`, save v32; it starts empty and fills as they go about). Muthu
 called for an absent Ah Huat 13 times in a morning at an unminded kopitiam
 with no idea where he'd gone.

@@ -51,6 +51,32 @@ describe('where you last saw someone', () => {
     expect(callFor(w, 'Muthu', 'Rahim')).toMatch(/You haven't seen Rahim lately\./);
   });
 
+  it('where they were, not where the one who saw them stood: from the well, Ah Huat in the provision shop next door', () => {
+    const w = newWorld(10, 0);
+    const muthu = put(w, 'Muthu', 'well');
+    const huat = put(w, 'Ah Huat', 'provision-shop');
+    huat.pos = { x: 20, y: muthu.pos.y };
+    muthu.pos = { x: 22, y: muthu.pos.y };
+    expect(w.isNear(muthu, huat)).toBe(true);
+    expect(w.placeOf(muthu)?.id).not.toBe(w.placeOf(huat)?.id);
+    run(w, 1);
+    put(w, 'Ah Huat', 'farm');
+    run(w, 40);
+    expect(callFor(w, 'Muthu', 'Ah Huat')).toMatch(/You last saw Ah Huat at the provision shop, this morning\./);
+  });
+
+  it('worded as it was then: a house named for who lived there when they saw it', () => {
+    const w = newWorld(14, 0);
+    const huat = who(w, 'Ah Huat');
+    put(w, 'Muthu', huat.homeId);
+    put(w, 'Ah Huat', huat.homeId);
+    run(w, 1);
+    put(w, 'Muthu', 'well');
+    huat.homeId = 'rough';
+    run(w, 40);
+    expect(callFor(w, 'Muthu', 'Ah Huat')).toMatch(/You last saw Ah Huat at home, this afternoon\./);
+  });
+
   it('a little while ago, if it was in the last half hour', () => {
     const w = newWorld(10, 0);
     put(w, 'Muthu', 'well');

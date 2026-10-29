@@ -87,8 +87,8 @@ export interface Resident {
   ill: { since: number; better: number | null } | null;
   /** Who they're married to (households.md, Marriage), if anyone. */
   spouseId: string | null;
-  /** Where and when they last saw each other resident themselves (place null: out on a path). */
-  lastSeen: Record<string, { at: string | null; t: number }>;
+  /** Where (in words, as it was then: "at home", "at the well") and when they last saw each other resident themselves. */
+  lastSeen: Record<string, { where: string; t: number }>;
 }
 
 export interface Shop {

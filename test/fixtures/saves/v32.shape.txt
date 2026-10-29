@@ -454,8 +454,8 @@ src/sim/state.ts WorldState {
     }
     lastSeen: {
       [key: string]: {
-        at: null | string
         t: number
+        where: string
       }
     }
     mended: null | {
