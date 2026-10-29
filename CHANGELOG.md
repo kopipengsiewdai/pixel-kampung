@@ -4,6 +4,10 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## 0.41.1 (2026-10-29): the paper's quotes in English
+
+- **Kampung News quotes are always in English** ([news.md](docs/design/news.md)). Every quote the paper picks now goes to the translator (an English line comes back as it was), one it still can't put into English is left out, and talk in Malay about money, work, rent, marrying or illness is picked as well as English. The first issue had one quote left in Malay. Living town: nothing saved changes; from the next issue.
+
 ## 0.41.0 (2026-10-29): Kampung News
 
 - **Kampung News** ([news.md](docs/design/news.md)), the owner's daily paper, on the watch page's new News button. Each morning from about 07:00 it's written in a 1960s broadsheet voice from what really happened in the kampung days since the last issue (facts only: a report quoting words not on record is dropped), and ends with a computed "behind the scenes" box per day: meals, hunger, illness, repeated refusals, talk circles, money, and the AI spend against the cap, with a mark where a figure crosses a line. One cheap call an issue, inside the cap. Living town: nothing saved changes; the first issue comes out the next morning and looks back five kampung days.

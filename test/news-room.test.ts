@@ -175,6 +175,21 @@ describe('Kampung News', () => {
 });
 
 describe('Kampung News, after review', () => {
+  it('quotes go to the writer in English; one that could not be put into English is left out', async () => {
+    const events = [
+      ev(gt(20769, 9), { type: 'said', who: 'siti', to: 'raju', text: 'Wa mau cari duit sendiri, jangan suruh kawin dulu, nanti saya bayar.' }),
+      ev(gt(20769, 10), { type: 'said', who: 'raju', to: 'siti', text: 'Aku nak beli beras, harga dia naik lagi hari ni.' }),
+    ];
+    const { client, asked } = writer(story);
+    let sent: string[] = [];
+    const translate = async (texts: string[]) => { sent = texts; return texts.map((t) => (t.startsWith('Aku') ? 'I want to buy rice, the price went up again today.' : null)); };
+    const room = new Newsroom({ dir: home(), client, costs: new CostLog(null), desk: desk(gt(20770, 9), events), translate, now: () => at(29, 7) });
+    await room.publishIfDue(at(29, 7));
+    expect(sent).toHaveLength(2);
+    expect(asked[0]!.user).toMatch(/I want to buy rice/);
+    expect(asked[0]!.user).not.toMatch(/cari duit/);
+  });
+
   it('an unusable answer counts: at most 3 paid tries a real day, then it waits for the next morning', async () => {
     const { client, asked } = writer({ nothing: true });
     const room = new Newsroom({ dir: home(), client, costs: new CostLog(null), desk: desk(gt(20770, 9)), now: () => at(29, 7) });
