@@ -6,7 +6,7 @@ never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
 ## Unreleased
 
-- **Travellers buy bubur, grilled fish and boiled kangkong** ([daily-life.md](docs/design/daily-life.md) B). Travellers at the kopitiam only ever wanted kopi, fish porridge, vegetable rice and sambal kangkong, so a kopitiam making the newer dishes (and out of coffee powder) had no outside trade for three days. They now pay up to 20¢ for bubur, 45¢ for grilled fish and 45¢ for boiled kangkong. Living town: nothing saved changes; from the next minute.
+- **Travellers buy bubur, grilled fish and boiled kangkong** ([daily-life.md](docs/design/daily-life.md) B). Travellers at the kopitiam only ever wanted kopi, fish porridge, vegetable rice and sambal kangkong, so a kopitiam making the newer dishes (and out of coffee powder) had no outside trade for three days. They now pay up to 20¢ for bubur, 50¢ for grilled fish and 45¢ for boiled kangkong. A traveller who finds one thing too dear now takes something else they want at a price they'll pay (the keeper still hears it was too dear). Living town: nothing saved changes; from the next minute.
 
 ## 0.39.0 (2026-10-28): marriage
 

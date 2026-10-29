@@ -200,8 +200,10 @@ unserved today; a seeker asks for work on seeing "serving alone".
   vegetables 2. Each traveller wants only what is priced and in stock.
 - Travellers also buy the dishes added in #110 (Kampung, 2026-10-29): at the
   kopitiam bubur 2, grilled fish 2 and boiled kangkong 1, paying up to 20¢,
-  45¢ and 45¢. The caps come from comparable dishes (kopi, fish porridge,
-  sambal kangkong), never from posted prices, which keepers set.
+  50¢ and 45¢. The caps come from comparable dishes (kopi, fish porridge,
+  sambal kangkong), never from posted prices, which keepers set. A traveller who finds what they
+  picked too dear still counts as too dear, then takes something else they
+  want at a price they'll pay, if the shop has one.
 - Too dear counts by item. "Left without being served" counts both those
   who gave up in the queue and those who found nobody serving. The owner
   hears of the latter on coming back ("While you were away, …").

@@ -44,7 +44,7 @@ export const TRAVELLER_PAYS: Partial<Record<ItemId, Cents>> = {
   kopi: 20, 'fish porridge': 50, 'vegetable rice': 45, rice: 35, coffee: 75, bread: 25, fish: 55, vegetables: 35,
   'red snapper': 150, chilli: 40, papaya: 60, 'sambal kangkong': 50,
   // From comparable dishes, not posted prices (keepers set those): bubur as kopi, grilled fish under fish porridge, boiled under sambal kangkong.
-  bubur: 20, 'grilled fish': 45, 'boiled kangkong': 45,
+  bubur: 20, 'grilled fish': 50, 'boiled kangkong': 45,
 };
 
 /** At a kitchen where a master cooked today, travellers pay up to this much more. */
@@ -81,10 +81,11 @@ export function servers(w: World, shop: Shop): Resident[] {
   return out;
 }
 
-/** The thing a traveller wants: one of what the shop sells and has, picked by fixed weights (no randomness). */
-function wanted(w: World, shop: Shop): ItemId | null {
+/** The thing a traveller wants: one of what the shop sells and has (at a price they'll pay, if `affordable`), picked by fixed weights (no randomness). */
+function wanted(w: World, shop: Shop, affordable = false): ItemId | null {
   const choices = (Object.entries(WANTS[shop.id] ?? {}) as [ItemId, number][])
-    .filter(([item]) => shop.sellPrices[item] && onCounter(w, shop, item) > w.dials.travellerReserve);
+    .filter(([item]) => shop.sellPrices[item] && onCounter(w, shop, item) > w.dials.travellerReserve
+      && (!affordable || shop.sellPrices[item]! <= travellerPays(shop, item)));
   const total = choices.reduce((n, [, k]) => n + k, 0);
   if (!total) return null;
   let pick = (Math.imul(w.t, 2654435761) >>> 0) % total;
@@ -164,10 +165,14 @@ export function travellersMinute(w: World): void {
     const n = every(shop.id, mod);
     const free = servers(w, shop);
     if (n !== null && mod % n === 0 && shop.today.cents < w.dials.travellerBudgetCents) {
-      const item = wanted(w, shop);
+      let item = wanted(w, shop);
+      // Too dear: the keeper hears of it, and the traveller takes something else they want at a price they'll pay, if there is one.
+      if (item && (shop.sellPrices[item] ?? 0) > travellerPays(shop, item)) {
+        shop.today.tooDear[item] = (shop.today.tooDear[item] ?? 0) + 1;
+        item = wanted(w, shop, true);
+      }
       if (item) {
-        if ((shop.sellPrices[item] ?? 0) > travellerPays(shop, item)) shop.today.tooDear[item] = (shop.today.tooDear[item] ?? 0) + 1;
-        else if (!free.length) {
+        if (!free.length) {
           shop.today.away++;
           shop.hour.left++;
           lost(w, shop, item);
