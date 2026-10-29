@@ -32,7 +32,10 @@ into a prompt: residents find it all in-world.
   ("Fatimah (…, holding 2 plates of boiled kangkong)"), and a hungry resident
   with nothing to eat is told what they could cook at home from what they
   really have (held, their own shop's stock, their house's stove and fuel),
-  with the one missing thing named (Kampung, 2026-10-29).
+  with the one missing thing named (Kampung, 2026-10-29). Firewood and
+  kerosene in someone's hands show the same way, and a stove refused for
+  fuel says who there has some ("Aminah has a tin of kerosene."); the stove
+  never takes it from their hands (Kampung, 2026-10-29, from house-9).
 - **Fuel:** a stove needs fuel for each batch.
   - **Firewood:** free. Gathered past the farm plot (a 20-minute chore, one
     bundle). One bundle cooks one batch.

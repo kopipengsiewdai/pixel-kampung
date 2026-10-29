@@ -4,6 +4,10 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## 0.42.2 (2026-10-29): fuel in hand, seen
+
+- **Fuel in someone's hands is seen** ([home-cooking.md](docs/design/home-cooking.md); Kampung, 2026-10-29, from house-9: Aminah held a tin of kerosene while Fatimah was told 26 times the stove needed fuel). Firewood and kerosene show beside whoever holds them, like food, and a stove refused for fuel says who there has some ("Aminah has a tin of kerosene."). The stove still burns only the cook's own fuel. Living town: picked up on restart; no save change.
+
 ## 0.42.1 (2026-10-29): dishes by what they're made of
 
 - **Dishes by what they're made of, and sharing what you hold** ([daily-life.md](docs/design/daily-life.md), [home-cooking.md](docs/design/home-cooking.md); Kampung, 2026-10-29, from game day 20770). "Bubur nasi" is bubur. "Cook kangkong" is boiled kangkong: a dish can be asked for by what it's made of, taken as the one dish the cook could make from it, or asked which when more than one fits; at a fire or at home they hear why a dish can't be made there instead of "you don't know how to make it". Asked to share a food they aren't holding, a cook hears what they are holding. Living town: picked up on restart; no save change.

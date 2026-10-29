@@ -6,7 +6,7 @@ import { FEELINGS_SHOWN, feelingLine, strength } from './bonds.ts';
 import { householdLines } from './households.ts';
 import { marriageLines } from './marriage.ts';
 import { givenLines } from './meals.ts';
-import { KEROSENE_BATCHES } from './actions/owners.ts';
+import { KEROSENE_BATCHES, STOVE_FUEL } from './actions/owners.ts';
 import { ROUGH } from './households.ts';
 import { dealLines } from './place-deals.ts';
 import { offersFor } from './actions/haggle.ts';
@@ -79,7 +79,7 @@ export interface Perception {
   /** Where they are, as they'd say it: a shop by whose it is ("Mdm Tan's provision shop", "your kopitiam"). */
   where: string;
   atHome: boolean;
-  /** looks: how hungry they look, if it shows; holding: the food in their hands, as anyone would see it. */
+  /** looks: how hungry they look, if it shows; holding: the food and stove fuel in their hands, as anyone would see it. */
   people: { name: string; doing: string; looks?: string; holding?: string }[];
   /** Money given today to someone here with nothing back, as they remember it. */
   given: string[];
@@ -263,10 +263,15 @@ function homeCooking(w: World, r: Resident): string | null {
   return `You could cook ${best.dish} at home${stocked}${best.missing.length ? `, but you'd need ${best.missing[0]}.` : stocked ? '.' : ': you have what it takes.'}`;
 }
 
-/** The food in someone's hands, as anyone near them would see it ("2 plates of boiled kangkong"); at most two kinds. */
+/**
+ * The food in someone's hands, as anyone near them would see it ("2 plates of
+ * boiled kangkong"), at most two kinds; and any fuel for a stove (Kampung,
+ * 2026-10-29: a tin of kerosene in the house nobody cooking knew about).
+ */
 function holdingFood(o: Resident): string | null {
   const food = (Object.keys(o.items) as ItemId[]).filter((i) => ITEMS[i]?.food && countGoods(o.items, i) > 0).slice(0, 2);
-  return food.length ? andOr(food.map((i) => quantityLabel(i, countGoods(o.items, i))), 'and') : null;
+  const seen = [...food, ...STOVE_FUEL.filter((i) => countGoods(o.items, i) > 0)];
+  return seen.length ? andOr(seen.map((i) => quantityLabel(i, countGoods(o.items, i))), 'and') : null;
 }
 
 /** A thing as stuff, with no count: "rice", "coffee powder", "chillies". */
