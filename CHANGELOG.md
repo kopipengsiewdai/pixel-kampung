@@ -4,6 +4,10 @@ Newest first. One line per change, in plain English. Each release says how a
 town that is already living picks it up ("Living town"), because the town is
 never reset (see [docs/design/upgrades.md](docs/design/upgrades.md)).
 
+## 0.41.2 (2026-10-29): English for every line in a batch
+
+- **One bad answer no longer leaves a whole batch untranslated** (the watch page's English button and the paper's quotes). When the translator's answer for a batch can't be read, its lines are tried again one at a time; nothing from a failed batch is kept, so it's asked again next time. Living town: nothing saved changes; from the next request.
+
 ## 0.41.1 (2026-10-29): the paper's quotes in English
 
 - **Kampung News quotes are always in English** ([news.md](docs/design/news.md)). Every quote the paper picks now goes to the translator (an English line comes back as it was), one it still can't put into English is left out, and talk in Malay about money, work, rent, marrying or illness is picked as well as English. The first issue had one quote left in Malay. Living town: nothing saved changes; from the next issue.
