@@ -33,7 +33,8 @@ const OPEN_TO = 21 * 60;
 
 /** What a traveller wants at each shop, by weight. */
 const WANTS: Record<string, Partial<Record<ItemId, number>>> = {
-  kopitiam: { kopi: 3, 'fish porridge': 2, 'vegetable rice': 2, 'sambal kangkong': 2 },
+  // bubur, grilled fish and boiled kangkong too (Kampung, 2026-10-29).
+  kopitiam: { kopi: 3, 'fish porridge': 2, 'vegetable rice': 2, 'sambal kangkong': 2, bubur: 2, 'grilled fish': 2, 'boiled kangkong': 1 },
   'provision-shop': { rice: 3, bread: 3, coffee: 1 },
   'market-stall': { fish: 3, vegetables: 2, chilli: 1, papaya: 1, 'red snapper': 1 },
 };
@@ -42,6 +43,8 @@ const WANTS: Record<string, Partial<Record<ItemId, number>>> = {
 export const TRAVELLER_PAYS: Partial<Record<ItemId, Cents>> = {
   kopi: 20, 'fish porridge': 50, 'vegetable rice': 45, rice: 35, coffee: 75, bread: 25, fish: 55, vegetables: 35,
   'red snapper': 150, chilli: 40, papaya: 60, 'sambal kangkong': 50,
+  // From comparable dishes, not posted prices (keepers set those): bubur as kopi, grilled fish under fish porridge, boiled under sambal kangkong.
+  bubur: 20, 'grilled fish': 45, 'boiled kangkong': 45,
 };
 
 /** At a kitchen where a master cooked today, travellers pay up to this much more. */

@@ -198,6 +198,10 @@ unserved today; a seeker asks for work on seeing "serving alone".
 - The kopitiam wants kopi 3, fish porridge 2 and vegetable rice 2; the
   provision shop rice 3, bread 3 and coffee 1; the stall fish 3 and
   vegetables 2. Each traveller wants only what is priced and in stock.
+- Travellers also buy the dishes added in #110 (Kampung, 2026-10-29): at the
+  kopitiam bubur 2, grilled fish 2 and boiled kangkong 1, paying up to 20¢,
+  45¢ and 45¢. The caps come from comparable dishes (kopi, fish porridge,
+  sambal kangkong), never from posted prices, which keepers set.
 - Too dear counts by item. "Left without being served" counts both those
   who gave up in the queue and those who found nobody serving. The owner
   hears of the latter on coming back ("While you were away, …").
