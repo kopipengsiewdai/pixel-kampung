@@ -81,8 +81,8 @@ export interface NewsDesk {
 
 /** The town was down (a quiet spell is dated when it came back, and says how long it lasted). Not the cap's quiet. */
 type QuietSpell = Extract<GameEvent, { type: 'quiet_spell' }>;
-/** Talk worth a line in the digest: deals, money, houses, marrying, work, illness. */
-const NOTABLE_TALK = /\b(marr|wed|rent|owe|debt|lend|borrow|pay|paid|price|sell|buy|job|work|hire|sick|ill|hungry|lorry|house|sorry|angry|thank)/i;
+/** Talk worth a line in the digest: deals, money, houses, marrying, work, illness; in English and the kampung's Malay. */
+const NOTABLE_TALK = /\b(marr|wed|rent|owe|debt|lend|borrow|pay|paid|price|sell|buy|job|work|hire|sick|ill|hungry|lorry|house|sorry|angry|thank|beli|jual|bayar|duit|wang|hutang|pinjam|sewa|kerja|sakit|lapar|kahwin|kawin|harga|rumah|lori|maaf|marah|terima kasih)/i;
 
 /** A kampung day as the paper writes it: "Tuesday 3 January, Year 0". */
 function dayTitle(cal: Calendar, day: number): string {
@@ -300,7 +300,8 @@ export class Newsroom {
         this.onError(err);
       }
     }
-    const inEnglish = new Map(texts.map((t, i) => [t, english[i] ?? t]));
+    // In English or not at all: a line the translator couldn't do is left out (without a translator, as said).
+    const inEnglish = new Map(texts.map((t, i) => [t, this.translate ? english[i] ?? null : t]));
     const out: string[] = ['Notes for the issue, day by day. Times are the kampung clock.'];
     if (leftOut) out.push(`These notes cover only the latest ${days.length} days: no issue came out for the ${leftOut} earlier days, and they go unreported.`);
     if (gap) out.push('The town was down for a spell in these days: the kampung went quiet, and nothing was recorded while it was.');
@@ -322,7 +323,10 @@ export class Newsroom {
       }
       for (const [text, x] of folded) out.push(`${hhmm(x.t)} ${text}${x.n > 1 ? ` (${x.n} times)` : ''}`);
       if (!moments.length) out.push('Nothing of note was recorded.');
-      for (const e of talk[i]!) out.push(`${hhmm(e.t)} ${n(e.who)}${e.to ? ` to ${n(e.to)}` : ''}: "${inEnglish.get(e.text)}"`);
+      for (const e of talk[i]!) {
+        const said = inEnglish.get(e.text);
+        if (said) out.push(`${hhmm(e.t)} ${n(e.who)}${e.to ? ` to ${n(e.to)}` : ''}: "${said}"`);
+      }
       out.push(`Meals eaten: ${row.meals}.${row.under2.length ? ` Ate fewer than twice: ${row.under2.join(', ')}.` : ''}`);
       if (row.hunger1000?.length) out.push(`Starving at the day's end: ${row.hunger1000.join(', ')}.`);
       if (row.fellIll.length) out.push(`Fell ill: ${row.fellIll.join(', ')}.`);

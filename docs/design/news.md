@@ -80,7 +80,8 @@ circles, or spend above the day's cap.
 - The writer sees only a digest: who's who (family from the cast, who is
   married), each day's key moments from the saved events (the same line
   repeated is folded into one, with how often), up to eight lines of notable
-  talk a day put into English with the watch page's translator, meals,
+  talk a day (picked by words in English or Malay) put into English with the
+  watch page's translator (every quote sent; one it can't do is left out), meals,
   hunger, illness, and money across the edge of town. A report quoting words
   that aren't in the digest (in "…", “…” or ‘…’, curly apostrophes matched) is
   dropped; a lead or headline that does goes whole, and the first report on

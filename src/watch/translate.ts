@@ -63,15 +63,18 @@ export class Translator {
     }
   }
 
-  /** English for each line, or null where it's already English (or can't be had right now). */
-  english(texts: readonly string[]): Promise<(string | null)[]> {
-    const run = this.queue.then(() => this.translate(texts.slice(0, MAX_ASK)));
+  /**
+   * English for each line, or null where it's already English (or can't be had right now).
+   * `all`: every line is sent, whatever the foreign-line check says (the paper's quotes: an English line comes back as it was).
+   */
+  english(texts: readonly string[], opts: { all?: boolean } = {}): Promise<(string | null)[]> {
+    const run = this.queue.then(() => this.translate(texts.slice(0, MAX_ASK), opts.all === true));
     this.queue = run.catch(() => {});
     return run;
   }
 
-  private async translate(texts: readonly string[]): Promise<(string | null)[]> {
-    const wanted = [...new Set(texts.filter((x) => typeof x === 'string' && x.length <= MAX_CHARS && looksForeign(x) && !this.known.has(x)))];
+  private async translate(texts: readonly string[], all: boolean): Promise<(string | null)[]> {
+    const wanted = [...new Set(texts.filter((x) => typeof x === 'string' && x.length <= MAX_CHARS && (all || looksForeign(x)) && !this.known.has(x)))];
     for (let i = 0; i < wanted.length; i += BATCH) {
       if (!(await this.call(wanted.slice(i, i + BATCH)))) break;
     }

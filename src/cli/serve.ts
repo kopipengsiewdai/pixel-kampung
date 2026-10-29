@@ -123,7 +123,7 @@ console.log(`Pixel Kampung is running. Saving to ${dbPath(home)}`);
 // Kampung News, the owner's daily paper (news.md): written each morning from the save, on the same model and cap (as kampung-news).
 const newsroom = writer && costs && mem ? new Newsroom({
   dir: home, client: writer, costs, onError: (err) => console.error(`Kampung News couldn't be written just now (${err instanceof Error ? err.constructor.name : 'Error'}); it will try again.`),
-  translate: translator ? (t) => translator!.english(t) : undefined,
+  translate: translator ? (t) => translator!.english(t, { all: true }) : undefined,
   desk: {
     t: () => town.t,
     calendar: town.world.state.calendar,

@@ -107,3 +107,18 @@ describe('Hokkien and Tamil, in Roman letters', () => {
     expect(looksForeign('I will go to the jetty and fish.')).toBe(false);
   });
 });
+
+// Kampung, 2026-10-29: the paper sends every quote it picks, since the foreign-line check missed mixed Hokkien-Malay ("wa mau cari duit sendiri").
+describe('English for the paper', () => {
+  it('with all, a line the check takes for English is sent too, and kept', async () => {
+    const { client, calls } = counting();
+    const tr = new Translator({ client, costs: new CostLog(null) });
+    const line = 'I want to earn my own money, Ma.';
+    expect(await tr.english([line])).toEqual([null]);
+    expect(calls).toHaveLength(0);
+    expect(await tr.english([line], { all: true })).toEqual([`(English) ${line}`]);
+    expect(calls).toHaveLength(1);
+    await tr.english([line], { all: true });
+    expect(calls).toHaveLength(1);
+  });
+});
